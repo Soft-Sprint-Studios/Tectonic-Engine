@@ -1,0 +1,36 @@
+#version 460 core
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer HistogramBuffer {
+    uint histogram[256];
+};
+
+layout(std430, binding = 1) writeonly buffer ExposureResult {
+    float averageSceneLuminance;
+};
+
+const float MIN_LOG_LUM = -10.0;
+const float MAX_LOG_LUM = 10.0;
+const float LOG_LUM_RANGE = MAX_LOG_LUM - MIN_LOG_LUM;
+
+void main()
+{
+    float totalLuminance = 0.0;
+    uint totalPixels = 0;
+
+    for (int i = 0; i < 256; i++) {
+        uint pixelCount = histogram[i];
+        if (pixelCount > 0) {
+            float logLuminance = MIN_LOG_LUM + (float(i) / 255.0) * LOG_LUM_RANGE;
+            totalLuminance += logLuminance * float(pixelCount);
+            totalPixels += pixelCount;
+        }
+    }
+
+    if (totalPixels > 0) {
+        float avgLogLuminance = totalLuminance / float(totalPixels);
+        averageSceneLuminance = exp2(avgLogLuminance);
+    } else {
+        averageSceneLuminance = 0.0001;
+    }
+}

@@ -1,0 +1,1469 @@
+﻿/*
+ * Copyright © 2025 Soft Sprint Studios
+ * All rights reserved.
+ *
+ * This file is proprietary and confidential. Unauthorized reproduction,
+ * modification, or distribution is strictly prohibited unless explicit
+ * written permission is granted by Soft Sprint Studios.
+ */
+#include <SDL.h>
+#include <SDL_image.h>
+#include <GL/glew.h>
+#include <SDL_opengl.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <time.h>
+#include "cvar.h"
+#include "gl_console.h"
+#include "gl_misc.h"
+#include "map.h"
+#include "physics_wrapper.h"
+#include "editor.h"
+#include <stdlib.h>
+#include <float.h>
+#include "sound_system.h"
+#include "io_system.h"
+#include "binds.h"
+#include "gameconfig.h"
+#include "discord_wrapper.h"
+
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
+#define SHADOW_WIDTH 1024
+#define SHADOW_HEIGHT 1024
+#define SUN_SHADOW_MAP_SIZE 4096
+#define PLAYER_HEIGHT_NORMAL 1.83f
+#define PLAYER_HEIGHT_CROUCH 1.37f
+#define PLAYER_JUMP_FORCE 350.0f
+
+typedef enum { MODE_GAME, MODE_EDITOR } EngineMode;
+
+static Engine g_engine_instance;
+static Engine* g_engine = &g_engine_instance;
+static Renderer g_renderer;
+static Scene g_scene;
+static EngineMode g_current_mode = MODE_GAME;
+
+static Uint32 g_fps_last_update = 0;
+static int g_fps_frame_count = 0;
+static float g_fps_display = 0.0f;
+
+static unsigned int g_flashlight_sound_buffer = 0;
+static unsigned int g_footstep_sound_buffer = 0;
+static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
+static float g_distance_walked = 0.0f;
+const float FOOTSTEP_DISTANCE = 2.0f;
+
+float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
+float skyboxVertices[] = {
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
+float decalQuadVertices[] = { -0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,0.0f,1.0f,0.0f,0.0f,0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.0f,0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.0f,-0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,1.0f,1.0f,0.0f,0.0f,-0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,1.0f,0.0f,0.0f };
+
+static float lerp(float a, float b, float f) { return a + f * (b - a); }
+
+static int FindReflectionProbeForPoint(Vec3 p) {
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isReflectionProbe) continue;
+
+        if (b->numVertices == 0 || b->vertices == NULL) continue;
+
+        Vec3 min_aabb_world = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 max_aabb_world = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+        for (int j = 0; j < b->numVertices; ++j) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+            min_aabb_world.x = fminf(min_aabb_world.x, world_v.x);
+            min_aabb_world.y = fminf(min_aabb_world.y, world_v.y);
+            min_aabb_world.z = fminf(min_aabb_world.z, world_v.z);
+            max_aabb_world.x = fmaxf(max_aabb_world.x, world_v.x);
+            max_aabb_world.y = fmaxf(max_aabb_world.y, world_v.y);
+            max_aabb_world.z = fmaxf(max_aabb_world.z, world_v.z);
+        }
+
+        if (p.x >= min_aabb_world.x && p.x <= max_aabb_world.x &&
+            p.y >= min_aabb_world.y && p.y <= max_aabb_world.y &&
+            p.z >= min_aabb_world.z && p.z <= max_aabb_world.z)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void render_object(GLuint shader, SceneObject* obj) {
+    bool envMapEnabled = false;
+
+    if (shader == g_renderer.mainShader) {
+        int reflection_brush_idx = FindReflectionProbeForPoint(obj->pos);
+        if (reflection_brush_idx != -1) {
+            Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
+            if (reflection_brush->cubemapTexture != 0) {
+                glActiveTexture(GL_TEXTURE10);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_brush->cubemapTexture);
+                glUniform1i(glGetUniformLocation(shader, "environmentMap"), 10);
+                glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 1);
+
+                Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+                Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                for (int i = 0; i < reflection_brush->numVertices; ++i) {
+                    Vec3 world_v = mat4_mul_vec3(&reflection_brush->modelMatrix, reflection_brush->vertices[i].pos);
+                    min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
+                    max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+                }
+                glUniform3fv(glGetUniformLocation(shader, "probeBoxMin"), 1, &min_aabb.x);
+                glUniform3fv(glGetUniformLocation(shader, "probeBoxMax"), 1, &max_aabb.x);
+                glUniform3fv(glGetUniformLocation(shader, "probePosition"), 1, &reflection_brush->pos.x);
+                envMapEnabled = true;
+            }
+        }
+    }
+
+    glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+    if (obj->model) {
+        for (int i = 0; i < obj->model->meshCount; ++i) {
+            Mesh* mesh = &obj->model->meshes[i];
+            Material* material = mesh->material;
+            if (shader == g_renderer.mainShader) {
+                glUniform1f(glGetUniformLocation(shader, "cubemapStrength"), material->cubemapStrength);
+                glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
+                glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
+                glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
+                glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
+                glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
+            }
+            glBindVertexArray(mesh->VAO);
+            if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
+            else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+        }
+    }
+}
+
+void render_brush(GLuint shader, Brush* b) {
+    if (b->isReflectionProbe || b->isTrigger) return;
+    bool envMapEnabled = false;
+
+    if (shader == g_renderer.mainShader) {
+        int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
+        if (reflection_brush_idx != -1) {
+            Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
+            if (reflection_brush->cubemapTexture != 0) {
+                glActiveTexture(GL_TEXTURE10);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_brush->cubemapTexture);
+                glUniform1i(glGetUniformLocation(shader, "environmentMap"), 10);
+                glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 1);
+
+                Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+                Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                for (int i = 0; i < reflection_brush->numVertices; ++i) {
+                    Vec3 world_v = mat4_mul_vec3(&reflection_brush->modelMatrix, reflection_brush->vertices[i].pos);
+                    min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
+                    max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+                }
+                glUniform3fv(glGetUniformLocation(shader, "probeBoxMin"), 1, &min_aabb.x);
+                glUniform3fv(glGetUniformLocation(shader, "probeBoxMax"), 1, &max_aabb.x);
+                glUniform3fv(glGetUniformLocation(shader, "probePosition"), 1, &reflection_brush->pos.x);
+                envMapEnabled = true;
+            }
+        }
+    }
+    glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+
+    glBindVertexArray(b->vao);
+    if (shader == g_renderer.mainShader) {
+        int vbo_offset = 0;
+        for (int i = 0; i < b->numFaces; ++i) {
+            Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
+            glUniform1f(glGetUniformLocation(shader, "cubemapStrength"), material->cubemapStrength);
+            glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
+            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
+            glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
+
+            Material* material2 = NULL;
+            if (b->faces[i].material2) {
+                material2 = TextureManager_FindMaterial(b->faces[i].material2->name);
+            }
+            if (material2) {
+                glUniform1i(glGetUniformLocation(shader, "diffuseMap2"), 12);
+                glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
+                glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
+                glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
+                glUniform1f(glGetUniformLocation(shader, "cubemapStrength2"), material2->cubemapStrength);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), material2->heightScale);
+
+                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
+                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, material2->normalMap);
+                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, material2->rmaMap);
+                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, material2->heightMap);
+            }
+            else {
+                glUniform1f(glGetUniformLocation(shader, "cubemapStrength2"), material->cubemapStrength);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), material->heightScale);
+            }
+
+            int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
+            glDrawArrays(GL_TRIANGLES, vbo_offset, num_face_verts);
+            vbo_offset += num_face_verts;
+        }
+    }
+    else {
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+    }
+}
+
+void handle_command(int argc, char** argv) {
+    if (argc == 0) return;
+    char* cmd = argv[0];
+    if (_stricmp(cmd, "edit") == 0) {
+        if (g_current_mode == MODE_GAME) {
+            g_current_mode = MODE_EDITOR; SDL_SetRelativeMouseMode(SDL_FALSE); Editor_Init(g_engine, &g_renderer, &g_scene);
+        }
+        else { g_current_mode = MODE_GAME; Editor_Shutdown(); SDL_SetRelativeMouseMode(SDL_TRUE); }
+    }
+    else if (_stricmp(cmd, "quit") == 0 || _stricmp(cmd, "exit") == 0) Cvar_Set("engine_running", "0");
+    else if (_stricmp(cmd, "setpos") == 0) {
+        if (argc == 4) {
+            float x = atof(argv[1]);
+            float y = atof(argv[2]);
+            float z = atof(argv[3]);
+            Vec3 new_pos = { x, y, z };
+
+            if (g_engine->camera.physicsBody) {
+                Physics_Teleport(g_engine->camera.physicsBody, new_pos);
+            }
+            g_engine->camera.position = new_pos;
+
+            Console_Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
+        }
+        else {
+            Console_Printf("Usage: setpos <x> <y> <z>");
+        }
+    }
+    else if (_stricmp(cmd, "noclip") == 0) {
+        Cvar* c = Cvar_Find("noclip");
+        if (c) {
+            bool currently_noclip = c->intValue;
+            Cvar_Set("noclip", currently_noclip ? "0" : "1"); Console_Printf("noclip %s", Cvar_GetString("noclip"));
+            if (currently_noclip) { Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position); }
+        }
+    }
+    else if (_stricmp(cmd, "bind") == 0) {
+        if (argc == 3) {
+            Binds_Set(argv[1], argv[2]);
+        }
+        else {
+            Console_Printf("Usage: bind \"key\" \"command\"");
+        }
+    }
+    else if (argc >= 2) { if (Cvar_Find(cmd)) Cvar_Set(cmd, argv[1]); else Console_Printf("[error] Unknown cvar: %s", cmd); }
+    else if (argc == 1) { Cvar* c = Cvar_Find(cmd); if (c) Console_Printf("%s = %s", c->name, c->stringValue); else Console_Printf("[error] Unknown cvar: %s", cmd); }
+}
+
+void init_engine(SDL_Window* window, SDL_GLContext context) {
+    g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
+    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
+    Cvar_Init();
+    Cvar_Register("noclip", "0", ""); Cvar_Register("gravity", "9.8", ""); Cvar_Register("engine_running", "1", "");
+    Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).");
+    Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.");
+    Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.");
+    Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.");
+    Cvar_Register("r_fxaa", "1", "Enable Fast Approximate Anti-Aliasing.");
+    Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.");
+    Cvar_Register("show_pos", "0", "Show player position in the top-left corner.");
+    Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.");
+    IO_Init();
+    Binds_Init();
+    g_flashlight_sound_buffer = SoundSystem_LoadWAV("sounds/flashlight01.wav");
+    g_footstep_sound_buffer = SoundSystem_LoadWAV("sounds/footstep.wav");
+    Console_SetCommandHandler(handle_command);
+    TextureManager_Init();
+    TextureManager_ParseMaterialsFromFile("materials.def");
+}
+
+void init_renderer() {
+    g_renderer.mainShader = createShaderProgram("shaders/main.vert", "shaders/main.frag");
+    g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
+    g_renderer.spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
+    g_renderer.skyboxShader = createShaderProgram("shaders/skybox.vert", "shaders/skybox.frag");
+    g_renderer.postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
+    g_renderer.histogramShader = createShaderProgramCompute("shaders/histogram.comp");
+    g_renderer.exposureShader = createShaderProgramCompute("shaders/exposure.comp");
+    g_renderer.bloomShader = createShaderProgram("shaders/bloom.vert", "shaders/bloom.frag");
+    g_renderer.bloomBlurShader = createShaderProgram("shaders/bloom_blur.vert", "shaders/bloom_blur.frag");
+    g_renderer.dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
+    g_renderer.volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
+    g_renderer.volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
+    g_renderer.fxaaShader = createShaderProgram("shaders/fxaa.vert", "shaders/fxaa.frag");
+    g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
+    g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
+    glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
+    glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.gLitColor, 0);
+    glGenTextures(1, &g_renderer.gPosition); glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_renderer.gPosition, 0);
+    glGenTextures(1, &g_renderer.gNormal); glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.gNormal, 0);
+    glGenTextures(1, &g_renderer.gAlbedo); glBindTexture(GL_TEXTURE_2D, g_renderer.gAlbedo);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, g_renderer.gAlbedo, 0);
+    glGenTextures(1, &g_renderer.gPBRParams); glBindTexture(GL_TEXTURE_2D, g_renderer.gPBRParams);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, g_renderer.gPBRParams, 0);
+    glGenTextures(1, &g_renderer.gVelocity);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gVelocity);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, g_renderer.gVelocity, 0);
+    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 }; glDrawBuffers(6, attachments);
+    GLuint rboDepth; glGenRenderbuffers(1, &rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("G-Buffer Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
+    glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Bloom FBO not complete!\n");
+    glGenFramebuffers(2, g_renderer.pingpongFBO); glGenTextures(2, g_renderer.pingpongColorbuffers);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[i]); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f }; glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i], 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Ping-pong FBO %d not complete!\n", i);
+    }
+    glGenFramebuffers(1, &g_renderer.finalRenderFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+    glGenTextures(1, &g_renderer.finalRenderTexture);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.finalRenderTexture, 0);
+    glGenTextures(1, &g_renderer.finalDepthTexture);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.finalDepthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.finalDepthTexture, 0);
+    GLuint final_rboDepth; glGenRenderbuffers(1, &final_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, final_rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, final_rboDepth);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Final Render Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.volumetricFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
+    glGenTextures(1, &g_renderer.volumetricTexture);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.volumetricTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volumetricTexture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Volumetric FBO not complete!\n");
+    glGenFramebuffers(2, g_renderer.volPingpongFBO);
+    glGenTextures(2, g_renderer.volPingpongTextures);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volPingpongTextures[i], 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Volumetric Ping-Pong FBO %d not complete!\n", i);
+    }
+    glGenFramebuffers(1, &g_renderer.sunShadowFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
+    glGenTextures(1, &g_renderer.sunShadowMap);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.sunShadowMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        printf("Sun Shadow Framebuffer not complete!\n");
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glGenVertexArrays(1, &g_renderer.quadVAO); glGenBuffers(1, &g_renderer.quadVBO);
+    glBindVertexArray(g_renderer.quadVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float))); glEnableVertexAttribArray(1);
+    glGenVertexArrays(1, &g_renderer.skyboxVAO); glGenBuffers(1, &g_renderer.skyboxVBO);
+    glBindVertexArray(g_renderer.skyboxVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glGenVertexArrays(1, &g_renderer.decalVAO); glGenBuffers(1, &g_renderer.decalVBO);
+    glBindVertexArray(g_renderer.decalVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.decalVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(decalQuadVertices), &decalQuadVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    glBindVertexArray(0);
+    const char* skyboxFaces[] = { "skybox/right.jpg", "skybox/left.jpg", "skybox/top.jpg", "skybox/bottom.jpg", "skybox/front.jpg", "skybox/back.jpg" };
+    g_renderer.skyboxTex = loadCubemap(skyboxFaces);
+    g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
+    if (g_renderer.brdfLUTTexture == 0) {
+        Console_Printf("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
+    }
+    glUseProgram(g_renderer.mainShader);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3);
+    char uName[32];
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "pointShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, uName), 4 + i);
+    }
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "spotShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, uName), 4 + MAX_LIGHTS + i);
+    }
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "environmentMap"), 10);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "brdfLUT"), 16);
+    glUseProgram(g_renderer.volumetricShader);
+    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "gPosition"), 0);
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "pointShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), 1 + i);
+    }
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "spotShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), 1 + MAX_LIGHTS + i);
+    }
+    glUseProgram(g_renderer.volumetricBlurShader);
+    glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "image"), 0);
+    glUseProgram(g_renderer.skyboxShader); glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "skybox"), 0);
+    glUseProgram(g_renderer.postProcessShader);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "sceneTexture"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gPosition"), 2);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "volumetricTexture"), 3);
+    glUseProgram(g_renderer.bloomShader); glUniform1i(glGetUniformLocation(g_renderer.bloomShader, "sceneTexture"), 0);
+    glUseProgram(g_renderer.bloomBlurShader); glUniform1i(glGetUniformLocation(g_renderer.bloomBlurShader, "image"), 0);
+    glUseProgram(g_renderer.dofShader);
+    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "screenTexture"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
+    mat4_identity(&g_renderer.prevViewProjection);
+    g_renderer.currentExposure = 1.0f;
+    glGenBuffers(1, &g_renderer.histogramSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &g_renderer.exposureSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), NULL, GL_DYNAMIC_READ);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glGenFramebuffers(1, &g_renderer.ssaoFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
+    glGenTextures(1, &g_renderer.ssaoColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoColorBuffer, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        printf("SSAO Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.ssaoBlurFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
+    glGenTextures(1, &g_renderer.ssaoBlurColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        printf("SSAO Blur Framebuffer not complete!\n");
+    srand(time(NULL));
+    for (unsigned int i = 0; i < 64; ++i)
+    {
+        Vec3 sample = {
+            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
+            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
+            ((float)rand() / (float)RAND_MAX)
+        };
+        vec3_normalize(&sample);
+        sample = vec3_muls(sample, ((float)rand() / (float)RAND_MAX));
+        float scale = (float)i / 64.0f;
+        scale = lerp(0.1f, 1.0f, scale * scale);
+        sample = vec3_muls(sample, scale);
+        g_renderer.ssaoKernel[i] = sample;
+    }
+    Vec3 ssaoNoise[16];
+    for (unsigned int i = 0; i < 16; i++)
+    {
+        ssaoNoise[i] = (Vec3){
+            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
+            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
+            0.0f
+        };
+    }
+    glGenTextures(1, &g_renderer.ssaoNoiseTex);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoNoiseTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glUseProgram(g_renderer.ssaoShader);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gNormal"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "texNoise"), 2);
+    glUseProgram(g_renderer.ssaoBlurShader);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
+    glUseProgram(g_renderer.postProcessShader);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    const GLubyte* gpu = glGetString(GL_RENDERER);
+    const GLubyte* gl_version = glGetString(GL_VERSION);
+    printf("------------------------------------------------------\n");
+    printf("Renderer Context Initialized:\n");
+    printf("  GPU: %s\n", (const char*)gpu);
+    printf("  OpenGL Version: %s\n", (const char*)gl_version);
+    printf("------------------------------------------------------\n");
+}
+
+void init_scene() {
+    memset(&g_scene, 0, sizeof(Scene));
+    const GameConfig* config = GameConfig_Get();
+    Scene_LoadMap(&g_scene, &g_renderer, config->startmap, g_engine);
+    strncpy(g_scene.mapPath, config->startmap, sizeof(g_scene.mapPath) - 1);
+    g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
+    g_last_player_pos = g_scene.playerStart.position;
+}
+
+void process_input() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        UI_ProcessEvent(&event);
+        if (g_current_mode == MODE_EDITOR) {
+            Editor_ProcessEvent(&event, &g_scene, g_engine);
+        }
+
+        if (event.type == SDL_QUIT) Cvar_Set("engine_running", "0");
+        if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+            if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+                vec3_normalize(&forward);
+
+                Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
+
+                for (int i = 0; i < g_scene.numBrushes; ++i) {
+                    Brush* brush = &g_scene.brushes[i];
+                    if (brush->isTrigger) {
+                        Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                        Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                        if (brush->numVertices > 0) {
+                            for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
+                                brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
+                                brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
+                                brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
+                                brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
+                                brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
+                                brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
+                            }
+                        }
+                        else {
+                            brush_local_min = (Vec3){ -0.1f, -0.1f, -0.1f };
+                            brush_local_max = (Vec3){ 0.1f,  0.1f,  0.1f };
+                        }
+
+                        float t;
+                        if (RayIntersectsOBB(g_engine->camera.position, forward,
+                            &brush->modelMatrix,
+                            brush_local_min,
+                            brush_local_max,
+                            &t) && t < 3.0f) {
+                            IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame);
+                        }
+                    }
+                }
+            }
+            if (event.key.keysym.sym == SDLK_BACKQUOTE) {
+                Console_Toggle();
+                if (g_current_mode == MODE_GAME) {
+                    SDL_SetRelativeMouseMode(Console_IsVisible() ? SDL_FALSE : SDL_TRUE);
+                }
+            }
+            else if (event.key.keysym.sym == SDLK_F5) {
+                handle_command(1, (char* []) { "edit" });
+            }
+            else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                g_engine->flashlight_on = !g_engine->flashlight_on;
+                SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f);
+            }
+            else {
+                if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                    const char* command = Binds_GetCommand(event.key.keysym.sym);
+                    if (command) {
+                        char cmd_copy[MAX_COMMAND_LENGTH];
+                        strcpy(cmd_copy, command);
+                        char* argv[16];
+                        int argc = 0;
+                        char* p = strtok(cmd_copy, " ");
+                        while (p != NULL && argc < 16) {
+                            argv[argc++] = p;
+                            p = strtok(NULL, " ");
+                        }
+                        if (argc > 0) {
+                            handle_command(argc, argv);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Console_IsVisible() || g_current_mode == MODE_EDITOR) continue;
+
+        if (event.type == SDL_MOUSEMOTION) {
+            g_engine->camera.yaw += event.motion.xrel * 0.005f;
+            g_engine->camera.pitch -= event.motion.yrel * 0.005f;
+            if (g_engine->camera.pitch > 1.55f) g_engine->camera.pitch = 1.55f;
+            if (g_engine->camera.pitch < -1.55f) g_engine->camera.pitch = -1.55f;
+        }
+    }
+
+    if (Console_IsVisible() || g_current_mode == MODE_EDITOR) return;
+
+    const Uint8* state = SDL_GetKeyboardState(NULL);
+    if (state[SDL_SCANCODE_ESCAPE]) g_engine->running = false;
+
+    bool noclip = Cvar_GetInt("noclip");
+    float speed = (noclip ? 10.0f : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
+
+    if (noclip) {
+        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+        vec3_normalize(&forward);
+        Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 });
+        vec3_normalize(&right);
+
+        if (state[SDL_SCANCODE_W]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
+        if (state[SDL_SCANCODE_S]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
+        if (state[SDL_SCANCODE_D]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
+        if (state[SDL_SCANCODE_A]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
+        if (state[SDL_SCANCODE_SPACE]) g_engine->camera.position.y += speed * g_engine->deltaTime;
+        if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
+
+    }
+    else {
+        Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
+        Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
+        Vec3 move = { 0,0,0 };
+
+        if (state[SDL_SCANCODE_W]) move = vec3_add(move, f_flat);
+        if (state[SDL_SCANCODE_S]) move = vec3_sub(move, f_flat);
+        if (state[SDL_SCANCODE_A]) move = vec3_add(move, r_flat);
+        if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
+
+        vec3_normalize(&move);
+        Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+        Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { move.x* speed, vel.y, move.z* speed });
+        Physics_Activate(g_engine->camera.physicsBody);
+
+        if (state[SDL_SCANCODE_SPACE]) {
+            if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
+                Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, PLAYER_JUMP_FORCE, 0 });
+            }
+        }
+    }
+
+    g_engine->camera.isCrouching = state[SDL_SCANCODE_LCTRL];
+}
+
+void update_state() {
+    g_engine->running = Cvar_GetInt("engine_running");
+    IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        light->intensity = light->is_on ? light->base_intensity : 0.0f;
+    }
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        if (g_scene.lights[i].type == LIGHT_SPOT) {
+            Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, g_scene.lights[i].rot, (Vec3) { 1, 1, 1 });
+            Vec3 forward = { 0, 0, -1 }; g_scene.lights[i].direction = mat4_mul_vec3_dir(&rot_mat, forward); vec3_normalize(&g_scene.lights[i].direction);
+        }
+    }
+    if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
+    for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
+        ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
+    }
+    Vec3 playerPos;
+    Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
+
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isTrigger) continue;
+
+        Mat4 invModel;
+        mat4_inverse(&b->modelMatrix, &invModel);
+        Vec3 p_local = mat4_mul_vec3(&invModel, playerPos);
+
+        bool is_inside = (p_local.x >= -0.5f && p_local.x <= 0.5f &&
+            p_local.y >= -0.5f && p_local.y <= 0.5f &&
+            p_local.z >= -0.5f && p_local.z <= 0.5f);
+
+        if (is_inside && !b->playerIsTouching) {
+            b->playerIsTouching = true;
+            IO_FireOutput(ENTITY_BRUSH, i, "OnTouch", g_engine->lastFrame);
+        }
+        else if (!is_inside && b->playerIsTouching) {
+            b->playerIsTouching = false;
+            IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame);
+        }
+    }
+    Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+    vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
+    bool noclip = Cvar_GetInt("noclip"); 
+    if (!noclip) {
+        Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+        bool on_ground = fabs(vel.y) < 0.1f;
+
+        if (on_ground) {
+            float dx = g_engine->camera.position.x - g_last_player_pos.x;
+            float dz = g_engine->camera.position.z - g_last_player_pos.z;
+            g_distance_walked += sqrtf(dx * dx + dz * dz);
+
+            if (g_distance_walked >= FOOTSTEP_DISTANCE) {
+                SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.7f, 1.0f, 50.0f);
+                g_distance_walked = 0.0f;
+            }
+        }
+        else {
+            g_distance_walked = 0.0f;
+        }
+
+        g_last_player_pos = g_engine->camera.position;
+    }
+    Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
+    if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
+    if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
+    if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; g_engine->camera.currentHeight += (h - g_engine->camera.currentHeight) * 10.f * g_engine->deltaTime; g_engine->camera.position.y = p.y + (g_engine->camera.currentHeight / 2.f) * 0.85f; }
+    if (g_current_mode == MODE_GAME) {
+        for (int i = 0; i < g_scene.numObjects; ++i) {
+            SceneObject* obj = &g_scene.objects[i];
+            if (obj->physicsBody && obj->mass > 0.0f) {
+                float phys_matrix_data[16];
+                Physics_GetRigidBodyTransform(obj->physicsBody, phys_matrix_data);
+                Mat4 physics_transform;
+                memcpy(&physics_transform, phys_matrix_data, sizeof(Mat4));
+                Mat4 scale_transform = mat4_scale(obj->scale);
+                mat4_multiply(&obj->modelMatrix, &physics_transform, &scale_transform);
+            }
+        }
+    }
+}
+
+void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_FRONT);
+    glViewport(0, 0, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(g_renderer.spotDepthShader);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
+
+    for (int j = 0; j < g_scene.numObjects; ++j) {
+        render_object(g_renderer.spotDepthShader, &g_scene.objects[j]);
+    }
+    for (int j = 0; j < g_scene.numBrushes; ++j) {
+        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j]);
+    }
+
+    glCullFace(GL_BACK);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_shadows() {
+    glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT); glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        if (light->intensity <= 0.0f) continue;
+        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO); glClear(GL_DEPTH_BUFFER_BIT);
+        GLuint current_shader;
+        if (light->type == LIGHT_POINT) {
+            current_shader = g_renderer.pointDepthShader; glUseProgram(current_shader);
+            Mat4 shadowProj = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Mat4 shadowTransforms[6];
+            shadowTransforms[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[2] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 1, 0 }), (Vec3) { 0, 0, 1 });
+            shadowTransforms[3] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, -1, 0 }), (Vec3) { 0, 0, -1 });
+            shadowTransforms[4] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, 1 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[5] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, -1 }), (Vec3) { 0, -1, 0 });
+            for (int j = 0; j < 6; ++j) { mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]); char uName[64]; sprintf(uName, "shadowMatrices[%d]", j); glUniformMatrix4fv(glGetUniformLocation(current_shader, uName), 1, GL_FALSE, shadowTransforms[j].m); }
+            glUniform1f(glGetUniformLocation(current_shader, "far_plane"), light->shadowFarPlane); glUniform3fv(glGetUniformLocation(current_shader, "lightPos"), 1, &light->position.x);
+        }
+        else {
+            current_shader = g_renderer.spotDepthShader; glUseProgram(current_shader);
+            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
+            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
+            Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+            Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
+            glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
+        }
+        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j]);
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j]);
+    }
+    glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+    Frustum frustum;
+    Mat4 view_proj;
+    mat4_multiply(&view_proj, projection, view);
+    extract_frustum_planes(&view_proj, &frustum, true);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO); glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
+    glDrawBuffers(6, attachments);
+    glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, &g_renderer.prevViewProjection.m);
+    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &g_engine->camera.position.x);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sun.enabled"), g_scene.sun.enabled);
+    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "sun.direction"), 1, &g_scene.sun.direction.x);
+    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "sun.color"), 1, &g_scene.sun.color.x);
+    glUniform1f(glGetUniformLocation(g_renderer.mainShader, "sun.intensity"), g_scene.sun.intensity);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
+    glActiveTexture(GL_TEXTURE11);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numLights"), g_scene.numActiveLights); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
+    glActiveTexture(GL_TEXTURE16);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
+    char uniformName[64]; int point_light_shadow_idx = 0; int spot_light_shadow_idx = 0;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        sprintf(uniformName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.mainShader, uniformName), light->type);
+        sprintf(uniformName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->position.x);
+        sprintf(uniformName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->direction.x);
+        sprintf(uniformName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->color.x);
+        sprintf(uniformName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->intensity);
+        sprintf(uniformName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->radius);
+        sprintf(uniformName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->cutOff);
+        sprintf(uniformName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->outerCutOff);
+        sprintf(uniformName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->shadowFarPlane);
+        sprintf(uniformName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->shadowBias);
+        int current_shadow_idx = -1; Mat4 lightSpaceMatrix; mat4_identity(&lightSpaceMatrix);
+        if (light->type == LIGHT_SPOT) {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = spot_light_shadow_idx;
+                float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
+                Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+                Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
+                Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+                mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
+                spot_light_shadow_idx++;
+            }
+        }
+        else {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = point_light_shadow_idx;
+                point_light_shadow_idx++;
+            }
+        }
+        sprintf(uniformName, "lightSpaceMatrices[%d]", i); glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, GL_FALSE, lightSpaceMatrix.m);
+        sprintf(uniformName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.mainShader, uniformName), current_shadow_idx);
+    }
+    point_light_shadow_idx = 0; spot_light_shadow_idx = 0;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        if (g_scene.lights[i].type == LIGHT_POINT) {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
+                point_light_shadow_idx++;
+            }
+        }
+        else {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
+                spot_light_shadow_idx++;
+            }
+        }
+    }
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "flashlight.enabled"), g_engine->flashlight_on);
+    if (g_engine->flashlight_on) {
+        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+        vec3_normalize(&forward);
+        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "flashlight.position"), 1, &g_engine->camera.position.x);
+        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "flashlight.direction"), 1, &forward.x);
+    }
+    for (int i = 0; i < g_scene.numObjects; i++) {
+        SceneObject* obj = &g_scene.objects[i];
+        if (obj->model) {
+            Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
+            Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
+            Vec3 real_min = { fminf(world_min.x, world_max.x), fminf(world_min.y, world_max.y), fminf(world_min.z, world_max.z) };
+            Vec3 real_max = { fmaxf(world_min.x, world_max.x), fmaxf(world_min.y, world_max.y), fmaxf(world_min.z, world_max.z) };
+
+            if (!frustum_check_aabb(&frustum, real_min, real_max)) {
+                continue;
+            }
+        }
+        render_object(g_renderer.mainShader, &g_scene.objects[i]);
+    }
+    for (int i = 0; i < g_scene.numBrushes; i++) {
+        Brush* b = &g_scene.brushes[i];
+        if (b->numVertices > 0) {
+            Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int j = 0; j < b->numVertices; ++j) {
+                Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
+                max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
+            }
+            if (!frustum_check_aabb(&frustum, min_v, max_v)) {
+                continue;
+            }
+        }
+        render_brush(g_renderer.mainShader, &g_scene.brushes[i]);
+    }
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
+    for (int i = 0; i < g_scene.numDecals; ++i) {
+        Decal* d = &g_scene.decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
+        glUniform1f(glGetUniformLocation(g_renderer.mainShader, "cubemapStrength"), d->material->cubemapStrength); glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap); glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap); glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
+        glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    glBindVertexArray(0); glDepthMask(GL_TRUE); glDisable(GL_BLEND);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_bloom_pass() {
+    glUseProgram(g_renderer.bloomShader); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
+    glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
+    bool horizontal = true, first_iteration = true; unsigned int amount = 10; glUseProgram(g_renderer.bloomBlurShader);
+    for (unsigned int i = 0; i < amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[horizontal]); glUniform1i(glGetUniformLocation(g_renderer.bloomBlurShader, "horizontal"), horizontal);
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, first_iteration ? g_renderer.bloomBrightnessTexture : g_renderer.pingpongColorbuffers[!horizontal]);
+        glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
+        horizontal = !horizontal; if (first_iteration) first_iteration = false;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
+    glViewport(0, 0, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(g_renderer.volumetricShader);
+    glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "viewPos"), 1, &g_engine->camera.position.x);
+
+    Mat4 invView, invProj;
+    mat4_inverse(view, &invView);
+    mat4_inverse(projection, &invProj);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "invView"), 1, GL_FALSE, invView.m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "invProjection"), 1, GL_FALSE, invProj.m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "view"), 1, GL_FALSE, view->m);
+
+    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "sun.enabled"), g_scene.sun.enabled);
+    if (g_scene.sun.enabled) {
+        glActiveTexture(GL_TEXTURE15);
+        glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
+        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "sunShadowMap"), 15);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
+        glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.direction"), 1, &g_scene.sun.direction.x);
+        glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.color"), 1, &g_scene.sun.color.x);
+        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.intensity"), g_scene.sun.intensity);
+        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.volumetricIntensity"), g_scene.sun.volumetricIntensity);
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+
+    int point_light_shadow_idx = 0;
+    int spot_light_shadow_idx = 0;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        if (g_scene.lights[i].type == LIGHT_POINT) {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE1 + point_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
+                point_light_shadow_idx++;
+            }
+        }
+        else {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE1 + MAX_LIGHTS + spot_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
+                spot_light_shadow_idx++;
+            }
+        }
+    }
+
+    char uName[64];
+    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "numLights"), g_scene.numActiveLights);
+
+    point_light_shadow_idx = 0;
+    spot_light_shadow_idx = 0;
+
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        sprintf(uName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), light->type);
+        sprintf(uName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->position.x);
+        sprintf(uName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->direction.x);
+        sprintf(uName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->color.x);
+        sprintf(uName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->intensity);
+        sprintf(uName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->radius);
+        sprintf(uName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->cutOff);
+        sprintf(uName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->outerCutOff);
+        sprintf(uName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->shadowFarPlane);
+        sprintf(uName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->shadowBias);
+        sprintf(uName, "lights[%d].volumetricIntensity", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->volumetricIntensity);
+
+        int current_shadow_idx = -1;
+        if (light->type == LIGHT_POINT) {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = point_light_shadow_idx;
+                point_light_shadow_idx++;
+            }
+        }
+        else {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = spot_light_shadow_idx;
+                spot_light_shadow_idx++;
+            }
+        }
+        sprintf(uName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), current_shadow_idx);
+
+
+        if (g_scene.lights[i].type == LIGHT_SPOT) {
+            Mat4 lightSpaceMatrix;
+            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, g_scene.lights[i].cutOff)));
+            if (angle_rad < 0.01f) angle_rad = 0.01f;
+            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, g_scene.lights[i].shadowFarPlane);
+            Vec3 up_vector = (Vec3){ 0, 1, 0 };
+            if (fabs(vec3_dot(g_scene.lights[i].direction, up_vector)) > 0.99f) up_vector = (Vec3){ 1, 0, 0 };
+            Mat4 lightView = mat4_lookAt(g_scene.lights[i].position, vec3_add(g_scene.lights[i].position, g_scene.lights[i].direction), up_vector);
+            mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
+
+            sprintf(uName, "lightSpaceMatrices[%d]", i);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, GL_FALSE, lightSpaceMatrix.m);
+        }
+    }
+
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    bool horizontal = true, first_iteration = true;
+    unsigned int amount = 4;
+    glUseProgram(g_renderer.volumetricBlurShader);
+    for (unsigned int i = 0; i < amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[horizontal]);
+        glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "horizontal"), horizontal);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, first_iteration ? g_renderer.volumetricTexture : g_renderer.volPingpongTextures[!horizontal]);
+        glBindVertexArray(g_renderer.quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        horizontal = !horizontal;
+        if (first_iteration) first_iteration = false;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+
+void render_ssao_pass(Mat4* projection) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(g_renderer.ssaoShader);
+    for (unsigned int i = 0; i < 64; ++i) {
+        char uName[32];
+        sprintf(uName, "samples[%d]", i);
+        glUniform3fv(glGetUniformLocation(g_renderer.ssaoShader, uName), 1, &g_renderer.ssaoKernel[i].x);
+    }
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssaoShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniform2f(glGetUniformLocation(g_renderer.ssaoShader, "screenSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoNoiseTex);
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(g_renderer.ssaoBlurShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(g_renderer.postProcessShader);
+    glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), (float)SDL_GetTicks() / 1000.0f);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), g_scene.fog.enabled);
+    glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fogColor"), 1, &g_scene.fog.color.x);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogStart"), g_scene.fog.start);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnd"), g_scene.fog.end);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_postEnabled"), g_scene.post.enabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_crtCurvature"), g_scene.post.crtCurvature);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteStrength"), g_scene.post.vignetteStrength);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteRadius"), g_scene.post.vignetteRadius);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareEnabled"), g_scene.post.lensFlareEnabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareStrength"), g_scene.post.lensFlareStrength);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_scanlineStrength"), g_scene.post.scanlineStrength);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_grainIntensity"), g_scene.post.grainIntensity);
+    Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;
+    if (g_scene.numActiveLights > 0) {
+        Vec3 light_world_pos = g_scene.lights[0].position; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); float clip_space_pos[4]; float w = 1.0f;
+        clip_space_pos[0] = view_proj.m[0] * light_world_pos.x + view_proj.m[4] * light_world_pos.y + view_proj.m[8] * light_world_pos.z + view_proj.m[12] * w;
+        clip_space_pos[1] = view_proj.m[1] * light_world_pos.x + view_proj.m[5] * light_world_pos.y + view_proj.m[9] * light_world_pos.z + view_proj.m[13] * w;
+        clip_space_pos[2] = view_proj.m[2] * light_world_pos.x + view_proj.m[6] * light_world_pos.y + view_proj.m[10] * light_world_pos.z + view_proj.m[14] * w;
+        clip_space_pos[3] = view_proj.m[3] * light_world_pos.x + view_proj.m[7] * light_world_pos.y + view_proj.m[11] * light_world_pos.z + view_proj.m[15] * w;
+        float clip_w = clip_space_pos[3];
+        if (clip_w > 0) {
+            float ndc_x = clip_space_pos[0] / clip_w; float ndc_y = clip_space_pos[1] / clip_w;
+            if (ndc_x > -1.0 && ndc_x < 1.0 && ndc_y > -1.0 && ndc_y < 1.0) { light_pos_on_screen.x = ndc_x * 0.5 + 0.5; light_pos_on_screen.y = ndc_y * 0.5 + 0.5; flare_intensity = 1.0; }
+        }
+    }
+    glUniform2fv(glGetUniformLocation(g_renderer.postProcessShader, "lightPosOnScreen"), 1, &light_pos_on_screen.x);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "flareIntensity"), flare_intensity);
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
+    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[0]);
+    glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+    glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[0]);
+    if (Cvar_GetInt("r_ssao")) {
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
+    }
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "sceneTexture"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gPosition"), 2);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "volumetricTexture"), 3);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_ssaoEnabled"), Cvar_GetInt("r_ssao"));
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void render_skybox(Mat4* view, Mat4* projection) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO); glDepthFunc(GL_LEQUAL); glUseProgram(g_renderer.skyboxShader);
+    Mat4 skyboxView = *view; skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, skyboxView.m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "projection"), 1, GL_FALSE, projection->m);
+    glBindVertexArray(g_renderer.skyboxVAO); glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_CUBE_MAP, g_renderer.skyboxTex); glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthFunc(GL_LESS); glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void present_final_image() {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void cleanup() {
+    Physics_DestroyWorld(g_engine->physicsWorld);
+    for (int i = 0; i < g_scene.numParticleEmitters; i++) {
+        ParticleEmitter_Free(&g_scene.particleEmitters[i]);
+        ParticleSystem_Free(g_scene.particleEmitters[i].system);
+    }
+    for (int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        if (g_scene.brushes[i].isReflectionProbe) {
+            glDeleteTextures(1, &g_scene.brushes[i].cubemapTexture);
+        }
+        Brush_FreeData(&g_scene.brushes[i]);
+    }
+    if (g_scene.objects) {
+        for (int i = 0; i < g_scene.numObjects; ++i) {
+            if (g_scene.objects[i].model) Model_Free(g_scene.objects[i].model);
+        }
+        free(g_scene.objects);
+        g_scene.objects = NULL;
+    }
+    glDeleteProgram(g_renderer.mainShader);
+    glDeleteProgram(g_renderer.pointDepthShader);
+    glDeleteProgram(g_renderer.spotDepthShader);
+    glDeleteProgram(g_renderer.skyboxShader);
+    glDeleteProgram(g_renderer.postProcessShader);
+    glDeleteProgram(g_renderer.bloomShader);
+    glDeleteProgram(g_renderer.bloomBlurShader);
+    glDeleteProgram(g_renderer.dofShader);
+    glDeleteProgram(g_renderer.ssaoShader);
+    glDeleteProgram(g_renderer.ssaoBlurShader);
+    glDeleteProgram(g_renderer.volumetricShader);
+    glDeleteProgram(g_renderer.volumetricBlurShader);
+    glDeleteProgram(g_renderer.histogramShader);
+    glDeleteProgram(g_renderer.exposureShader);
+    glDeleteProgram(g_renderer.fxaaShader);
+    glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
+    glDeleteTextures(1, &g_renderer.gLitColor);
+    glDeleteTextures(1, &g_renderer.gPosition);
+    glDeleteTextures(1, &g_renderer.gNormal);
+    glDeleteTextures(1, &g_renderer.gAlbedo);
+    glDeleteTextures(1, &g_renderer.gPBRParams);
+    glDeleteTextures(1, &g_renderer.gVelocity);
+    glDeleteFramebuffers(1, &g_renderer.ssaoFBO);
+    glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);
+    glDeleteTextures(1, &g_renderer.ssaoColorBuffer);
+    glDeleteTextures(1, &g_renderer.ssaoBlurColorBuffer);
+    glDeleteTextures(1, &g_renderer.ssaoNoiseTex);
+    glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
+    glDeleteTextures(1, &g_renderer.finalRenderTexture);
+    glDeleteTextures(1, &g_renderer.finalDepthTexture);
+    glDeleteTextures(1, &g_renderer.skyboxTex);
+    glDeleteVertexArrays(1, &g_renderer.quadVAO);
+    glDeleteBuffers(1, &g_renderer.quadVBO);
+    glDeleteVertexArrays(1, &g_renderer.skyboxVAO);
+    glDeleteBuffers(1, &g_renderer.skyboxVBO);
+    glDeleteFramebuffers(1, &g_renderer.sunShadowFBO);
+    glDeleteTextures(1, &g_renderer.sunShadowMap);
+    glDeleteVertexArrays(1, &g_renderer.decalVAO); glDeleteBuffers(1, &g_renderer.decalVBO);
+    glDeleteFramebuffers(1, &g_renderer.bloomFBO); glDeleteTextures(1, &g_renderer.bloomBrightnessTexture);
+    glDeleteFramebuffers(2, g_renderer.pingpongFBO); glDeleteTextures(2, g_renderer.pingpongColorbuffers);
+    glDeleteFramebuffers(1, &g_renderer.volumetricFBO);
+    glDeleteTextures(1, &g_renderer.volumetricTexture);
+    glDeleteFramebuffers(2, g_renderer.volPingpongFBO);
+    glDeleteTextures(2, g_renderer.volPingpongTextures);
+    glDeleteBuffers(1, &g_renderer.histogramSSBO);
+    glDeleteBuffers(1, &g_renderer.exposureSSBO);
+    SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
+    SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
+    TextureManager_Shutdown();
+    SoundSystem_Shutdown();
+    IO_Shutdown();
+    Binds_Shutdown();
+    Editor_Shutdown();
+    UI_Shutdown();
+    Discord__Shutdown();
+    SDL_GL_DeleteContext(g_engine->context);
+    SDL_DestroyWindow(g_engine->window);
+    IMG_Quit();
+    SDL_Quit();
+}
+
+void render_autoexposure_pass() {
+    if (!Cvar_GetInt("r_autoexposure")) {
+        g_renderer.currentExposure = lerp(g_renderer.currentExposure, 1.0f, 1.0f - exp(-g_engine->deltaTime * 2.0f));
+        return;
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
+    GLuint zero = 0;
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+    glUseProgram(g_renderer.histogramShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
+    glUniform1i(glGetUniformLocation(g_renderer.histogramShader, "u_inputTexture"), 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
+    glDispatchCompute((GLuint)(WINDOW_WIDTH / 16), (GLuint)(WINDOW_HEIGHT / 16), 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glUseProgram(g_renderer.exposureShader);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, g_renderer.exposureSSBO);
+    glDispatchCompute(1, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
+    float* avgLumPtr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+    if (avgLumPtr) {
+        float avgSceneLuminance = *avgLumPtr;
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        float key = Cvar_GetFloat("r_autoexposure_key");
+        float speed = Cvar_GetFloat("r_autoexposure_speed");
+        float targetExposure = key / (avgSceneLuminance + 0.0001f);
+        targetExposure = fmaxf(0.1f, fminf(targetExposure, 10.0f));
+        g_renderer.currentExposure = lerp(g_renderer.currentExposure, targetExposure, 1.0f - exp(-g_engine->deltaTime * speed));
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void render_fxaa_pass() {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(g_renderer.fxaaShader);
+    glUniform2f(glGetUniformLocation(g_renderer.fxaaShader, "u_texelStep"), 1.0f / WINDOW_WIDTH, 1.0f / WINDOW_HEIGHT);
+
+    glActiveTexture(GL_TEXTURE0);
+    if (g_scene.post.dofEnabled) {
+        glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
+    }
+    glUniform1i(glGetUniformLocation(g_renderer.fxaaShader, "u_colorTexture"), 0);
+
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+int main(int argc, char* argv[]) {
+    SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    glewExperimental = GL_TRUE; glewInit();
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+    GameConfig_Init();
+    UI_Init(window, context); SoundSystem_Init(); init_engine(window, context); init_renderer(); init_scene();
+    Discord_Init();
+    g_fps_last_update = SDL_GetTicks();
+    while (g_engine->running) {
+        float currentFrame = (float)SDL_GetTicks() / 1000.0f; g_engine->deltaTime = currentFrame - g_engine->lastFrame; g_engine->lastFrame = currentFrame;
+        g_fps_frame_count++;
+        Uint32 currentTicks = SDL_GetTicks();
+        if (currentTicks - g_fps_last_update >= 1000) {
+            g_fps_display = (float)g_fps_frame_count / ((float)(currentTicks - g_fps_last_update) / 1000.0f);
+            g_fps_last_update = currentTicks;
+            g_fps_frame_count = 0;
+        }
+        process_input(); update_state();
+        if (g_current_mode == MODE_GAME) {
+            char details_str[128];
+            sprintf(details_str, "Map: %s", g_scene.mapPath);
+            Discord_Update("Playing", details_str);
+            Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
+            Vec3 t = vec3_add(g_engine->camera.position, f);
+            Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
+            Mat4 projection = mat4_perspective(45.f * 3.14f / 180.f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.f);
+            render_shadows();
+            Mat4 sunLightSpaceMatrix;
+            mat4_identity(&sunLightSpaceMatrix);
+            if (g_scene.sun.enabled) {
+                Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
+                render_sun_shadows(&sunLightSpaceMatrix);
+            }
+            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix);
+            if (Cvar_GetInt("r_ssao")) {
+                render_ssao_pass(&projection);
+            }
+            render_volumetric_pass(&view, &projection, &sunLightSpaceMatrix);
+            render_bloom_pass();
+            render_autoexposure_pass();
+            render_lighting_composite_pass(&view, &projection);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
+            glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            render_skybox(&view, &projection);
+            glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+            glEnable(GL_BLEND);
+            glDepthMask(GL_FALSE);
+            for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
+                ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
+            }
+            glDepthMask(GL_TRUE);
+            glDisable(GL_BLEND);
+            if (g_scene.post.dofEnabled) {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glDisable(GL_DEPTH_TEST);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glUseProgram(g_renderer.dofShader);
+                glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_focusDistance"), g_scene.post.dofFocusDistance);
+                glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_aperture"), g_scene.post.dofAperture);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, g_renderer.finalDepthTexture);
+                glBindVertexArray(g_renderer.quadVAO);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            }
+
+            if (Cvar_GetInt("r_fxaa")) {
+                render_fxaa_pass();
+            }
+            else {
+                if (!g_scene.post.dofEnabled) {
+                    present_final_image();
+                }
+            }
+            Mat4 currentViewProjection;
+            mat4_multiply(&currentViewProjection, &projection, &view);
+            g_renderer.prevViewProjection = currentViewProjection;
+        }
+        else {
+            char details_str[128];
+            sprintf(details_str, "Map: %s", g_scene.mapPath);
+            Discord_Update("In the Editor", details_str);
+            Editor_RenderAllViewports(g_engine, &g_renderer, &g_scene);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+        UI_BeginFrame();
+        if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
+        else {
+             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+        }
+        Console_Draw(); UI_EndFrame(window);
+    }
+    cleanup(); return 0;
+}

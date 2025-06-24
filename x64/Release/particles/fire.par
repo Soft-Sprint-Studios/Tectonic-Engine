@@ -1,0 +1,17 @@
+maxParticles 500
+spawnRate 250.0
+lifetime 1.5
+lifetimeVariation 0.5
+texture particles/fire_01
+blendFunc additive
+gravity 0.0,2.0,0.0
+startColor 1.0,0.5,0.2,1.0
+endColor 0.5,0.1,0.0,0.0
+startSize 0.4
+endSize 1.2
+startVelocity 0.0,0.5,0.0
+velocityVariation 0.5,0.5,0.5
+startAngle 0.0
+angleVariation 3.14
+startAngularVelocity 1.0
+angularVelocityVariation 0.5

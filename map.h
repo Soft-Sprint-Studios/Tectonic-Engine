@@ -1,0 +1,271 @@
+/*
+ * Copyright © 2025 Soft Sprint Studios
+ * All rights reserved.
+ *
+ * This file is proprietary and confidential. Unauthorized reproduction,
+ * modification, or distribution is strictly prohibited unless explicit
+ * written permission is granted by Soft Sprint Studios.
+ */
+#ifndef MAP_H
+#define MAP_H
+
+#include <SDL.h>
+#include <GL/glew.h>
+#include <stdbool.h>
+#include "math_lib.h"
+#include "texturemanager.h"
+#include "model_loader.h"
+#include "physics_wrapper.h"
+#include "particle_system.h"
+
+#define MAX_LIGHTS 16
+#define MAX_BRUSHES 16384
+#define MAX_DECALS 16384
+#define MAX_SOUNDS 256
+#define MAX_PARTICLE_EMITTERS 256
+#define MAX_BRUSH_VERTS 512
+#define MAX_BRUSH_FACES 512
+
+typedef enum {
+    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER
+} EntityType;
+
+typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
+
+typedef struct {
+    char targetname[64];
+    LightType type;
+    Vec3 position;
+    Vec3 direction;
+    Vec3 rot;
+    Vec3 color;
+    float intensity;
+    float base_intensity;
+    bool is_on;
+    float radius;
+    float cutOff;
+    float outerCutOff;
+    GLuint shadowFBO;
+    GLuint shadowMapTexture;
+    float shadowFarPlane;
+    float shadowBias;
+    float volumetricIntensity;
+} Light;
+
+typedef struct {
+    bool enabled;
+    Vec3 direction;
+    Vec3 color;
+    float intensity;
+    float volumetricIntensity;
+} Sun;
+
+typedef struct {
+    bool enabled;
+    Vec3 color;
+    float start;
+    float end;
+} Fog;
+
+typedef struct {
+    bool enabled;
+    float crtCurvature;
+    float vignetteStrength;
+    float vignetteRadius;
+    bool lensFlareEnabled;
+    float lensFlareStrength;
+    float scanlineStrength;
+    float grainIntensity;
+    bool dofEnabled;
+    float dofFocusDistance;
+    float dofAperture;
+} PostProcessSettings;
+
+typedef struct {
+    Vec3 position;
+    float yaw, pitch;
+    bool isCrouching;
+    float currentHeight;
+    RigidBodyHandle physicsBody;
+} Camera;
+
+typedef struct {
+    GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
+    GLuint lightingCompositeShader;
+    GLuint postProcessShader;
+    GLuint presentShader;
+    GLuint quadVAO, quadVBO;
+    GLuint skyboxVAO, skyboxVBO;
+    GLuint gBufferFBO;
+    GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
+    GLuint gVelocity;
+    GLuint skyboxTex;
+    GLuint brdfLUTTexture;
+    GLuint decalVAO, decalVBO;
+    GLuint sunShadowFBO;
+    GLuint sunShadowMap;
+    GLuint finalRenderFBO;
+    GLuint finalRenderTexture;
+    GLuint bloomShader;
+    GLuint bloomBlurShader;
+    GLuint bloomFBO;
+    GLuint bloomBrightnessTexture;
+    GLuint pingpongFBO[2];
+    GLuint pingpongColorbuffers[2];
+    GLuint volumetricShader;
+    GLuint volumetricBlurShader;
+    GLuint volumetricFBO;
+    GLuint volumetricTexture;
+    GLuint volPingpongFBO[2];
+    GLuint volPingpongTextures[2];
+    GLuint dofShader;
+    GLuint finalDepthTexture;
+    GLuint ssaoFBO, ssaoBlurFBO;
+    GLuint ssaoColorBuffer, ssaoBlurColorBuffer;
+    GLuint ssaoShader, ssaoBlurShader;
+    GLuint ssaoNoiseTex;
+    Vec3 ssaoKernel[64];
+    GLuint postProcessFBO;
+    GLuint postProcessTexture;
+    GLuint histogramShader;
+    GLuint exposureShader;
+    GLuint histogramSSBO;
+    GLuint exposureSSBO;
+    GLuint fxaaShader;
+    float currentExposure;
+    Mat4 prevViewProjection;
+} Renderer;
+
+typedef struct {
+    char targetname[64];
+    float mass;
+    bool isPhysicsEnabled;
+    char modelPath[128];
+    Vec3 pos;
+    Vec3 rot;
+    Vec3 scale;
+    Mat4 modelMatrix;
+    LoadedModel* model;
+    RigidBodyHandle physicsBody;
+} SceneObject;
+
+typedef struct {
+    Vec3 pos;
+    Vec4 color;
+} BrushVertex;
+
+typedef struct {
+    Material* material;
+    Material* material2;
+    Vec2 uv_offset;
+    Vec2 uv_scale;
+    float uv_rotation;
+    Vec2 uv_offset2;
+    Vec2 uv_scale2;
+    float uv_rotation2;
+    int* vertexIndices;
+    int numVertexIndices;
+} BrushFace;
+
+typedef struct {
+    char targetname[64];
+    bool isTrigger;
+    bool playerIsTouching;
+    Vec3 pos;
+    Vec3 rot;
+    Vec3 scale;
+    Mat4 modelMatrix;
+    BrushVertex* vertices;
+    int numVertices;
+    BrushFace* faces;
+    int numFaces;
+    GLuint vao, vbo;
+    int totalRenderVertexCount;
+    RigidBodyHandle physicsBody;
+    bool isReflectionProbe;
+    GLuint cubemapTexture;
+    char name[64];
+} Brush;
+
+typedef struct {
+    Vec3 pos;
+    Vec3 rot;
+    Vec3 size;
+    Mat4 modelMatrix;
+    Material* material;
+} Decal;
+
+typedef struct {
+    Vec3 position;
+} PlayerStart;
+
+typedef struct {
+    char targetname[64];
+    char soundPath[128];
+    Vec3 pos;
+    unsigned int bufferID;
+    unsigned int sourceID;
+    float volume;
+    float pitch;
+    float maxDistance;
+} SoundEntity;
+
+typedef struct ParticleEmitter {
+    char parFile[128];
+    char targetname[64];
+    bool is_on;
+    bool on_by_default;
+    ParticleSystem* system;
+    Vec3 pos;
+    Particle particles[MAX_PARTICLES_PER_SYSTEM];
+    int activeParticles;
+    float timeSinceLastSpawn;
+    GLuint vao;
+    GLuint vbo;
+} ParticleEmitter;
+
+typedef struct {
+    char mapPath[256];
+    Light lights[MAX_LIGHTS];
+    int numActiveLights;
+    SceneObject* objects;
+    int numObjects;
+    Brush brushes[MAX_BRUSHES];
+    int numBrushes;
+    PlayerStart playerStart;
+    Decal decals[MAX_DECALS];
+    int numDecals;
+    SoundEntity soundEntities[MAX_SOUNDS];
+    int numSoundEntities;
+    ParticleEmitter particleEmitters[MAX_PARTICLE_EMITTERS];
+    int numParticleEmitters;
+    Fog fog;
+    PostProcessSettings post;
+    Sun sun;
+} Scene;
+
+typedef struct {
+    SDL_Window* window;
+    SDL_GLContext context;
+    bool running;
+    bool flashlight_on;
+    float deltaTime, lastFrame;
+    Camera camera;
+    PhysicsWorldHandle physicsWorld;
+} Engine;
+
+void Light_InitShadowMap(Light* light);
+void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition);
+void Light_DestroyShadowMap(Light* light);
+void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
+void Brush_UpdateMatrix(Brush* b);
+void Brush_CreateRenderData(Brush* b);
+void Brush_FreeData(Brush* b);
+void Brush_DeepCopy(Brush* dest, const Brush* src);
+void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
+void Decal_UpdateMatrix(Decal* d);
+void Scene_Clear(Scene* scene, Engine* engine);
+bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
+void Scene_SaveMap(Scene* scene, const char* mapPath);
+
+#endif // MAP_H
