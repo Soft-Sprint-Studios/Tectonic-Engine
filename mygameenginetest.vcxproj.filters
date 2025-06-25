@@ -19,6 +19,9 @@
     <Filter Include="Source Files\engine">
       <UniqueIdentifier>{be83f809-815b-4c07-8a9c-433e1bde6808}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\engine\shaders">
+      <UniqueIdentifier>{a78a19ae-b0b7-42f1-a155-71319a05926c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui-master\imgui.cpp">
@@ -158,5 +161,133 @@
     <ClInclude Include="discord_wrapper.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Release\shaders\bloom.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\bloom.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\bloom_blur.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\bloom_blur.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\blur.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\blur.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\debug.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\debug.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_point.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_point.geom">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_point.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_spot.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_spot.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\dof.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\dof.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\exposure.comp">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\fxaa.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\fxaa.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\gizmo.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\gizmo.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\grid.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\grid.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\histogram.comp">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\main.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\main.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\particle.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\particle.geom">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\particle.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\postprocess.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\postprocess.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\skybox.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\skybox.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\ssao.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\ssao.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\ssao_blur.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\ssao_blur.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\volumetric.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\volumetric.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\volumetric_blur.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\volumetric_blur.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\water.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\water.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

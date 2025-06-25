@@ -201,7 +201,7 @@ static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigne
     return texID;
 }
 
-static GLuint loadTexture(const char* path) {
+GLuint loadTexture(const char* path) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
         printf("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
@@ -513,10 +513,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
             else {
                 float float_val;
                 if (sscanf(trimmed_line, "%s = %f", key, &float_val) == 2) {
-                    if (strcmp(key, "cubemapStrength") == 0) {
-                        current_material->cubemapStrength = float_val;
-                    }
-                    else if (strcmp(key, "heightScale") == 0) {
+                    if (strcmp(key, "heightScale") == 0) {
                         current_material->heightScale = float_val;
                     }
                     else if (strcmp(key, "detailscale") == 0) {

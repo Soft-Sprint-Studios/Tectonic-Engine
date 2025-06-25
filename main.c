@@ -168,7 +168,6 @@ void render_object(GLuint shader, SceneObject* obj) {
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader) {
-                glUniform1f(glGetUniformLocation(shader, "cubemapStrength"), material->cubemapStrength);
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
@@ -185,7 +184,7 @@ void render_object(GLuint shader, SceneObject* obj) {
 }
 
 void render_brush(GLuint shader, Brush* b) {
-    if (b->isReflectionProbe || b->isTrigger) return;
+    if (b->isReflectionProbe || b->isTrigger || b->isWater) return;
     bool envMapEnabled = false;
 
     if (shader == g_renderer.mainShader) {
@@ -220,7 +219,6 @@ void render_brush(GLuint shader, Brush* b) {
         int vbo_offset = 0;
         for (int i = 0; i < b->numFaces; ++i) {
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
-            glUniform1f(glGetUniformLocation(shader, "cubemapStrength"), material->cubemapStrength);
             glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
@@ -238,7 +236,6 @@ void render_brush(GLuint shader, Brush* b) {
                 glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
-                glUniform1f(glGetUniformLocation(shader, "cubemapStrength2"), material2->cubemapStrength);
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), material2->heightScale);
 
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
@@ -247,7 +244,6 @@ void render_brush(GLuint shader, Brush* b) {
                 glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, material2->heightMap);
             }
             else {
-                glUniform1f(glGetUniformLocation(shader, "cubemapStrength2"), material->cubemapStrength);
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), material->heightScale);
             }
 
@@ -347,6 +343,8 @@ void init_renderer() {
     g_renderer.fxaaShader = createShaderProgram("shaders/fxaa.vert", "shaders/fxaa.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
+    g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -581,6 +579,16 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
     glUseProgram(g_renderer.postProcessShader);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
+    glUseProgram(g_renderer.postProcessShader);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
+    glUseProgram(g_renderer.waterShader);
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "dudvMap"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "normalMap"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
+    g_renderer.dudvMap = loadTexture("dudv.png");
+    g_renderer.waterNormalMap = loadTexture("water_normal.png");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
@@ -835,6 +843,7 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
         render_object(g_renderer.spotDepthShader, &g_scene.objects[j]);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
+        if (g_scene.brushes[j].isWater) continue;
         render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j]);
     }
 
@@ -875,6 +884,145 @@ void render_shadows() {
         for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j]);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+    glUseProgram(g_renderer.waterShader);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "viewPos"), 1, &g_engine->camera.position.x);
+
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "sun.enabled"), g_scene.sun.enabled);
+    glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "sun.direction"), 1, &g_scene.sun.direction.x);
+    glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "sun.color"), 1, &g_scene.sun.color.x);
+    glUniform1f(glGetUniformLocation(g_renderer.waterShader, "sun.intensity"), g_scene.sun.intensity);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
+
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "numLights"), g_scene.numActiveLights);
+    char uniformName[64];
+    int point_light_shadow_idx = 0;
+    int spot_light_shadow_idx = 0;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        sprintf(uniformName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.waterShader, uniformName), light->type);
+        sprintf(uniformName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->position.x);
+        sprintf(uniformName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->direction.x);
+        sprintf(uniformName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->color.x);
+        sprintf(uniformName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->intensity);
+        sprintf(uniformName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->radius);
+        sprintf(uniformName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->cutOff);
+        sprintf(uniformName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->outerCutOff);
+        sprintf(uniformName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->shadowFarPlane);
+        sprintf(uniformName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->shadowBias);
+        int current_shadow_idx = -1;
+        Mat4 lightSpaceMatrix;
+        mat4_identity(&lightSpaceMatrix);
+        if (light->type == LIGHT_SPOT) {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = spot_light_shadow_idx;
+                float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
+                Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+                Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
+                Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+                mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
+                spot_light_shadow_idx++;
+            }
+        }
+        else {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                current_shadow_idx = point_light_shadow_idx;
+                point_light_shadow_idx++;
+            }
+        }
+        sprintf(uniformName, "lightSpaceMatrices[%d]", i); glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, GL_FALSE, lightSpaceMatrix.m);
+        sprintf(uniformName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.waterShader, uniformName), current_shadow_idx);
+    }
+
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "flashlight.enabled"), g_engine->flashlight_on);
+    if (g_engine->flashlight_on) {
+        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+        vec3_normalize(&forward);
+        glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "flashlight.position"), 1, &g_engine->camera.position.x);
+        glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "flashlight.direction"), 1, &forward.x);
+    }
+
+    glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "cameraPosition"), 1, &g_engine->camera.position.x);
+    glUniform1f(glGetUniformLocation(g_renderer.waterShader, "time"), g_engine->lastFrame);
+
+    glActiveTexture(GL_TEXTURE11);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "sunShadowMap"), 11);
+
+    point_light_shadow_idx = 0;
+    spot_light_shadow_idx = 0;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        if (g_scene.lights[i].type == LIGHT_POINT) {
+            if (point_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
+                point_light_shadow_idx++;
+            }
+        }
+        else {
+            if (spot_light_shadow_idx < MAX_LIGHTS) {
+                glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx);
+                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
+                spot_light_shadow_idx++;
+            }
+        }
+    }
+    char uName[32];
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "pointShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.waterShader, uName), 4 + i);
+    }
+    for (int i = 0; i < MAX_LIGHTS; ++i) {
+        sprintf(uName, "spotShadowMaps[%d]", i);
+        glUniform1i(glGetUniformLocation(g_renderer.waterShader, uName), 4 + MAX_LIGHTS + i);
+    }
+
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.dudvMap);
+    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
+
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isWater) continue;
+
+        int probe_idx = FindReflectionProbeForPoint(b->pos);
+        GLuint reflectionTex;
+        if (probe_idx != -1) {
+            Brush* reflection_brush = &g_scene.brushes[probe_idx];
+            reflectionTex = reflection_brush->cubemapTexture;
+
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useParallaxCorrection"), 1);
+
+            Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int k = 0; k < reflection_brush->numVertices; ++k) {
+                Vec3 world_v = mat4_mul_vec3(&reflection_brush->modelMatrix, reflection_brush->vertices[k].pos);
+                min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
+                max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+            }
+            glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "probeBoxMin"), 1, &min_aabb.x);
+            glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "probeBoxMax"), 1, &max_aabb.x);
+            glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "probePosition"), 1, &reflection_brush->pos.x);
+        }
+        else {
+            reflectionTex = g_renderer.skyboxTex;
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useParallaxCorrection"), 0);
+        }
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, reflectionTex);
+
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glBindVertexArray(b->vao);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+    }
+    glBindVertexArray(0);
 }
 
 void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
@@ -976,6 +1124,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
+        if (b->isWater) continue;
         if (b->numVertices > 0) {
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -993,7 +1142,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
     for (int i = 0; i < g_scene.numDecals; ++i) {
         Decal* d = &g_scene.decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
-        glUniform1f(glGetUniformLocation(g_renderer.mainShader, "cubemapStrength"), d->material->cubemapStrength); glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
+        glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap); glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap); glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
         glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -1299,6 +1448,8 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.volumetricTexture);
     glDeleteFramebuffers(2, g_renderer.volPingpongFBO);
     glDeleteTextures(2, g_renderer.volPingpongTextures);
+    glDeleteTextures(1, &g_renderer.dudvMap);
+    glDeleteTextures(1, &g_renderer.waterNormalMap);
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
@@ -1423,6 +1574,7 @@ int main(int argc, char* argv[]) {
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
+            render_water(&view, &projection, &sunLightSpaceMatrix);
             for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
                 ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
             }

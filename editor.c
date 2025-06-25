@@ -394,7 +394,7 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     b->vao = 0; b->vbo = 0;
     b->isReflectionProbe = false; b->isTrigger = false; b->physicsBody = NULL;
     Brush_UpdateMatrix(b); Brush_CreateRenderData(b);
-    if (!b->isTrigger && b->numVertices > 0) {
+    if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
         Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
         for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -504,7 +504,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     new_brush->pos.x += 1.0f;
     Brush_UpdateMatrix(new_brush);
     Brush_CreateRenderData(new_brush);
-    if (!new_brush->isTrigger && !new_brush->isReflectionProbe && new_brush->numVertices > 0) {
+    if (!new_brush->isTrigger && !new_brush->isReflectionProbe && !new_brush->isWater && new_brush->numVertices > 0) {
         Vec3* world_verts = malloc(new_brush->numVertices * sizeof(Vec3));
         for (int i = 0; i < new_brush->numVertices; i++) world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
         new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_brush->numVertices);
@@ -1233,7 +1233,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_CreateRenderData(b);
 
                 if (b->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                if (!b->isTrigger && b->numVertices > 0) {
+                if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                     for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -2439,6 +2439,15 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             bool is_selected = (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i); if (!is_selected) continue; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    for (int i = 0; i < scene->numBrushes; ++i) {
+        Brush* b = &scene->brushes[i];
+        if (b->isReflectionProbe || b->isTrigger || b->isWater) {
+            bool is_selected = (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i);
+            if (!is_selected && !b->isWater) continue;
+            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (b->isWater) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+    }
     if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes) {
         Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
         if (!b->isReflectionProbe && !b->isTrigger && g_EditorState.selected_face_index >= 0 && g_EditorState.selected_face_index < b->numFaces) {
@@ -2916,6 +2925,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
+    if (UI_CollapsingHeader("Water", 1)) {
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            if (!scene->brushes[i].isWater) continue;
+            char label[128]; sprintf(label, "Water Brush %d", i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_BRUSH;
+                g_EditorState.selected_entity_index = i;
+            }
+            UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##waterbrush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
+        }
+    }
     if (UI_CollapsingHeader("Lights", 1)) {
         for (int i = 0; i < scene->numActiveLights; ++i) { char label[128]; sprintf(label, "Light %d", i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_LIGHT; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; } }
         if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light)); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
@@ -2978,10 +2998,19 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes) {
         Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        if (UI_Checkbox("Is Water", &b->isWater)) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            if (b->isWater) {
+                b->isTrigger = false;
+                b->isReflectionProbe = false;
+            }
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Water");
+        }
         if (UI_Checkbox("Is Reflection Probe", &b->isReflectionProbe)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
             if (b->isReflectionProbe) {
                 b->isTrigger = false;
+                b->isWater = false;
                 int px = (int)roundf(b->pos.x);
                 int py = (int)roundf(b->pos.y);
                 int pz = (int)roundf(b->pos.z);
@@ -2991,7 +3020,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_Checkbox("Is Trigger", &b->isTrigger)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-            if (b->isTrigger) b->isReflectionProbe = false;
+            if (b->isTrigger) {
+                b->isReflectionProbe = false;
+                b->isWater = false;
+            }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Trigger");
         }
         UI_Separator();
@@ -3488,10 +3520,6 @@ void Editor_BuildCubemaps(Scene* scene, Renderer* renderer, Engine* engine) {
             char filename[256];
             sprintf(filename, "cubemaps/%s_%s.png", probe_brush->name, face_suffixes[j]);
             glBindTexture(GL_TEXTURE_CUBE_MAP, temp_cubemap_tex); glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-            for (int y = 0; y < CUBEMAP_RES / 2; ++y) {
-                unsigned char* row1 = pixels + y * CUBEMAP_RES * 4; unsigned char* row2 = pixels + (CUBEMAP_RES - 1 - y) * CUBEMAP_RES * 4;
-                for (int x = 0; x < CUBEMAP_RES * 4; ++x) { unsigned char temp = row1[x]; row1[x] = row2[x]; row2[x] = temp; }
-            }
             SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom(pixels, CUBEMAP_RES, CUBEMAP_RES, 32, CUBEMAP_RES * 4, SDL_PIXELFORMAT_RGBA32);
             if (surface) { IMG_SavePNG(surface, filename); SDL_FreeSurface(surface); }
             else { Console_Printf("[error] Failed to create SDL_Surface for saving %s", filename); }

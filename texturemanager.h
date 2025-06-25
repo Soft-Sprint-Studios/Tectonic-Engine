@@ -31,7 +31,6 @@ typedef struct {
 
     float heightScale;
     float detailScale;
-    float cubemapStrength;
 } Material;
 
 extern Material g_MissingMaterial;
@@ -51,5 +50,6 @@ GLuint loadCubemap(const char* faces[6]);
 void TextureManager_LoadMaterialTextures(Material* material);
 GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 GLuint TextureManager_LoadLUT(const char* filename_only);
+GLuint loadTexture(const char* path);
 
 #endif // TEXTURE_MANAGER_H

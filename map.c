@@ -765,6 +765,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
                 else if (sscanf(line, " is_trigger %d", &dummy_int) == 1) { b->isTrigger = (bool)dummy_int; }
+                else if (sscanf(line, " is_water %d", &dummy_int) == 1) { b->isWater = (bool)dummy_int; }
             }
             if (b->isReflectionProbe) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -776,7 +777,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             Brush_UpdateMatrix(b);
             Brush_CreateRenderData(b);
-            if (!b->isReflectionProbe && !b->isTrigger && b->numVertices > 0) {
+            if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && b->numVertices > 0) {
                 Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                 for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                 b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -895,6 +896,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             fprintf(file, "  is_reflection_probe 1\n");
             fprintf(file, "  name \"%s\"\n", b->name);
         }
+        if (b->isWater) fprintf(file, "  is_water 1\n");
         fprintf(file, "  num_verts %d\n", b->numVertices);
         for (int v = 0; v < b->numVertices; ++v) {
             fprintf(file, "  v %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", v,

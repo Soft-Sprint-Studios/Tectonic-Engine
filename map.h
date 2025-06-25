@@ -132,6 +132,9 @@ typedef struct {
     GLuint histogramSSBO;
     GLuint exposureSSBO;
     GLuint fxaaShader;
+    GLuint waterShader;
+    GLuint dudvMap;
+    GLuint waterNormalMap;
     float currentExposure;
     Mat4 prevViewProjection;
 } Renderer;
@@ -183,6 +186,7 @@ typedef struct {
     int totalRenderVertexCount;
     RigidBodyHandle physicsBody;
     bool isReflectionProbe;
+    bool isWater;
     GLuint cubemapTexture;
     char name[64];
 } Brush;

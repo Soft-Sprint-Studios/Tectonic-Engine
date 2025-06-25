@@ -67,6 +67,50 @@
     <ClInclude Include="sound_system.h" />
     <ClInclude Include="texturemanager.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Release\shaders\bloom.frag" />
+    <None Include="x64\Release\shaders\bloom.vert" />
+    <None Include="x64\Release\shaders\bloom_blur.frag" />
+    <None Include="x64\Release\shaders\bloom_blur.vert" />
+    <None Include="x64\Release\shaders\blur.frag" />
+    <None Include="x64\Release\shaders\blur.vert" />
+    <None Include="x64\Release\shaders\debug.frag" />
+    <None Include="x64\Release\shaders\debug.vert" />
+    <None Include="x64\Release\shaders\depth_point.frag" />
+    <None Include="x64\Release\shaders\depth_point.geom" />
+    <None Include="x64\Release\shaders\depth_point.vert" />
+    <None Include="x64\Release\shaders\depth_spot.frag" />
+    <None Include="x64\Release\shaders\depth_spot.vert" />
+    <None Include="x64\Release\shaders\dof.frag" />
+    <None Include="x64\Release\shaders\dof.vert" />
+    <None Include="x64\Release\shaders\exposure.comp" />
+    <None Include="x64\Release\shaders\fxaa.frag" />
+    <None Include="x64\Release\shaders\fxaa.vert" />
+    <None Include="x64\Release\shaders\gizmo.frag" />
+    <None Include="x64\Release\shaders\gizmo.vert" />
+    <None Include="x64\Release\shaders\grid.frag" />
+    <None Include="x64\Release\shaders\grid.vert" />
+    <None Include="x64\Release\shaders\histogram.comp" />
+    <None Include="x64\Release\shaders\main.frag" />
+    <None Include="x64\Release\shaders\main.vert" />
+    <None Include="x64\Release\shaders\particle.frag" />
+    <None Include="x64\Release\shaders\particle.geom" />
+    <None Include="x64\Release\shaders\particle.vert" />
+    <None Include="x64\Release\shaders\postprocess.frag" />
+    <None Include="x64\Release\shaders\postprocess.vert" />
+    <None Include="x64\Release\shaders\skybox.frag" />
+    <None Include="x64\Release\shaders\skybox.vert" />
+    <None Include="x64\Release\shaders\ssao.frag" />
+    <None Include="x64\Release\shaders\ssao.vert" />
+    <None Include="x64\Release\shaders\ssao_blur.frag" />
+    <None Include="x64\Release\shaders\ssao_blur.vert" />
+    <None Include="x64\Release\shaders\volumetric.frag" />
+    <None Include="x64\Release\shaders\volumetric.vert" />
+    <None Include="x64\Release\shaders\volumetric_blur.frag" />
+    <None Include="x64\Release\shaders\volumetric_blur.vert" />
+    <None Include="x64\Release\shaders\water.frag" />
+    <None Include="x64\Release\shaders\water.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

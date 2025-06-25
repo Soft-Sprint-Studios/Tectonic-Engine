@@ -71,9 +71,7 @@ uniform bool is_unlit;
 uniform samplerCube environmentMap;
 uniform bool useEnvironmentMap;
 uniform sampler2D brdfLUT;
-uniform float cubemapStrength;
 uniform float heightScale;
-uniform float cubemapStrength2;
 uniform float heightScale2;
 
 uniform bool useParallaxCorrection;
@@ -253,18 +251,20 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     vec3 invR = 1.0 / R;
     vec3 t1 = (boxMin - fragPos) * invR;
     vec3 t2 = (boxMax - fragPos) * invR;
-
+    
     vec3 tmin = min(t1, t2);
     vec3 tmax = max(t1, t2);
 
-    float t_enter = max(max(tmin.x, tmin.y), tmin.z);
-    float t_exit = min(min(tmax.x, tmax.y), tmax.z);
+    float t_near = max(max(tmin.x, tmin.y), tmin.z);
+    float t_far = min(min(tmax.x, tmax.y), tmax.z);
 
-    if (t_enter < 0.0 || t_enter > t_exit) {
+    if (t_near > t_far || t_far < 0.0) {
         return R;
     }
 
-    vec3 intersectPos = fragPos + R * t_enter;
+    float intersection_t = t_far;
+
+    vec3 intersectPos = fragPos + R * intersection_t;
 
     return normalize(intersectPos - probePos);
 }
@@ -275,7 +275,6 @@ void main()
 	float blendFactor = v_Color.r;
 	
 	float blendedHeightScale = mix(heightScale, heightScale2, blendFactor);
-    float blendedCubemapStrength = mix(cubemapStrength, cubemapStrength2, blendFactor);
     
     vec2 finalTexCoords = TexCoords;
     bool hasHeightMap1 = textureSize(heightMap, 0).x > 1;
@@ -438,7 +437,7 @@ void main()
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
         kD_ibl *= (1.0 - metallic);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution) * ao * blendedCubemapStrength;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution) * ao * 0.5;
     }
 	
     out_Velocity = Velocity;
