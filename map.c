@@ -786,23 +786,102 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             scene->numBrushes++;
         }
         else if (strcmp(keyword, "gltf_model") == 0) {
-            char modelPath[128]; Vec3 pos, rot, scale;
-            char targetname[64] = "";
+            char modelPath[270];
+            Vec3 pos, rot, scale;
+            char targetname[64] = ""; // Initialized to empty
             float mass = 0.0f;
             int is_phys_on = 0;
 
-            sscanf(line, "%*s %s \"%63[^\"]\" %f %f %f %f %f %f %f %f %f %f %d",
-                modelPath, targetname, &pos.x, &pos.y, &pos.z,
-                &rot.x, &rot.y, &rot.z, &scale.x, &scale.y, &scale.z, &mass, &is_phys_on);
-            scene->numObjects++; scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
-            if (!scene->objects) { fclose(file); return false; }
-            SceneObject* newObj = &scene->objects[scene->numObjects - 1]; memset(newObj, 0, sizeof(SceneObject));
-            strcpy(newObj->targetname, targetname);
+            char* p_line = line;
+            char temp_keyword[64];
+
+            // 1. Read the keyword ("gltf_model")
+            if (sscanf(p_line, "%63s", temp_keyword) != 1) {
+                printf("Scene_LoadMap Error: Could not read keyword from: %s\n", line);
+                continue;
+            }
+            p_line += strlen(temp_keyword); // Advance pointer past keyword
+            while (*p_line && isspace((unsigned char)*p_line)) p_line++; // Skip whitespace
+
+            // 2. Read modelPath (stops at next whitespace)
+            char* modelPath_start = p_line;
+            while (*p_line && !isspace((unsigned char)*p_line)) p_line++;
+            size_t modelPath_len = p_line - modelPath_start;
+            if (modelPath_len > 0 && modelPath_len < sizeof(modelPath)) {
+                strncpy(modelPath, modelPath_start, modelPath_len);
+                modelPath[modelPath_len] = '\0';
+            }
+            else if (modelPath_len == 0) {
+                printf("Scene_LoadMap Error: modelPath is empty in line: %s\n", line);
+                continue;
+            }
+            else {
+                printf("Scene_LoadMap Error: modelPath too long in line: %s\n", line);
+                continue;
+            }
+            while (*p_line && isspace((unsigned char)*p_line)) p_line++;
+
+            if (*p_line == '"') {
+                p_line++;
+                char* targetname_start = p_line;
+                while (*p_line && *p_line != '"') p_line++;
+                size_t targetname_len = p_line - targetname_start;
+                if (targetname_len < sizeof(targetname)) {
+                    strncpy(targetname, targetname_start, targetname_len);
+                    targetname[targetname_len] = '\0';
+                }
+                else {
+                    printf("Scene_LoadMap Warning: targetname too long, truncated from: %.*s\n", (int)targetname_len, targetname_start);
+                    strncpy(targetname, targetname_start, sizeof(targetname) - 1);
+                    targetname[sizeof(targetname) - 1] = '\0';
+                }
+                if (*p_line == '"') p_line++;
+            }
+            else {
+                targetname[0] = '\0';
+            }
+
+            int items_read_floats = sscanf(p_line, "%f %f %f %f %f %f %f %f %f %f %d",
+                &pos.x, &pos.y, &pos.z,
+                &rot.x, &rot.y, &rot.z,
+                &scale.x, &scale.y, &scale.z,
+                &mass, &is_phys_on);
+
+            if (items_read_floats != 11) {
+                printf("Scene_LoadMap Error: Malformed gltf_model numerical data in line: %sExpected 11 numbers, got %d. Parsed path: '%s', targetname: '%s'\n", line, items_read_floats, modelPath, targetname);
+                continue;
+            }
+
+            scene->numObjects++;
+            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+            if (!scene->objects) {
+                fclose(file);
+                printf("FATAL: realloc failed in Scene_LoadMap for objects\n");
+                return false;
+            }
+            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
+            memset(newObj, 0, sizeof(SceneObject));
+
+            strncpy(newObj->targetname, targetname, sizeof(newObj->targetname) - 1);
+            newObj->targetname[sizeof(newObj->targetname) - 1] = '\0';
             newObj->mass = mass;
             newObj->isPhysicsEnabled = (bool)is_phys_on;
-            strcpy(newObj->modelPath, modelPath); newObj->pos = pos; newObj->rot = rot; newObj->scale = scale;
-            SceneObject_UpdateMatrix(newObj); newObj->model = Model_Load(modelPath);
-            if (!newObj->model) { scene->numObjects--; continue; }
+
+            strncpy(newObj->modelPath, modelPath, sizeof(newObj->modelPath) - 1);
+            newObj->modelPath[sizeof(newObj->modelPath) - 1] = '\0';
+
+            newObj->pos = pos;
+            newObj->rot = rot;
+            newObj->scale = scale;
+            SceneObject_UpdateMatrix(newObj);
+
+            newObj->model = Model_Load(newObj->modelPath);
+
+            if (!newObj->model) {
+                printf("Scene_LoadMap: Failed to load model '%s'. Skipping object.\n", newObj->modelPath);
+                scene->numObjects--;
+                continue;
+            }
 
             if (newObj->mass > 0.0f) {
                 newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix);
@@ -812,9 +891,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             else {
                 Mat4 physics_transform = newObj->modelMatrix;
-                if (newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, scale); }
+                if (newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
+                    newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, scale);
+                }
             }
-        }
+            }
         else if (strcmp(keyword, "light") == 0) {
             if (scene->numActiveLights >= MAX_LIGHTS) continue;
             Light* light = &scene->lights[scene->numActiveLights];

@@ -132,10 +132,10 @@ static int FindReflectionProbeForPoint(Vec3 p) {
     return -1;
 }
 
-void render_object(GLuint shader, SceneObject* obj) {
+void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass) {
     bool envMapEnabled = false;
 
-    if (shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(obj->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -183,11 +183,11 @@ void render_object(GLuint shader, SceneObject* obj) {
     }
 }
 
-void render_brush(GLuint shader, Brush* b) {
+void render_brush(GLuint shader, Brush* b, bool is_baking_pass) {
     if (b->isReflectionProbe || b->isTrigger || b->isWater) return;
     bool envMapEnabled = false;
 
-    if (shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -840,11 +840,11 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
     for (int j = 0; j < g_scene.numObjects; ++j) {
-        render_object(g_renderer.spotDepthShader, &g_scene.objects[j]);
+        render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
         if (g_scene.brushes[j].isWater) continue;
-        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j]);
+        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false);
     }
 
     glCullFace(GL_BACK);
@@ -880,8 +880,8 @@ void render_shadows() {
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
-        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j]);
-        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j]);
+        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false);
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1120,7 +1120,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_object(g_renderer.mainShader, &g_scene.objects[i]);
+        render_object(g_renderer.mainShader, &g_scene.objects[i], false);
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
@@ -1137,7 +1137,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_brush(g_renderer.mainShader, &g_scene.brushes[i]);
+        render_brush(g_renderer.mainShader, &g_scene.brushes[i], false);
     }
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
     for (int i = 0; i < g_scene.numDecals; ++i) {

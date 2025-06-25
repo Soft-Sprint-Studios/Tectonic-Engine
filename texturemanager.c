@@ -500,7 +500,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                 else if (strcmp(key, "normal") == 0) {
                     strcpy(current_material->normalPath, value);
                 }
-                else if (strcmp(key, "rma") == 0) {
+                else if (strcmp(key, "arm") == 0) {
                     strcpy(current_material->rmaPath, value);
                 }
                 else if (strcmp(key, "height") == 0) {

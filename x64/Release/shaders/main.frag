@@ -302,9 +302,9 @@ void main()
     vec3 albedo = mix(texColor1.rgb, texColor2.rgb, blendFactor);
     float alpha = mix(texColor1.a, texColor2.a, blendFactor);
     vec3 normalTex = mix(normalTex1, normalTex2, blendFactor);
-    float roughness = mix(rma1.r, rma2.r, blendFactor);
-    float metallic = mix(rma1.g, rma2.g, blendFactor);
-    float ao = mix(rma1.b, rma2.b, blendFactor);
+    float roughness = mix(rma1.g, rma2.g, blendFactor);
+    float metallic = mix(rma1.b, rma2.b, blendFactor);
+    float ao = mix(rma1.r, rma2.r, blendFactor);
 
     if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);

@@ -143,7 +143,7 @@ typedef struct {
     char targetname[64];
     float mass;
     bool isPhysicsEnabled;
-    char modelPath[128];
+    char modelPath[270];
     Vec3 pos;
     Vec3 rot;
     Vec3 scale;
