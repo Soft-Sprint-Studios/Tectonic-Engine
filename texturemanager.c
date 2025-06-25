@@ -323,7 +323,6 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
     SDL_FreeSurface(fSurf);
     free(fullPath);
 
-    printf("Loaded LUT texture: %s (ID: %u)\n", filename_only, texID);
     return texID;
 }
 
