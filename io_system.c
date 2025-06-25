@@ -121,8 +121,34 @@ static void ExecuteInput(const char* targetName, const char* inputName, Scene* s
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         if (strcmp(scene->soundEntities[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "PlaySound") == 0) {
-                SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
-                scene->soundEntities[i].sourceID = SoundSystem_PlaySound(scene->soundEntities[i].bufferID, scene->soundEntities[i].pos, scene->soundEntities[i].volume, scene->soundEntities[i].pitch, scene->soundEntities[i].maxDistance);
+                if (scene->soundEntities[i].sourceID != 0) {
+                    SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
+                }
+                scene->soundEntities[i].sourceID = SoundSystem_PlaySound(scene->soundEntities[i].bufferID, scene->soundEntities[i].pos, scene->soundEntities[i].volume, scene->soundEntities[i].pitch, scene->soundEntities[i].maxDistance, scene->soundEntities[i].is_looping);
+            }
+            else if (strcmp(inputName, "StopSound") == 0) {
+                if (scene->soundEntities[i].sourceID != 0) {
+                    SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
+                    scene->soundEntities[i].sourceID = 0;
+                }
+            }
+            else if (strcmp(inputName, "EnableLoop") == 0) {
+                scene->soundEntities[i].is_looping = true;
+                if (scene->soundEntities[i].sourceID != 0) {
+                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, true);
+                }
+            }
+            else if (strcmp(inputName, "DisableLoop") == 0) {
+                scene->soundEntities[i].is_looping = false;
+                if (scene->soundEntities[i].sourceID != 0) {
+                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, false);
+                }
+            }
+            else if (strcmp(inputName, "ToggleLoop") == 0) {
+                scene->soundEntities[i].is_looping = !scene->soundEntities[i].is_looping;
+                if (scene->soundEntities[i].sourceID != 0) {
+                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, scene->soundEntities[i].is_looping);
+                }
             }
         }
     }

@@ -166,7 +166,7 @@ unsigned int SoundSystem_LoadWAV(const char* path) {
     return bufferID;
 }
 
-unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance) {
+unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping) {
     if (bufferID == 0) return 0;
 
     ALuint sourceID;
@@ -190,7 +190,7 @@ unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float v
     alSourcei(sourceID, AL_BUFFER, bufferID);
     alSourcef(sourceID, AL_PITCH, pitch);
     alSourcef(sourceID, AL_GAIN, volume);
-    alSourcei(sourceID, AL_LOOPING, AL_FALSE);
+    alSourcei(sourceID, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
 
     alSourcePlay(sourceID);
 
@@ -202,6 +202,11 @@ unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float v
     }
 
     return sourceID;
+}
+
+void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop) {
+    if (sourceID == 0) return;
+    alSourcei(sourceID, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
 }
 
 void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance) {

@@ -257,6 +257,7 @@ void TextureManager_LoadMaterialTextures(Material* material) {
     if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath); else material->normalMap = defaultNormalMapID;
     if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath); else material->rmaMap = defaultRmaMapID;
     if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath); else material->heightMap = 0;
+    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath); else material->detailDiffuseMap = 0;
 
     material->isLoaded = true;
 }
@@ -395,6 +396,7 @@ void TextureManager_Shutdown() {
         if (materials[i].normalMap != defaultNormalMapID) glDeleteTextures(1, &materials[i].normalMap);
         if (materials[i].rmaMap != defaultRmaMapID) glDeleteTextures(1, &materials[i].rmaMap);
         if (materials[i].heightMap != 0) glDeleteTextures(1, &materials[i].heightMap);
+        if (materials[i].detailDiffuseMap != 0) glDeleteTextures(1, &materials[i].detailDiffuseMap);
     }
 
     glDeleteTextures(1, &missingTextureID);
@@ -505,6 +507,9 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                 else if (strcmp(key, "height") == 0) {
                     strcpy(current_material->heightPath, value);
                 }
+                else if (strcmp(key, "detail") == 0) {
+                    strcpy(current_material->detailDiffusePath, value);
+                }
             }
             else {
                 float float_val;
@@ -514,6 +519,9 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                     }
                     else if (strcmp(key, "heightScale") == 0) {
                         current_material->heightScale = float_val;
+                    }
+                    else if (strcmp(key, "detailscale") == 0) {
+                        current_material->detailScale = float_val;
                     }
                 }
             }

@@ -174,6 +174,8 @@ void render_object(GLuint shader, SceneObject* obj) {
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
                 glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
                 glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
+                glUniform1f(glGetUniformLocation(shader, "detailScale"), material->detailScale);
+                glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
             }
             glBindVertexArray(mesh->VAO);
             if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
@@ -224,6 +226,8 @@ void render_brush(GLuint shader, Brush* b) {
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
             glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
+            glUniform1f(glGetUniformLocation(shader, "detailScale"), material->detailScale);
+            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
 
             Material* material2 = NULL;
             if (b->faces[i].material2) {
@@ -473,7 +477,7 @@ void init_renderer() {
     }
     glUseProgram(g_renderer.mainShader);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap"), 1);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "detailDiffuseMap"), 7);
     char uName[32];
     for (int i = 0; i < MAX_LIGHTS; ++i) {
         sprintf(uName, "pointShadowMaps[%d]", i);
@@ -654,7 +658,7 @@ void process_input() {
             }
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
-                SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f);
+                SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
             else {
                 if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
@@ -788,7 +792,7 @@ void update_state() {
             g_distance_walked += sqrtf(dx * dx + dz * dz);
 
             if (g_distance_walked >= FOOTSTEP_DISTANCE) {
-                SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.7f, 1.0f, 50.0f);
+                SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.7f, 1.0f, 50.0f, false);
                 g_distance_walked = 0.0f;
             }
         }

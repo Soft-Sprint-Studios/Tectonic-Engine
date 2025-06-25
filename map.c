@@ -842,9 +842,17 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         else if (strcmp(keyword, "sound_entity") == 0) {
             if (scene->numSoundEntities < MAX_SOUNDS) {
                 SoundEntity* s = &scene->soundEntities[scene->numSoundEntities]; memset(s, 0, sizeof(SoundEntity));
-                int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %s %f %f %f %f %f %f", s->targetname, s->soundPath, &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance);
+                int is_looping_int = 0;
+                int play_on_start_int = 0;
+                int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %s %f %f %f %f %f %f %d %d", s->targetname, s->soundPath, &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
                 if (items_scanned < 8) { s->volume = 1.0f; s->pitch = 1.0f; s->maxDistance = 50.0f; }
-                s->bufferID = SoundSystem_LoadWAV(s->soundPath); scene->numSoundEntities++;
+                s->is_looping = (bool)is_looping_int;
+                s->play_on_start = (bool)play_on_start_int;
+                s->bufferID = SoundSystem_LoadWAV(s->soundPath);
+                if (s->play_on_start) {
+                    s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
+                }
+                scene->numSoundEntities++;
             }
         }
         else if (strcmp(keyword, "io_connection") == 0) {
@@ -936,7 +944,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     fprintf(file, "\n");
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundEntity* s = &scene->soundEntities[i];
-        fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance);
+        fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start);
     }
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];

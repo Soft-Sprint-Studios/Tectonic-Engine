@@ -52,6 +52,8 @@ uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D rmaMap;
 uniform sampler2D heightMap;
+uniform sampler2D detailDiffuseMap;
+uniform float detailScale;
 uniform sampler2D diffuseMap2;
 uniform sampler2D normalMap2;
 uniform sampler2D rmaMap2;
@@ -287,6 +289,12 @@ void main()
     vec4 texColor1 = texture(diffuseMap, finalTexCoords);
     vec3 normalTex1 = texture(normalMap, finalTexCoords).rgb;
     vec3 rma1 = texture(rmaMap, finalTexCoords).rgb;
+	
+	if (textureSize(detailDiffuseMap, 0).x > 1) {
+        vec2 detailCoords = TexCoords * detailScale;
+        vec3 detailColor = texture(detailDiffuseMap, detailCoords).rgb;
+        texColor1.rgb *= detailColor * 2.0;
+    }
     
     vec4 texColor2 = texture(diffuseMap2, TexCoords2);
     vec3 normalTex2 = texture(normalMap2, TexCoords2).rgb;

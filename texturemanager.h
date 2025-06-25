@@ -20,14 +20,17 @@ typedef struct {
     GLuint normalMap;
     GLuint rmaMap;
     GLuint heightMap;
+    GLuint detailDiffuseMap;
 
     char diffusePath[128];
     char normalPath[128];
     char rmaPath[128];
     char heightPath[128];
+    char detailDiffusePath[128];
     bool isLoaded;
 
     float heightScale;
+    float detailScale;
     float cubemapStrength;
 } Material;
 

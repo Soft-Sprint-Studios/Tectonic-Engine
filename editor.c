@@ -1064,6 +1064,25 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         }
     }
 
+    for (int i = 0; i < g_CurrentScene->numDecals; ++i) {
+        Decal* decal = &g_CurrentScene->decals[i];
+
+        Vec3 decal_local_min = { -0.5f, -0.5f, -0.5f };
+        Vec3 decal_local_max = { 0.5f, 0.5f, 0.5f };
+
+        float t;
+        if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
+            &decal->modelMatrix,
+            decal_local_min,
+            decal_local_max,
+            &t) && t < closest_t) {
+            closest_t = t;
+            selected_type = ENTITY_DECAL;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
     g_EditorState.selected_entity_type = selected_type;
     g_EditorState.selected_entity_index = selected_index;
 
@@ -1276,7 +1295,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
         }
-        g_EditorState.gizmo_drag_view = VIEW_COUNT;
 
         ViewportType active_viewport = VIEW_COUNT;
         for (int i = 0; i < VIEW_COUNT; ++i) {
@@ -1299,7 +1317,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.preview_brush_drag_body_start_brush_world_min_at_drag_start = g_EditorState.preview_brush_world_min;
             return;
         }
-        if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
+        else if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_active_axis = g_EditorState.gizmo_hovered_axis;
             g_EditorState.gizmo_drag_view = active_viewport;
@@ -1386,6 +1404,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 break;
             }
             }
+            return;
         }
         else if (g_EditorState.vertex_gizmo_hovered_axis != GIZMO_AXIS_NONE && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
             g_EditorState.is_manipulating_vertex_gizmo = true;
@@ -1412,50 +1431,42 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
             Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
             ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_gizmo_drag_plane_d, &g_EditorState.vertex_gizmo_drag_start_world);
+            return;
         }
-        else if (!g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
-                if (g_EditorState.is_viewport_hovered[i]) {
-                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
-                    Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                    float pick_dist_sq = (g_EditorState.ortho_cam_zoom[i - 1] * 0.05f);
-                    pick_dist_sq *= pick_dist_sq;
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float dist_sq = 0;
-                        if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
-                        if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
-                        if (i == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
-                        if (dist_sq < pick_dist_sq) {
-                            g_EditorState.is_vertex_manipulating = true;
-                            g_EditorState.manipulated_vertex_index = v_idx;
-                            g_EditorState.selected_vertex_index = v_idx;
-                            g_EditorState.vertex_manipulation_view = (ViewportType)i;
-                            g_EditorState.vertex_manipulation_start_pos = mouse_world_pos;
-                            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-                            return;
-                        }
-                    }
+        else if (active_viewport >= VIEW_TOP_XZ && !g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+            float pick_dist_sq = (g_EditorState.ortho_cam_zoom[active_viewport - 1] * 0.05f);
+            pick_dist_sq *= pick_dist_sq;
+            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                float dist_sq = 0;
+                if (active_viewport == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
+                if (active_viewport == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
+                if (active_viewport == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
+                if (dist_sq < pick_dist_sq) {
+                    g_EditorState.is_vertex_manipulating = true;
+                    g_EditorState.manipulated_vertex_index = v_idx;
+                    g_EditorState.selected_vertex_index = v_idx;
+                    g_EditorState.vertex_manipulation_view = active_viewport;
+                    g_EditorState.vertex_manipulation_start_pos = mouse_world_pos;
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+                    return;
                 }
             }
         }
-        else if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE] && !g_EditorState.is_in_brush_creation_mode) {
+
+        if (active_viewport == VIEW_PERSPECTIVE && !g_EditorState.is_in_brush_creation_mode) {
             Editor_PickObjectAtScreenPos(g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE], VIEW_PERSPECTIVE);
         }
-        else {
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; i++) {
-                if (g_EditorState.is_viewport_hovered[i]) {
-                    if (!g_EditorState.is_in_brush_creation_mode && !g_EditorState.is_dragging_preview_brush_handle) {
-                        g_EditorState.is_dragging_for_creation = true;
-                        g_EditorState.brush_creation_start_point_2d_drag = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                        g_EditorState.brush_creation_view = (ViewportType)i;
-                        g_EditorState.preview_brush_world_min = g_EditorState.brush_creation_start_point_2d_drag;
-                        g_EditorState.preview_brush_world_max = g_EditorState.brush_creation_start_point_2d_drag;
-                        Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.preview_brush_world_min, g_EditorState.preview_brush_world_max, g_EditorState.brush_creation_view);
-                    }
-                    break;
-                }
-            }
+
+        if (g_EditorState.selected_entity_type == ENTITY_NONE && active_viewport != VIEW_PERSPECTIVE && active_viewport != VIEW_COUNT && !g_EditorState.is_in_brush_creation_mode) {
+            g_EditorState.is_dragging_for_creation = true;
+            g_EditorState.brush_creation_start_point_2d_drag = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+            g_EditorState.brush_creation_view = active_viewport;
+            g_EditorState.preview_brush_world_min = g_EditorState.brush_creation_start_point_2d_drag;
+            g_EditorState.preview_brush_world_max = g_EditorState.brush_creation_start_point_2d_drag;
+            Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.preview_brush_world_min, g_EditorState.preview_brush_world_max, g_EditorState.brush_creation_view);
         }
     }
     if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) {
@@ -3145,6 +3156,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index < scene->numSoundEntities) {
         SoundEntity* s = &scene->soundEntities[g_EditorState.selected_entity_index]; UI_Text("Sound Entity Properties"); UI_Separator(); UI_InputText("Target Name", s->targetname, sizeof(s->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Targetname"); } UI_InputText("Sound Path", s->soundPath, sizeof(s->soundPath)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Path"); } if (UI_Button("Load##Sound")) { if (s->sourceID != 0) SoundSystem_DeleteSource(s->sourceID); if (s->bufferID != 0) SoundSystem_DeleteBuffer(s->bufferID); s->bufferID = SoundSystem_LoadWAV(s->soundPath); } UI_DragFloat3("Position", &s->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourcePosition(s->sourceID, s->pos); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Move Sound"); } UI_DragFloat("Volume", &s->volume, 0.05f, 0.0f, 2.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Volume"); } UI_DragFloat("Pitch", &s->pitch, 0.05f, 0.1f, 4.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Pitch"); } UI_DragFloat("Max Distance", &s->maxDistance, 1.0f, 1.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Distance"); }
+        if (UI_Checkbox("Looping", &s->is_looping)) {
+            Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index);
+            if (s->sourceID != 0) SoundSystem_SetSourceLooping(s->sourceID, s->is_looping);
+            Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Toggle Sound Loop");
+        }
+        if (UI_Checkbox("Play on Start", &s->play_on_start)) {
+            Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index);
+            Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Toggle Play on Start");
+        }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index < scene->numParticleEmitters) {
         ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); } UI_InputText("Target Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Targetname"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->on_by_default = !emitter->on_by_default; emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }

@@ -208,6 +208,8 @@ typedef struct {
     float volume;
     float pitch;
     float maxDistance;
+    bool is_looping;
+    bool play_on_start;
 } SoundEntity;
 
 typedef struct ParticleEmitter {
