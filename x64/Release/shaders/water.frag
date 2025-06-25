@@ -49,10 +49,10 @@ uniform vec3 viewPos;
 
 uniform vec3 cameraPosition;
 uniform float time;
-uniform float waveStrength = 0.01;
-uniform float normalTiling1 = 1.0;
-uniform float normalSpeed1 = 0.03;
-uniform float dudvMoveSpeed = 0.10;
+uniform float waveStrength = 0.02;
+uniform float normalTiling1 = 2.0;
+uniform float normalSpeed1 = 0.02;
+uniform float dudvMoveSpeed = 0.03;
 
 uniform bool useParallaxCorrection;
 uniform vec3 probeBoxMin;
@@ -193,20 +193,38 @@ void main()
         vec3 L = normalize(lights[i].position - WorldPos);
         vec3 H = normalize(L + V);
         float distance = length(lights[i].position - WorldPos);
-        float attenuation = 1.0 / (distance * distance + 1.0);
         float NdotL = max(dot(N, L), 0.0);
         
-        float shadow = 0.0;
-        if(lights[i].shadowMapIndex >= 0) {
-            if(lights[i].type == 0) shadow = calculatePointShadow(i, WorldPos);
-            else shadow = calculateSpotShadow(i, FragPosLightSpace[i], N, L);
+        float attenuation = 0.0;
+        if (lights[i].type == 0)
+        {
+            float radiusFalloff = pow(1.0 - clamp(distance / lights[i].radius, 0.0, 1.0), 2.0);
+            attenuation = radiusFalloff / (distance * distance + 1.0);
         }
-        float shadowFactor = 1.0 - shadow;
-
-        diffuseLighting += lights[i].color * lights[i].intensity * NdotL * attenuation * shadowFactor;
+        else
+        {
+            float theta = dot(L, -lights[i].direction);
+            if (theta > lights[i].outerCutOff) {
+               float epsilon = lights[i].cutOff - lights[i].outerCutOff;
+               float cone_intensity = clamp((theta - lights[i].outerCutOff) / epsilon, 0.0, 1.0);
+               float radiusFalloff = pow(1.0 - clamp(distance / lights[i].radius, 0.0, 1.0), 2.0);
+               attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
+            }
+        }
         
-        float spec = pow(max(dot(N, H), 0.0), local_light_shininess);
-        specularHighlights += lights[i].color * lights[i].intensity * spec * attenuation * shadowFactor;
+        if (attenuation > 0.0) {
+            float shadow = 0.0;
+            if(lights[i].shadowMapIndex >= 0) {
+                if(lights[i].type == 0) shadow = calculatePointShadow(i, WorldPos);
+                else shadow = calculateSpotShadow(i, FragPosLightSpace[i], N, L);
+            }
+            float shadowFactor = 1.0 - shadow;
+
+            diffuseLighting += lights[i].color * lights[i].intensity * NdotL * attenuation * shadowFactor;
+            
+            float spec = pow(max(dot(N, H), 0.0), local_light_shininess);
+            specularHighlights += lights[i].color * lights[i].intensity * spec * attenuation * shadowFactor;
+        }
     }
     
     if (flashlight.enabled) {
