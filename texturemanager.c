@@ -486,7 +486,6 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
         }
         else if (trimmed_line[0] == '}') {
             if (current_material) {
-                printf("Parsed material: '%s'\n", current_material->name);
                 num_materials++;
                 current_material = NULL;
             }
