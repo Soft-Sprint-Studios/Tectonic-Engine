@@ -44,7 +44,7 @@ uniform mat4 view;
 
 const float PI = 3.14159265359;
 const float G_SCATTERING = 0.4;
-const int NB_STEPS = 1024;
+const int NB_STEPS = 256;
 
 float dither[16] = float[](
      0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
@@ -136,7 +136,6 @@ void main()
 
     for (int i = 0; i < NB_STEPS; i++)
     {
-        // 3. For each step, check against the G-Buffer depth
         vec4 currentViewPos = view * vec4(currentPosition, 1.0);
         vec4 currentClipPos = projection * currentViewPos;
         vec2 currentScreenUV = currentClipPos.xy / currentClipPos.w * 0.5 + 0.5;
