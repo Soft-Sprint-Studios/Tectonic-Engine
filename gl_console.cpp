@@ -168,6 +168,9 @@ extern "C" {
     bool UI_IsItemDeactivatedAfterEdit(void) {
         return ImGui::IsItemDeactivatedAfterEdit();
     }
+    bool UI_Checkbox(const char* label, bool* v) {
+        return ImGui::Checkbox(label, v);
+    }
 
     bool UI_ImageButton(const char* str_id, unsigned int user_texture_id, float width, float height) {
         return ImGui::ImageButton(str_id, (ImTextureID)(intptr_t)user_texture_id, ImVec2(width, height));

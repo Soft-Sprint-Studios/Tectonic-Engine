@@ -76,6 +76,7 @@ extern "C" {
 
 	bool UI_IsItemActivated(void);
 	bool UI_IsItemDeactivatedAfterEdit(void);
+    bool UI_Checkbox(const char* label, bool* v);
 
 	bool UI_ImageButton(const char* str_id, unsigned int user_texture_id, float width, float height);
 	void UI_BeginTooltip();
