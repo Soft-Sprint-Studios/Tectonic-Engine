@@ -65,6 +65,10 @@ void Light_InitShadowMap(Light* light) {
     glReadBuffer(GL_NONE);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("Shadow Framebuffer not complete! Light Type: %d\n", light->type);
+
+    light->shadowMapHandle = glGetTextureHandleARB(light->shadowMapTexture);
+    glMakeTextureHandleResidentARB(light->shadowMapHandle);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -105,6 +109,10 @@ void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 came
 }
 
 void Light_DestroyShadowMap(Light* light) {
+    if (light->shadowMapHandle) {
+        glMakeTextureHandleNonResidentARB(light->shadowMapHandle);
+        light->shadowMapHandle = 0;
+    }
     if (light->shadowFBO) {
         glDeleteFramebuffers(1, &light->shadowFBO);
         light->shadowFBO = 0;

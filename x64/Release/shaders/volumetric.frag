@@ -1,25 +1,21 @@
 #version 460 core
+#extension GL_ARB_bindless_texture : require
+#extension GL_ARB_gpu_shader_int64 : require
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
 
 uniform sampler2D gPosition;
-uniform samplerCube pointShadowMaps[16];
-uniform sampler2D spotShadowMaps[16];
 
-struct Light {
-    int type;
-    vec3 position;
-    vec3 direction;
-    vec3 color;
-    float intensity;
-    float radius;
-    float cutOff;
-    float outerCutOff;
-    float shadowFarPlane;
-    float shadowBias;
-    int shadowMapIndex;
-    float volumetricIntensity;
+struct ShaderLight {
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+    vec4 params1;
+    vec4 params2;
+    uint64_t shadowMapHandle;
+    uint64_t _padding;
 };
 
 struct Sun {
@@ -30,17 +26,19 @@ struct Sun {
     float volumetricIntensity;
 };
 
-uniform Light lights[16];
-uniform int numLights;
+layout(std430, binding = 3) readonly buffer LightBlock {
+    ShaderLight lights[];
+};
+
+uniform int numActiveLights;
 uniform vec3 viewPos;
 uniform mat4 invView;
 uniform mat4 invProjection;
-uniform mat4 lightSpaceMatrices[16];
+uniform mat4 projection;
+uniform mat4 view; 
 uniform Sun sun;
 uniform sampler2D sunShadowMap;
 uniform mat4 sunLightSpaceMatrix;
-uniform mat4 projection;
-uniform mat4 view; 
 
 const float PI = 3.14159265359;
 const float G_SCATTERING = 0.4;
@@ -60,23 +58,45 @@ float ComputeScattering(float lightDotView)
     return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * lightDotView, 1.5));
 }
 
-float calculatePointShadow(int lightIndex, vec3 pos)
-{
-    int shadowIndex = lights[lightIndex].shadowMapIndex;
-    vec3 fragToLight = pos - lights[lightIndex].position;
-    float currentDepth = length(fragToLight);
-    if(currentDepth > lights[lightIndex].shadowFarPlane) return 0.0;
-    
-    float closestDepth = texture(pointShadowMaps[shadowIndex], fragToLight).r;
-    closestDepth *= lights[lightIndex].shadowFarPlane; 
-    
-    return currentDepth > closestDepth + lights[lightIndex].shadowBias ? 0.0 : 1.0;
+mat4 perspective(float fov, float aspect, float near, float far) {
+    float f = 1.0 / tan(fov / 2.0);
+    return mat4(
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (far + near) / (near - far), -1,
+        0, 0, (2.0 * far * near) / (near - far), 0
+    );
 }
 
-float calculateSpotShadow(int lightIndex, vec3 pos)
+mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
+    vec3 f = normalize(center - eye);
+    vec3 s = normalize(cross(f, up));
+    vec3 u = cross(s, f);
+    return mat4(
+        s.x, u.x, -f.x, 0,
+        s.y, u.y, -f.y, 0,
+        s.z, u.z, -f.z, 0,
+        -dot(s, eye), -dot(u, eye), dot(f, eye), 1
+    );
+}
+
+float calculatePointShadow(uint64_t shadowMap, vec3 pos, vec3 lightPos, float farPlane, float bias)
 {
-    int shadowIndex = lights[lightIndex].shadowMapIndex;
-    vec4 fragPosLightSpace = lightSpaceMatrices[lightIndex] * vec4(pos, 1.0);
+    samplerCube shadowSampler = samplerCube(shadowMap);
+    vec3 fragToLight = pos - lightPos;
+    float currentDepth = length(fragToLight);
+    if(currentDepth > farPlane) return 0.0;
+    
+    float closestDepth = texture(shadowSampler, fragToLight).r;
+    closestDepth *= farPlane; 
+    
+    return currentDepth > closestDepth + bias ? 0.0 : 1.0;
+}
+
+float calculateSpotShadow(uint64_t shadowMap, mat4 lightSpaceMatrix, vec3 pos)
+{
+    sampler2D shadowSampler = sampler2D(shadowMap);
+    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(pos, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -84,7 +104,7 @@ float calculateSpotShadow(int lightIndex, vec3 pos)
         return 1.0; 
         
     float currentDepth = projCoords.z;
-    float pcfDepth = texture(spotShadowMaps[shadowIndex], projCoords.xy).r;
+    float pcfDepth = texture(shadowSampler, projCoords.xy).r;
     
     return currentDepth > pcfDepth + 0.005 ? 0.0 : 1.0;
 }
@@ -154,38 +174,61 @@ void main()
             }
         }
 
-        for (int l = 0; l < numLights; ++l)
+        for (int l = 0; l < numActiveLights; ++l)
         {
-            if (lights[l].volumetricIntensity <= 0.0) continue;
+            float volumetricIntensity = lights[l].params2.z;
+            if (volumetricIntensity <= 0.0) continue;
+            
+            float lightType = lights[l].position.w;
+            vec3 lightPos = lights[l].position.xyz;
 
             float lightVisibility = 1.0;
-            if (lights[l].shadowMapIndex >= 0) {
-                 if (lights[l].type == 0) lightVisibility = calculatePointShadow(l, currentPosition);
-                 else lightVisibility = calculateSpotShadow(l, currentPosition);
+            if (lights[l].shadowMapHandle > 0) {
+                 if (lightType == 0) {
+                     lightVisibility = calculatePointShadow(lights[l].shadowMapHandle, currentPosition, lightPos, lights[l].params2.x, lights[l].params2.y);
+                 } else {
+                     float angle_rad = acos(clamp(lights[l].params1.y, -1.0, 1.0));
+                     if (angle_rad < 0.01) angle_rad = 0.01;
+                     mat4 lightProjection = perspective(angle_rad * 2.0, 1.0, 1.0, lights[l].params2.x);
+                     vec3 up_vector = vec3(0,1,0);
+                     if (abs(dot(lights[l].direction.xyz, up_vector)) > 0.99) up_vector = vec3(1,0,0);
+                     mat4 lightView = lookAt(lightPos, lightPos + lights[l].direction.xyz, up_vector);
+                     mat4 lightSpaceMatrix = lightProjection * lightView;
+
+                     lightVisibility = calculateSpotShadow(lights[l].shadowMapHandle, lightSpaceMatrix, currentPosition);
+                 }
             }
             
             if(lightVisibility <= 0.0) continue;
 
-            vec3 lightDir = normalize(lights[l].position - currentPosition);
-            float distToLight = length(lights[l].position - currentPosition);
+            vec3 lightDir = normalize(lightPos - currentPosition);
+            float distToLight = length(lightPos - currentPosition);
             
             float attenuation = 0.0;
-            if (lights[l].type == 0) {
-                attenuation = pow(1.0 - clamp(distToLight / lights[l].radius, 0.0, 1.0), 2.0);
+            if (lightType == 0) {
+                float radius = lights[l].params1.x;
+                attenuation = pow(1.0 - clamp(distToLight / radius, 0.0, 1.0), 2.0);
             } else {
-            float theta = dot(normalize(currentPosition - lights[l].position), lights[l].direction);
-            if(theta > lights[l].outerCutOff) {
-                float epsilon = lights[l].cutOff - lights[l].outerCutOff;
-                float cone_intensity = clamp((theta - lights[l].outerCutOff) / epsilon, 0.0, 1.0);
-                attenuation = cone_intensity * pow(1.0 - clamp(distToLight / lights[l].radius, 0.0, 1.0), 2.0);
-           }
-       }
+                float lightCutOff = lights[l].params1.y;
+                float lightOuterCutOff = lights[l].params1.z;
+                vec3 L_direction = lights[l].direction.xyz;
 
-        if (attenuation > 0.0) {
+                float theta = dot(normalize(currentPosition - lightPos), L_direction);
+                if(theta > lightOuterCutOff) {
+                    float epsilon = lightCutOff - lightOuterCutOff;
+                    float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
+                    float radius = lights[l].params1.x;
+                    attenuation = cone_intensity * pow(1.0 - clamp(distToLight / radius, 0.0, 1.0), 2.0);
+                }
+            }
+
+            if (attenuation > 0.0) {
                 float scattering = ComputeScattering(dot(rayDirection, -lightDir));
-                accumFog += scattering * lights[l].color * lights[l].intensity * lights[l].volumetricIntensity * lightVisibility * attenuation;
+                vec3 lightColor = lights[l].color.rgb;
+                float lightIntensity = lights[l].color.a;
+                accumFog += scattering * lightColor * lightIntensity * volumetricIntensity * lightVisibility * attenuation;
+            }
         }
-    }
         currentPosition += step;
     }
 

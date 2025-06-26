@@ -8,9 +8,7 @@ out vec3 Normal;
 out vec2 TexCoords;
 
 uniform mat4 sunLightSpaceMatrix;
-uniform mat4 lightSpaceMatrices[16];
 
-out vec4 FragPosLightSpace[16];
 out vec4 FragPosSunLightSpace;
 
 uniform mat4 model;
@@ -24,8 +22,5 @@ void main()
     TexCoords = aTexCoords;
     gl_Position = projection * view * vec4(WorldPos, 1.0);
 
-    for(int i = 0; i < 16; ++i) {
-        FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(WorldPos, 1.0);
-    }
     FragPosSunLightSpace = sunLightSpaceMatrix * vec4(WorldPos, 1.0);
 }
