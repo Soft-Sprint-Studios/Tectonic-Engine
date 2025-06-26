@@ -3,6 +3,8 @@
 *.dll
 *.pdb
 
-!SDL2.dll
+
 !OpenAL32.dll
 !glew32.dll
+
+.vs/
