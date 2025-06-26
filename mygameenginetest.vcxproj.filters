@@ -289,5 +289,11 @@
     <None Include="x64\Release\shaders\water.vert">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
+    <None Include="x64\Release\shaders\water.tcs">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\water.tes">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

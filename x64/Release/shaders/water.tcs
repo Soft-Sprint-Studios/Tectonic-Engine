@@ -1,0 +1,46 @@
+#version 460 core
+layout (vertices = 3) out;
+
+in VS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+    vec3 normal;
+} tcs_in[];
+
+out TCS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+    vec3 normal;
+} tcs_out[];
+
+uniform vec3 viewPos;
+
+float get_tess_level(float distance) {
+    float maxDist = 80.0;
+    float minDist = 5.0;
+    float maxLevel = 16.0;
+    float minLevel = 1.0;
+    float tess = maxLevel - (maxLevel - minLevel) * smoothstep(minDist, maxDist, distance);
+    return clamp(tess, minLevel, maxLevel);
+}
+
+void main()
+{
+    tcs_out[gl_InvocationID].worldPos = tcs_in[gl_InvocationID].worldPos;
+    tcs_out[gl_InvocationID].texCoords = tcs_in[gl_InvocationID].texCoords;
+    tcs_out[gl_InvocationID].normal = tcs_in[gl_InvocationID].normal;
+
+    float d0 = distance(viewPos, tcs_in[0].worldPos);
+    float d1 = distance(viewPos, tcs_in[1].worldPos);
+    float d2 = distance(viewPos, tcs_in[2].worldPos);
+
+    float level_outer_0 = get_tess_level((d1 + d2) / 2.0);
+    float level_outer_1 = get_tess_level((d0 + d2) / 2.0);
+    float level_outer_2 = get_tess_level((d0 + d1) / 2.0);
+    float level_inner = get_tess_level((d0 + d1 + d2) / 3.0);
+
+    gl_TessLevelOuter[0] = level_outer_0;
+    gl_TessLevelOuter[1] = level_outer_1;
+    gl_TessLevelOuter[2] = level_outer_2;
+    gl_TessLevelInner[0] = level_inner;
+}

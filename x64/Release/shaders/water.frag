@@ -4,10 +4,12 @@
 
 out vec4 FragColor;
 
-in vec3 WorldPos;
-in vec3 Normal;
-in vec2 TexCoords;
-in vec4 FragPosSunLightSpace;
+in TES_OUT {
+    vec3 WorldPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 FragPosSunLightSpace;
+} fs_in;
 
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
@@ -175,10 +177,10 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 
 void main()
 {
-    vec2 normalScroll1 = TexCoords * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8);
+    vec2 normalScroll1 = fs_in.TexCoords * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8);
     vec3 totalNormalDistortion = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
 
-    vec3 geoNormal = normalize(Normal);
+    vec3 geoNormal = normalize(fs_in.Normal);
     vec3 tangent = normalize(cross(vec3(0.0, 0.0, 1.0), geoNormal));
     if (length(tangent) < 0.1) {
         tangent = normalize(cross(vec3(1.0, 0.0, 0.0), geoNormal));
@@ -187,7 +189,7 @@ void main()
     mat3 TBN = mat3(tangent, bitangent, geoNormal);
     vec3 N = normalize(TBN * totalNormalDistortion);
     
-    vec3 V = normalize(viewPos - WorldPos);
+    vec3 V = normalize(viewPos - fs_in.WorldPos);
 
     vec3 diffuseLighting = vec3(0.0);
     vec3 specularHighlights = vec3(0.0);
@@ -199,7 +201,7 @@ void main()
         vec3 L = -sun.direction;
         vec3 H = normalize(L + V);
         float NdotL = max(dot(N, L), 0.0);
-        float shadow = calculateSunShadow(FragPosSunLightSpace, N, L);
+        float shadow = calculateSunShadow(fs_in.FragPosSunLightSpace, N, L);
         float shadowFactor = 1.0 - shadow;
         
         diffuseLighting += sun.color * sun.intensity * NdotL * shadowFactor;
@@ -212,9 +214,9 @@ void main()
         vec3 lightPos = lights[i].position.xyz;
         float lightType = lights[i].position.w;
 
-        vec3 L = normalize(lightPos - WorldPos);
+        vec3 L = normalize(lightPos - fs_in.WorldPos);
         vec3 H = normalize(L + V);
-        float distance = length(lightPos - WorldPos);
+        float distance = length(lightPos - fs_in.WorldPos);
         float NdotL = max(dot(N, L), 0.0);
         
         float attenuation = 0.0;
@@ -244,7 +246,7 @@ void main()
             float shadow = 0.0;
             if(lights[i].shadowMapHandle > 0) {
                 if(lightType == 0) {
-                    shadow = calculatePointShadow(lights[i].shadowMapHandle, WorldPos, lightPos, lights[i].params2.x, lights[i].params2.y);
+                    shadow = calculatePointShadow(lights[i].shadowMapHandle, fs_in.WorldPos, lightPos, lights[i].params2.x, lights[i].params2.y);
                 } else {
                     float angle_rad = acos(clamp(lights[i].params1.y, -1.0, 1.0));
                     if (angle_rad < 0.01) angle_rad = 0.01;
@@ -253,7 +255,7 @@ void main()
                     if (abs(dot(lights[i].direction.xyz, up_vector)) > 0.99) up_vector = vec3(1,0,0);
                     mat4 lightView = lookAt(lightPos, lightPos + lights[i].direction.xyz, up_vector);
                     mat4 lightSpaceMatrix = lightProjection * lightView;
-                    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
+                    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(fs_in.WorldPos, 1.0);
 
                     shadow = calculateSpotShadow(lights[i].shadowMapHandle, fragPosLightSpace, N, L, lights[i].params2.y);
                 }
@@ -271,10 +273,10 @@ void main()
     }
     
     if (flashlight.enabled) {
-        vec3 L = normalize(flashlight.position - WorldPos);
+        vec3 L = normalize(flashlight.position - fs_in.WorldPos);
         vec3 H = normalize(L + V);
         float NdotL = max(dot(N, L), 0.0);
-        float distance = length(flashlight.position - WorldPos);
+        float distance = length(flashlight.position - fs_in.WorldPos);
         float attenuation = pow(max(0.0, 1.0 - distance / 35.0), 2.0);
         
         float theta = dot(L, -flashlight.direction);
@@ -291,13 +293,13 @@ void main()
         }
     }
 
-    vec2 dudvScroll = TexCoords * 4.0 + vec2(time * dudvMoveSpeed, time * -dudvMoveSpeed);
+    vec2 dudvScroll = fs_in.TexCoords * 4.0 + vec2(time * dudvMoveSpeed, time * -dudvMoveSpeed);
     vec2 distortion = (texture(dudvMap, dudvScroll).rg * 2.0 - 1.0) * waveStrength;
     
     vec3 reflectDir = reflect(-V, N);
     vec3 finalReflectDir = reflectDir;
     if (useParallaxCorrection) {
-        finalReflectDir = ParallaxCorrect(reflectDir, WorldPos, probeBoxMin, probeBoxMax, probePosition);
+        finalReflectDir = ParallaxCorrect(reflectDir, fs_in.WorldPos, probeBoxMin, probeBoxMax, probePosition);
     }
     finalReflectDir.xy += distortion;
     vec3 reflectionColor = texture(reflectionMap, finalReflectDir).rgb;
