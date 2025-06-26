@@ -1,6 +1,5 @@
 #version 460 core
 #extension GL_ARB_bindless_texture : require
-#extension GL_ARB_gpu_shader_int64 : require
 
 out vec4 FragColor;
 
@@ -14,8 +13,8 @@ struct ShaderLight {
     vec4 color;
     vec4 params1;
     vec4 params2;
-    uint64_t shadowMapHandle;
-    uint64_t _padding;
+    uvec2 shadowMapHandle;
+    uvec2 _padding;
 };
 
 struct Sun {
@@ -80,9 +79,9 @@ mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     );
 }
 
-float calculatePointShadow(uint64_t shadowMap, vec3 pos, vec3 lightPos, float farPlane, float bias)
+float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 pos, vec3 lightPos, float farPlane, float bias)
 {
-    samplerCube shadowSampler = samplerCube(shadowMap);
+    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
     vec3 fragToLight = pos - lightPos;
     float currentDepth = length(fragToLight);
     if(currentDepth > farPlane) return 0.0;
@@ -93,9 +92,9 @@ float calculatePointShadow(uint64_t shadowMap, vec3 pos, vec3 lightPos, float fa
     return currentDepth > closestDepth + bias ? 0.0 : 1.0;
 }
 
-float calculateSpotShadow(uint64_t shadowMap, mat4 lightSpaceMatrix, vec3 pos)
+float calculateSpotShadow(uvec2 shadowMapHandleUvec2, mat4 lightSpaceMatrix, vec3 pos)
 {
-    sampler2D shadowSampler = sampler2D(shadowMap);
+    sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
     vec4 fragPosLightSpace = lightSpaceMatrix * vec4(pos, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
@@ -183,7 +182,7 @@ void main()
             vec3 lightPos = lights[l].position.xyz;
 
             float lightVisibility = 1.0;
-            if (lights[l].shadowMapHandle > 0) {
+            if (lights[l].shadowMapHandle.x > 0 || lights[l].shadowMapHandle.y > 0) {
                  if (lightType == 0) {
                      lightVisibility = calculatePointShadow(lights[l].shadowMapHandle, currentPosition, lightPos, lights[l].params2.x, lights[l].params2.y);
                  } else {

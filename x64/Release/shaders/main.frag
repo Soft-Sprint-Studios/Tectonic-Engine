@@ -1,6 +1,5 @@
 #version 460 core
 #extension GL_ARB_bindless_texture : require
-#extension GL_ARB_gpu_shader_int64 : require
 
 layout (location = 0) out vec4 out_LitColor;
 layout (location = 1) out vec3 out_Position;
@@ -29,8 +28,8 @@ struct ShaderLight {
     vec4 color;
     vec4 params1;
     vec4 params2;
-    uint64_t shadowMapHandle;
-    uint64_t _padding;
+    uvec2 shadowMapHandle;
+    uvec2 _padding;
 };
 
 struct Sun {
@@ -102,9 +101,9 @@ mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     );
 }
 
-float calculateSpotShadow(uint64_t shadowMap, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias)
+float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias)
 {
-    sampler2D shadowSampler = sampler2D(shadowMap);
+    sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -127,9 +126,9 @@ float calculateSpotShadow(uint64_t shadowMap, vec4 fragPosLightSpace, vec3 norma
     return shadow / 9.0;
 }
 
-float calculatePointShadow(uint64_t shadowMap, vec3 fragPos, vec3 lightPos, float farPlane, float bias)
+float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias)
 {
-    samplerCube shadowSampler = samplerCube(shadowMap);
+    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
     if(currentDepth > farPlane) {
@@ -175,7 +174,7 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(int y = -1; y <= 1; ++y)
         {
             float pcfDepth = texture(sunShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth > pcfDepth + bias ? 1.0 : 0.0;
+            shadow += currentDepth > pcfDepth + bias ? 1.0 : 0.0;        
         }
     }
     return shadow / 9.0;
@@ -378,7 +377,7 @@ void main()
             float radius = lights[i].params1.x;
             float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
             attenuation = radiusFalloff / (distance * distance + 1.0);
-            if(attenuation > 0.0 && lights[i].shadowMapHandle > 0) shadow = calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y);
+            if(attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0) ) shadow = calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y);
         }
         else
         {
@@ -393,7 +392,7 @@ void main()
                float radius = lights[i].params1.x;
                float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
                attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
-               if (attenuation > 0.0 && lights[i].shadowMapHandle > 0) {
+               if (attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0)) {
                    float angle_rad = acos(clamp(lightCutOff, -1.0, 1.0));
                    if (angle_rad < 0.01) angle_rad = 0.01;
                    mat4 lightProjection = perspective(angle_rad * 2.0, 1.0, 1.0, lights[i].params2.x);

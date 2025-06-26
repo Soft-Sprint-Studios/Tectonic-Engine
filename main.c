@@ -1018,7 +1018,8 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
             shader_lights[i].params2.y = light->shadowBias;
             shader_lights[i].params2.z = light->volumetricIntensity;
 
-            shader_lights[i].shadowMapHandle = light->shadowMapHandle;
+            shader_lights[i].shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
+            shader_lights[i].shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
 
             if (light->type == LIGHT_SPOT) {
                 float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
@@ -1400,11 +1401,6 @@ int main(int argc, char* argv[]) {
     if (!GLEW_ARB_bindless_texture) {
         fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
-        return -1;
-    }
-    if (!GLEW_ARB_gpu_shader_int64) {
-        fprintf(stderr, "FATAL ERROR: GL_ARB_gpu_shader_int64 is not supported by your GPU/drivers.\n");
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support 64-bit integer support in shaders (GL_ARB_gpu_shader_int64), which is required by this engine.", window);
         return -1;
     }
     SDL_SetRelativeMouseMode(SDL_TRUE);
