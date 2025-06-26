@@ -1402,6 +1402,11 @@ int main(int argc, char* argv[]) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
         return -1;
     }
+    if (!GLEW_ARB_gpu_shader_int64) {
+        fprintf(stderr, "FATAL ERROR: GL_ARB_gpu_shader_int64 is not supported by your GPU/drivers.\n");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support 64-bit integer support in shaders (GL_ARB_gpu_shader_int64), which is required by this engine.", window);
+        return -1;
+    }
     SDL_SetRelativeMouseMode(SDL_TRUE);
     GameConfig_Init();
     UI_Init(window, context); SoundSystem_Init(); init_engine(window, context); init_renderer(); init_scene();
