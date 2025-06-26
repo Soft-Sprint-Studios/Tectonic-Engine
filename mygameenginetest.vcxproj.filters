@@ -96,6 +96,9 @@
     <ClCompile Include="discord_wrapper.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
+    <ClCompile Include="main_menu.c">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui-master\backends\imgui_impl_opengl3.h">
@@ -159,6 +162,9 @@
       <Filter>Header Files\engine</Filter>
     </ClInclude>
     <ClInclude Include="discord_wrapper.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="main_menu.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>

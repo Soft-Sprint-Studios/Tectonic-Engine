@@ -7,7 +7,7 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D texNoise;
 
-uniform vec3 samples[64];
+uniform vec3 samples[32];
 uniform mat4 projection;
 uniform vec2 screenSize;
 
@@ -15,7 +15,8 @@ const vec2 noiseScale = screenSize / 4.0;
 
 const float radius = 0.5;
 const float bias = 0.025;
-const int kernelSize = 64;
+const int kernelSize = 32;
+const float intensityaddition = 4.0;
 
 void main()
 {
@@ -42,5 +43,5 @@ void main()
         occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;           
     }
     occlusion = 1.0 - (occlusion / float(kernelSize));
-    FragColor = pow(occlusion, 2.2);
+    FragColor = pow(occlusion, 2.2 + intensityaddition);
 }
