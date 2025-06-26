@@ -623,6 +623,8 @@ void process_input() {
                                 brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
                                 brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
                                 brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
+                                brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
+                                brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
                             }
                         }
                         else {
