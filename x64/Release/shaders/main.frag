@@ -476,7 +476,7 @@ void main()
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
         kD_ibl *= (1.0 - metallic);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution) * ao;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * 4.0) * ao;
     }
 	
     out_Velocity = Velocity;

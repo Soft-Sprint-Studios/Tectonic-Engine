@@ -26,6 +26,7 @@
 #include "binds.h"
 #include "gameconfig.h"
 #include "discord_wrapper.h"
+#include "main_menu.h"
 
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
@@ -36,7 +37,7 @@
 #define PLAYER_HEIGHT_CROUCH 1.37f
 #define PLAYER_JUMP_FORCE 350.0f
 
-typedef enum { MODE_GAME, MODE_EDITOR } EngineMode;
+typedef enum { MODE_GAME, MODE_EDITOR, MODE_MAINMENU, MODE_INGAMEMENU } EngineMode;
 
 static Engine g_engine_instance;
 static Engine* g_engine = &g_engine_instance;
@@ -325,6 +326,12 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Console_SetCommandHandler(handle_command);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
+    g_current_mode = MODE_MAINMENU;
+    if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+        Console_Printf("[ERROR] Failed to initialize Main Menu.");
+        g_engine->running = false;
+    }
+    SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
 void init_renderer() {
@@ -524,7 +531,7 @@ void init_renderer() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("SSAO Blur Framebuffer not complete!\n");
     srand(time(NULL));
-    for (unsigned int i = 0; i < 32; ++i)
+    for (unsigned int i = 0; i < 64; ++i)
     {
         Vec3 sample = {
             ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
@@ -600,11 +607,28 @@ void process_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         UI_ProcessEvent(&event);
-        if (g_current_mode == MODE_EDITOR) {
+
+        if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
+            MainMenuAction action = MainMenu_HandleEvent(&event);
+            if (action == MAINMENU_ACTION_START_GAME) {
+                g_current_mode = MODE_GAME;
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+                Console_Printf("Starting game...");
+                MainMenu_SetInGameMenuMode(false, true);
+            }
+            else if (action == MAINMENU_ACTION_CONTINUE_GAME) {
+                g_current_mode = MODE_GAME;
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+                Console_Printf("Returning to game...");
+            }
+            else if (action == MAINMENU_ACTION_QUIT) {
+                Cvar_Set("engine_running", "0");
+            }
+        }
+        else if (g_current_mode == MODE_EDITOR) {
             Editor_ProcessEvent(&event, &g_scene, g_engine);
         }
 
-        if (event.type == SDL_QUIT) Cvar_Set("engine_running", "0");
         if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
             if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -643,14 +667,30 @@ void process_input() {
                     }
                 }
             }
-            if (event.key.keysym.sym == SDLK_BACKQUOTE) {
-                Console_Toggle();
+            if (event.key.keysym.sym == SDLK_ESCAPE) {
                 if (g_current_mode == MODE_GAME) {
+                    g_current_mode = MODE_INGAMEMENU;
+                    bool map_is_currently_loaded = (g_scene.numObjects > 0 || g_scene.numBrushes > 0);
+                    MainMenu_SetInGameMenuMode(true, map_is_currently_loaded);
+                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                    Console_Printf("In-game menu opened.");
+                }
+                else if (g_current_mode == MODE_INGAMEMENU) {
+                    g_current_mode = MODE_GAME;
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    Console_Printf("In-game menu closed.");
+                }
+            }
+            else if (event.key.keysym.sym == SDLK_BACKQUOTE) {
+                Console_Toggle();
+                if (g_current_mode == MODE_GAME || g_current_mode == MODE_INGAMEMENU) {
                     SDL_SetRelativeMouseMode(Console_IsVisible() ? SDL_FALSE : SDL_TRUE);
                 }
             }
             else if (event.key.keysym.sym == SDLK_F5) {
-                handle_command(1, (char* []) { "edit" });
+                if (g_current_mode != MODE_MAINMENU) {
+                    handle_command(1, (char* []) { "edit" });
+                }
             }
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
@@ -677,61 +717,64 @@ void process_input() {
             }
         }
 
-        if (Console_IsVisible() || g_current_mode == MODE_EDITOR) continue;
+        if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
+            if (event.type == SDL_MOUSEMOTION) {
+                bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT));
+                bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible());
 
-        if (event.type == SDL_MOUSEMOTION) {
-            g_engine->camera.yaw += event.motion.xrel * 0.005f;
-            g_engine->camera.pitch -= event.motion.yrel * 0.005f;
-            if (g_engine->camera.pitch > 1.55f) g_engine->camera.pitch = 1.55f;
-            if (g_engine->camera.pitch < -1.55f) g_engine->camera.pitch = -1.55f;
-        }
-    }
-
-    if (Console_IsVisible() || g_current_mode == MODE_EDITOR) return;
-
-    const Uint8* state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_ESCAPE]) g_engine->running = false;
-
-    bool noclip = Cvar_GetInt("noclip");
-    float speed = (noclip ? 10.0f : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
-
-    if (noclip) {
-        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-        vec3_normalize(&forward);
-        Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 });
-        vec3_normalize(&right);
-
-        if (state[SDL_SCANCODE_W]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
-        if (state[SDL_SCANCODE_S]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
-        if (state[SDL_SCANCODE_D]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
-        if (state[SDL_SCANCODE_A]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
-        if (state[SDL_SCANCODE_SPACE]) g_engine->camera.position.y += speed * g_engine->deltaTime;
-        if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
-
-    }
-    else {
-        Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
-        Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
-        Vec3 move = { 0,0,0 };
-
-        if (state[SDL_SCANCODE_W]) move = vec3_add(move, f_flat);
-        if (state[SDL_SCANCODE_S]) move = vec3_sub(move, f_flat);
-        if (state[SDL_SCANCODE_A]) move = vec3_add(move, r_flat);
-        if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
-
-        vec3_normalize(&move);
-        Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-        Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { move.x* speed, vel.y, move.z* speed });
-        Physics_Activate(g_engine->camera.physicsBody);
-
-        if (state[SDL_SCANCODE_SPACE]) {
-            if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
-                Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, PLAYER_JUMP_FORCE, 0 });
+                if (can_look_in_game || can_look_in_editor) {
+                    g_engine->camera.yaw += event.motion.xrel * 0.005f;
+                    g_engine->camera.pitch -= event.motion.yrel * 0.005f;
+                    if (g_engine->camera.pitch > 1.55f) g_engine->camera.pitch = 1.55f;
+                    if (g_engine->camera.pitch < -1.55f) g_engine->camera.pitch = -1.55f;
+                }
             }
         }
     }
 
-    g_engine->camera.isCrouching = state[SDL_SCANCODE_LCTRL];
+    if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
+        const Uint8* state = SDL_GetKeyboardState(NULL);
+
+        bool noclip = Cvar_GetInt("noclip");
+        float speed = (noclip ? 10.0f : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
+
+        if (noclip) {
+            Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+            vec3_normalize(&forward);
+            Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 });
+            vec3_normalize(&right);
+
+            if (state[SDL_SCANCODE_W]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_S]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_D]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_A]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_SPACE]) g_engine->camera.position.y += speed * g_engine->deltaTime;
+            if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
+
+        }
+        else {
+            Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
+            Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
+            Vec3 move = { 0,0,0 };
+
+            if (state[SDL_SCANCODE_W]) move = vec3_add(move, f_flat);
+            if (state[SDL_SCANCODE_S]) move = vec3_sub(move, f_flat);
+            if (state[SDL_SCANCODE_A]) move = vec3_add(move, r_flat);
+            if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
+
+            vec3_normalize(&move);
+            Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { move.x* speed, vel.y, move.z* speed });
+            Physics_Activate(g_engine->camera.physicsBody);
+
+            if (state[SDL_SCANCODE_SPACE]) {
+                if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
+                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, PLAYER_JUMP_FORCE, 0 });
+                }
+            }
+        }
+        g_engine->camera.isCrouching = state[SDL_SCANCODE_LCTRL];
+    }
 }
 
 void update_state() {
@@ -746,6 +789,10 @@ void update_state() {
             Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, g_scene.lights[i].rot, (Vec3) { 1, 1, 1 });
             Vec3 forward = { 0, 0, -1 }; g_scene.lights[i].direction = mat4_mul_vec3_dir(&rot_mat, forward); vec3_normalize(&g_scene.lights[i].direction);
         }
+    }
+    if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
+        MainMenu_Update(g_engine->deltaTime);
+        return;
     }
     if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
     for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
@@ -1403,10 +1450,12 @@ int main(int argc, char* argv[]) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
         return -1;
     }
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    SDL_SetRelativeMouseMode(SDL_FALSE);
     GameConfig_Init();
     UI_Init(window, context); SoundSystem_Init(); init_engine(window, context); init_renderer(); init_scene();
     Discord_Init();
+    MainMenu_SetInGameMenuMode(false, false);
+
     g_fps_last_update = SDL_GetTicks();
     while (g_engine->running) {
         float currentFrame = (float)SDL_GetTicks() / 1000.0f; g_engine->deltaTime = currentFrame - g_engine->lastFrame; g_engine->lastFrame = currentFrame;
@@ -1418,7 +1467,17 @@ int main(int argc, char* argv[]) {
             g_fps_frame_count = 0;
         }
         process_input(); update_state();
-        if (g_current_mode == MODE_GAME) {
+        if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
+            const GameConfig* config = GameConfig_Get();
+            if (g_current_mode == MODE_MAINMENU) {
+                Discord_Update(config->gamename, "In Main Menu");
+            }
+            else {
+                Discord_Update(config->gamename, "Paused");
+            }
+            MainMenu_Render();
+        }
+        else if (g_current_mode == MODE_GAME) {
             char details_str[128];
             sprintf(details_str, "Map: %s", g_scene.mapPath);
             Discord_Update("Playing", details_str);
@@ -1489,7 +1548,9 @@ int main(int argc, char* argv[]) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
         UI_BeginFrame();
-        if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
+        if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
+        }
+        else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
         }
