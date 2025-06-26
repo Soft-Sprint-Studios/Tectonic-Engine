@@ -524,7 +524,7 @@ void init_renderer() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("SSAO Blur Framebuffer not complete!\n");
     srand(time(NULL));
-    for (unsigned int i = 0; i < 64; ++i)
+    for (unsigned int i = 0; i < 32; ++i)
     {
         Vec3 sample = {
             ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
