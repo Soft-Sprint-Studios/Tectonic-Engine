@@ -72,14 +72,25 @@ FlareResult lensflare(vec2 uv, vec2 pos)
     return FlareResult(ghosts, glare);
 }
 
-vec3 ACESFittedToneMapping(vec3 color)
+vec3 Uncharted2Tonemap(vec3 x)
 {
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
+
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 TonemapUncharted2(vec3 color)
+{
+    color = Uncharted2Tonemap(color);
+
+    float W = 11.2;
+    float whiteScale = 1.0 / Uncharted2Tonemap(vec3(W)).r;
+    return clamp(color * whiteScale, 0.0, 1.0);
 }
 
 void main()
@@ -130,8 +141,7 @@ void main()
     }
 
     finalColor *= u_exposure;
-    finalColor = ACESFittedToneMapping(finalColor);
-    finalColor = pow(finalColor, vec3(1.0 / 2.2));
+    finalColor = TonemapUncharted2(finalColor);
 
     if (u_postEnabled) {
         float scanlineY = TexCoords.y * resolution.y;
