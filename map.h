@@ -59,8 +59,8 @@ typedef struct {
     Vec4 color;
     Vec4 params1;
     Vec4 params2;
-    uint64_t shadowMapHandle;
-    uint64_t _padding;
+    unsigned int shadowMapHandle[2];
+    unsigned int _padding[2];
 } ShaderLight;
 
 typedef struct {

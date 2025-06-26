@@ -1,6 +1,5 @@
 #version 460 core
 #extension GL_ARB_bindless_texture : require
-#extension GL_ARB_gpu_shader_int64 : require
 
 out vec4 FragColor;
 
@@ -22,8 +21,8 @@ struct ShaderLight {
     vec4 color;
     vec4 params1;
     vec4 params2;
-    uint64_t shadowMapHandle;
-    uint64_t _padding;
+    uvec2 shadowMapHandle;
+    uvec2 _padding;
 };
 
 struct Sun {
@@ -88,8 +87,8 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float calculateSpotShadow(uint64_t shadowMap, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias) {
-    sampler2D shadowSampler = sampler2D(shadowMap);
+float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias) {
+    sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     if(projCoords.z > 1.0) return 0.0;
@@ -103,8 +102,8 @@ float calculateSpotShadow(uint64_t shadowMap, vec4 fragPosLightSpace, vec3 norma
     return shadow / 9.0;
 }
 
-float calculatePointShadow(uint64_t shadowMap, vec3 fragPos, vec3 lightPos, float farPlane, float bias) {
-    samplerCube shadowSampler = samplerCube(shadowMap);
+float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias) {
+    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
     if(currentDepth > farPlane) return 0.0;
@@ -209,7 +208,7 @@ void main() {
             }
         }
         if (attenuation > 0.0) {
-            if (lights[i].shadowMapHandle > 0) {
+            if (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0) {
                 if (lightType == 0)
                     shadow = calculatePointShadow(lights[i].shadowMapHandle, fs_in.WorldPos, lightPos, lights[i].params2.x, lights[i].params2.y);
                 else {
