@@ -18,10 +18,10 @@ void main()
 	const vec3 toLuma = vec3(0.299, 0.587, 0.114);
 	float lumaM = dot(rgbM, toLuma);
 
-	vec3 rgbNW = textureOffset(u_colorTexture, TexCoords, ivec2(-1, 1)).rgb; // <-- FIXED NAME
-    vec3 rgbNE = textureOffset(u_colorTexture, TexCoords, ivec2(1, 1)).rgb;  // <-- FIXED NAME
-    vec3 rgbSW = textureOffset(u_colorTexture, TexCoords, ivec2(-1, -1)).rgb;// <-- FIXED NAME
-    vec3 rgbSE = textureOffset(u_colorTexture, TexCoords, ivec2(1, -1)).rgb; // <-- FIXED NAME
+	vec3 rgbNW = textureOffset(u_colorTexture, TexCoords, ivec2(-1, 1)).rgb;
+    vec3 rgbNE = textureOffset(u_colorTexture, TexCoords, ivec2(1, 1)).rgb;
+    vec3 rgbSW = textureOffset(u_colorTexture, TexCoords, ivec2(-1, -1)).rgb;
+    vec3 rgbSE = textureOffset(u_colorTexture, TexCoords, ivec2(1, -1)).rgb;
 	float lumaNW = dot(rgbNW, toLuma);
 	float lumaNE = dot(rgbNE, toLuma);
 	float lumaSW = dot(rgbSW, toLuma);

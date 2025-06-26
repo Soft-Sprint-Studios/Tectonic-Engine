@@ -25,8 +25,8 @@
 #include "texturemanager.h"
 #include "io_system.h"
 
-extern void render_object(GLuint shader, SceneObject* obj);
-extern void render_brush(GLuint shader, Brush* b);
+extern void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass);
+extern void render_brush(GLuint shader, Brush* b, bool is_baking_pass);
 extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
 extern void SceneObject_UpdateMatrix(SceneObject* obj);
 extern void Brush_UpdateMatrix(Brush* b);
@@ -2367,8 +2367,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glEnable(GL_DEPTH_TEST);
         }
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-        for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i]); }
-        for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i]); }
+        for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i], false); }
+        for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
     }
 
@@ -2432,14 +2432,14 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glBindVertexArray(0);
         }
     }
-    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (b->isReflectionProbe || b->isTrigger) {
             bool is_selected = (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i); if (!is_selected) continue; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
-    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (b->isReflectionProbe || b->isTrigger || b->isWater) {
@@ -2712,7 +2712,7 @@ static void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         memset(&temp_obj, 0, sizeof(SceneObject));
         temp_obj.model = g_EditorState.preview_model;
         mat4_identity(&temp_obj.modelMatrix);
-        render_object(renderer->mainShader, &temp_obj);
+        render_object(renderer->mainShader, &temp_obj, false);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -2813,16 +2813,27 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
                 scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
                 SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                 memset(newObj, 0, sizeof(SceneObject));
-                strcpy(newObj->modelPath, g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
+
+                char full_model_path_for_scene_object[256];
+                sprintf(full_model_path_for_scene_object, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
+
+                strncpy(newObj->modelPath, full_model_path_for_scene_object, sizeof(newObj->modelPath) - 1);
+                newObj->modelPath[sizeof(newObj->modelPath) - 1] = '\0';
+
                 Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
                 vec3_normalize(&forward);
                 newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
                 newObj->scale = (Vec3){ 1,1,1 };
                 SceneObject_UpdateMatrix(newObj);
+
                 newObj->model = Model_Load(newObj->modelPath);
+
                 if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
                     Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
                     newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                }
+                else if (!newObj->model) {
+                    Console_Printf("[error] Failed to load model for scene object: %s", newObj->modelPath);
                 }
                 Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
                 g_EditorState.show_add_model_popup = false;
@@ -3199,7 +3210,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index < scene->numParticleEmitters) {
-        ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); } UI_InputText("Target Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Targetname"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->on_by_default = !emitter->on_by_default; emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
+        ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); } UI_InputText("Target Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Targetname"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
     if (UI_CollapsingHeader("Sun", 1)) {
@@ -3420,18 +3431,23 @@ static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
     return world_pos;
 }
 static void RenderSceneForBaking(GLuint shader, Scene* scene, Renderer* renderer, Mat4 view, Mat4 projection) {
-    glEnable(GL_DEPTH_TEST); glUseProgram(shader);
+    glEnable(GL_DEPTH_TEST);
+    glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, projection.m);
-    glUniform1i(glGetUniformLocation(shader, "is_unlit"), 0); Mat4 invView;
-    mat4_inverse(&view, &invView); Vec3 probePos = { invView.m[12], invView.m[13], invView.m[14] };
+    glUniform1i(glGetUniformLocation(shader, "is_unlit"), 0);
+    Mat4 invView;
+    mat4_inverse(&view, &invView);
+    Vec3 probePos = { invView.m[12], invView.m[13], invView.m[14] };
     glUniform3fv(glGetUniformLocation(shader, "viewPos"), 1, &probePos.x);
     glUniform1i(glGetUniformLocation(shader, "sun.enabled"), scene->sun.enabled);
     glUniform3fv(glGetUniformLocation(shader, "sun.direction"), 1, &scene->sun.direction.x);
     glUniform3fv(glGetUniformLocation(shader, "sun.color"), 1, &scene->sun.color.x);
     glUniform1f(glGetUniformLocation(shader, "sun.intensity"), scene->sun.intensity);
     glUniform1i(glGetUniformLocation(shader, "numLights"), scene->numActiveLights);
-    char uName[64]; int point_light_shadow_idx = 0; int spot_light_shadow_idx = 0;
+    char uName[64];
+    int point_light_shadow_idx = 0;
+    int spot_light_shadow_idx = 0;
     for (int i = 0; i < scene->numActiveLights; ++i) {
         sprintf(uName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(shader, uName), scene->lights[i].type);
         sprintf(uName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(shader, uName), 1, &scene->lights[i].position.x);
@@ -3462,15 +3478,21 @@ static void RenderSceneForBaking(GLuint shader, Scene* scene, Renderer* renderer
         if (scene->lights[i].type == LIGHT_POINT) { if (point_light_shadow_idx < MAX_LIGHTS) { glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx); glBindTexture(GL_TEXTURE_CUBE_MAP, scene->lights[i].shadowMapTexture); point_light_shadow_idx++; } }
         else { if (spot_light_shadow_idx < MAX_LIGHTS) { glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx); glBindTexture(GL_TEXTURE_2D, scene->lights[i].shadowMapTexture); spot_light_shadow_idx++; } }
     }
-    glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), 0); glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 0);
-    for (int i = 0; i < scene->numObjects; i++) { render_object(shader, &scene->objects[i]); }
-    for (int i = 0; i < scene->numBrushes; i++) { render_brush(shader, &scene->brushes[i]); }
-    glDepthFunc(GL_LEQUAL); glUseProgram(renderer->skyboxShader);
-    Mat4 skyboxView = view; skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
+    glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), 0);
+    glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 0);
+    for (int i = 0; i < scene->numObjects; i++) { render_object(shader, &scene->objects[i], true); }
+    for (int i = 0; i < scene->numBrushes; i++) { render_brush(shader, &scene->brushes[i], true); }
+    glDepthFunc(GL_LEQUAL);
+    glUseProgram(renderer->skyboxShader);
+    Mat4 skyboxView = view;
+    skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
     glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "view"), 1, GL_FALSE, skyboxView.m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "projection"), 1, GL_FALSE, projection.m);
-    glBindVertexArray(renderer->skyboxVAO); glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_CUBE_MAP, renderer->skyboxTex);
-    glDrawArrays(GL_TRIANGLES, 0, 36); glDepthFunc(GL_LESS);
+    glBindVertexArray(renderer->skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, renderer->skyboxTex);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthFunc(GL_LESS);
 }
 void Editor_BuildCubemaps(Scene* scene, Renderer* renderer, Engine* engine) {
     Console_Printf("Starting cubemap build...");

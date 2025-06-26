@@ -132,10 +132,10 @@ static int FindReflectionProbeForPoint(Vec3 p) {
     return -1;
 }
 
-void render_object(GLuint shader, SceneObject* obj) {
+void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass) {
     bool envMapEnabled = false;
 
-    if (shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(obj->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -183,11 +183,11 @@ void render_object(GLuint shader, SceneObject* obj) {
     }
 }
 
-void render_brush(GLuint shader, Brush* b) {
+void render_brush(GLuint shader, Brush* b, bool is_baking_pass) {
     if (b->isReflectionProbe || b->isTrigger || b->isWater) return;
     bool envMapEnabled = false;
 
-    if (shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -343,7 +343,7 @@ void init_renderer() {
     g_renderer.fxaaShader = createShaderProgram("shaders/fxaa.vert", "shaders/fxaa.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
-    g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
+    g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
@@ -476,27 +476,10 @@ void init_renderer() {
     glUseProgram(g_renderer.mainShader);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "detailDiffuseMap"), 7);
-    char uName[32];
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "pointShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.mainShader, uName), 4 + i);
-    }
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "spotShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.mainShader, uName), 4 + MAX_LIGHTS + i);
-    }
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "environmentMap"), 10);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "brdfLUT"), 16);
     glUseProgram(g_renderer.volumetricShader);
     glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "gPosition"), 0);
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "pointShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), 1 + i);
-    }
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "spotShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), 1 + MAX_LIGHTS + i);
-    }
     glUseProgram(g_renderer.volumetricBlurShader);
     glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "image"), 0);
     glUseProgram(g_renderer.skyboxShader); glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "skybox"), 0);
@@ -589,6 +572,11 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
     g_renderer.dudvMap = loadTexture("dudv.png");
     g_renderer.waterNormalMap = loadTexture("water_normal.png");
+    glGenBuffers(1, &g_renderer.lightSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), NULL, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, g_renderer.lightSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
@@ -789,7 +777,7 @@ void update_state() {
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
     vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
-    bool noclip = Cvar_GetInt("noclip"); 
+    bool noclip = Cvar_GetInt("noclip");
     if (!noclip) {
         Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
         bool on_ground = fabs(vel.y) < 0.1f;
@@ -840,11 +828,11 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
     for (int j = 0; j < g_scene.numObjects; ++j) {
-        render_object(g_renderer.spotDepthShader, &g_scene.objects[j]);
+        render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
         if (g_scene.brushes[j].isWater) continue;
-        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j]);
+        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false);
     }
 
     glCullFace(GL_BACK);
@@ -880,8 +868,8 @@ void render_shadows() {
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
-        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j]);
-        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j]);
+        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false);
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -901,44 +889,21 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
-    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "numLights"), g_scene.numActiveLights);
-    char uniformName[64];
-    int point_light_shadow_idx = 0;
-    int spot_light_shadow_idx = 0;
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "numActiveLights"), g_scene.numActiveLights);
+
+    Mat4 lightSpaceMatrices[MAX_LIGHTS];
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
-        sprintf(uniformName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.waterShader, uniformName), light->type);
-        sprintf(uniformName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->position.x);
-        sprintf(uniformName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->direction.x);
-        sprintf(uniformName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, &light->color.x);
-        sprintf(uniformName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->intensity);
-        sprintf(uniformName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->radius);
-        sprintf(uniformName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->cutOff);
-        sprintf(uniformName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->outerCutOff);
-        sprintf(uniformName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->shadowFarPlane);
-        sprintf(uniformName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.waterShader, uniformName), light->shadowBias);
-        int current_shadow_idx = -1;
-        Mat4 lightSpaceMatrix;
-        mat4_identity(&lightSpaceMatrix);
         if (light->type == LIGHT_SPOT) {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = spot_light_shadow_idx;
-                float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
-                Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
-                Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
-                Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
-                mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
-                spot_light_shadow_idx++;
-            }
+            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
+            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
+            Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+            mat4_multiply(&lightSpaceMatrices[i], &lightProjection, &lightView);
         }
         else {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = point_light_shadow_idx;
-                point_light_shadow_idx++;
-            }
+            mat4_identity(&lightSpaceMatrices[i]);
         }
-        sprintf(uniformName, "lightSpaceMatrices[%d]", i); glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, uniformName), 1, GL_FALSE, lightSpaceMatrix.m);
-        sprintf(uniformName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.waterShader, uniformName), current_shadow_idx);
     }
 
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "flashlight.enabled"), g_engine->flashlight_on);
@@ -955,34 +920,6 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "sunShadowMap"), 11);
-
-    point_light_shadow_idx = 0;
-    spot_light_shadow_idx = 0;
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        if (g_scene.lights[i].type == LIGHT_POINT) {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
-                point_light_shadow_idx++;
-            }
-        }
-        else {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
-                spot_light_shadow_idx++;
-            }
-        }
-    }
-    char uName[32];
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "pointShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.waterShader, uName), 4 + i);
-    }
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
-        sprintf(uName, "spotShadowMaps[%d]", i);
-        glUniform1i(glGetUniformLocation(g_renderer.waterShader, uName), 4 + MAX_LIGHTS + i);
-    }
 
     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.dudvMap);
     glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
@@ -1019,8 +956,9 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
         glBindTexture(GL_TEXTURE_CUBE_MAP, reflectionTex);
 
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glPatchParameteri(GL_PATCH_VERTICES, 3);
         glBindVertexArray(b->vao);
-        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        glDrawArrays(GL_PATCHES, 0, b->totalRenderVertexCount);
     }
     glBindVertexArray(0);
 }
@@ -1047,60 +985,57 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numLights"), g_scene.numActiveLights); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glActiveTexture(GL_TEXTURE16);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
-    char uniformName[64]; int point_light_shadow_idx = 0; int spot_light_shadow_idx = 0;
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        Light* light = &g_scene.lights[i];
-        sprintf(uniformName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.mainShader, uniformName), light->type);
-        sprintf(uniformName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->position.x);
-        sprintf(uniformName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->direction.x);
-        sprintf(uniformName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, &light->color.x);
-        sprintf(uniformName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->intensity);
-        sprintf(uniformName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->radius);
-        sprintf(uniformName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->cutOff);
-        sprintf(uniformName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->outerCutOff);
-        sprintf(uniformName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->shadowFarPlane);
-        sprintf(uniformName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.mainShader, uniformName), light->shadowBias);
-        int current_shadow_idx = -1; Mat4 lightSpaceMatrix; mat4_identity(&lightSpaceMatrix);
-        if (light->type == LIGHT_SPOT) {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = spot_light_shadow_idx;
+
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), g_scene.numActiveLights);
+
+    if (g_scene.numActiveLights > 0) {
+        ShaderLight shader_lights[MAX_LIGHTS];
+        Mat4 lightSpaceMatrices[MAX_LIGHTS];
+        for (int i = 0; i < g_scene.numActiveLights; ++i) {
+            Light* light = &g_scene.lights[i];
+            shader_lights[i].position.x = light->position.x;
+            shader_lights[i].position.y = light->position.y;
+            shader_lights[i].position.z = light->position.z;
+            shader_lights[i].position.w = (float)light->type;
+
+            shader_lights[i].direction.x = light->direction.x;
+            shader_lights[i].direction.y = light->direction.y;
+            shader_lights[i].direction.z = light->direction.z;
+
+            shader_lights[i].color.x = light->color.x;
+            shader_lights[i].color.y = light->color.y;
+            shader_lights[i].color.z = light->color.z;
+            shader_lights[i].color.w = light->intensity;
+
+            shader_lights[i].params1.x = light->radius;
+            shader_lights[i].params1.y = light->cutOff;
+            shader_lights[i].params1.z = light->outerCutOff;
+
+            shader_lights[i].params2.x = light->shadowFarPlane;
+            shader_lights[i].params2.y = light->shadowBias;
+            shader_lights[i].params2.z = light->volumetricIntensity;
+
+            shader_lights[i].shadowMapHandle = light->shadowMapHandle;
+
+            if (light->type == LIGHT_SPOT) {
                 float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
                 Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
                 Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
                 Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
-                mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
-                spot_light_shadow_idx++;
+                mat4_multiply(&lightSpaceMatrices[i], &lightProjection, &lightView);
+            }
+            else {
+                mat4_identity(&lightSpaceMatrices[i]);
             }
         }
-        else {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = point_light_shadow_idx;
-                point_light_shadow_idx++;
-            }
-        }
-        sprintf(uniformName, "lightSpaceMatrices[%d]", i); glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, uniformName), 1, GL_FALSE, lightSpaceMatrix.m);
-        sprintf(uniformName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.mainShader, uniformName), current_shadow_idx);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, g_scene.numActiveLights * sizeof(ShaderLight), shader_lights);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
-    point_light_shadow_idx = 0; spot_light_shadow_idx = 0;
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        if (g_scene.lights[i].type == LIGHT_POINT) {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
-                point_light_shadow_idx++;
-            }
-        }
-        else {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
-                spot_light_shadow_idx++;
-            }
-        }
-    }
+
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "flashlight.enabled"), g_engine->flashlight_on);
     if (g_engine->flashlight_on) {
         Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -1120,7 +1055,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_object(g_renderer.mainShader, &g_scene.objects[i]);
+        render_object(g_renderer.mainShader, &g_scene.objects[i], false);
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
@@ -1137,7 +1072,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_brush(g_renderer.mainShader, &g_scene.brushes[i]);
+        render_brush(g_renderer.mainShader, &g_scene.brushes[i], false);
     }
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
     for (int i = 0; i < g_scene.numDecals; ++i) {
@@ -1180,6 +1115,8 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "projection"), 1, GL_FALSE, projection->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "view"), 1, GL_FALSE, view->m);
 
+    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "numActiveLights"), g_scene.numActiveLights);
+
     glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "sun.enabled"), g_scene.sun.enabled);
     if (g_scene.sun.enabled) {
         glActiveTexture(GL_TEXTURE15);
@@ -1194,76 +1131,6 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-
-    int point_light_shadow_idx = 0;
-    int spot_light_shadow_idx = 0;
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        if (g_scene.lights[i].type == LIGHT_POINT) {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE1 + point_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.lights[i].shadowMapTexture);
-                point_light_shadow_idx++;
-            }
-        }
-        else {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                glActiveTexture(GL_TEXTURE1 + MAX_LIGHTS + spot_light_shadow_idx);
-                glBindTexture(GL_TEXTURE_2D, g_scene.lights[i].shadowMapTexture);
-                spot_light_shadow_idx++;
-            }
-        }
-    }
-
-    char uName[64];
-    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "numLights"), g_scene.numActiveLights);
-
-    point_light_shadow_idx = 0;
-    spot_light_shadow_idx = 0;
-
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        Light* light = &g_scene.lights[i];
-        sprintf(uName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), light->type);
-        sprintf(uName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->position.x);
-        sprintf(uName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->direction.x);
-        sprintf(uName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, &light->color.x);
-        sprintf(uName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->intensity);
-        sprintf(uName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->radius);
-        sprintf(uName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->cutOff);
-        sprintf(uName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->outerCutOff);
-        sprintf(uName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->shadowFarPlane);
-        sprintf(uName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->shadowBias);
-        sprintf(uName, "lights[%d].volumetricIntensity", i); glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, uName), light->volumetricIntensity);
-
-        int current_shadow_idx = -1;
-        if (light->type == LIGHT_POINT) {
-            if (point_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = point_light_shadow_idx;
-                point_light_shadow_idx++;
-            }
-        }
-        else {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = spot_light_shadow_idx;
-                spot_light_shadow_idx++;
-            }
-        }
-        sprintf(uName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, uName), current_shadow_idx);
-
-
-        if (g_scene.lights[i].type == LIGHT_SPOT) {
-            Mat4 lightSpaceMatrix;
-            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, g_scene.lights[i].cutOff)));
-            if (angle_rad < 0.01f) angle_rad = 0.01f;
-            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, g_scene.lights[i].shadowFarPlane);
-            Vec3 up_vector = (Vec3){ 0, 1, 0 };
-            if (fabs(vec3_dot(g_scene.lights[i].direction, up_vector)) > 0.99f) up_vector = (Vec3){ 1, 0, 0 };
-            Mat4 lightView = mat4_lookAt(g_scene.lights[i].position, vec3_add(g_scene.lights[i].position, g_scene.lights[i].direction), up_vector);
-            mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
-
-            sprintf(uName, "lightSpaceMatrices[%d]", i);
-            glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, uName), 1, GL_FALSE, lightSpaceMatrix.m);
-        }
-    }
 
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1448,6 +1315,7 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.volumetricTexture);
     glDeleteFramebuffers(2, g_renderer.volPingpongFBO);
     glDeleteTextures(2, g_renderer.volPingpongTextures);
+    glDeleteBuffers(1, &g_renderer.lightSSBO);
     glDeleteTextures(1, &g_renderer.dudvMap);
     glDeleteTextures(1, &g_renderer.waterNormalMap);
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
@@ -1529,6 +1397,16 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE; glewInit();
+    if (!GLEW_ARB_bindless_texture) {
+        fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
+        return -1;
+    }
+    if (!GLEW_ARB_gpu_shader_int64) {
+        fprintf(stderr, "FATAL ERROR: GL_ARB_gpu_shader_int64 is not supported by your GPU/drivers.\n");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support 64-bit integer support in shaders (GL_ARB_gpu_shader_int64), which is required by this engine.", window);
+        return -1;
+    }
     SDL_SetRelativeMouseMode(SDL_TRUE);
     GameConfig_Init();
     UI_Init(window, context); SoundSystem_Init(); init_engine(window, context); init_renderer(); init_scene();
@@ -1617,7 +1495,7 @@ int main(int argc, char* argv[]) {
         UI_BeginFrame();
         if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
         }
         Console_Draw(); UI_EndFrame(window);
     }

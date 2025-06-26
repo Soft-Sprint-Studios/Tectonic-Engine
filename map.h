@@ -18,7 +18,7 @@
 #include "physics_wrapper.h"
 #include "particle_system.h"
 
-#define MAX_LIGHTS 16
+#define MAX_LIGHTS 256
 #define MAX_BRUSHES 16384
 #define MAX_DECALS 16384
 #define MAX_SOUNDS 256
@@ -47,10 +47,21 @@ typedef struct {
     float outerCutOff;
     GLuint shadowFBO;
     GLuint shadowMapTexture;
+    uint64_t shadowMapHandle;
     float shadowFarPlane;
     float shadowBias;
     float volumetricIntensity;
 } Light;
+
+typedef struct {
+    Vec4 position;
+    Vec4 direction;
+    Vec4 color;
+    Vec4 params1;
+    Vec4 params2;
+    uint64_t shadowMapHandle;
+    uint64_t _padding;
+} ShaderLight;
 
 typedef struct {
     bool enabled;
@@ -135,6 +146,7 @@ typedef struct {
     GLuint waterShader;
     GLuint dudvMap;
     GLuint waterNormalMap;
+    GLuint lightSSBO;
     float currentExposure;
     Mat4 prevViewProjection;
 } Renderer;
@@ -143,7 +155,7 @@ typedef struct {
     char targetname[64];
     float mass;
     bool isPhysicsEnabled;
-    char modelPath[128];
+    char modelPath[270];
     Vec3 pos;
     Vec3 rot;
     Vec3 scale;

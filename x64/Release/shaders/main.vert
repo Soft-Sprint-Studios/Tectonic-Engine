@@ -13,7 +13,6 @@ out vec3 FragPos_world;
 out vec2 TexCoords;
 out vec2 TexCoords2;
 out mat3 TBN;
-out vec4 FragPosLightSpace[16];
 out vec4 FragPosSunLightSpace;
 out vec2 Velocity;
 
@@ -25,7 +24,6 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 sunLightSpaceMatrix;
-uniform mat4 lightSpaceMatrices[16];
 uniform mat4 prevViewProjection;
 uniform vec3 viewPos;
 
@@ -49,10 +47,6 @@ void main()
 	mat3 TBN_inv = transpose(TBN);
     TangentViewPos = TBN_inv * viewPos;
     TangentFragPos = TBN_inv * FragPos_world;
-
-    for(int i = 0; i < 16; ++i) {
-        FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(FragPos_world, 1.0);
-    }
 	
     FragPosSunLightSpace = sunLightSpaceMatrix * vec4(FragPos_world, 1.0);
 	

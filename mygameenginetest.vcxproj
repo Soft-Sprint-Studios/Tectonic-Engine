@@ -109,6 +109,8 @@
     <None Include="x64\Release\shaders\volumetric_blur.frag" />
     <None Include="x64\Release\shaders\volumetric_blur.vert" />
     <None Include="x64\Release\shaders\water.frag" />
+    <None Include="x64\Release\shaders\water.tcs" />
+    <None Include="x64\Release\shaders\water.tes" />
     <None Include="x64\Release\shaders\water.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
