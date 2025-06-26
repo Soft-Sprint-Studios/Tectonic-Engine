@@ -345,7 +345,8 @@ void main()
     {
         vec3 lightDir = -sun.direction;
         vec3 H = normalize(V + lightDir);
-        float NdotL = max(dot(N, lightDir), 0.0);
+        float halfLambert = dot(N, lightDir) * 0.5 + 0.5;
+        halfLambert = halfLambert * halfLambert;
         vec3 radiance = sun.color * sun.intensity;
         float shadow = calculateSunShadow(FragPosSunLightSpace, N, lightDir);
         float NDF = DistributionGGX(N, H, roughness);
@@ -355,9 +356,9 @@ void main()
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metallic;
         vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
         vec3 specular     = numerator / denominator;
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL * (1.0 - shadow);
+        Lo += (kD * albedo / PI + specular) * radiance * halfLambert * (1.0 - shadow);
     }
 
     for (int i = 0; i < numActiveLights; ++i)
@@ -368,7 +369,8 @@ void main()
         vec3 L = normalize(lightPos - FragPos_world);
         vec3 H = normalize(V + L);
         float distance = length(lightPos - FragPos_world);
-        float NdotL = max(dot(N, L), 0.0);
+        float halfLambert = dot(N, L) * 0.5 + 0.5;
+        halfLambert = halfLambert * halfLambert;
         vec3 radiance = lights[i].color.rgb * lights[i].color.a;
         float attenuation = 0.0;
         float shadow = 0.0;
@@ -414,9 +416,9 @@ void main()
             vec3 kD = vec3(1.0) - kS;
             kD *= 1.0 - metallic;
             vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
             vec3 specular     = numerator / denominator;
-            Lo += (kD * albedo / PI + specular) * radiance * NdotL * attenuation * (1.0 - shadow);
+            Lo += (kD * albedo / PI + specular) * radiance * halfLambert * attenuation * (1.0 - shadow);
         }
     }
 	
@@ -425,7 +427,8 @@ void main()
         vec3 L = normalize(flashlight.position - FragPos_world);
         vec3 H = normalize(V + L);
         float distance = length(flashlight.position - FragPos_world);
-        float NdotL = max(dot(N, L), 0.0);
+        float halfLambert = dot(N, L) * 0.5 + 0.5;
+        halfLambert = halfLambert * halfLambert;
         float intensity = 10.0;
         float radius = 35.0;
         float cutOff = cos(radians(12.5));
@@ -447,9 +450,9 @@ void main()
             vec3 kD = vec3(1.0) - kS;
             kD *= 1.0 - metallic;
             vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
             vec3 specular     = numerator / denominator;
-            Lo += (kD * albedo / PI + specular) * radiance * NdotL * attenuation;
+            Lo += (kD * albedo / PI + specular) * radiance * halfLambert * attenuation;
         }
     }
 
