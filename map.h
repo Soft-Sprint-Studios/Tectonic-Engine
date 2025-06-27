@@ -176,12 +176,20 @@ typedef struct {
 typedef struct {
     Material* material;
     Material* material2;
+    Material* material3;
+    Material* material4;
     Vec2 uv_offset;
     Vec2 uv_scale;
     float uv_rotation;
     Vec2 uv_offset2;
     Vec2 uv_scale2;
     float uv_rotation2;
+    Vec2 uv_offset3;
+    Vec2 uv_scale3;
+    float uv_rotation3;
+    Vec2 uv_offset4;
+    Vec2 uv_scale4;
+    float uv_rotation4;
     int* vertexIndices;
     int numVertexIndices;
 } BrushFace;

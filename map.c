@@ -218,6 +218,17 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
         b->faces[i].uv_offset = (Vec2){ 0,0 };
         b->faces[i].uv_scale = (Vec2){ 1,1 };
         b->faces[i].uv_rotation = 0;
+        b->faces[i].uv_offset2 = (Vec2){ 0,0 };
+        b->faces[i].uv_scale2 = (Vec2){ 1,1 };
+        b->faces[i].uv_rotation2 = 0;
+        b->faces[i].material3 = NULL;
+        b->faces[i].uv_offset3 = (Vec2){ 0,0 };
+        b->faces[i].uv_scale3 = (Vec2){ 1,1 };
+        b->faces[i].uv_rotation3 = 0;
+        b->faces[i].material4 = NULL;
+        b->faces[i].uv_offset4 = (Vec2){ 0,0 };
+        b->faces[i].uv_scale4 = (Vec2){ 1,1 };
+        b->faces[i].uv_rotation4 = 0;
         b->faces[i].numVertexIndices = 4;
         b->faces[i].vertexIndices = malloc(4 * sizeof(int));
         for (int j = 0; j < 4; ++j) b->faces[i].vertexIndices[j] = face_defs[i][j];
@@ -437,7 +448,7 @@ static void getTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[], c
 }
 
 static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
-    int vbo_idx = (iFace * 3 + iVert) * 17;
+    int vbo_idx = (iFace * 3 + iVert) * 21;
     float* vbo_data = (float*)pContext->m_pUserData;
     vbo_data[vbo_idx + 8] = fvTangent[0];
     vbo_data[vbo_idx + 9] = fvTangent[1];
@@ -490,7 +501,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    float* final_vbo_data = calloc(total_render_verts * 17, sizeof(float));
+    float* final_vbo_data = calloc(total_render_verts * 21, sizeof(float));
     if (!final_vbo_data) {
         free(temp_normals);
         return;
@@ -527,39 +538,37 @@ void Brush_CreateRenderData(Brush* b) {
 
         SMikkTSpaceContext mikk_context = { 0 };
         mikk_context.m_pInterface = &mikk_interface;
-        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * 17);
+        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * 21);
 
         genTangSpaceDefault(&mikk_context);
 
         for (int j = 0; j < num_verts_in_face; ++j) {
-            int vbo_idx = (vbo_vertex_offset + j) * 17;
+            int vbo_idx = (vbo_vertex_offset + j) * 21;
             int vertex_index = face_tri_indices[j];
             BrushVertex vert = b->vertices[vertex_index];
             Vec3 norm = temp_normals[vertex_index];
-            float uv1[2], uv2[2];
+            float uv1[2], uv2[2], uv3[2], uv4[2];
 
             getTexCoord(NULL, uv1, j / 3, j % 3);
 
-            {
-                Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
-                Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
-                Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
-                Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                vec3_normalize(&normal_vec);
+            Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
+            Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
+            Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
+            Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+            vec3_normalize(&normal_vec);
+            float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
+            int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
+            float u, v;
+            if (dominant_axis == 0) { u = vert.pos.y; v = vert.pos.z; }
+            else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
+            else { u = vert.pos.x; v = vert.pos.y; }
 
-                float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
-                int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
-
-                float u, v;
-                if (dominant_axis == 0) { u = vert.pos.y; v = vert.pos.z; }
-                else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
-                else { u = vert.pos.x; v = vert.pos.y; }
-
-                float rad = face->uv_rotation2 * (3.14159f / 180.0f);
-                float cos_r = cosf(rad); float sin_r = sinf(rad);
-                uv2[0] = ((u * cos_r - v * sin_r) / face->uv_scale2.x) + face->uv_offset2.x;
-                uv2[1] = ((u * sin_r + v * cos_r) / face->uv_scale2.y) + face->uv_offset2.y;
-            }
+            float rad2 = face->uv_rotation2 * (3.14159f / 180.0f); float cos_r2 = cosf(rad2); float sin_r2 = sinf(rad2);
+            uv2[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
+            float rad3 = face->uv_rotation3 * (3.14159f / 180.0f); float cos_r3 = cosf(rad3); float sin_r3 = sinf(rad3);
+            uv3[0] = ((u * cos_r3 - v * sin_r3) / face->uv_scale3.x) + face->uv_offset3.x; uv3[1] = ((u * sin_r3 + v * cos_r3) / face->uv_scale3.y) + face->uv_offset3.y;
+            float rad4 = face->uv_rotation4 * (3.14159f / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
+            uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
             final_vbo_data[vbo_idx + 0] = vert.pos.x;
             final_vbo_data[vbo_idx + 1] = vert.pos.y;
@@ -575,6 +584,10 @@ void Brush_CreateRenderData(Brush* b) {
             final_vbo_data[vbo_idx + 14] = vert.color.w;
             final_vbo_data[vbo_idx + 15] = uv2[0];
             final_vbo_data[vbo_idx + 16] = uv2[1];
+            final_vbo_data[vbo_idx + 17] = uv3[0];
+            final_vbo_data[vbo_idx + 18] = uv3[1];
+            final_vbo_data[vbo_idx + 19] = uv4[0];
+            final_vbo_data[vbo_idx + 20] = uv4[1];
         }
 
         free(face_tri_indices);
@@ -584,13 +597,15 @@ void Brush_CreateRenderData(Brush* b) {
     if (b->vao == 0) { glGenVertexArrays(1, &b->vao); glGenBuffers(1, &b->vbo); }
     glBindVertexArray(b->vao);
     glBindBuffer(GL_ARRAY_BUFFER, b->vbo);
-    glBufferData(GL_ARRAY_BUFFER, total_render_verts * 17 * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)(11 * sizeof(float))); glEnableVertexAttribArray(4);
-    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 17 * sizeof(float), (void*)(15 * sizeof(float))); glEnableVertexAttribArray(5);
+    glBufferData(GL_ARRAY_BUFFER, total_render_verts * 21 * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(11 * sizeof(float))); glEnableVertexAttribArray(4);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(15 * sizeof(float))); glEnableVertexAttribArray(5);
+    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(17 * sizeof(float))); glEnableVertexAttribArray(6);
+    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(19 * sizeof(float))); glEnableVertexAttribArray(7);
     glBindVertexArray(0);
 
     free(final_vbo_data);
@@ -687,7 +702,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
     engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
-    char line[1024];
+    char line[2048];
     while (fgets(line, sizeof(line), file)) {
         if (line[0] == '#' || line[0] == '\n') continue;
         char keyword[64]; sscanf(line, "%s", keyword);
@@ -740,21 +755,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     b->faces = malloc(b->numFaces * sizeof(BrushFace));
                     for (int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
-                        char mat_name[64], mat2_name[64];
+                        char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
 
-                        sscanf(line, " f %*d %s %s %f %f %f %f %f %f %f %f %f %f %d",
-                            mat_name, mat2_name,
+                        sscanf(line, " f %*d %s %s %s %s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
+                            mat_name, mat2_name, mat3_name, mat4_name,
                             &b->faces[i].uv_offset.x, &b->faces[i].uv_offset.y, &b->faces[i].uv_rotation, &b->faces[i].uv_scale.x, &b->faces[i].uv_scale.y,
                             &b->faces[i].uv_offset2.x, &b->faces[i].uv_offset2.y, &b->faces[i].uv_rotation2, &b->faces[i].uv_scale2.x, &b->faces[i].uv_scale2.y,
+                            &b->faces[i].uv_offset3.x, &b->faces[i].uv_offset3.y, &b->faces[i].uv_rotation3, &b->faces[i].uv_scale3.x, &b->faces[i].uv_scale3.y,
+                            &b->faces[i].uv_offset4.x, &b->faces[i].uv_offset4.y, &b->faces[i].uv_rotation4, &b->faces[i].uv_scale4.x, &b->faces[i].uv_scale4.y,
                             &b->faces[i].numVertexIndices);
 
                         b->faces[i].material = TextureManager_FindMaterial(mat_name);
-                        if (strcmp(mat2_name, "NULL") == 0) {
-                            b->faces[i].material2 = NULL;
-                        }
-                        else {
-                            b->faces[i].material2 = TextureManager_FindMaterial(mat2_name);
-                        }
+                        b->faces[i].material2 = strcmp(mat2_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat2_name);
+                        b->faces[i].material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
+                        b->faces[i].material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
 
                         b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
                         char* p = strchr(line, ':');
@@ -780,7 +794,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 char face_paths[6][256];
                 for (int i = 0; i < 6; ++i) sprintf(face_paths[i], "cubemaps/%s_%s.png", b->name, faces_suffixes[i]);
                 const char* face_pointers[6];
-                for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
+                for (int i = 0; i < 6; ++i) face_pointers[i] = face_pointers[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
             Brush_UpdateMatrix(b);
@@ -901,7 +915,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, scale);
                 }
             }
-            }
+        }
         else if (strcmp(keyword, "light") == 0) {
             if (scene->numActiveLights >= MAX_LIGHTS) continue;
             Light* light = &scene->lights[scene->numActiveLights];
@@ -995,10 +1009,15 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             BrushFace* face = &b->faces[j];
             const char* mat_name = face->material ? face->material->name : "___MISSING___";
             const char* mat2_name = face->material2 ? face->material2->name : "NULL";
-            fprintf(file, "  f %d %s %s %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d :",
-                j, mat_name, mat2_name,
+            const char* mat3_name = face->material3 ? face->material3->name : "NULL";
+            const char* mat4_name = face->material4 ? face->material4->name : "NULL";
+
+            fprintf(file, "  f %d %s %s %s %s %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d :",
+                j, mat_name, mat2_name, mat3_name, mat4_name,
                 face->uv_offset.x, face->uv_offset.y, face->uv_rotation, face->uv_scale.x, face->uv_scale.y,
                 face->uv_offset2.x, face->uv_offset2.y, face->uv_rotation2, face->uv_scale2.x, face->uv_scale2.y,
+                face->uv_offset3.x, face->uv_offset3.y, face->uv_rotation3, face->uv_scale3.x, face->uv_scale3.y,
+                face->uv_offset4.x, face->uv_offset4.y, face->uv_rotation4, face->uv_scale4.x, face->uv_scale4.y,
                 face->numVertexIndices);
             for (int k = 0; k < face->numVertexIndices; ++k) fprintf(file, " %d", face->vertexIndices[k]);
             fprintf(file, "\n");

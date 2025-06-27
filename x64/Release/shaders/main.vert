@@ -5,6 +5,8 @@ layout(location = 2) in vec2 aTexCoords;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec4 aColor;
 layout(location = 5) in vec2 aTexCoords2;
+layout(location = 6) in vec2 aTexCoords3;
+layout(location = 7) in vec2 aTexCoords4;
 
 out vec3 FragPos_view;
 out vec3 Normal_view;
@@ -12,6 +14,8 @@ out vec3 Normal_view;
 out vec3 FragPos_world;
 out vec2 TexCoords;
 out vec2 TexCoords2;
+out vec2 TexCoords3;
+out vec2 TexCoords4;
 out mat3 TBN;
 out vec4 FragPosSunLightSpace;
 out vec2 Velocity;
@@ -32,6 +36,8 @@ void main()
     FragPos_world = vec3(model * vec4(aPos, 1.0));
     TexCoords = aTexCoords;
     TexCoords2 = aTexCoords2;
+    TexCoords3 = aTexCoords3;
+    TexCoords4 = aTexCoords4;
     v_Color = aColor;
 
     FragPos_view = vec3(view * model * vec4(aPos, 1.0));

@@ -246,6 +246,48 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass) {
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material->heightScale);
+            }
+
+            Material* material3 = NULL;
+            if (b->faces[i].material3) {
+                material3 = TextureManager_FindMaterial(b->faces[i].material3->name);
+            }
+            if (material3) {
+                glUniform1i(glGetUniformLocation(shader, "diffuseMap3"), 17);
+                glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
+                glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
+                glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material3->heightScale);
+
+                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, material3->diffuseMap);
+                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, material3->normalMap);
+                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, material3->rmaMap);
+                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, material3->heightMap);
+            }
+            else {
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material->heightScale);
+            }
+
+            Material* material4 = NULL;
+            if (b->faces[i].material4) {
+                material4 = TextureManager_FindMaterial(b->faces[i].material4->name);
+            }
+            if (material4) {
+                glUniform1i(glGetUniformLocation(shader, "diffuseMap4"), 21);
+                glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
+                glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
+                glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material4->heightScale);
+
+                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, material4->diffuseMap);
+                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, material4->normalMap);
+                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, material4->rmaMap);
+                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, material4->heightMap);
+            }
+            else {
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material->heightScale);
             }
 
             int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
@@ -485,6 +527,18 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "detailDiffuseMap"), 7);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "environmentMap"), 10);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "brdfLUT"), 16);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap2"), 12);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap2"), 13);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap2"), 14);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap2"), 15);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap3"), 17);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap3"), 18);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap3"), 19);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap3"), 20);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap4"), 21);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap4"), 22);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap4"), 23);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap4"), 24);
     glUseProgram(g_renderer.volumetricShader);
     glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "gPosition"), 0);
     glUseProgram(g_renderer.volumetricBlurShader);

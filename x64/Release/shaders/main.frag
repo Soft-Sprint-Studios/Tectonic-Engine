@@ -14,6 +14,8 @@ in vec3 Normal_view;
 in vec3 FragPos_world;
 in vec2 TexCoords;
 in vec2 TexCoords2;
+in vec2 TexCoords3;
+in vec2 TexCoords4;
 in mat3 TBN;
 in vec4 FragPosSunLightSpace;
 in vec4 v_Color;
@@ -55,6 +57,15 @@ uniform sampler2D diffuseMap2;
 uniform sampler2D normalMap2;
 uniform sampler2D rmaMap2;
 uniform sampler2D heightMap2;
+uniform sampler2D diffuseMap3;
+uniform sampler2D normalMap3;
+uniform sampler2D rmaMap3;
+uniform sampler2D heightMap3;
+uniform sampler2D diffuseMap4;
+uniform sampler2D normalMap4;
+uniform sampler2D rmaMap4;
+uniform sampler2D heightMap4;
+
 uniform sampler2D sunShadowMap;
 
 layout(std430, binding = 3) readonly buffer LightBlock {
@@ -71,6 +82,8 @@ uniform bool useEnvironmentMap;
 uniform sampler2D brdfLUT;
 uniform float heightScale;
 uniform float heightScale2;
+uniform float heightScale3;
+uniform float heightScale4;
 
 uniform bool useParallaxCorrection;
 uniform vec3 probeBoxMin;
@@ -180,31 +193,37 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow / 9.0;
 }
 
-vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir, float blendFactor, float blendedHeightScale)
+vec2 ParallaxMapping(vec2 texCoords1, vec2 texCoords2, vec2 texCoords3, vec2 texCoords4, vec3 viewDir, vec4 blendWeights)
 { 
     const float minLayers = 16.0;
     const float maxLayers = 64.0;
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-    
+
+    float blendedHeightScale = blendWeights.x * heightScale + blendWeights.y * heightScale2 + blendWeights.z * heightScale3 + blendWeights.w * heightScale4;
+
     float layerDepth = 1.0 / numLayers;
     float currentLayerDepth = 0.0;
     
     vec2 P = viewDir.xy * blendedHeightScale; 
     vec2 deltaTexCoords = P / numLayers;
   
-    vec2  currentTexCoords = texCoords;
+    vec2 currentTexCoords = texCoords1; 
     
     float height1 = 1.0 - texture(heightMap, currentTexCoords).r;
-    float height2 = 1.0 - texture(heightMap2, TexCoords2).r;
-    float currentDepthMapValue = mix(height1, height2, blendFactor);
+    float height2 = 1.0 - texture(heightMap2, currentTexCoords).r;
+    float height3 = 1.0 - texture(heightMap3, currentTexCoords).r;
+    float height4 = 1.0 - texture(heightMap4, currentTexCoords).r;
+
+    float currentDepthMapValue = blendWeights.x * height1 + blendWeights.y * height2 + blendWeights.z * height3 + blendWeights.w * height4;
       
     while(currentLayerDepth < currentDepthMapValue)
     {
         currentTexCoords -= deltaTexCoords;
-
         height1 = 1.0 - texture(heightMap, currentTexCoords).r;
         height2 = 1.0 - texture(heightMap2, currentTexCoords).r;
-        currentDepthMapValue = mix(height1, height2, blendFactor);
+        height3 = 1.0 - texture(heightMap3, currentTexCoords).r;
+        height4 = 1.0 - texture(heightMap4, currentTexCoords).r;
+        currentDepthMapValue = blendWeights.x * height1 + blendWeights.y * height2 + blendWeights.z * height3 + blendWeights.w * height4;
         
         currentLayerDepth += layerDepth;  
     }
@@ -213,11 +232,15 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir, float blendFactor, float blen
 
     float after_h1 = 1.0 - texture(heightMap, currentTexCoords).r;
     float after_h2 = 1.0 - texture(heightMap2, currentTexCoords).r;
-    float afterDepth  = mix(after_h1, after_h2, blendFactor) - currentLayerDepth;
+    float after_h3 = 1.0 - texture(heightMap3, currentTexCoords).r;
+    float after_h4 = 1.0 - texture(heightMap4, currentTexCoords).r;
+    float afterDepth = (blendWeights.x * after_h1 + blendWeights.y * after_h2 + blendWeights.z * after_h3 + blendWeights.w * after_h4) - currentLayerDepth;
 
     float before_h1 = 1.0 - texture(heightMap, prevTexCoords).r;
     float before_h2 = 1.0 - texture(heightMap2, prevTexCoords).r;
-    float beforeDepth = mix(before_h1, before_h2, blendFactor) - currentLayerDepth + layerDepth;
+    float before_h3 = 1.0 - texture(heightMap3, prevTexCoords).r;
+    float before_h4 = 1.0 - texture(heightMap4, prevTexCoords).r;
+    float beforeDepth = (blendWeights.x * before_h1 + blendWeights.y * before_h2 + blendWeights.z * before_h3 + blendWeights.w * before_h4) - currentLayerDepth + layerDepth;
     
     float weight = afterDepth / (afterDepth - beforeDepth);
     vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
@@ -290,40 +313,52 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 
 void main()
 {
-    vec3 viewDir_tangent = normalize(TangentViewPos - TangentFragPos);
-	float blendFactor = v_Color.r;
-	
-	float blendedHeightScale = mix(heightScale, heightScale2, blendFactor);
+    float blendR = v_Color.r;
+    float blendG = v_Color.g;
+    float blendB = v_Color.b;
+    float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
+    float blendBase = 1.0 - blendTotal;
+
+    vec4 blendWeights = vec4(blendBase, blendR, blendG, blendB);
+
+	vec3 viewDir_tangent = normalize(TangentViewPos - TangentFragPos);
     
     vec2 finalTexCoords = TexCoords;
-    bool hasHeightMap1 = textureSize(heightMap, 0).x > 1;
-    bool hasHeightMap2 = textureSize(heightMap2, 0).x > 1;
+    bool hasHeightMap = textureSize(heightMap, 0).x > 1 || textureSize(heightMap2, 0).x > 1 || textureSize(heightMap3, 0).x > 1 || textureSize(heightMap4, 0).x > 1;
 
-    if(heightScale > 0.0 && !is_unlit && (hasHeightMap1 || hasHeightMap2))
+    if(heightScale > 0.0 && !is_unlit && hasHeightMap)
     {
-        finalTexCoords = ParallaxMapping(TexCoords,  viewDir_tangent, blendFactor, blendedHeightScale);
+        finalTexCoords = ParallaxMapping(TexCoords, TexCoords2, TexCoords3, TexCoords4, viewDir_tangent, blendWeights);
     }
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords);
     vec3 normalTex1 = texture(normalMap, finalTexCoords).rgb;
     vec3 rma1 = texture(rmaMap, finalTexCoords).rgb;
+
+    vec4 texColor2 = texture(diffuseMap2, finalTexCoords);
+    vec3 normalTex2 = texture(normalMap2, finalTexCoords).rgb;
+    vec3 rma2 = texture(rmaMap2, finalTexCoords).rgb;
+
+    vec4 texColor3 = texture(diffuseMap3, finalTexCoords);
+    vec3 normalTex3 = texture(normalMap3, finalTexCoords).rgb;
+    vec3 rma3 = texture(rmaMap3, finalTexCoords).rgb;
+
+    vec4 texColor4 = texture(diffuseMap4, finalTexCoords);
+    vec3 normalTex4 = texture(normalMap4, finalTexCoords).rgb;
+    vec3 rma4 = texture(rmaMap4, finalTexCoords).rgb;
 	
 	if (textureSize(detailDiffuseMap, 0).x > 1) {
         vec2 detailCoords = TexCoords * detailScale;
         vec3 detailColor = texture(detailDiffuseMap, detailCoords).rgb;
         texColor1.rgb *= detailColor * 2.0;
     }
-    
-    vec4 texColor2 = texture(diffuseMap2, TexCoords2);
-    vec3 normalTex2 = texture(normalMap2, TexCoords2).rgb;
-    vec3 rma2 = texture(rmaMap2, TexCoords2).rgb;
 
-    vec3 albedo = mix(texColor1.rgb, texColor2.rgb, blendFactor);
-    float alpha = mix(texColor1.a, texColor2.a, blendFactor);
-    vec3 normalTex = mix(normalTex1, normalTex2, blendFactor);
-    float roughness = mix(rma1.g, rma2.g, blendFactor);
-    float metallic = mix(rma1.b, rma2.b, blendFactor);
-    float ao = mix(rma1.r, rma2.r, blendFactor);
+    vec3 albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
+    float alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
+    vec3 normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
+    float roughness = rma1.g * blendBase + rma2.g * blendR + rma3.g * blendG + rma4.g * blendB;
+    float metallic = rma1.b * blendBase + rma2.b * blendR + rma3.b * blendG + rma4.b * blendB;
+    float ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
 
     if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
