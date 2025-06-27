@@ -34,6 +34,7 @@ typedef struct {
 } Material;
 
 extern Material g_MissingMaterial;
+extern bool g_is_editor_mode;
 
 void TextureManager_Init();
 void TextureManager_Shutdown();

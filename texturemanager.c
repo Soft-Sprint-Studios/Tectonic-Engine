@@ -24,36 +24,7 @@ static GLuint defaultNormalMapID;
 static GLuint defaultRmaMapID;
 Material g_MissingMaterial;
 
-#define FOURCC_DXT1 0x31545844
-#define FOURCC_DXT5 0x35545844
-
-#pragma pack(push,1)
-typedef struct {
-    unsigned int dwSize;
-    unsigned int dwFlags;
-    unsigned int dwHeight;
-    unsigned int dwWidth;
-    unsigned int dwPitchOrLinearSize;
-    unsigned int dwDepth;
-    unsigned int dwMipMapCount;
-    unsigned int dwReserved1[11];
-    struct {
-        unsigned int dwSize;
-        unsigned int dwFlags;
-        unsigned int dwFourCC;
-        unsigned int dwRGBBitCount;
-        unsigned int dwRBitMask;
-        unsigned int dwGBitMask;
-        unsigned int dwBBitMask;
-        unsigned int dwABitMask;
-    } ddspf;
-    unsigned int dwCaps;
-    unsigned int dwCaps2;
-    unsigned int dwCaps3;
-    unsigned int dwCaps4;
-    unsigned int dwReserved2;
-} DDS_HEADER;
-#pragma pack(pop)
+bool g_is_editor_mode = false;
 
 static char* prependTexturePath(const char* filename) {
     if (filename == NULL || filename[0] == '\0') return NULL;
@@ -67,91 +38,6 @@ static char* prependTexturePath(const char* filename) {
     strcpy(fullPath, baseFolder);
     strcat(fullPath, filename);
     return fullPath;
-}
-
-GLuint loadDDSTexture(const char* filename) {
-    FILE* fp = fopen(filename, "rb");
-    if (!fp) {
-        printf("Failed to open '%s'\n", filename);
-        return 0;
-    }
-
-    char filecode[4];
-    fread(filecode, 1, 4, fp);
-    if (memcmp(filecode, "DDS ", 4) != 0) {
-        printf("Not a DDS file: %s\n", filename);
-        fclose(fp);
-        return 0;
-    }
-
-    DDS_HEADER header;
-    fread(&header, sizeof(DDS_HEADER), 1, fp);
-
-    unsigned int width = header.dwWidth;
-    unsigned int height = header.dwHeight;
-    unsigned int mipMapCount = header.dwMipMapCount ? header.dwMipMapCount : 1;
-    unsigned int fourCC = header.ddspf.dwFourCC;
-
-    GLenum format;
-    unsigned int blockSize;
-    if (fourCC == FOURCC_DXT1) {
-        format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        blockSize = 8;
-    }
-    else if (fourCC == FOURCC_DXT5) {
-        format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        blockSize = 16;
-    }
-    else {
-        printf("Unsupported DDS format\n");
-        fclose(fp);
-        return 0;
-    }
-
-    size_t bufsize = 0;
-    unsigned int w = width;
-    unsigned int h = height;
-    for (unsigned int i = 0; i < mipMapCount; i++) {
-        size_t size = ((w + 3) / 4) * ((h + 3) / 4) * blockSize;
-        bufsize += size;
-        w = w > 1 ? w / 2 : 1;
-        h = h > 1 ? h / 2 : 1;
-    }
-
-    unsigned char* buffer = (unsigned char*)malloc(bufsize);
-    if (!buffer) {
-        printf("Out of memory\n");
-        fclose(fp);
-        return 0;
-    }
-
-    fread(buffer, 1, bufsize, fp);
-    fclose(fp);
-
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    w = width;
-    h = height;
-    size_t offset = 0;
-
-    for (unsigned int level = 0; level < mipMapCount; level++) {
-        size_t size = ((w + 3) / 4) * ((h + 3) / 4) * blockSize;
-        glCompressedTexImage2D(GL_TEXTURE_2D, level, format, w, h, 0, (GLsizei)size, buffer + offset);
-        offset += size;
-        w = w > 1 ? w / 2 : 1;
-        h = h > 1 ? h / 2 : 1;
-    }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mipMapCount > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    free(buffer);
-
-    return textureID;
 }
 
 static GLuint createMissingTexture() {
@@ -208,13 +94,6 @@ GLuint loadTexture(const char* path) {
         return missingTextureID;
     }
 
-    const char* ext = strrchr(fullPath, '.');
-    if (ext && (_stricmp(ext, ".dds") == 0)) {
-        GLuint texID = loadDDSTexture(fullPath);
-        free(fullPath);
-        return texID ? texID : missingTextureID;
-    }
-
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
         printf("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", fullPath);
@@ -222,8 +101,29 @@ GLuint loadTexture(const char* path) {
         return missingTextureID;
     }
 
+    if (g_is_editor_mode) {
+        int max_editor_dim = 128;
+
+        if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
+            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+            else {
+                printf("TextureManager ERROR: Failed to create scaled surface for '%s'. Using full-res.\n", fullPath);
+            }
+        }
+    }
+
     SDL_Surface* fSurf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(surf);
+
     if (!fSurf) {
         printf("TextureManager ERROR: Failed to convert surface for '%s'\n", fullPath);
         free(fullPath);
@@ -234,14 +134,20 @@ GLuint loadTexture(const char* path) {
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
+
+    if (!g_is_editor_mode) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        GLfloat max_anisotropy;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
+    }
+    else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    GLfloat max_anisotropy;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 
     SDL_FreeSurface(fSurf);
     free(fullPath);

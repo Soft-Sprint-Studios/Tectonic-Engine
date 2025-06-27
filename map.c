@@ -796,22 +796,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         else if (strcmp(keyword, "gltf_model") == 0) {
             char modelPath[270];
             Vec3 pos, rot, scale;
-            char targetname[64] = ""; // Initialized to empty
+            char targetname[64] = "";
             float mass = 0.0f;
             int is_phys_on = 0;
 
             char* p_line = line;
             char temp_keyword[64];
 
-            // 1. Read the keyword ("gltf_model")
             if (sscanf(p_line, "%63s", temp_keyword) != 1) {
                 printf("Scene_LoadMap Error: Could not read keyword from: %s\n", line);
                 continue;
             }
-            p_line += strlen(temp_keyword); // Advance pointer past keyword
-            while (*p_line && isspace((unsigned char)*p_line)) p_line++; // Skip whitespace
+            p_line += strlen(temp_keyword);
+            while (*p_line && isspace((unsigned char)*p_line)) p_line++;
 
-            // 2. Read modelPath (stops at next whitespace)
             char* modelPath_start = p_line;
             while (*p_line && !isspace((unsigned char)*p_line)) p_line++;
             size_t modelPath_len = p_line - modelPath_start;

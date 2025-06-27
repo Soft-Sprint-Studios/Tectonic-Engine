@@ -340,6 +340,7 @@ void main()
     F0 = mix(F0, albedo, metallic);
 
     vec3 Lo = vec3(0.0);
+    vec3 totalDirectDiffuse = vec3(0.0);
 	
     if (sun.enabled)
     {
@@ -358,7 +359,9 @@ void main()
         vec3 numerator    = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
         vec3 specular     = numerator / denominator;
-        Lo += (kD * albedo / PI + specular) * radiance * halfLambert * (1.0 - shadow);
+        vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * (1.0 - shadow);
+        totalDirectDiffuse += diffuseContrib;
+        Lo += (diffuseContrib + specular * radiance * halfLambert * (1.0 - shadow));
     }
 
     for (int i = 0; i < numActiveLights; ++i)
@@ -418,7 +421,9 @@ void main()
             vec3 numerator    = NDF * G * F;
             float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
             vec3 specular     = numerator / denominator;
-            Lo += (kD * albedo / PI + specular) * radiance * halfLambert * attenuation * (1.0 - shadow);
+            vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * attenuation * (1.0 - shadow);
+            totalDirectDiffuse += diffuseContrib;
+            Lo += (diffuseContrib + specular * radiance * halfLambert * attenuation * (1.0 - shadow));
         }
     }
 	
@@ -452,7 +457,9 @@ void main()
             vec3 numerator    = NDF * G * F;
             float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
             vec3 specular     = numerator / denominator;
-            Lo += (kD * albedo / PI + specular) * radiance * halfLambert * attenuation;
+            vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * attenuation;
+            totalDirectDiffuse += diffuseContrib;
+            Lo += (diffuseContrib + specular * radiance * halfLambert * attenuation);
         }
     }
 
@@ -479,7 +486,11 @@ void main()
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
         kD_ibl *= (1.0 - metallic);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * 4.0) * ao;
+        float diffuseLuminance = dot(totalDirectDiffuse, vec3(0.2126, 0.7152, 0.0722));
+        float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
+        float specularIBLStrength = 2.0 + (10.0 * diffuseLuminance);
+
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion * 5.0) * ao;
     }
 	
     out_Velocity = Velocity;
