@@ -24,6 +24,8 @@ static GLuint defaultNormalMapID;
 static GLuint defaultRmaMapID;
 Material g_MissingMaterial;
 
+bool g_is_editor_mode = false;
+
 #define FOURCC_DXT1 0x31545844
 #define FOURCC_DXT5 0x35545844
 
@@ -209,7 +211,7 @@ GLuint loadTexture(const char* path) {
     }
 
     const char* ext = strrchr(fullPath, '.');
-    if (ext && (_stricmp(ext, ".dds") == 0)) {
+    if (ext && (_stricmp(ext, ".dds") == 0)) {  
         GLuint texID = loadDDSTexture(fullPath);
         free(fullPath);
         return texID ? texID : missingTextureID;
@@ -222,8 +224,29 @@ GLuint loadTexture(const char* path) {
         return missingTextureID;
     }
 
+    if (g_is_editor_mode) {
+        int max_editor_dim = 128;
+
+        if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
+            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+            else {
+                printf("TextureManager ERROR: Failed to create scaled surface for '%s'. Using full-res.\n", fullPath);
+            }
+        }
+    }
+
     SDL_Surface* fSurf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(surf);
+
     if (!fSurf) {
         printf("TextureManager ERROR: Failed to convert surface for '%s'\n", fullPath);
         free(fullPath);
@@ -234,14 +257,20 @@ GLuint loadTexture(const char* path) {
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
+
+    if (!g_is_editor_mode) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        GLfloat max_anisotropy;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
+    }
+    else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    GLfloat max_anisotropy;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 
     SDL_FreeSurface(fSurf);
     free(fullPath);

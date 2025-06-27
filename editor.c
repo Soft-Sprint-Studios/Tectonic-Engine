@@ -47,6 +47,7 @@ extern void render_lighting_composite_pass(Mat4* view, Mat4* projection);
 extern void render_skybox(Mat4* view, Mat4* projection);
 extern void render_autoexposure_pass();
 extern void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
+extern bool g_is_editor_mode;
 
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
 typedef enum { GIZMO_AXIS_NONE, GIZMO_AXIS_X, GIZMO_AXIS_Y, GIZMO_AXIS_Z } GizmoAxis;
@@ -866,6 +867,7 @@ void Editor_InitDebugRenderer() {
 }
 void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     if (g_EditorState.initialized) return;
+    g_is_editor_mode = true;
     g_CurrentScene = scene;
     memset(&g_EditorState, 0, sizeof(EditorState));
     g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
@@ -926,6 +928,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
+    g_is_editor_mode = false;
     Undo_Shutdown();
     for (int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
@@ -2860,6 +2863,12 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
 
             if (g_EditorState.texture_search_filter[0] != '\0' &&
                 _stristr(mat->name, g_EditorState.texture_search_filter) == NULL) {
+                continue;
+            }
+
+            if (strncmp(mat->diffusePath, "models\\", strlen("models\\")) == 0 ||
+                strncmp(mat->normalPath, "models\\", strlen("models\\")) == 0 ||
+                strncmp(mat->rmaPath, "models\\", strlen("models\\")) == 0) {
                 continue;
             }
 
