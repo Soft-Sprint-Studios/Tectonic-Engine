@@ -10,7 +10,6 @@
 // The SSAudio Interface Wrapper
 /*
 *   SSAudio is composed of three parts:
-*   - game linker
 *   - interface wrapper (you are here)
 *   - API plugin
 * 
@@ -22,6 +21,7 @@
 #define BASEPLAY_H
 #endif //BASEPLAY_H
 
+#include "math_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +35,8 @@ extern "C" {
         unsigned int sourceID;
     } PlayingSound;
 
+
+
 #ifdef __cplusplus
 }
 #endif
@@ -45,5 +47,8 @@ extern "C" {
 class CBaseAudioPlayer
 {
 public:
-    unsigned int PlaySound();
+   CBaseAudioPlayer();
+   virtual unsigned int PlaySound(unsigned int bufferID, float volume, float pitch, float maxDistance, bool looping);
+   virtual void UnsetBuffer(unsigned int bufferID);
+   virtual void UnsetSource(unsigned int sourceID);
 };
