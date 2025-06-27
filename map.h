@@ -114,7 +114,7 @@ typedef struct {
     GLuint gBufferFBO;
     GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
     GLuint gVelocity;
-    GLuint skyboxTex;
+    GLuint cloudTexture;
     GLuint brdfLUTTexture;
     GLuint decalVAO, decalVBO;
     GLuint sunShadowFBO;

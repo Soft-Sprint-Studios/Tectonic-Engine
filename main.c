@@ -516,8 +516,6 @@ void init_renderer() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
     glBindVertexArray(0);
-    const char* skyboxFaces[] = { "skybox/right.jpg", "skybox/left.jpg", "skybox/top.jpg", "skybox/bottom.jpg", "skybox/front.jpg", "skybox/back.jpg" };
-    g_renderer.skyboxTex = loadCubemap(skyboxFaces);
     g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
     if (g_renderer.brdfLUTTexture == 0) {
         Console_Printf("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
@@ -543,7 +541,7 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "gPosition"), 0);
     glUseProgram(g_renderer.volumetricBlurShader);
     glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "image"), 0);
-    glUseProgram(g_renderer.skyboxShader); glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "skybox"), 0);
+    glUseProgram(g_renderer.skyboxShader);
     glUseProgram(g_renderer.postProcessShader);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "sceneTexture"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
@@ -633,6 +631,10 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
     g_renderer.dudvMap = loadTexture("dudv.png");
     g_renderer.waterNormalMap = loadTexture("water_normal.png");
+    g_renderer.cloudTexture = loadTexture("clouds.png");
+    if (g_renderer.cloudTexture == 0) {
+        Console_Printf("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
+    }
     glGenBuffers(1, &g_renderer.lightSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), NULL, GL_DYNAMIC_DRAW);
@@ -1049,7 +1051,6 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
             glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "probePosition"), 1, &reflection_brush->pos.x);
         }
         else {
-            reflectionTex = g_renderer.skyboxTex;
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useParallaxCorrection"), 0);
         }
 
@@ -1338,12 +1339,29 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
 }
 
 void render_skybox(Mat4* view, Mat4* projection) {
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO); glDepthFunc(GL_LEQUAL); glUseProgram(g_renderer.skyboxShader);
-    Mat4 skyboxView = *view; skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, skyboxView.m);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+    glDepthFunc(GL_LEQUAL);
+    glUseProgram(g_renderer.skyboxShader);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "projection"), 1, GL_FALSE, projection->m);
-    glBindVertexArray(g_renderer.skyboxVAO); glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_CUBE_MAP, g_renderer.skyboxTex); glDrawArrays(GL_TRIANGLES, 0, 36);
-    glDepthFunc(GL_LESS); glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    Vec3 sunDirNormalized = g_scene.sun.direction;
+    vec3_normalize(&sunDirNormalized);
+
+    glUniform3fv(glGetUniformLocation(g_renderer.skyboxShader, "sunDirection"), 1, &sunDirNormalized.x);
+    glUniform3fv(glGetUniformLocation(g_renderer.skyboxShader, "cameraPos"), 1, &g_engine->camera.position.x);
+    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "cloudMap"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.cloudTexture);
+
+    glUniform1f(glGetUniformLocation(g_renderer.skyboxShader, "time"), g_engine->lastFrame);
+
+    glBindVertexArray(g_renderer.skyboxVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glDepthFunc(GL_LESS);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void present_final_image() {
@@ -1403,7 +1421,6 @@ void cleanup() {
     glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
     glDeleteTextures(1, &g_renderer.finalRenderTexture);
     glDeleteTextures(1, &g_renderer.finalDepthTexture);
-    glDeleteTextures(1, &g_renderer.skyboxTex);
     glDeleteVertexArrays(1, &g_renderer.quadVAO);
     glDeleteBuffers(1, &g_renderer.quadVBO);
     glDeleteVertexArrays(1, &g_renderer.skyboxVAO);
