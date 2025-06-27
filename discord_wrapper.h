@@ -9,8 +9,16 @@
 #ifndef DISCORD_WRAPPER_H
 #define DISCORD_WRAPPER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void Discord_Init();
 void Discord__Shutdown();
 void Discord_Update(const char* state, const char* details);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DISCORD_WRAPPER_H

@@ -12,6 +12,10 @@
 #include "map.h"
 #include "editor_undo.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
 void Editor_Shutdown();
 void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine);
@@ -34,5 +38,9 @@ void Editor_DuplicateLight(Scene* scene, int index);
 void Editor_DuplicateDecal(Scene* scene, int index);
 void Editor_DuplicateSoundEntity(Scene* scene, int index);
 void Editor_DuplicateParticleEmitter(Scene* scene, int index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // EDITOR_H

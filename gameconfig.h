@@ -9,6 +9,10 @@
 #ifndef GAMECONFIG_H
 #define GAMECONFIG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     char startmap[128];
     char gamename[128];
@@ -16,5 +20,9 @@ typedef struct {
 
 void GameConfig_Init(void);
 const GameConfig* GameConfig_Get(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GAMECONFIG_H

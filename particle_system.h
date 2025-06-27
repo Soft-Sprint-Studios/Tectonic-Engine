@@ -13,6 +13,10 @@
 #include "texturemanager.h"
 #include <GL/glew.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_PARTICLES_PER_SYSTEM 8192
 
 typedef struct {
@@ -63,5 +67,9 @@ void ParticleEmitter_Init(struct ParticleEmitter* emitter, ParticleSystem* syste
 void ParticleEmitter_Update(struct ParticleEmitter* emitter, float deltaTime);
 void ParticleEmitter_Render(struct ParticleEmitter* emitter, Mat4 view, Mat4 projection);
 void ParticleEmitter_Free(struct ParticleEmitter* emitter);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PARTICLE_SYSTEM_H

@@ -14,6 +14,10 @@
 #include "texturemanager.h" 
 #include "math_lib.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     GLuint VAO;
     GLuint VBO;
@@ -44,5 +48,9 @@ typedef struct {
 
 LoadedModel* Model_Load(const char* path);
 void Model_Free(LoadedModel* model);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MODEL_LOADER_H

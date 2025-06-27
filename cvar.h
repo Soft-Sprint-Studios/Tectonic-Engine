@@ -11,6 +11,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_CVARS 1024
 
 typedef struct {
@@ -31,5 +35,9 @@ void Cvar_Set(const char* name, const char* value);
 float Cvar_GetFloat(const char* name);
 int Cvar_GetInt(const char* name);
 const char* Cvar_GetString(const char* name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CVAR_H

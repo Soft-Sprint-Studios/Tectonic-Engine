@@ -12,6 +12,10 @@
 #include <SDL.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     MAINMENU_ACTION_NONE,
     MAINMENU_ACTION_START_GAME,
@@ -26,5 +30,9 @@ void MainMenu_SetInGameMenuMode(bool is_in_game, bool is_map_loaded);
 MainMenuAction MainMenu_HandleEvent(SDL_Event* event);
 void MainMenu_Update(float deltaTime);
 void MainMenu_Render();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MAIN_MENU_H

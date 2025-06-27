@@ -13,6 +13,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct { float x, y; } Vec2;
 typedef struct { float x, y, z; } Vec3;
 typedef struct { float x, y, z, w; } Vec4;
@@ -51,5 +55,9 @@ bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs);
 bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir,
     Vec3 v0, Vec3 v1, Vec3 v2,
     float* t_out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MATH_LIB_H

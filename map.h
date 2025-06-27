@@ -18,6 +18,10 @@
 #include "physics_wrapper.h"
 #include "particle_system.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_LIGHTS 256
 #define MAX_BRUSHES 16384
 #define MAX_DECALS 16384
@@ -285,5 +289,9 @@ void Decal_UpdateMatrix(Decal* d);
 void Scene_Clear(Scene* scene, Engine* engine);
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
 void Scene_SaveMap(Scene* scene, const char* mapPath);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MAP_H

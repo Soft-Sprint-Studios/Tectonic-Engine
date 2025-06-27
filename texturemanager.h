@@ -12,6 +12,10 @@
 #include <GL/glew.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_MATERIALS 16384
 
 typedef struct {
@@ -52,5 +56,9 @@ void TextureManager_LoadMaterialTextures(Material* material);
 GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 GLuint TextureManager_LoadLUT(const char* filename_only);
 GLuint loadTexture(const char* path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // TEXTURE_MANAGER_H
