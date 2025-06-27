@@ -490,7 +490,7 @@ void main()
         float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
         float specularIBLStrength = 2.0 + (10.0 * diffuseLuminance);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion) * ao;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion * 5.0) * ao;
     }
 	
     out_Velocity = Velocity;
