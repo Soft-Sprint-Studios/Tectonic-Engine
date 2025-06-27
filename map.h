@@ -94,6 +94,8 @@ typedef struct {
     bool dofEnabled;
     float dofFocusDistance;
     float dofAperture;
+    bool chromaticAberrationEnabled;
+    float chromaticAberrationStrength;
 } PostProcessSettings;
 
 typedef struct {

@@ -26,6 +26,8 @@ uniform bool u_lensFlareEnabled;
 uniform float u_lensFlareStrength;
 uniform float u_scanlineStrength;
 uniform float u_grainIntensity;
+uniform bool u_chromaticAberrationEnabled;
+uniform float u_chromaticAberrationStrength;
 
 uniform bool u_ssaoEnabled;
 uniform sampler2D ssao;
@@ -102,7 +104,15 @@ void main()
         curvedTexCoords = TexCoords + centerCoords * dist * u_crtCurvature;
     }
 
-    vec3 finalColor = texture(sceneTexture, curvedTexCoords).rgb;
+    vec3 finalColor;
+    if (u_postEnabled && u_chromaticAberrationEnabled) {
+        vec2 offset = u_chromaticAberrationStrength * normalize(curvedTexCoords - 0.5);
+        finalColor.r = texture(sceneTexture, curvedTexCoords - offset).r;
+        finalColor.g = texture(sceneTexture, curvedTexCoords).g;
+        finalColor.b = texture(sceneTexture, curvedTexCoords + offset).b;
+    } else {
+        finalColor = texture(sceneTexture, curvedTexCoords).rgb;
+    }
 	
     if(u_ssaoEnabled) {
         float occlusion = texture(ssao, curvedTexCoords).r;

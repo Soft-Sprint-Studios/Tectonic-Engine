@@ -1305,6 +1305,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareStrength"), g_scene.post.lensFlareStrength);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_scanlineStrength"), g_scene.post.scanlineStrength);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_grainIntensity"), g_scene.post.grainIntensity);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationEnabled"), g_scene.post.chromaticAberrationEnabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationStrength"), g_scene.post.chromaticAberrationStrength);
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;
     if (g_scene.numActiveLights > 0) {
         Vec3 light_world_pos = g_scene.lights[0].position; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); float clip_space_pos[4]; float w = 1.0f;

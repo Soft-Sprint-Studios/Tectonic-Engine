@@ -647,6 +647,8 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.dofEnabled = false;
     scene->post.dofFocusDistance = 0.1f;
     scene->post.dofAperture = 10.0f;
+    scene->post.chromaticAberrationEnabled = true;
+    scene->post.chromaticAberrationStrength = 0.005f;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -696,6 +698,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     scene->post.dofEnabled = false;
     scene->post.dofFocusDistance = 0.1f;
     scene->post.dofAperture = 10.0f;
+    scene->post.chromaticAberrationEnabled = true;
+    scene->post.chromaticAberrationStrength = 0.005f;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -718,11 +722,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             vec3_normalize(&scene->sun.direction);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
-            int enabled_int, flare_int, dof_enabled_int;
-            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength, &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity, &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture);
+            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int;
+            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength, &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity, &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength);
             scene->post.enabled = (bool)enabled_int;
             scene->post.lensFlareEnabled = (bool)flare_int;
             scene->post.dofEnabled = (bool)dof_enabled_int;
+            scene->post.chromaticAberrationEnabled = (bool)ca_enabled_int;
         }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
@@ -981,7 +986,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     if (!file) { return; }
     fprintf(file, "player_start %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z);
     fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
-    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f\n\n", (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius, (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity, (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture);
+    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f\n\n", (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius, (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity, (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture, (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength);
     fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f\n\n",
         (int)scene->sun.enabled,
         scene->sun.direction.x, scene->sun.direction.y, scene->sun.direction.z,
