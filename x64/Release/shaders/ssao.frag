@@ -16,7 +16,7 @@ const vec2 noiseScale = screenSize / 4.0;
 const float radius = 0.5;
 const float bias = 0.025;
 const int kernelSize = 32;
-const float intensityaddition = 4.0;
+const float intensityaddition = 1.5;
 
 void main()
 {
