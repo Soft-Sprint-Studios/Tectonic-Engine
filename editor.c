@@ -173,6 +173,10 @@ typedef struct {
     char texture_search_filter[64];
     int texture_browser_target;
     int paint_channel;
+    bool is_sculpting;
+    bool is_sculpting_mode_enabled;
+    float sculpt_brush_radius;
+    float sculpt_brush_strength;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -927,6 +931,10 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_texture_browser = false;
     memset(g_EditorState.texture_search_filter, 0, sizeof(g_EditorState.texture_search_filter));
     g_EditorState.paint_channel = 0;
+    g_EditorState.is_sculpting = false;
+    g_EditorState.is_sculpting_mode_enabled = false;
+    g_EditorState.sculpt_brush_radius = 2.0f;
+    g_EditorState.sculpt_brush_strength = 0.5f;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -1268,6 +1276,20 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 return;
             }
         }
+        if (g_EditorState.is_sculpting_mode_enabled && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
+            bool is_hovering_sculpt_viewport = false;
+            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+                if (g_EditorState.is_viewport_hovered[i]) {
+                    is_hovering_sculpt_viewport = true;
+                    break;
+                }
+            }
+            if (is_hovering_sculpt_viewport) {
+                g_EditorState.is_sculpting = true;
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+                return;
+            }
+        }
         if (g_EditorState.is_clipping) {
             for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
@@ -1479,6 +1501,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.is_painting = false;
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Vertex Paint");
         }
+        if (g_EditorState.is_sculpting) {
+            g_EditorState.is_sculpting = false;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Vertex Sculpt");
+            return;
+        }
         if (g_EditorState.is_manipulating_vertex_gizmo) {
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Move Vertex (Gizmo)");
             g_EditorState.is_manipulating_vertex_gizmo = false;
@@ -1596,6 +1623,63 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
             if (needs_update) {
                 Brush_CreateRenderData(b);
+            }
+        }
+        if (g_EditorState.is_sculpting) {
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            bool needs_update = false;
+
+            Mat4 inv_model;
+            if (!mat4_inverse(&b->modelMatrix, &inv_model)) {
+                Console_Printf("[error] Failed to invert brush model matrix for sculpting.");
+                return;
+            }
+
+            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+                if (g_EditorState.is_viewport_hovered[i]) {
+                    Vec3 mouse_world_pos = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
+                    float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+
+                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                        float dist_sq = 0;
+                        if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
+                        if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
+                        if (i == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
+
+                        if (dist_sq < radius_sq) {
+                            float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
+                            float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->deltaTime * 10.0f;
+
+                            if (SDL_GetModState() & KMOD_SHIFT) {
+                                sculpt_amount = -sculpt_amount;
+                            }
+
+                            b->vertices[v_idx].pos.y += sculpt_amount;
+                            if (g_EditorState.snap_to_grid) {
+                                b->vertices[v_idx].pos.y = SnapValue(b->vertices[v_idx].pos.y, g_EditorState.grid_size);
+                            }
+
+                            needs_update = true;
+                        }
+                    }
+                }
+            }
+
+            if (needs_update) {
+                Brush_CreateRenderData(b);
+                if (b->physicsBody) {
+                    Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                    if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                        for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                        free(world_verts);
+                    }
+                    else {
+                        b->physicsBody = NULL;
+                    }
+                }
             }
         }
         if (g_EditorState.is_dragging_preview_brush_handle) {
@@ -1820,6 +1904,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Clip");
                 Undo_PerformUndo(scene, engine);
             }
+            if (g_EditorState.is_painting) {
+                g_EditorState.is_painting = false;
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Vertex Paint");
+                Undo_PerformUndo(scene, engine);
+            }
+            if (g_EditorState.is_sculpting) {
+                g_EditorState.is_sculpting = false;
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Vertex Sculpt");
+                Undo_PerformUndo(scene, engine);
+            }
             if (g_EditorState.is_painting_mode_enabled && g_EditorState.selected_entity_type == ENTITY_BRUSH) {
                 for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                     if (g_EditorState.is_viewport_hovered[i]) {
@@ -1875,9 +1969,20 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_1) g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
             if (event->key.keysym.sym == SDLK_2) g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE;
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
+            if (event->key.keysym.sym == SDLK_9) {
+                g_EditorState.is_sculpting_mode_enabled = !g_EditorState.is_sculpting_mode_enabled;
+                if (g_EditorState.is_sculpting_mode_enabled) {
+                    g_EditorState.is_painting_mode_enabled = false;
+                    Console_Printf("Vertex Sculpt Mode: ON");
+                }
+                else {
+                    Console_Printf("Vertex Sculpt Mode: OFF");
+                }
+            }
             if (event->key.keysym.sym == SDLK_0) {
                 g_EditorState.is_painting_mode_enabled = !g_EditorState.is_painting_mode_enabled;
                 if (g_EditorState.is_painting_mode_enabled) {
+                    g_EditorState.is_sculpting_mode_enabled = false;
                     Console_Printf("Vertex Paint Mode: ON");
                 }
                 else {
@@ -2350,6 +2455,51 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                 float y1 = g_EditorState.paint_brush_radius * sinf(angle1);
                 float x2 = g_EditorState.paint_brush_radius * cosf(angle2);
                 float y2 = g_EditorState.paint_brush_radius * sinf(angle2);
+
+                if (type == VIEW_TOP_XZ) {
+                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
+                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y, mouse_world_pos.z + y2 };
+                }
+                else if (type == VIEW_FRONT_XY) {
+                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y + y1, mouse_world_pos.z };
+                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y + y2, mouse_world_pos.z };
+                }
+                else {
+                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y1, mouse_world_pos.z + x1 };
+                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y2, mouse_world_pos.z + x2 };
+                }
+            }
+
+            glDisable(GL_DEPTH_TEST);
+            glLineWidth(1.0f);
+            glBindVertexArray(g_EditorState.vertex_points_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(circle_verts), circle_verts, GL_DYNAMIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+            glEnableVertexAttribArray(0);
+            glDrawArrays(GL_LINES, 0, segments * 2);
+            glBindVertexArray(0);
+            glEnable(GL_DEPTH_TEST);
+        }
+        if (g_EditorState.is_sculpting_mode_enabled && g_EditorState.is_viewport_hovered[type]) {
+            Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[type], type);
+            glUseProgram(g_EditorState.debug_shader);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Mat4 identity_mat; mat4_identity(&identity_mat);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
+            float color[] = { 0.0f, 1.0f, 1.0f, 0.8f };
+            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+
+            const int segments = 32;
+            Vec3 circle_verts[64];
+            for (int i = 0; i < segments; ++i) {
+                float angle1 = (i / (float)segments) * 2.0f * 3.14159f;
+                float angle2 = ((i + 1) / (float)segments) * 2.0f * 3.14159f;
+                float x1 = g_EditorState.sculpt_brush_radius * cosf(angle1);
+                float y1 = g_EditorState.sculpt_brush_radius * sinf(angle1);
+                float x2 = g_EditorState.sculpt_brush_radius * cosf(angle2);
+                float y2 = g_EditorState.sculpt_brush_radius * sinf(angle2);
 
                 if (type == VIEW_TOP_XZ) {
                     circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
@@ -3067,6 +3217,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_RadioButton("R (Tex 2)", g_EditorState.paint_channel == 0)) { g_EditorState.paint_channel = 0; }
             if (UI_RadioButton("G (Tex 3)", g_EditorState.paint_channel == 1)) { g_EditorState.paint_channel = 1; }
             if (UI_RadioButton("B (Tex 4)", g_EditorState.paint_channel == 2)) { g_EditorState.paint_channel = 2; }
+        }
+        UI_Separator();
+        UI_Text("Vertex Sculpt");
+        UI_Checkbox("Sculpt Mode Active (9)", &g_EditorState.is_sculpting_mode_enabled);
+        if (g_EditorState.is_sculpting_mode_enabled) {
+            UI_DragFloat("Sculpt Radius", &g_EditorState.sculpt_brush_radius, 0.1f, 0.1f, 50.0f);
+            UI_DragFloat("Sculpt Strength", &g_EditorState.sculpt_brush_strength, 0.05f, 0.01f, 5.0f);
         }
         UI_Separator();
         if (b->isReflectionProbe) {
