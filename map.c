@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2025 Soft Sprint Studios
+ * All rights reserved.
+ *
+ * This file is proprietary and confidential. Unauthorized reproduction,
+ * modification, or distribution is strictly prohibited unless explicit
+ * written permission is granted by Soft Sprint Studios.
+ */
 #include "map.h"
 #include <stdio.h>
 #include <stdlib.h>
