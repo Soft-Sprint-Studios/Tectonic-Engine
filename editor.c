@@ -25,8 +25,8 @@
 #include "texturemanager.h"
 #include "io_system.h"
 
-extern void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass);
-extern void render_brush(GLuint shader, Brush* b, bool is_baking_pass);
+extern void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
+extern void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
 extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
 extern void SceneObject_UpdateMatrix(SceneObject* obj);
 extern void Brush_UpdateMatrix(Brush* b);
@@ -2377,8 +2377,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glEnable(GL_DEPTH_TEST);
         }
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-        for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i], false); }
-        for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false); }
+        for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i], false, NULL); }
+        for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false, NULL); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
     }
 
@@ -2442,14 +2442,14 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glBindVertexArray(0);
         }
     }
-    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false,NULL); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (b->isReflectionProbe || b->isTrigger) {
             bool is_selected = (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i); if (!is_selected) continue; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
-    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false, NULL); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (b->isReflectionProbe || b->isTrigger || b->isWater) {
@@ -2722,7 +2722,7 @@ static void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         memset(&temp_obj, 0, sizeof(SceneObject));
         temp_obj.model = g_EditorState.preview_model;
         mat4_identity(&temp_obj.modelMatrix);
-        render_object(renderer->mainShader, &temp_obj, false);
+        render_object(renderer->mainShader, &temp_obj, false, NULL);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -3531,8 +3531,8 @@ static void RenderSceneForBaking(GLuint shader, Scene* scene, Renderer* renderer
     }
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), 0);
     glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 0);
-    for (int i = 0; i < scene->numObjects; i++) { render_object(shader, &scene->objects[i], true); }
-    for (int i = 0; i < scene->numBrushes; i++) { render_brush(shader, &scene->brushes[i], true); }
+    for (int i = 0; i < scene->numObjects; i++) { render_object(shader, &scene->objects[i], true, NULL); }
+    for (int i = 0; i < scene->numBrushes; i++) { render_brush(shader, &scene->brushes[i], true, NULL); }
     glDepthFunc(GL_LEQUAL);
     glUseProgram(renderer->skyboxShader);
     Mat4 skyboxView = view;

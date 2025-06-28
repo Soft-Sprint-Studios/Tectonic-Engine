@@ -133,7 +133,7 @@ static int FindReflectionProbeForPoint(Vec3 p) {
     return -1;
 }
 
-void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass) {
+void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum) {
     bool envMapEnabled = false;
 
     if (!is_baking_pass && shader == g_renderer.mainShader) {
@@ -168,7 +168,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass) {
         for (int i = 0; i < obj->model->meshCount; ++i) {
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
-            if (shader == g_renderer.mainShader) {
+            if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
@@ -184,7 +184,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass) {
     }
 }
 
-void render_brush(GLuint shader, Brush* b, bool is_baking_pass) {
+void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
     if (b->isReflectionProbe || b->isTrigger || b->isWater) return;
     bool envMapEnabled = false;
 
@@ -216,7 +216,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass) {
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
 
     glBindVertexArray(b->vao);
-    if (shader == g_renderer.mainShader) {
+    if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
         int vbo_offset = 0;
         for (int i = 0; i < b->numFaces; ++i) {
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
@@ -352,6 +352,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     Cvar_Init();
+    Cvar_Register("r_vpl_count", "32", "Number of VPLs to generate per light.");
     Cvar_Register("noclip", "0", ""); Cvar_Register("gravity", "9.8", ""); Cvar_Register("engine_running", "1", "");
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).");
     Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.");
@@ -379,6 +380,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 void init_renderer() {
     g_renderer.mainShader = createShaderProgram("shaders/main.vert", "shaders/main.frag");
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
+    g_renderer.vplGenerationShader = createShaderProgram("shaders/vpl_gen.vert", "shaders/vpl_gen.frag");
+    g_renderer.vplComputeShader = createShaderProgramCompute("shaders/vpl_compute.comp");
     g_renderer.spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
     g_renderer.skyboxShader = createShaderProgram("shaders/skybox.vert", "shaders/skybox.frag");
     g_renderer.postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
@@ -426,6 +429,37 @@ void init_renderer() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("G-Buffer Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.vplGenerationFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
+    glGenTextures(1, &g_renderer.vplPosTex);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.vplPosTex, 0);
+    glGenTextures(1, &g_renderer.vplNormalTex);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_renderer.vplNormalTex, 0);
+    glGenTextures(1, &g_renderer.vplAlbedoTex);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.vplAlbedoTex, 0);
+    GLuint vpl_attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, vpl_attachments);
+    GLuint vpl_rboDepth; glGenRenderbuffers(1, &vpl_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, vpl_rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, vpl_rboDepth);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("VPL Generation Framebuffer not complete!\n");
+    glGenBuffers(1, &g_renderer.vplSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
     glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -920,6 +954,95 @@ void update_state() {
     }
 }
 
+static void render_vpl_pass() {
+    g_scene.num_vpls = 0;
+    int vpls_per_light = Cvar_GetInt("r_vpl_count");
+    if (vpls_per_light <= 0) return;
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glCullFace(GL_BACK);
+
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        if (light->intensity <= 0.0f || (g_scene.num_vpls + vpls_per_light > MAX_VPLS)) continue;
+
+        Mat4 lightView, lightProjection;
+        if (light->type == LIGHT_POINT) {
+            lightProjection = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 0.1f, light->radius);
+            lightView = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
+        }
+        else {
+            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
+            if (angle_rad < 0.01f) angle_rad = 0.01f;
+            lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 0.1f, light->radius);
+            Vec3 up_vector = (Vec3){ 0, 1, 0 };
+            if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
+            lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
+        glViewport(0, 0, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(g_renderer.vplGenerationShader);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "view"), 1, GL_FALSE, lightView.m);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "projection"), 1, GL_FALSE, lightProjection.m);
+
+        Frustum light_frustum;
+        Mat4 light_vp;
+        mat4_multiply(&light_vp, &lightProjection, &lightView);
+        extract_frustum_planes(&light_vp, &light_frustum, true);
+
+        for (int j = 0; j < g_scene.numObjects; ++j) {
+            SceneObject* obj = &g_scene.objects[j];
+            if (obj->model) {
+                Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
+                Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
+                if (!frustum_check_aabb(&light_frustum, world_min, world_max)) continue;
+            }
+            render_object(g_renderer.vplGenerationShader, obj, false, &light_frustum);
+        }
+        for (int j = 0; j < g_scene.numBrushes; ++j) {
+            Brush* b = &g_scene.brushes[j];
+            if (b->numVertices > 0) {
+                Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX }; Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                for (int k = 0; k < b->numVertices; ++k) {
+                    Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                    min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
+                    max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
+                }
+                if (!frustum_check_aabb(&light_frustum, min_v, max_v)) continue;
+            }
+            render_brush(g_renderer.vplGenerationShader, b, false, &light_frustum);
+        }
+
+        glUseProgram(g_renderer.vplComputeShader);
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
+        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
+        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
+        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_posTex"), 0);
+        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_normalTex"), 1);
+        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
+
+        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
+        glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_time"), g_engine->lastFrame);
+        glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
+        glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
+        glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
+
+        int workgroup_size = 64;
+        int num_workgroups = (vpls_per_light + workgroup_size - 1) / workgroup_size;
+        glDispatchCompute(num_workgroups, 1, 1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        g_scene.num_vpls += vpls_per_light;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+
 void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glEnable(GL_DEPTH_TEST);
     glCullFace(GL_FRONT);
@@ -931,11 +1054,11 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
     for (int j = 0; j < g_scene.numObjects; ++j) {
-        render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false);
+        render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
         if (g_scene.brushes[j].isWater) continue;
-        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false);
+        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false, NULL);
     }
 
     glCullFace(GL_BACK);
@@ -971,8 +1094,8 @@ void render_shadows() {
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
-        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false);
-        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false);
+        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false, NULL);
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false, NULL);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1089,6 +1212,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glActiveTexture(GL_TEXTURE16);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "num_vpls"), g_scene.num_vpls);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
 
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), g_scene.numActiveLights);
@@ -1158,7 +1282,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_object(g_renderer.mainShader, &g_scene.objects[i], false);
+        render_object(g_renderer.mainShader, &g_scene.objects[i], false, &frustum);
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
@@ -1175,7 +1299,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 continue;
             }
         }
-        render_brush(g_renderer.mainShader, &g_scene.brushes[i], false);
+        render_brush(g_renderer.mainShader, &g_scene.brushes[i], false, &frustum);
     }
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
     for (int i = 0; i < g_scene.numDecals; ++i) {
@@ -1395,6 +1519,8 @@ void cleanup() {
     }
     glDeleteProgram(g_renderer.mainShader);
     glDeleteProgram(g_renderer.pointDepthShader);
+    glDeleteProgram(g_renderer.vplGenerationShader);
+    glDeleteProgram(g_renderer.vplComputeShader);
     glDeleteProgram(g_renderer.spotDepthShader);
     glDeleteProgram(g_renderer.skyboxShader);
     glDeleteProgram(g_renderer.postProcessShader);
@@ -1415,6 +1541,11 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.gAlbedo);
     glDeleteTextures(1, &g_renderer.gPBRParams);
     glDeleteTextures(1, &g_renderer.gVelocity);
+    glDeleteFramebuffers(1, &g_renderer.vplGenerationFBO);
+    glDeleteTextures(1, &g_renderer.vplPosTex);
+    glDeleteTextures(1, &g_renderer.vplNormalTex);
+    glDeleteTextures(1, &g_renderer.vplAlbedoTex);
+    glDeleteBuffers(1, &g_renderer.vplSSBO);
     glDeleteFramebuffers(1, &g_renderer.ssaoFBO);
     glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);
     glDeleteTextures(1, &g_renderer.ssaoColorBuffer);
@@ -1552,6 +1683,7 @@ int main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_GAME) {
             char details_str[128];
+            render_vpl_pass();
             sprintf(details_str, "Map: %s", g_scene.mapPath);
             Discord_Update("Playing", details_str);
             Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);

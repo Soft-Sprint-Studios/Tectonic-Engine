@@ -90,6 +90,18 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
+struct VPL {
+    vec4 position;
+    vec4 color;
+    vec4 normal;
+};
+
+layout(std430, binding = 4) readonly buffer VPLBlock {
+    VPL vpls[];
+};
+
+uniform int num_vpls;
+
 const float PI = 3.14159265359;
 
 mat4 perspective(float fov, float aspect, float near, float far) {
@@ -381,8 +393,7 @@ void main()
     {
         vec3 lightDir = -sun.direction;
         vec3 H = normalize(V + lightDir);
-        float halfLambert = dot(N, lightDir) * 0.5 + 0.5;
-        halfLambert = halfLambert * halfLambert;
+        float NdotL = max(dot(N, lightDir), 0.0);
         vec3 radiance = sun.color * sun.intensity;
         float shadow = calculateSunShadow(FragPosSunLightSpace, N, lightDir);
         float NDF = DistributionGGX(N, H, roughness);
@@ -392,11 +403,11 @@ void main()
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metallic;
         vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
         vec3 specular     = numerator / denominator;
-        vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * (1.0 - shadow);
+        vec3 diffuseContrib = (kD * albedo / PI) * radiance * NdotL * (1.0 - shadow);
         totalDirectDiffuse += diffuseContrib;
-        Lo += (diffuseContrib + specular * radiance * halfLambert * (1.0 - shadow));
+        Lo += (diffuseContrib + specular * radiance * NdotL * (1.0 - shadow));
     }
 
     for (int i = 0; i < numActiveLights; ++i)
@@ -407,8 +418,7 @@ void main()
         vec3 L = normalize(lightPos - FragPos_world);
         vec3 H = normalize(V + L);
         float distance = length(lightPos - FragPos_world);
-        float halfLambert = dot(N, L) * 0.5 + 0.5;
-        halfLambert = halfLambert * halfLambert;
+        float NdotL = max(dot(N, L), 0.0);
         vec3 radiance = lights[i].color.rgb * lights[i].color.a;
         float attenuation = 0.0;
         float shadow = 0.0;
@@ -454,11 +464,11 @@ void main()
             vec3 kD = vec3(1.0) - kS;
             kD *= 1.0 - metallic;
             vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
             vec3 specular     = numerator / denominator;
-            vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * attenuation * (1.0 - shadow);
+            vec3 diffuseContrib = (kD * albedo / PI) * radiance * NdotL * attenuation * (1.0 - shadow);
             totalDirectDiffuse += diffuseContrib;
-            Lo += (diffuseContrib + specular * radiance * halfLambert * attenuation * (1.0 - shadow));
+            Lo += (diffuseContrib + specular * radiance * NdotL * attenuation * (1.0 - shadow));
         }
     }
 	
@@ -467,8 +477,7 @@ void main()
         vec3 L = normalize(flashlight.position - FragPos_world);
         vec3 H = normalize(V + L);
         float distance = length(flashlight.position - FragPos_world);
-        float halfLambert = dot(N, L) * 0.5 + 0.5;
-        halfLambert = halfLambert * halfLambert;
+        float NdotL = max(dot(N, L), 0.0);
         float intensity = 10.0;
         float radius = 35.0;
         float cutOff = cos(radians(12.5));
@@ -490,11 +499,35 @@ void main()
             vec3 kD = vec3(1.0) - kS;
             kD *= 1.0 - metallic;
             vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * halfLambert + 0.001;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
             vec3 specular     = numerator / denominator;
-            vec3 diffuseContrib = (kD * albedo / PI) * radiance * halfLambert * attenuation;
+            vec3 diffuseContrib = (kD * albedo / PI) * radiance * NdotL * attenuation;
             totalDirectDiffuse += diffuseContrib;
-            Lo += (diffuseContrib + specular * radiance * halfLambert * attenuation);
+            Lo += (diffuseContrib + specular * radiance * NdotL * attenuation);
+        }
+    }
+
+    for (int i = 0; i < num_vpls; ++i)
+    {
+        vec3 vpl_normal = vpls[i].normal.xyz;
+        vec3 L = normalize(vpls[i].position.xyz - FragPos_world);
+        float NdotL = max(dot(N, L), 0.0);
+        if(NdotL > 0.0)
+        {
+            float vpl_emit_dot = max(dot(vpl_normal, -L), 0.0);
+            if (vpl_emit_dot > 0.0)
+            {
+                float distance = length(vpls[i].position.xyz - FragPos_world);
+                float attenuation = 1.0 / (distance * distance + 1.0);
+            
+                vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+                vec3 kD = vec3(1.0) - kS;
+                kD *= (1.0 - metallic);
+            
+                vec3 diffuse = kD * albedo / PI;
+                float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
+                Lo += vpls[i].color.rgb * 10.0 * diffuse * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
+            }
         }
     }
 

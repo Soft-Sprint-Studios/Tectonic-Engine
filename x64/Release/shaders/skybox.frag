@@ -10,8 +10,8 @@ uniform vec3 cameraPos;
 uniform sampler2D cloudMap;
 uniform float time;
 
-#define iSteps 16
-#define jSteps 8
+#define iSteps 12
+#define jSteps 6
 
 vec2 rsi(vec3 r0, vec3 rd, float sr) {
     float a = dot(rd, rd);

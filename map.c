@@ -799,7 +799,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 char face_paths[6][256];
                 for (int i = 0; i < 6; ++i) sprintf(face_paths[i], "cubemaps/%s_%s.png", b->name, faces_suffixes[i]);
                 const char* face_pointers[6];
-                for (int i = 0; i < 6; ++i) face_pointers[i] = face_pointers[i];
+                for (int i = 0; i < 6; ++i) {
+                    face_pointers[i] = face_paths[i];
+                }
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
             Brush_UpdateMatrix(b);

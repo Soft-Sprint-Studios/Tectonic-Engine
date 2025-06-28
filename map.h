@@ -29,6 +29,8 @@ extern "C" {
 #define MAX_PARTICLE_EMITTERS 256
 #define MAX_BRUSH_VERTS 512
 #define MAX_BRUSH_FACES 512
+#define MAX_VPLS 4096
+#define VPL_GEN_TEXTURE_SIZE 128
 
 typedef enum {
     ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER
@@ -107,6 +109,12 @@ typedef struct {
 } Camera;
 
 typedef struct {
+    Vec4 position;
+    Vec4 color;
+    Vec4 normal;
+} VPL;
+
+typedef struct {
     GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
     GLuint lightingCompositeShader;
     GLuint postProcessShader;
@@ -117,6 +125,11 @@ typedef struct {
     GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
     GLuint gVelocity;
     GLuint cloudTexture;
+    GLuint vplGenerationFBO;
+    GLuint vplPosTex, vplNormalTex, vplAlbedoTex;
+    GLuint vplGenerationShader;
+    GLuint vplComputeShader;
+    GLuint vplSSBO;
     GLuint brdfLUTTexture;
     GLuint decalVAO, decalVBO;
     GLuint sunShadowFBO;
@@ -264,6 +277,8 @@ typedef struct {
     int numObjects;
     Brush brushes[MAX_BRUSHES];
     int numBrushes;
+    VPL vpls[MAX_VPLS];
+    int num_vpls;
     PlayerStart playerStart;
     Decal decals[MAX_DECALS];
     int numDecals;

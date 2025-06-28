@@ -301,5 +301,14 @@
     <None Include="x64\Release\shaders\water.tes">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
+    <None Include="x64\Release\shaders\vpl_compute.comp">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\vpl_gen.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\vpl_gen.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

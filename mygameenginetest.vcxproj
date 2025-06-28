@@ -110,6 +110,9 @@
     <None Include="x64\Release\shaders\volumetric.vert" />
     <None Include="x64\Release\shaders\volumetric_blur.frag" />
     <None Include="x64\Release\shaders\volumetric_blur.vert" />
+    <None Include="x64\Release\shaders\vpl_compute.comp" />
+    <None Include="x64\Release\shaders\vpl_gen.frag" />
+    <None Include="x64\Release\shaders\vpl_gen.vert" />
     <None Include="x64\Release\shaders\water.frag" />
     <None Include="x64\Release\shaders\water.tcs" />
     <None Include="x64\Release\shaders\water.tes" />
