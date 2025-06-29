@@ -94,6 +94,8 @@
     <None Include="x64\Release\shaders\grid.vert" />
     <None Include="x64\Release\shaders\histogram.comp" />
     <None Include="x64\Release\shaders\main.frag" />
+    <None Include="x64\Release\shaders\main.tcs" />
+    <None Include="x64\Release\shaders\main.tes" />
     <None Include="x64\Release\shaders\main.vert" />
     <None Include="x64\Release\shaders\particle.frag" />
     <None Include="x64\Release\shaders\particle.geom" />

@@ -1,0 +1,122 @@
+#version 460 core
+layout(triangles, equal_spacing, ccw) in;
+
+in TCS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+    vec2 texCoords2;
+    vec2 texCoords3;
+    vec2 texCoords4;
+    vec3 worldNormal;
+    mat3 tbn;
+    vec4 color;
+} tes_in[];
+
+out vec3 FragPos_view;
+out vec3 Normal_view;
+out vec3 FragPos_world;
+out vec2 TexCoords;
+out vec2 TexCoords2;
+out vec2 TexCoords3;
+out vec2 TexCoords4;
+out mat3 TBN;
+out vec4 FragPosSunLightSpace;
+out vec2 Velocity;
+out vec3 TangentViewPos;
+out vec3 TangentFragPos;
+out vec4 v_Color;
+out vec3 indirectLight;
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 prevViewProjection;
+uniform mat4 sunLightSpaceMatrix;
+uniform vec3 viewPos;
+uniform mat4 model;
+
+struct VPL {
+    vec3  position;
+    uint  packedColor;
+    uint  packedNormal;
+    uint  _padding;
+};
+
+layout(std430, binding = 4) readonly buffer VPLBlock {
+    VPL vpls[];
+};
+uniform int num_vpls;
+const float PI = 3.14159265359;
+
+void main()
+{
+    vec3 p0_ws = gl_TessCoord.x * tes_in[0].worldPos;
+    vec3 p1_ws = gl_TessCoord.y * tes_in[1].worldPos;
+    vec3 p2_ws = gl_TessCoord.z * tes_in[2].worldPos;
+    FragPos_world = p0_ws + p1_ws + p2_ws;
+
+    vec3 n0 = gl_TessCoord.x * tes_in[0].worldNormal;
+    vec3 n1 = gl_TessCoord.y * tes_in[1].worldNormal;
+    vec3 n2 = gl_TessCoord.z * tes_in[2].worldNormal;
+    vec3 worldNormal = normalize(n0 + n1 + n2);
+
+    vec2 tc0 = gl_TessCoord.x * tes_in[0].texCoords;
+    vec2 tc1 = gl_TessCoord.y * tes_in[1].texCoords;
+    vec2 tc2 = gl_TessCoord.z * tes_in[2].texCoords;
+    TexCoords = tc0 + tc1 + tc2;
+
+    vec2 tc0_2 = gl_TessCoord.x * tes_in[0].texCoords2;
+    vec2 tc1_2 = gl_TessCoord.y * tes_in[1].texCoords2;
+    vec2 tc2_2 = gl_TessCoord.z * tes_in[2].texCoords2;
+    TexCoords2 = tc0_2 + tc1_2 + tc2_2;
+
+    vec2 tc0_3 = gl_TessCoord.x * tes_in[0].texCoords3;
+    vec2 tc1_3 = gl_TessCoord.y * tes_in[1].texCoords3;
+    vec2 tc2_3 = gl_TessCoord.z * tes_in[2].texCoords3;
+    TexCoords3 = tc0_3 + tc1_3 + tc2_3;
+
+    vec2 tc0_4 = gl_TessCoord.x * tes_in[0].texCoords4;
+    vec2 tc1_4 = gl_TessCoord.y * tes_in[1].texCoords4;
+    vec2 tc2_4 = gl_TessCoord.z * tes_in[2].texCoords4;
+    TexCoords4 = tc0_4 + tc1_4 + tc2_4;
+    
+    mat3 tbn0 = gl_TessCoord.x * tes_in[0].tbn;
+    mat3 tbn1 = gl_TessCoord.y * tes_in[1].tbn;
+    mat3 tbn2 = gl_TessCoord.z * tes_in[2].tbn;
+    TBN = tbn0 + tbn1 + tbn2;
+
+    vec4 c0 = gl_TessCoord.x * tes_in[0].color;
+    vec4 c1 = gl_TessCoord.y * tes_in[1].color;
+    vec4 c2 = gl_TessCoord.z * tes_in[2].color;
+    v_Color = c0 + c1 + c2;
+    
+    vec3 N = worldNormal;
+    indirectLight = vec3(0.0);
+    for (int i = 0; i < num_vpls; ++i)
+    {
+        vec3 vpl_pos = vpls[i].position;
+        vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
+        vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
+        vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
+        float distance = length(vpl_pos - FragPos_world);
+        vec3 L = normalize(vpl_pos - FragPos_world);
+        float NdotL = dot(N, L); 
+        if(NdotL > 0.0)
+        {
+            float vpl_emit_dot = dot(vpl_normal, -L); 
+            if (vpl_emit_dot > 0.0)
+            {
+                float attenuation = 1.0 / (distance * distance + 1.0);
+                float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
+                indirectLight += vpl_color_rgb * 10.0 * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
+            }
+        }
+    }
+
+    FragPos_view = vec3(view * vec4(FragPos_world, 1.0));
+    Normal_view = mat3(transpose(inverse(view * model))) * worldNormal;
+    FragPosSunLightSpace = sunLightSpaceMatrix * vec4(FragPos_world, 1.0);
+    TangentViewPos = TBN * viewPos;
+    TangentFragPos = TBN * FragPos_world;
+    Velocity = vec2(0.0);
+    gl_Position = projection * view * vec4(FragPos_world, 1.0);
+}

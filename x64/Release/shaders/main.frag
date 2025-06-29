@@ -20,6 +20,8 @@ in mat3 TBN;
 in vec4 FragPosSunLightSpace;
 in vec4 v_Color;
 
+in vec3 indirectLight;
+
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 in vec2 Velocity;
@@ -90,19 +92,6 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
-struct VPL {
-    vec3  position;
-    uint  packedColor;
-    uint  packedNormal;
-    uint  _padding;
-};
-
-layout(std430, binding = 4) readonly buffer VPLBlock {
-    VPL vpls[];
-};
-
-uniform int num_vpls;
-
 const float PI = 3.14159265359;
 
 mat4 perspective(float fov, float aspect, float near, float far) {
@@ -132,13 +121,10 @@ float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, ve
     sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-
     if(projCoords.z > 1.0)
         return 0.0;
-        
     float currentDepth = projCoords.z;
     float final_bias = max(bias * (1.0 - dot(normal, lightDir)), 0.0005);
-    
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
     for(int x = -1; x <= 1; ++x)
@@ -160,7 +146,6 @@ float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightP
     if(currentDepth > farPlane) {
         return 0.0;
     }
-
     float shadow = 0.0;
     float closestDepth = 0.0;
     vec3 sampleOffsetDirections[20] = vec3[](
@@ -186,13 +171,10 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-
     if(projCoords.z > 1.0)
         return 0.0;
-        
     float currentDepth = projCoords.z;
     float bias = max(0.01 * (1.0 - dot(normal, lightDir)), 0.0005);
-    
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(sunShadowMap, 0);
     for(int x = -1; x <= 1; ++x)
@@ -206,58 +188,28 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow / 9.0;
 }
 
-vec2 ParallaxMapping(vec2 texCoords1, vec2 texCoords2, vec2 texCoords3, vec2 texCoords4, vec3 viewDir, vec4 blendWeights)
-{ 
-    const float minLayers = 16.0;
-    const float maxLayers = 64.0;
+vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir)
+{
+    const float minLayers = 8.0;
+    const float maxLayers = 32.0;
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-
-    float blendedHeightScale = blendWeights.x * heightScale + blendWeights.y * heightScale2 + blendWeights.z * heightScale3 + blendWeights.w * heightScale4;
-
     float layerDepth = 1.0 / numLayers;
     float currentLayerDepth = 0.0;
-    
-    vec2 P = viewDir.xy * blendedHeightScale; 
+    vec2 P = viewDir.xy * hScale; 
     vec2 deltaTexCoords = P / numLayers;
-  
-    vec2 currentTexCoords = texCoords1; 
-    
-    float height1 = 1.0 - texture(heightMap, currentTexCoords).r;
-    float height2 = 1.0 - texture(heightMap2, currentTexCoords).r;
-    float height3 = 1.0 - texture(heightMap3, currentTexCoords).r;
-    float height4 = 1.0 - texture(heightMap4, currentTexCoords).r;
-
-    float currentDepthMapValue = blendWeights.x * height1 + blendWeights.y * height2 + blendWeights.z * height3 + blendWeights.w * height4;
-      
+    vec2 currentTexCoords = texCoords;
+    float currentDepthMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
     while(currentLayerDepth < currentDepthMapValue)
     {
         currentTexCoords -= deltaTexCoords;
-        height1 = 1.0 - texture(heightMap, currentTexCoords).r;
-        height2 = 1.0 - texture(heightMap2, currentTexCoords).r;
-        height3 = 1.0 - texture(heightMap3, currentTexCoords).r;
-        height4 = 1.0 - texture(heightMap4, currentTexCoords).r;
-        currentDepthMapValue = blendWeights.x * height1 + blendWeights.y * height2 + blendWeights.z * height3 + blendWeights.w * height4;
-        
+        currentDepthMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
         currentLayerDepth += layerDepth;  
     }
-    
     vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-
-    float after_h1 = 1.0 - texture(heightMap, currentTexCoords).r;
-    float after_h2 = 1.0 - texture(heightMap2, currentTexCoords).r;
-    float after_h3 = 1.0 - texture(heightMap3, currentTexCoords).r;
-    float after_h4 = 1.0 - texture(heightMap4, currentTexCoords).r;
-    float afterDepth = (blendWeights.x * after_h1 + blendWeights.y * after_h2 + blendWeights.z * after_h3 + blendWeights.w * after_h4) - currentLayerDepth;
-
-    float before_h1 = 1.0 - texture(heightMap, prevTexCoords).r;
-    float before_h2 = 1.0 - texture(heightMap2, prevTexCoords).r;
-    float before_h3 = 1.0 - texture(heightMap3, prevTexCoords).r;
-    float before_h4 = 1.0 - texture(heightMap4, prevTexCoords).r;
-    float beforeDepth = (blendWeights.x * before_h1 + blendWeights.y * before_h2 + blendWeights.z * before_h3 + blendWeights.w * before_h4) - currentLayerDepth + layerDepth;
-    
+    float afterDepth = (1.0 - texture(heightMapSampler, currentTexCoords).r) - currentLayerDepth;
+    float beforeDepth = (1.0 - texture(heightMapSampler, prevTexCoords).r) - currentLayerDepth + layerDepth;
     float weight = afterDepth / (afterDepth - beforeDepth);
     vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
-
     return finalTexCoords;
 }
 
@@ -267,11 +219,9 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     float a2     = a*a;
     float NdotH  = max(dot(N, H), 0.0);
     float NdotH2 = NdotH*NdotH;
-	
     float num   = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
-	
     return num / denom;
 }
 
@@ -279,10 +229,8 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
     float k = (r*r) / 8.0;
-
     float num   = NdotV;
     float denom = NdotV * (1.0 - k) + k;
-	
     return num / denom;
 }
 
@@ -292,7 +240,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     float NdotL = max(dot(N, L), 0.0);
     float ggx2  = GeometrySchlickGGX(NdotV, roughness);
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-	
     return ggx1 * ggx2;
 }
 
@@ -301,26 +248,19 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-
 vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probePos) {
     vec3 invR = 1.0 / R;
     vec3 t1 = (boxMin - fragPos) * invR;
     vec3 t2 = (boxMax - fragPos) * invR;
-    
     vec3 tmin = min(t1, t2);
     vec3 tmax = max(t1, t2);
-
     float t_near = max(max(tmin.x, tmin.y), tmin.z);
     float t_far = min(min(tmax.x, tmax.y), tmax.z);
-
     if (t_near > t_far || t_far < 0.0) {
         return R;
     }
-
     float intersection_t = t_far;
-
     vec3 intersectPos = fragPos + R * intersection_t;
-
     return normalize(intersectPos - probePos);
 }
 
@@ -332,36 +272,31 @@ void main()
     float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
     float blendBase = 1.0 - blendTotal;
 
-    vec4 blendWeights = vec4(blendBase, blendR, blendG, blendB);
-
 	vec3 viewDir_tangent = normalize(TangentViewPos - TangentFragPos);
     
-    vec2 finalTexCoords = TexCoords;
-    bool hasHeightMap = textureSize(heightMap, 0).x > 1 || textureSize(heightMap2, 0).x > 1 || textureSize(heightMap3, 0).x > 1 || textureSize(heightMap4, 0).x > 1;
+    vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent);
+    vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent);
+    vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent);
+    vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent);
 
-    if(heightScale > 0.0 && !is_unlit && hasHeightMap)
-    {
-        finalTexCoords = ParallaxMapping(TexCoords, TexCoords2, TexCoords3, TexCoords4, viewDir_tangent, blendWeights);
-    }
+    vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
+    vec3 normalTex1 = texture(normalMap, finalTexCoords1).rgb;
+    vec3 rma1 = texture(rmaMap, finalTexCoords1).rgb;
 
-    vec4 texColor1 = texture(diffuseMap, finalTexCoords);
-    vec3 normalTex1 = texture(normalMap, finalTexCoords).rgb;
-    vec3 rma1 = texture(rmaMap, finalTexCoords).rgb;
+    vec4 texColor2 = texture(diffuseMap2, finalTexCoords2);
+    vec3 normalTex2 = texture(normalMap2, finalTexCoords2).rgb;
+    vec3 rma2 = texture(rmaMap2, finalTexCoords2).rgb;
 
-    vec4 texColor2 = texture(diffuseMap2, finalTexCoords);
-    vec3 normalTex2 = texture(normalMap2, finalTexCoords).rgb;
-    vec3 rma2 = texture(rmaMap2, finalTexCoords).rgb;
+    vec4 texColor3 = texture(diffuseMap3, finalTexCoords3);
+    vec3 normalTex3 = texture(normalMap3, finalTexCoords3).rgb;
+    vec3 rma3 = texture(rmaMap3, finalTexCoords3).rgb;
 
-    vec4 texColor3 = texture(diffuseMap3, finalTexCoords);
-    vec3 normalTex3 = texture(normalMap3, finalTexCoords).rgb;
-    vec3 rma3 = texture(rmaMap3, finalTexCoords).rgb;
-
-    vec4 texColor4 = texture(diffuseMap4, finalTexCoords);
-    vec3 normalTex4 = texture(normalMap4, finalTexCoords).rgb;
-    vec3 rma4 = texture(rmaMap4, finalTexCoords).rgb;
+    vec4 texColor4 = texture(diffuseMap4, finalTexCoords4);
+    vec3 normalTex4 = texture(normalMap4, finalTexCoords4).rgb;
+    vec3 rma4 = texture(rmaMap4, finalTexCoords4).rgb;
 	
 	if (textureSize(detailDiffuseMap, 0).x > 1) {
-        vec2 detailCoords = TexCoords * detailScale;
+        vec2 detailCoords = finalTexCoords1 * detailScale;
         vec3 detailColor = texture(detailDiffuseMap, detailCoords).rgb;
         texColor1.rgb *= detailColor * 2.0;
     }
@@ -508,36 +443,9 @@ void main()
         }
     }
 
-    for (int i = 0; i < num_vpls; ++i)
-    {
-        vec3 vpl_pos = vpls[i].position;
-        vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
-        vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
-        vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
-
-        float distance = length(vpl_pos - FragPos_world);
-        
-        vec3 L = normalize(vpl_pos - FragPos_world);
-        float NdotL = dot(N, L); 
-
-        if(NdotL > 0.0)
-        {
-            float vpl_emit_dot = dot(vpl_normal, -L); 
-            if (vpl_emit_dot > 0.0)
-            {
-                float attenuation = 1.0 / (distance * distance + 1.0);
-            
-                vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
-                vec3 kD = vec3(1.0) - kS;
-                kD *= (1.0 - metallic);
-                
-                vec3 diffuse = kD * albedo / PI;
-                float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
-
-                Lo += vpl_color_rgb * 10.0 * diffuse * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
-            }
-        }
-    }
+    vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
+    kD_indirect *= (1.0 - metallic);
+    Lo += indirectLight * kD_indirect * albedo;
 
     vec3 R_env = reflect(-V, N); 
     if (useParallaxCorrection) {

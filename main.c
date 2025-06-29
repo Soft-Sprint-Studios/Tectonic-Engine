@@ -178,8 +178,14 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
                 glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
             }
             glBindVertexArray(mesh->VAO);
-            if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
-            else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+            if (shader == g_renderer.mainShader) {
+                if (mesh->useEBO) { glDrawElements(GL_PATCHES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
+                else { glDrawArrays(GL_PATCHES, 0, mesh->indexCount); }
+            }
+            else {
+                if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
+                else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+            }
         }
     }
 }
@@ -291,12 +297,22 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             }
 
             int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
-            glDrawArrays(GL_TRIANGLES, vbo_offset, num_face_verts);
+            if (shader == g_renderer.mainShader) {
+                glDrawArrays(GL_PATCHES, vbo_offset, num_face_verts);
+            }
+            else {
+                glDrawArrays(GL_TRIANGLES, vbo_offset, num_face_verts);
+            }
             vbo_offset += num_face_verts;
         }
     }
     else {
-        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        if (shader == g_renderer.mainShader) {
+            glDrawArrays(GL_PATCHES, 0, b->totalRenderVertexCount);
+        }
+        else {
+            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        }
     }
 }
 
@@ -378,7 +394,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 }
 
 void init_renderer() {
-    g_renderer.mainShader = createShaderProgram("shaders/main.vert", "shaders/main.frag");
+    g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
     g_renderer.vplGenerationShader = createShaderProgram("shaders/vpl_gen.vert", "shaders/vpl_gen.frag");
     g_renderer.vplComputeShader = createShaderProgramCompute("shaders/vpl_compute.comp");
@@ -1197,8 +1213,10 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
     glDrawBuffers(6, attachments);
     glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, &g_renderer.prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &g_engine->camera.position.x);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sun.enabled"), g_scene.sun.enabled);
@@ -1271,6 +1289,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     for (int i = 0; i < g_scene.numObjects; i++) {
         SceneObject* obj = &g_scene.objects[i];
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
         if (obj->model) {
             Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
             Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
@@ -1285,6 +1304,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
         if (b->isWater) continue;
         if (b->numVertices > 0) {
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
@@ -1647,6 +1667,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
+    SDL_GL_SetSwapInterval(0);
     glewExperimental = GL_TRUE; glewInit();
     if (!GLEW_ARB_bindless_texture) {
         fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");

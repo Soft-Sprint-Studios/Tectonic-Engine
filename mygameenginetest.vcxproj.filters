@@ -310,5 +310,11 @@
     <None Include="x64\Release\shaders\vpl_gen.vert">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
+    <None Include="x64\Release\shaders\main.tcs">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\main.tes">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

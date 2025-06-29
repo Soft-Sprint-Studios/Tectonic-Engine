@@ -1,0 +1,67 @@
+#version 460 core
+layout (vertices = 3) out;
+
+in VS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+    vec2 texCoords2;
+    vec2 texCoords3;
+    vec2 texCoords4;
+    vec3 worldNormal;
+    mat3 tbn;
+    vec4 color;
+} tcs_in[];
+
+out TCS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+    vec2 texCoords2;
+    vec2 texCoords3;
+    vec2 texCoords4;
+    vec3 worldNormal;
+    mat3 tbn;
+    vec4 color;
+} tcs_out[];
+
+uniform vec3 viewPos;
+uniform bool isBrush;
+
+float get_tess_level(float distance) {
+    float maxDist = 80.0;
+    float minDist = 5.0;
+    float maxLevel = 16.0;
+    float minLevel = 1.0;
+    float tess = maxLevel - (maxLevel - minLevel) * smoothstep(minDist, maxDist, distance);
+    return clamp(tess, minLevel, maxLevel);
+}
+
+void main()
+{
+    tcs_out[gl_InvocationID].worldPos = tcs_in[gl_InvocationID].worldPos;
+    tcs_out[gl_InvocationID].texCoords = tcs_in[gl_InvocationID].texCoords;
+    tcs_out[gl_InvocationID].texCoords2 = tcs_in[gl_InvocationID].texCoords2;
+    tcs_out[gl_InvocationID].texCoords3 = tcs_in[gl_InvocationID].texCoords3;
+    tcs_out[gl_InvocationID].texCoords4 = tcs_in[gl_InvocationID].texCoords4;
+    tcs_out[gl_InvocationID].worldNormal = tcs_in[gl_InvocationID].worldNormal;
+    tcs_out[gl_InvocationID].tbn = tcs_in[gl_InvocationID].tbn;
+    tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+
+    if (isBrush)
+    {
+        float d0 = distance(viewPos, tcs_in[0].worldPos);
+        float d1 = distance(viewPos, tcs_in[1].worldPos);
+        float d2 = distance(viewPos, tcs_in[2].worldPos);
+
+        gl_TessLevelOuter[0] = get_tess_level((d1 + d2) / 2.0);
+        gl_TessLevelOuter[1] = get_tess_level((d0 + d2) / 2.0);
+        gl_TessLevelOuter[2] = get_tess_level((d0 + d1) / 2.0);
+        gl_TessLevelInner[0] = get_tess_level((d0 + d1 + d2) / 3.0);
+    }
+    else
+    {
+        gl_TessLevelOuter[0] = 1.0;
+        gl_TessLevelOuter[1] = 1.0;
+        gl_TessLevelOuter[2] = 1.0;
+        gl_TessLevelInner[0] = 1.0;
+    }
+}
