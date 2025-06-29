@@ -642,7 +642,7 @@ void init_renderer() {
         };
         vec3_normalize(&sample);
         sample = vec3_muls(sample, ((float)rand() / (float)RAND_MAX));
-        float scale = (float)i / 64.0f;
+        float scale = (float)i / 32.0f;
         scale = lerp(0.1f, 1.0f, scale * scale);
         sample = vec3_muls(sample, scale);
         g_renderer.ssaoKernel[i] = sample;
