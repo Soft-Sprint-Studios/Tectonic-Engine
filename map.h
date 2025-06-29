@@ -109,9 +109,10 @@ typedef struct {
 } Camera;
 
 typedef struct {
-    Vec4 position;
-    Vec4 color;
-    Vec4 normal;
+    Vec3 position;
+    unsigned int packedColor;
+    unsigned int packedNormal;
+    unsigned int _padding[1];
 } VPL;
 
 typedef struct {

@@ -91,9 +91,10 @@ uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
 struct VPL {
-    vec4 position;
-    vec4 color;
-    vec4 normal;
+    vec3  position;
+    uint  packedColor;
+    uint  packedNormal;
+    uint  _padding;
 };
 
 layout(std430, binding = 4) readonly buffer VPLBlock {
@@ -509,24 +510,31 @@ void main()
 
     for (int i = 0; i < num_vpls; ++i)
     {
-        vec3 vpl_normal = vpls[i].normal.xyz;
-        vec3 L = normalize(vpls[i].position.xyz - FragPos_world);
-        float NdotL = max(dot(N, L), 0.0);
+        vec3 vpl_pos = vpls[i].position;
+        vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
+        vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
+        vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
+
+        float distance = length(vpl_pos - FragPos_world);
+        
+        vec3 L = normalize(vpl_pos - FragPos_world);
+        float NdotL = dot(N, L); 
+
         if(NdotL > 0.0)
         {
-            float vpl_emit_dot = max(dot(vpl_normal, -L), 0.0);
+            float vpl_emit_dot = dot(vpl_normal, -L); 
             if (vpl_emit_dot > 0.0)
             {
-                float distance = length(vpls[i].position.xyz - FragPos_world);
                 float attenuation = 1.0 / (distance * distance + 1.0);
             
                 vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
                 vec3 kD = vec3(1.0) - kS;
                 kD *= (1.0 - metallic);
-            
+                
                 vec3 diffuse = kD * albedo / PI;
                 float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
-                Lo += vpls[i].color.rgb * 10.0 * diffuse * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
+
+                Lo += vpl_color_rgb * 10.0 * diffuse * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
             }
         }
     }

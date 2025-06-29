@@ -1026,7 +1026,6 @@ static void render_vpl_pass() {
         glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
 
         glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
-        glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_time"), g_engine->lastFrame);
         glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
         glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
         glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
