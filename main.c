@@ -633,7 +633,7 @@ void init_renderer() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("SSAO Blur Framebuffer not complete!\n");
     srand(time(NULL));
-    for (unsigned int i = 0; i < 64; ++i)
+    for (unsigned int i = 0; i < 32; ++i)
     {
         Vec3 sample = {
             ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
@@ -1475,7 +1475,7 @@ void render_ssao_pass(Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_renderer.ssaoShader);
-    for (unsigned int i = 0; i < 64; ++i) {
+    for (unsigned int i = 0; i < 32; ++i) {
         char uName[32];
         sprintf(uName, "samples[%d]", i);
         glUniform3fv(glGetUniformLocation(g_renderer.ssaoShader, uName), 1, &g_renderer.ssaoKernel[i].x);

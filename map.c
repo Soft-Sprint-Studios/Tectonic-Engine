@@ -925,7 +925,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
             }
             else {
-                Mat4 physics_transform = newObj->modelMatrix;
+                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f });
                 if (newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
                     newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, scale);
                 }
