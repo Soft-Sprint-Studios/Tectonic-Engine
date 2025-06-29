@@ -1667,7 +1667,6 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
-    SDL_GL_SetSwapInterval(0);
     glewExperimental = GL_TRUE; glewInit();
     if (!GLEW_ARB_bindless_texture) {
         fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
