@@ -472,9 +472,9 @@ void main()
 
         float diffuseLuminance = dot(totalDirectDiffuse, vec3(0.2126, 0.7152, 0.0722));
         float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
-        float specularIBLStrength = 2.0 + (10.0 * diffuseLuminance);
+        float specularIBLStrength = 2.0 + (1.0 * diffuseLuminance);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion * 5.0) * ao;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion) * ao;
     }
 	
     out_Velocity = Velocity;
