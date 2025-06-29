@@ -982,76 +982,147 @@ static void render_vpl_pass() {
 
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
-        if (light->intensity <= 0.0f || (g_scene.num_vpls + vpls_per_light > MAX_VPLS)) continue;
+        if (light->intensity <= 0.0f || (g_scene.num_vpls >= MAX_VPLS)) continue;
 
-        Mat4 lightView, lightProjection;
         if (light->type == LIGHT_POINT) {
-            lightProjection = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 0.1f, light->radius);
-            lightView = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
+            int vpls_this_light = vpls_per_light;
+            if (g_scene.num_vpls + vpls_this_light > MAX_VPLS) {
+                vpls_this_light = MAX_VPLS - g_scene.num_vpls;
+            }
+            int vpls_per_face = vpls_this_light / 6;
+            if (vpls_per_face < 1) vpls_per_face = 1;
+
+            Mat4 lightProjection = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 0.1f, light->radius);
+            Mat4 shadowViews[6];
+            shadowViews[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
+            shadowViews[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
+            shadowViews[2] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0.0f, 1.0f, 0.0f }), (Vec3) { 0.0f, 0.0f, 1.0f });
+            shadowViews[3] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0.0f, -1.0f, 0.0f }), (Vec3) { 0.0f, 0.0f, -1.0f });
+            shadowViews[4] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0.0f, 0.0f, 1.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
+            shadowViews[5] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0.0f, 0.0f, -1.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
+
+            for (int face = 0; face < 6; ++face) {
+                if (g_scene.num_vpls + vpls_per_face > MAX_VPLS) break;
+
+                glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
+                glViewport(0, 0, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glUseProgram(g_renderer.vplGenerationShader);
+                glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "view"), 1, GL_FALSE, shadowViews[face].m);
+                glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "projection"), 1, GL_FALSE, lightProjection.m);
+
+                Frustum light_frustum;
+                Mat4 light_vp;
+                mat4_multiply(&light_vp, &lightProjection, &shadowViews[face]);
+                extract_frustum_planes(&light_vp, &light_frustum, true);
+
+                for (int j = 0; j < g_scene.numObjects; ++j) {
+                    SceneObject* obj = &g_scene.objects[j];
+                    if (obj->model) {
+                        Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
+                        Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
+                        if (!frustum_check_aabb(&light_frustum, world_min, world_max)) continue;
+                    }
+                    render_object(g_renderer.vplGenerationShader, obj, false, &light_frustum);
+                }
+                for (int j = 0; j < g_scene.numBrushes; ++j) {
+                    Brush* b = &g_scene.brushes[j];
+                    if (b->numVertices > 0) {
+                        Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX }; Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                        for (int k = 0; k < b->numVertices; ++k) {
+                            Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                            min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
+                            max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
+                        }
+                        if (!frustum_check_aabb(&light_frustum, min_v, max_v)) continue;
+                    }
+                    render_brush(g_renderer.vplGenerationShader, b, false, &light_frustum);
+                }
+
+                glUseProgram(g_renderer.vplComputeShader);
+                glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
+                glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
+                glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_posTex"), 0);
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_normalTex"), 1);
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
+                glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
+                glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
+                glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
+
+                int workgroup_size = 64;
+                int num_workgroups = (vpls_per_face + workgroup_size - 1) / workgroup_size;
+                glDispatchCompute(num_workgroups, 1, 1);
+                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+                g_scene.num_vpls += vpls_per_face;
+            }
         }
-        else {
+        else { // Spot Light
+            if (g_scene.num_vpls + vpls_per_light > MAX_VPLS) continue;
+            Mat4 lightView, lightProjection;
             float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
             if (angle_rad < 0.01f) angle_rad = 0.01f;
             lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 0.1f, light->radius);
             Vec3 up_vector = (Vec3){ 0, 1, 0 };
             if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
             lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
-        }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
-        glViewport(0, 0, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glUseProgram(g_renderer.vplGenerationShader);
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "view"), 1, GL_FALSE, lightView.m);
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "projection"), 1, GL_FALSE, lightProjection.m);
+            glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
+            glViewport(0, 0, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glUseProgram(g_renderer.vplGenerationShader);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "view"), 1, GL_FALSE, lightView.m);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.vplGenerationShader, "projection"), 1, GL_FALSE, lightProjection.m);
 
-        Frustum light_frustum;
-        Mat4 light_vp;
-        mat4_multiply(&light_vp, &lightProjection, &lightView);
-        extract_frustum_planes(&light_vp, &light_frustum, true);
+            Frustum light_frustum;
+            Mat4 light_vp;
+            mat4_multiply(&light_vp, &lightProjection, &lightView);
+            extract_frustum_planes(&light_vp, &light_frustum, true);
 
-        for (int j = 0; j < g_scene.numObjects; ++j) {
-            SceneObject* obj = &g_scene.objects[j];
-            if (obj->model) {
-                Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
-                Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
-                if (!frustum_check_aabb(&light_frustum, world_min, world_max)) continue;
-            }
-            render_object(g_renderer.vplGenerationShader, obj, false, &light_frustum);
-        }
-        for (int j = 0; j < g_scene.numBrushes; ++j) {
-            Brush* b = &g_scene.brushes[j];
-            if (b->numVertices > 0) {
-                Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX }; Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                for (int k = 0; k < b->numVertices; ++k) {
-                    Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                    min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
-                    max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
+            for (int j = 0; j < g_scene.numObjects; ++j) {
+                SceneObject* obj = &g_scene.objects[j];
+                if (obj->model) {
+                    Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
+                    Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
+                    if (!frustum_check_aabb(&light_frustum, world_min, world_max)) continue;
                 }
-                if (!frustum_check_aabb(&light_frustum, min_v, max_v)) continue;
+                render_object(g_renderer.vplGenerationShader, obj, false, &light_frustum);
             }
-            render_brush(g_renderer.vplGenerationShader, b, false, &light_frustum);
+            for (int j = 0; j < g_scene.numBrushes; ++j) {
+                Brush* b = &g_scene.brushes[j];
+                if (b->numVertices > 0) {
+                    Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX }; Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                    for (int k = 0; k < b->numVertices; ++k) {
+                        Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
+                        max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
+                    }
+                    if (!frustum_check_aabb(&light_frustum, min_v, max_v)) continue;
+                }
+                render_brush(g_renderer.vplGenerationShader, b, false, &light_frustum);
+            }
+
+            glUseProgram(g_renderer.vplComputeShader);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
+            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_posTex"), 0);
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_normalTex"), 1);
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
+            glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
+            glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
+            glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
+
+            int workgroup_size = 64;
+            int num_workgroups = (vpls_per_light + workgroup_size - 1) / workgroup_size;
+            glDispatchCompute(num_workgroups, 1, 1);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+            g_scene.num_vpls += vpls_per_light;
         }
-
-        glUseProgram(g_renderer.vplComputeShader);
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
-        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
-        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
-        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_posTex"), 0);
-        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_normalTex"), 1);
-        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
-
-        glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
-        glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
-        glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
-        glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
-
-        int workgroup_size = 64;
-        int num_workgroups = (vpls_per_light + workgroup_size - 1) / workgroup_size;
-        glDispatchCompute(num_workgroups, 1, 1);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        g_scene.num_vpls += vpls_per_light;
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
