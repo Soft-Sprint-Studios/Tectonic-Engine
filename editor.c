@@ -1353,26 +1353,55 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Undo_BeginEntityModification(scene, g_EditorState.selected_entity_type, g_EditorState.selected_entity_index);
             }
 
+            if (g_EditorState.is_in_brush_creation_mode) {
+                g_EditorState.gizmo_drag_object_start_pos = g_EditorState.preview_brush.pos;
+                g_EditorState.gizmo_drag_object_start_rot = g_EditorState.preview_brush.rot;
+                g_EditorState.gizmo_drag_object_start_scale = g_EditorState.preview_brush.scale;
+            }
+            else {
+                switch (g_EditorState.selected_entity_type) {
+                case ENTITY_MODEL:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->objects[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->objects[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = scene->objects[g_EditorState.selected_entity_index].scale;
+                    break;
+                case ENTITY_BRUSH:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->brushes[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->brushes[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = scene->brushes[g_EditorState.selected_entity_index].scale;
+                    break;
+                case ENTITY_LIGHT:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->lights[g_EditorState.selected_entity_index].position;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->lights[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_DECAL:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->decals[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->decals[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = scene->decals[g_EditorState.selected_entity_index].size;
+                    break;
+                case ENTITY_SOUND:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_PARTICLE_EMITTER:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_PLAYERSTART:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.position;
+                    g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                default: break;
+                }
+            }
+
             switch (g_EditorState.current_gizmo_operation) {
             case GIZMO_OP_TRANSLATE:
             case GIZMO_OP_SCALE: {
-                if (g_EditorState.is_in_brush_creation_mode) {
-                    g_EditorState.gizmo_drag_object_start_pos = g_EditorState.preview_brush.pos;
-                    g_EditorState.gizmo_drag_object_start_rot = g_EditorState.preview_brush.rot;
-                    g_EditorState.gizmo_drag_object_start_scale = g_EditorState.preview_brush.scale;
-                }
-                else {
-                    switch (g_EditorState.selected_entity_type) {
-                    case ENTITY_MODEL: g_EditorState.gizmo_drag_object_start_pos = scene->objects[g_EditorState.selected_entity_index].pos; g_EditorState.gizmo_drag_object_start_scale = scene->objects[g_EditorState.selected_entity_index].scale; break;
-                    case ENTITY_BRUSH: g_EditorState.gizmo_drag_object_start_pos = scene->brushes[g_EditorState.selected_entity_index].pos; g_EditorState.gizmo_drag_object_start_scale = scene->brushes[g_EditorState.selected_entity_index].scale; break;
-                    case ENTITY_LIGHT: g_EditorState.gizmo_drag_object_start_pos = scene->lights[g_EditorState.selected_entity_index].position; break;
-                    case ENTITY_DECAL: g_EditorState.gizmo_drag_object_start_pos = scene->decals[g_EditorState.selected_entity_index].pos; g_EditorState.gizmo_drag_object_start_scale = scene->decals[g_EditorState.selected_entity_index].size; break;
-                    case ENTITY_SOUND: g_EditorState.gizmo_drag_object_start_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
-                    case ENTITY_PARTICLE_EMITTER: g_EditorState.gizmo_drag_object_start_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
-                    case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.position; break;
-                    default: break;
-                    }
-                }
                 Vec3 drag_object_anchor_pos = g_EditorState.is_in_brush_creation_mode ? g_EditorState.preview_brush.pos : g_EditorState.gizmo_drag_object_start_pos;
                 if (active_viewport == VIEW_PERSPECTIVE) {
                     Vec3 cam_forward = { g_view_matrix[VIEW_PERSPECTIVE].m[2], g_view_matrix[VIEW_PERSPECTIVE].m[6], g_view_matrix[VIEW_PERSPECTIVE].m[10] };
@@ -1399,21 +1428,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
             case GIZMO_OP_ROTATE: {
                 if (active_viewport != VIEW_PERSPECTIVE) break;
-                Vec3 object_pos_for_rotate_plane;
-                if (g_EditorState.is_in_brush_creation_mode) {
-                    g_EditorState.gizmo_drag_object_start_rot = g_EditorState.preview_brush.rot;
-                    object_pos_for_rotate_plane = g_EditorState.preview_brush.pos;
-                }
-                else {
-                    switch (g_EditorState.selected_entity_type) {
-                    case ENTITY_MODEL: g_EditorState.gizmo_drag_object_start_rot = scene->objects[g_EditorState.selected_entity_index].rot; object_pos_for_rotate_plane = scene->objects[g_EditorState.selected_entity_index].pos; break;
-                    case ENTITY_BRUSH: g_EditorState.gizmo_drag_object_start_rot = scene->brushes[g_EditorState.selected_entity_index].rot; object_pos_for_rotate_plane = scene->brushes[g_EditorState.selected_entity_index].pos; break;
-                    case ENTITY_LIGHT: g_EditorState.gizmo_drag_object_start_rot = scene->lights[g_EditorState.selected_entity_index].rot; object_pos_for_rotate_plane = scene->lights[g_EditorState.selected_entity_index].position; break;
-                    case ENTITY_DECAL: g_EditorState.gizmo_drag_object_start_rot = scene->decals[g_EditorState.selected_entity_index].rot; object_pos_for_rotate_plane = scene->decals[g_EditorState.selected_entity_index].pos; break;
-                    default: break;
-                    }
-                }
-
+                Vec3 object_pos_for_rotate_plane = g_EditorState.is_in_brush_creation_mode ? g_EditorState.preview_brush.pos : g_EditorState.gizmo_drag_object_start_pos;
                 if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 1,0,0 };
                 if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 0,1,0 };
                 if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 0,0,1 };
