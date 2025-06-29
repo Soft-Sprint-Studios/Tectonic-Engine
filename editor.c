@@ -2672,7 +2672,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                 if (show_handle) {
                     float color_arr[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
                     if ((PreviewBrushHandleType)i == g_EditorState.preview_brush_hovered_handle || (PreviewBrushHandleType)i == g_EditorState.preview_brush_active_handle) {
-                        color_arr[0] = 1.0f; color_arr[1] = 1.0f; color_arr[2] = 0.0f; 
+                        color_arr[0] = 1.0f; color_arr[1] = 1.0f; color_arr[2] = 0.0f;
                     }
                     glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color_arr);
                     glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_world[i], GL_DYNAMIC_DRAW);
@@ -2724,7 +2724,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glBindVertexArray(0);
         }
     }
-    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false,NULL); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+    if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) { SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(g_EditorState.debug_shader, obj, false, NULL); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (b->isReflectionProbe || b->isTrigger) {
@@ -3575,13 +3575,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat3("Direction##Sun", &scene->sun.direction.x, 0.01f, -1.0f, 1.0f);
     }
     if (UI_CollapsingHeader("Fog", 1)) { if (UI_Checkbox("Enabled", &scene->fog.enabled)) {} UI_ColorEdit3("Color", &scene->fog.color.x); UI_DragFloat("Start Distance", &scene->fog.start, 0.5f, 0.0f, 5000.0f); UI_DragFloat("End Distance", &scene->fog.end, 0.5f, 0.0f, 5000.0f); }
-    if (UI_CollapsingHeader("Post-Processing", 1)) { if (UI_Checkbox("Enabled", &scene->post.enabled)) {} UI_Separator(); UI_Text("CRT & Vignette"); UI_DragFloat("CRT Curvature", &scene->post.crtCurvature, 0.01f, 0.0f, 1.0f); UI_DragFloat("Vignette Strength", &scene->post.vignetteStrength, 0.01f, 0.0f, 2.0f); UI_DragFloat("Vignette Radius", &scene->post.vignetteRadius, 0.01f, 0.0f, 2.0f); UI_Separator(); UI_Text("Effects"); if (UI_Checkbox("Lens Flare", &scene->post.lensFlareEnabled)) {} UI_DragFloat("Flare Strength", &scene->post.lensFlareStrength, 0.05f, 0.0f, 5.0f); UI_DragFloat("Scanline Strength", &scene->post.scanlineStrength, 0.01f, 0.0f, 1.0f); UI_DragFloat("Film Grain", &scene->post.grainIntensity, 0.005f, 0.0f, 0.5f); UI_Separator(); 
-    if (UI_Checkbox("Chromatic Aberration", &scene->post.chromaticAberrationEnabled)) {}
-    if (scene->post.chromaticAberrationEnabled) {
-        UI_DragFloat("CA Strength", &scene->post.chromaticAberrationStrength, 0.0001f, 0.0f, 0.05f);
+    if (UI_CollapsingHeader("Post-Processing", 1)) {
+        if (UI_Checkbox("Enabled", &scene->post.enabled)) {} UI_Separator(); UI_Text("CRT & Vignette"); UI_DragFloat("CRT Curvature", &scene->post.crtCurvature, 0.01f, 0.0f, 1.0f); UI_DragFloat("Vignette Strength", &scene->post.vignetteStrength, 0.01f, 0.0f, 2.0f); UI_DragFloat("Vignette Radius", &scene->post.vignetteRadius, 0.01f, 0.0f, 2.0f); UI_Separator(); UI_Text("Effects"); if (UI_Checkbox("Lens Flare", &scene->post.lensFlareEnabled)) {} UI_DragFloat("Flare Strength", &scene->post.lensFlareStrength, 0.05f, 0.0f, 5.0f); UI_DragFloat("Scanline Strength", &scene->post.scanlineStrength, 0.01f, 0.0f, 1.0f); UI_DragFloat("Film Grain", &scene->post.grainIntensity, 0.005f, 0.0f, 0.5f); UI_Separator();
+        if (UI_Checkbox("Chromatic Aberration", &scene->post.chromaticAberrationEnabled)) {}
+        if (scene->post.chromaticAberrationEnabled) {
+            UI_DragFloat("CA Strength", &scene->post.chromaticAberrationStrength, 0.0001f, 0.0f, 0.05f);
+        }
+        UI_Separator();
+        UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f);
     }
-    UI_Separator();
-    UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f); }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
     UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
     UI_End();
