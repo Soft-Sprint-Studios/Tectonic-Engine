@@ -10,6 +10,7 @@ in VS_OUT {
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+    flat bool isBrush;
 } tcs_in[];
 
 out TCS_OUT {
@@ -21,6 +22,7 @@ out TCS_OUT {
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+    flat bool isBrush;
 } tcs_out[];
 
 uniform vec3 viewPos;
@@ -45,6 +47,7 @@ void main()
     tcs_out[gl_InvocationID].worldNormal = tcs_in[gl_InvocationID].worldNormal;
     tcs_out[gl_InvocationID].tbn = tcs_in[gl_InvocationID].tbn;
     tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+    tcs_out[gl_InvocationID].isBrush = tcs_in[gl_InvocationID].isBrush;
 
     if (isBrush)
     {

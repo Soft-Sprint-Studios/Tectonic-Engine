@@ -10,6 +10,7 @@ in TCS_OUT {
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+    flat bool isBrush;
 } tes_in[];
 
 out vec3 FragPos_view;
@@ -49,6 +50,7 @@ const float PI = 3.14159265359;
 
 void main()
 {
+    bool is_brush_surface = tes_in[0].isBrush;
     vec3 p0_ws = gl_TessCoord.x * tes_in[0].worldPos;
     vec3 p1_ws = gl_TessCoord.y * tes_in[1].worldPos;
     vec3 p2_ws = gl_TessCoord.z * tes_in[2].worldPos;
@@ -90,6 +92,12 @@ void main()
     v_Color = c0 + c1 + c2;
     
     vec3 N = worldNormal;
+
+    const float BRUSH_GI_MULTIPLIER = 8.0;
+    const float MODEL_GI_MULTIPLIER = 0.3;
+
+    float gi_multiplier = is_brush_surface ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
+
     indirectLight = vec3(0.0);
     for (int i = 0; i < num_vpls; ++i)
     {
@@ -107,7 +115,7 @@ void main()
             {
                 float attenuation = 1.0 / (distance * distance + 1.0);
                 float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
-                indirectLight += vpl_color_rgb * 10.0 * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
+                indirectLight += vpl_color_rgb * gi_multiplier * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
             }
         }
     }
