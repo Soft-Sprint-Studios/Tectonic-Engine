@@ -122,6 +122,7 @@ typedef struct {
     float model_preview_cam_dist;
     Vec2 model_preview_cam_angles;
     LoadedModel* preview_model;
+    char model_search_filter[64];
     char** model_file_list;
     int num_model_files;
     int selected_model_file_index;
@@ -2944,13 +2945,31 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
     UI_SetNextWindowSize(700, 500);
     if (UI_Begin("Model Browser", &g_EditorState.show_add_model_popup)) {
         UI_BeginChild("model_list_child", 200, 0, true, 0);
-        if (UI_Button("Refresh List")) { ScanModelFiles(); }
+
+        UI_InputText("Search", g_EditorState.model_search_filter, sizeof(g_EditorState.model_search_filter));
+        UI_Separator();
+
+        if (UI_Button("Refresh List")) {
+            ScanModelFiles();
+        }
+        UI_Separator();
+
         if (g_EditorState.num_model_files > 0) {
-            if (UI_ListBox("##models", &g_EditorState.selected_model_file_index, (const char* const*)g_EditorState.model_file_list, g_EditorState.num_model_files, -1)) {
-                if (g_EditorState.preview_model) { Model_Free(g_EditorState.preview_model); g_EditorState.preview_model = NULL; }
-                char path_buffer[256];
-                sprintf(path_buffer, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
-                g_EditorState.preview_model = Model_Load(path_buffer);
+            for (int i = 0; i < g_EditorState.num_model_files; ++i) {
+                const char* model_name = g_EditorState.model_file_list[i];
+                if (g_EditorState.model_search_filter[0] == '\0' || _stristr(model_name, g_EditorState.model_search_filter) != NULL) {
+                    if (UI_Selectable(model_name, g_EditorState.selected_model_file_index == i)) {
+                        g_EditorState.selected_model_file_index = i;
+
+                        if (g_EditorState.preview_model) {
+                            Model_Free(g_EditorState.preview_model);
+                            g_EditorState.preview_model = NULL;
+                        }
+                        char path_buffer[256];
+                        sprintf(path_buffer, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
+                        g_EditorState.preview_model = Model_Load(path_buffer);
+                    }
+                }
             }
         }
         UI_EndChild();
