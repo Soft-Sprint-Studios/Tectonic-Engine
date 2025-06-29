@@ -136,6 +136,7 @@ void main()
 
     finalColor *= u_exposure;
     finalColor = FilmicToneMapping(finalColor);
+    finalColor = pow(finalColor, vec3(1.0 / 2.2));
 
     if (u_postEnabled) {
         float scanlineY = TexCoords.y * resolution.y;

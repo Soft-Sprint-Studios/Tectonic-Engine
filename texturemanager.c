@@ -87,7 +87,7 @@ static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigne
     return texID;
 }
 
-GLuint loadTexture(const char* path) {
+GLuint loadTexture(const char* path, bool isSrgb) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
         printf("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
@@ -133,7 +133,7 @@ GLuint loadTexture(const char* path) {
     GLuint texID;
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
 
     if (!g_is_editor_mode) {
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -159,11 +159,11 @@ void TextureManager_LoadMaterialTextures(Material* material) {
         return;
     }
 
-    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath); else material->diffuseMap = missingTextureID;
-    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath); else material->normalMap = defaultNormalMapID;
-    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath); else material->rmaMap = defaultRmaMapID;
-    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath); else material->heightMap = 0;
-    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath); else material->detailDiffuseMap = 0;
+    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath, true); else material->diffuseMap = missingTextureID;
+    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false); else material->normalMap = defaultNormalMapID;
+    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false); else material->rmaMap = defaultRmaMapID;
+    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false); else material->heightMap = 0;
+    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true); else material->detailDiffuseMap = 0;
 
     material->isLoaded = true;
 }
@@ -329,13 +329,7 @@ Material* TextureManager_FindMaterial(const char* name) {
             if (strcmp(materials[i].name, base_name) == 0) {
                 free(base_name);
                 Material* mat = &materials[i];
-                if (!mat->isLoaded) {
-                    if (strlen(mat->diffusePath) > 0) mat->diffuseMap = loadTexture(mat->diffusePath); else mat->diffuseMap = missingTextureID;
-                    if (strlen(mat->normalPath) > 0) mat->normalMap = loadTexture(mat->normalPath); else mat->normalMap = defaultNormalMapID;
-                    if (strlen(mat->rmaPath) > 0) mat->rmaMap = loadTexture(mat->rmaPath); else mat->rmaMap = defaultRmaMapID;
-                    if (strlen(mat->heightPath) > 0) mat->heightMap = loadTexture(mat->heightPath); else mat->heightMap = 0;
-                    mat->isLoaded = true;
-                }
+                if (!mat->isLoaded) TextureManager_LoadMaterialTextures(mat);
                 return mat;
             }
         }

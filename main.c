@@ -373,8 +373,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).");
     Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.");
     Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.");
-    Cvar_Register("r_autoexposure_min", "0.5", "Minimum auto-exposure value.");
-    Cvar_Register("r_autoexposure_max", "1.6", "Maximum auto-exposure value.");
     Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.");
     Cvar_Register("r_fxaa", "1", "Enable Fast Approximate Anti-Aliasing.");
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.");
@@ -1636,9 +1634,7 @@ void render_autoexposure_pass() {
         float key = Cvar_GetFloat("r_autoexposure_key");
         float speed = Cvar_GetFloat("r_autoexposure_speed");
         float targetExposure = key / (avgSceneLuminance + 0.0001f);
-        float minExposure = Cvar_GetFloat("r_autoexposure_min");
-        float maxExposure = Cvar_GetFloat("r_autoexposure_max");
-        targetExposure = fmaxf(minExposure, fminf(targetExposure, maxExposure));
+        targetExposure = fmaxf(0.1f, fminf(targetExposure, 10.0f));
         g_renderer.currentExposure = lerp(g_renderer.currentExposure, targetExposure, 1.0f - exp(-g_engine->deltaTime * speed));
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
