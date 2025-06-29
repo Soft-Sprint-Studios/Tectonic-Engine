@@ -1203,7 +1203,7 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glBindVertexArray(0);
 }
 
-void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, bool unlit) {
     Frustum frustum;
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
@@ -1231,6 +1231,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glActiveTexture(GL_TEXTURE16);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "num_vpls"), g_scene.num_vpls);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), unlit);
 
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), g_scene.numActiveLights);
 
@@ -1716,7 +1717,7 @@ int main(int argc, char* argv[]) {
                 Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
                 render_sun_shadows(&sunLightSpaceMatrix);
             }
-            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix);
+            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
             if (Cvar_GetInt("r_ssao")) {
                 render_ssao_pass(&projection);
             }

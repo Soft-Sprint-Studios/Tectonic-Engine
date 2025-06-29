@@ -307,14 +307,6 @@ void main()
     float roughness = rma1.g * blendBase + rma2.g * blendR + rma3.g * blendG + rma4.g * blendB;
     float metallic = rma1.b * blendBase + rma2.b * blendR + rma3.b * blendG + rma4.b * blendB;
     float ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
-
-    if (is_unlit) {
-        out_LitColor = vec4(albedo, 1.0);
-        out_Position = FragPos_world;
-        out_Normal = normalize(TBN * vec3(0.5, 0.5, 1.0));
-        out_PBRParams = vec4(metallic, roughness, ao, 1.0);
-        return;
-    }
 	
     vec3 N = normalize(TBN * (normalTex * 2.0 - 1.0));
     vec3 V = normalize(viewPos - FragPos_world);
@@ -478,7 +470,12 @@ void main()
     }
 	
     out_Velocity = Velocity;
-    out_LitColor = vec4(ambient + Lo, alpha);
+    if (is_unlit) {
+        out_LitColor = vec4(albedo, 1.0);
+    }
+    else {
+        out_LitColor = vec4(ambient + Lo, alpha);
+    }
     out_Position = FragPos_view; 
     out_Normal = normalize(Normal_view);
     out_AlbedoSpec = vec4(albedo, 1.0);

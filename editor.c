@@ -41,7 +41,7 @@ extern void Physics_SetWorldTransform(RigidBodyHandle body, Mat4 transform);
 extern void render_shadows();
 extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
 extern void render_ssao_pass(Mat4* projection);
-extern void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
+extern void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, bool unlit);
 extern void render_bloom_pass();
 extern void render_lighting_composite_pass(Mat4* view, Mat4* projection);
 extern void render_skybox(Mat4* view, Mat4* projection);
@@ -108,6 +108,9 @@ typedef struct {
     ViewportType preview_brush_drag_body_view;
     Vec3 preview_brush_drag_body_start_mouse_world;
     Vec3 preview_brush_drag_body_start_brush_pos;
+    bool is_dragging_selected_brush_handle;
+    PreviewBrushHandleType selected_brush_hovered_handle;
+    PreviewBrushHandleType selected_brush_active_handle;
     Vec3 preview_brush_drag_body_start_brush_world_min_at_drag_start;
     int selected_vertex_index; GLuint vertex_points_vao, vertex_points_vbo;
     GLuint debug_shader; GLuint light_gizmo_vao; int light_gizmo_vertex_count;
@@ -191,6 +194,7 @@ static Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportTyp
 static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
 float SnapValue(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
 float SnapAngle(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
+static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
 
 void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs) {
     if (brush_index < 0 || brush_index >= scene->numBrushes) return;
@@ -882,6 +886,9 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_hovering_preview_brush_body = false;
     g_EditorState.is_dragging_preview_brush_body = false;
     g_EditorState.is_in_z_mode = false;
+    g_is_unlit_mode = false;
+    g_EditorState.is_dragging_selected_brush_handle = false;
+    g_EditorState.selected_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
     g_EditorState.captured_viewport = VIEW_COUNT;
     g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
     Editor_InitGizmo();
@@ -1331,7 +1338,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 break;
             }
         }
-
+        if (g_EditorState.selected_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE) {
+            g_EditorState.is_dragging_selected_brush_handle = true;
+            g_EditorState.selected_brush_active_handle = g_EditorState.selected_brush_hovered_handle;
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            return;
+        }
         if (g_EditorState.is_in_brush_creation_mode && g_EditorState.preview_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
             g_EditorState.is_dragging_preview_brush_handle = true;
             g_EditorState.preview_brush_active_handle = g_EditorState.preview_brush_hovered_handle;
@@ -1531,6 +1543,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Move Vertex");
             g_EditorState.is_vertex_manipulating = false;
         }
+        if (g_EditorState.is_dragging_selected_brush_handle) {
+            g_EditorState.is_dragging_selected_brush_handle = false;
+            g_EditorState.selected_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Resize Brush");
+        }
         if (g_EditorState.is_dragging_preview_brush_handle) {
             g_EditorState.is_dragging_preview_brush_handle = false;
             g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
@@ -1599,6 +1616,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
     }
     if (event->type == SDL_MOUSEMOTION) {
+        ViewportType active_viewport = VIEW_COUNT;
+        for (int i = 0; i < VIEW_COUNT; ++i) {
+            if (g_EditorState.is_viewport_hovered[i]) {
+                active_viewport = (ViewportType)i;
+                break;
+            }
+        }
         if (g_EditorState.is_painting) {
             Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
             bool needs_update = false;
@@ -1700,6 +1724,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if (g_EditorState.is_dragging_preview_brush_handle) {
             Editor_AdjustPreviewBrushByHandle(g_EditorState.mouse_pos_in_viewport[g_EditorState.preview_brush_drag_handle_view], g_EditorState.preview_brush_drag_handle_view);
+        }
+        else if (g_EditorState.is_dragging_selected_brush_handle) {
+            Editor_AdjustSelectedBrushByHandle(scene, engine, g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
         }
         else if (g_EditorState.is_manipulating_vertex_gizmo) {
             Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
@@ -2087,7 +2114,56 @@ void Editor_Update(Engine* engine, Scene* scene) {
     if (!g_EditorState.is_dragging_preview_brush_body) {
         g_EditorState.is_hovering_preview_brush_body = false;
     }
+    if (!g_EditorState.is_in_brush_creation_mode && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && !g_EditorState.is_dragging_selected_brush_handle && !g_EditorState.is_manipulating_gizmo) {
+        g_EditorState.selected_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
+        Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        if (b->numVertices == 0) return;
 
+        Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        for (int i = 0; i < b->numVertices; ++i) {
+            local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
+            local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
+            local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
+            local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x);
+            local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
+            local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
+        }
+        Vec3 local_center = vec3_muls(vec3_add(local_min, local_max), 0.5f);
+
+        for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            if (g_EditorState.is_viewport_hovered[i]) {
+                Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
+                float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * 0.055f, 2.0f);
+
+                Vec3 handle_local_positions[6] = {
+                    {local_min.x, local_center.y, local_center.z}, {local_max.x, local_center.y, local_center.z},
+                    {local_center.x, local_min.y, local_center.z}, {local_center.x, local_max.y, local_center.z},
+                    {local_center.x, local_center.y, local_min.z}, {local_center.x, local_center.y, local_max.z}
+                };
+
+                for (int h_idx = 0; h_idx < 6; ++h_idx) {
+                    Vec3 handle_world_pos = mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
+                    float dist_sq = 0.0f;
+
+                    if (i == VIEW_TOP_XZ) {
+                        dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                    }
+                    else if (i == VIEW_FRONT_XY) {
+                        dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.y - handle_world_pos.y, 2);
+                    }
+                    else if (i == VIEW_SIDE_YZ) {
+                        dist_sq = powf(mouse_world.y - handle_world_pos.y, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                    }
+
+                    if (dist_sq <= handle_pick_dist_sq) {
+                        g_EditorState.selected_brush_hovered_handle = (PreviewBrushHandleType)h_idx;
+                        return;
+                    }
+                }
+            }
+        }
+    }
     if (g_EditorState.is_in_brush_creation_mode && !g_EditorState.is_dragging_preview_brush_handle && !g_EditorState.is_manipulating_gizmo) {
         for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
@@ -2367,7 +2443,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
         g_proj_matrix[type] = mat4_perspective(45.0f * (3.14159f / 180.0f), aspect, 0.1f, 10000.0f);
 
-        render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix);
+        render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_is_unlit_mode);
         if (Cvar_GetInt("r_ssao")) {
             render_ssao_pass(&g_proj_matrix[type]);
         }
@@ -2603,6 +2679,46 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
                     glDrawArrays(GL_POINTS, 0, 1);
                 }
+            }
+            glPointSize(1.0f);
+            glBindVertexArray(0);
+        }
+    }
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && type != VIEW_PERSPECTIVE) {
+        Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        if (b->numVertices > 0) {
+            glUseProgram(g_EditorState.debug_shader);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+
+            glPointSize(8.0f);
+            glBindVertexArray(g_EditorState.vertex_points_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+            glEnableVertexAttribArray(0);
+
+            Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int i = 0; i < b->numVertices; ++i) {
+                local_min.x = fminf(local_min.x, b->vertices[i].pos.x); local_min.y = fminf(local_min.y, b->vertices[i].pos.y); local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
+                local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x); local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y); local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
+            }
+            Vec3 local_center = vec3_muls(vec3_add(local_min, local_max), 0.5f);
+
+            Vec3 handle_positions_local[6] = {
+                {local_min.x, local_center.y, local_center.z}, {local_max.x, local_center.y, local_center.z},
+                {local_center.x, local_min.y, local_center.z}, {local_center.x, local_max.y, local_center.z},
+                {local_center.x, local_center.y, local_min.z}, {local_center.x, local_center.y, local_max.z}
+            };
+
+            for (int i = 0; i < 6; ++i) {
+                bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
+                bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
+                float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 1.0f, 1.0f };
+                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+                glDrawArrays(GL_POINTS, 0, 1);
             }
             glPointSize(1.0f);
             glBindVertexArray(0);
@@ -3467,6 +3583,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     UI_Separator();
     UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f); }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
+    UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
     UI_End();
 
     if (UI_BeginMainMenuBar()) {
@@ -3564,6 +3681,51 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Image((void*)(intptr_t)g_EditorState.viewport_texture[type], vp_w, vp_h);
         UI_End();
         UI_PopStyleVar(1);
+    }
+}
+static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view) {
+    if (g_EditorState.selected_brush_active_handle == PREVIEW_BRUSH_HANDLE_NONE) return;
+
+    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+    if (!b) return;
+
+    Vec3 mouse_world_unsnapped = ScreenToWorld_Unsnapped_ForOrthoPicking(mouse_pos, view);
+
+    Mat4 inv_model_matrix;
+    mat4_inverse(&b->modelMatrix, &inv_model_matrix);
+    Vec3 mouse_local = mat4_mul_vec3(&inv_model_matrix, mouse_world_unsnapped);
+
+    float snap = g_EditorState.snap_to_grid ? g_EditorState.grid_size : 0.0f;
+
+    Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+    Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    for (int i = 0; i < b->numVertices; ++i) {
+        local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
+        local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
+        local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
+        local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x);
+        local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
+        local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
+    }
+
+    float new_val;
+    switch (g_EditorState.selected_brush_active_handle) {
+    case PREVIEW_BRUSH_HANDLE_MIN_X: new_val = snap > 0 ? SnapValue(mouse_local.x, snap) : mouse_local.x; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) b->vertices[i].pos.x = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MAX_X: new_val = snap > 0 ? SnapValue(mouse_local.x, snap) : mouse_local.x; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) b->vertices[i].pos.x = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MIN_Y: new_val = snap > 0 ? SnapValue(mouse_local.y, snap) : mouse_local.y; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) b->vertices[i].pos.y = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MAX_Y: new_val = snap > 0 ? SnapValue(mouse_local.y, snap) : mouse_local.y; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) b->vertices[i].pos.y = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MIN_Z: new_val = snap > 0 ? SnapValue(mouse_local.z, snap) : mouse_local.z; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) b->vertices[i].pos.z = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MAX_Z: new_val = snap > 0 ? SnapValue(mouse_local.z, snap) : mouse_local.z; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) b->vertices[i].pos.z = new_val; break;
+    default: break;
+    }
+
+    Brush_CreateRenderData(b);
+    if (b->physicsBody) {
+        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+        for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+        free(world_verts);
     }
 }
 void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale) {

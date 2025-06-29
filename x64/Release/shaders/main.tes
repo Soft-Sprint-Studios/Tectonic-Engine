@@ -93,7 +93,7 @@ void main()
     
     vec3 N = worldNormal;
 
-    const float BRUSH_GI_MULTIPLIER = 8.0;
+    const float BRUSH_GI_MULTIPLIER = 1.0;
     const float MODEL_GI_MULTIPLIER = 0.3;
 
     float gi_multiplier = is_brush_surface ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;

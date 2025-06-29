@@ -39,6 +39,7 @@ typedef struct {
 
 extern Material g_MissingMaterial;
 extern bool g_is_editor_mode;
+extern bool g_is_unlit_mode;
 
 void TextureManager_Init();
 void TextureManager_Shutdown();

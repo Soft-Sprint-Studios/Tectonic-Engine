@@ -25,6 +25,7 @@ static GLuint defaultRmaMapID;
 Material g_MissingMaterial;
 
 bool g_is_editor_mode = false;
+bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
     if (filename == NULL || filename[0] == '\0') return NULL;
