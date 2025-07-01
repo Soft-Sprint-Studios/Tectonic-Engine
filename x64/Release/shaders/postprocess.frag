@@ -74,9 +74,17 @@ FlareResult lensflare(vec2 uv, vec2 pos)
     return FlareResult(ghosts, glare);
 }
 
-vec3 FilmicToneMapping(vec3 color) {
-    color = max(vec3(0.0), color - 0.004);
-    return (color * (6.2 * color + 0.5)) / (color * (6.2 * color + 1.7) + 0.06);
+vec3 aces(vec3 x) {
+  const float a = 2.51;
+  const float b = 0.03;
+  const float c = 2.43;
+  const float d = 0.59;
+  const float e = 0.14;
+  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+vec3 gammaCorrect(vec3 color, float gamma) {
+    return pow(color, vec3(1.0 / gamma));
 }
 
 void main()
@@ -135,8 +143,8 @@ void main()
     }
 
     finalColor *= u_exposure;
-    finalColor = FilmicToneMapping(finalColor);
-    finalColor = pow(finalColor, vec3(1.0 / 2.2));
+    finalColor = aces(finalColor);
+    finalColor = gammaCorrect(finalColor, 2.2);
 
     if (u_postEnabled) {
         float scanlineY = TexCoords.y * resolution.y;

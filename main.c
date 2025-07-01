@@ -33,9 +33,10 @@
 #define SHADOW_WIDTH 1024
 #define SHADOW_HEIGHT 1024
 #define SUN_SHADOW_MAP_SIZE 4096
-#define PLAYER_HEIGHT_NORMAL 1.83f
-#define PLAYER_HEIGHT_CROUCH 1.37f
 #define PLAYER_JUMP_FORCE 350.0f
+
+static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
+static void BuildCubemaps();
 
 typedef enum { MODE_GAME, MODE_EDITOR, MODE_MAINMENU, MODE_INGAMEMENU } EngineMode;
 
@@ -203,7 +204,6 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_brush->cubemapTexture);
                 glUniform1i(glGetUniformLocation(shader, "environmentMap"), 10);
                 glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 1);
-
                 Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
                 Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
                 for (int i = 0; i < reflection_brush->numVertices; ++i) {
@@ -234,66 +234,64 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             glUniform1f(glGetUniformLocation(shader, "detailScale"), material->detailScale);
             glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
 
-            Material* material2 = NULL;
-            if (b->faces[i].material2) {
-                material2 = TextureManager_FindMaterial(b->faces[i].material2->name);
-            }
+            Material* material2 = b->faces[i].material2 ? TextureManager_FindMaterial(b->faces[i].material2->name) : NULL;
             if (material2) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap2"), 12);
                 glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), material2->heightScale);
-
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
                 glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, material2->normalMap);
                 glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, material2->rmaMap);
                 glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, material2->heightMap);
             }
             else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), material->heightScale);
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material->heightScale);
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), 0.0f);
+                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, missingTextureID);
+                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
+                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
+                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
-            Material* material3 = NULL;
-            if (b->faces[i].material3) {
-                material3 = TextureManager_FindMaterial(b->faces[i].material3->name);
-            }
+            Material* material3 = b->faces[i].material3 ? TextureManager_FindMaterial(b->faces[i].material3->name) : NULL;
             if (material3) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap3"), 17);
                 glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
                 glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
                 glUniform1f(glGetUniformLocation(shader, "heightScale3"), material3->heightScale);
-
                 glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, material3->diffuseMap);
                 glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, material3->normalMap);
                 glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, material3->rmaMap);
                 glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, material3->heightMap);
             }
             else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), 0.0f);
+                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, missingTextureID);
+                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
+                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
+                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
-            Material* material4 = NULL;
-            if (b->faces[i].material4) {
-                material4 = TextureManager_FindMaterial(b->faces[i].material4->name);
-            }
+            Material* material4 = b->faces[i].material4 ? TextureManager_FindMaterial(b->faces[i].material4->name) : NULL;
             if (material4) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap4"), 21);
                 glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
                 glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
                 glUniform1f(glGetUniformLocation(shader, "heightScale4"), material4->heightScale);
-
                 glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, material4->diffuseMap);
                 glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, material4->normalMap);
                 glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, material4->rmaMap);
                 glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, material4->heightMap);
             }
             else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), 0.0f);
+                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, missingTextureID);
+                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
+                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
+                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
             int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
@@ -360,6 +358,9 @@ void handle_command(int argc, char** argv) {
             Console_Printf("Usage: bind \"key\" \"command\"");
         }
     }
+    else if (_stricmp(cmd, "build_cubemaps") == 0) {
+        BuildCubemaps();
+    }
     else if (argc >= 2) { if (Cvar_Find(cmd)) Cvar_Set(cmd, argv[1]); else Console_Printf("[error] Unknown cvar: %s", cmd); }
     else if (argc == 1) { Cvar* c = Cvar_Find(cmd); if (c) Console_Printf("%s = %s", c->name, c->stringValue); else Console_Printf("[error] Unknown cvar: %s", cmd); }
 }
@@ -378,6 +379,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.");
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.");
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.");
+    Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.");
     IO_Init();
     Binds_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadWAV("sounds/flashlight01.wav");
@@ -954,7 +956,9 @@ void update_state() {
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
     if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
-    if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; g_engine->camera.currentHeight += (h - g_engine->camera.currentHeight) * 10.f * g_engine->deltaTime; g_engine->camera.position.y = p.y + (g_engine->camera.currentHeight / 2.f) * 0.85f; }
+    if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
+    g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
+    }
     if (g_current_mode == MODE_GAME) {
         for (int i = 0; i < g_scene.numObjects; ++i) {
             SceneObject* obj = &g_scene.objects[i];
@@ -1733,6 +1737,145 @@ void render_fxaa_pass() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
+    if (!pixels) {
+        Console_Printf("[ERROR] Failed to allocate memory for screenshot pixels.");
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
+
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    unsigned char* temp_row = (unsigned char*)malloc(width * 4);
+    for (int y = 0; y < height / 2; ++y) {
+        memcpy(temp_row, pixels + y * width * 4, width * 4);
+        memcpy(pixels + y * width * 4, pixels + (height - 1 - y) * width * 4, width * 4);
+        memcpy(pixels + (height - 1 - y) * width * 4, temp_row, width * 4);
+    }
+    free(temp_row);
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height, 32, width * 4,
+        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+
+    if (!surface) {
+        Console_Printf("[ERROR] Failed to create SDL surface for screenshot.");
+    }
+    else {
+        if (IMG_SavePNG(surface, filepath) != 0) {
+            Console_Printf("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+        }
+        else {
+            Console_Printf("Saved cubemap face to %s", filepath);
+        }
+        SDL_FreeSurface(surface);
+    }
+
+    free(pixels);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+void BuildCubemaps() {
+    Console_Printf("Starting cubemap build...");
+    glFinish();
+
+    Camera original_camera = g_engine->camera;
+
+    Vec3 targets[] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+    Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
+    const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
+
+    const int CUBEMAP_RES = 512;
+    GLuint cubemap_fbo, cubemap_texture, cubemap_rbo;
+    glGenFramebuffers(1, &cubemap_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
+    glGenTextures(1, &cubemap_texture);
+    glBindTexture(GL_TEXTURE_2D, cubemap_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, CUBEMAP_RES, CUBEMAP_RES, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cubemap_texture, 0);
+    glGenRenderbuffers(1, &cubemap_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, cubemap_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, CUBEMAP_RES, CUBEMAP_RES);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cubemap_rbo);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        Console_Printf("[ERROR] Cubemap face FBO not complete!");
+        glDeleteFramebuffers(1, &cubemap_fbo);
+        glDeleteTextures(1, &cubemap_texture);
+        glDeleteRenderbuffers(1, &cubemap_rbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isReflectionProbe) continue;
+        if (strlen(b->name) == 0) {
+            Console_Printf("[WARNING] Skipping unnamed reflection probe at index %d.", i);
+            continue;
+        }
+
+        Console_Printf("Building cubemap for probe '%s'...", b->name);
+
+        for (int face_idx = 0; face_idx < 6; ++face_idx) {
+            g_engine->camera.position = b->pos;
+            Vec3 target_pos = vec3_add(g_engine->camera.position, targets[face_idx]);
+            Mat4 view = mat4_lookAt(g_engine->camera.position, target_pos, ups[face_idx]);
+            Mat4 projection = mat4_perspective(90.0f * (3.14159f / 180.f), 1.0f, 0.1f, 1000.f);
+
+            render_shadows();
+            Mat4 sunLightSpaceMatrix;
+            mat4_identity(&sunLightSpaceMatrix);
+            if (g_scene.sun.enabled) {
+                Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
+                render_sun_shadows(&sunLightSpaceMatrix);
+            }
+
+            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
+            glViewport(0, 0, CUBEMAP_RES, CUBEMAP_RES);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glEnable(GL_FRAMEBUFFER_SRGB);
+
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
+            glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
+            render_skybox(&view, &projection);
+
+            glDisable(GL_FRAMEBUFFER_SRGB);
+
+            char filepath[256];
+            sprintf(filepath, "cubemaps/%s_%s.png", b->name, suffixes[face_idx]);
+            SaveFramebufferToPNG(cubemap_fbo, CUBEMAP_RES, CUBEMAP_RES, filepath);
+        }
+
+        const char* face_paths[6];
+        char paths_storage[6][256];
+        for (int k = 0; k < 6; ++k) {
+            sprintf(paths_storage[k], "cubemaps/%s_%s.png", b->name, suffixes[k]);
+            face_paths[k] = paths_storage[k];
+        }
+        b->cubemapTexture = TextureManager_ReloadCubemap(face_paths, b->cubemapTexture);
+    }
+
+    glDeleteFramebuffers(1, &cubemap_fbo);
+    glDeleteTextures(1, &cubemap_texture);
+    glDeleteRenderbuffers(1, &cubemap_rbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    g_engine->camera = original_camera;
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    Console_Printf("Cubemap build finished.");
+}
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -1780,7 +1923,8 @@ int main(int argc, char* argv[]) {
             Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
             Vec3 t = vec3_add(g_engine->camera.position, f);
             Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
-            Mat4 projection = mat4_perspective(45.f * 3.14f / 180.f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.f);
+            float fov_degrees = Cvar_GetFloat("fov_vertical");
+            Mat4 projection = mat4_perspective(fov_degrees * (3.14159f / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
             render_shadows();
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);

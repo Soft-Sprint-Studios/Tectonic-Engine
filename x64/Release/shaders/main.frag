@@ -190,8 +190,8 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 
 vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir)
 {
-    const float minLayers = 8.0;
-    const float maxLayers = 32.0;
+    const float minLayers = 16.0;
+    const float maxLayers = 64.0;
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
     float layerDepth = 1.0 / numLayers;
     float currentLayerDepth = 0.0;
@@ -262,6 +262,10 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     float intersection_t = t_far;
     vec3 intersectPos = fragPos + R * intersection_t;
     return normalize(intersectPos - probePos);
+}
+
+vec3 gammaCorrect(vec3 color) {
+    return pow(color, vec3(1.0 / 2.2));
 }
 
 void main()
@@ -450,7 +454,7 @@ void main()
     if (useEnvironmentMap)
     {
         vec3 irradiance = texture(environmentMap, N).rgb;
-        vec3 diffuse_ibl_contribution = irradiance * albedo;
+       vec3 diffuse_ibl_contribution = vec3(0.0);
         
         const float MAX_REFLECTION_LOD = 4.0; 
         vec3 prefilteredColor = textureLod(environmentMap, R_env,  roughness * MAX_REFLECTION_LOD).rgb;
@@ -466,7 +470,7 @@ void main()
         float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
         float specularIBLStrength = 2.0 + (1.0 * diffuseLuminance);
 
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion) * ao;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion * 10.0) * ao;
     }
 	
     out_Velocity = Velocity;

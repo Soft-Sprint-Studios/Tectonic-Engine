@@ -456,11 +456,12 @@ static void getTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[], c
 }
 
 static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
-    int vbo_idx = (iFace * 3 + iVert) * 21;
+    int vbo_idx = (iFace * 3 + iVert) * 22;
     float* vbo_data = (float*)pContext->m_pUserData;
     vbo_data[vbo_idx + 8] = fvTangent[0];
     vbo_data[vbo_idx + 9] = fvTangent[1];
     vbo_data[vbo_idx + 10] = fvTangent[2];
+    vbo_data[vbo_idx + 11] = fSign;
 }
 
 void Brush_CreateRenderData(Brush* b) {
@@ -480,13 +481,10 @@ void Brush_CreateRenderData(Brush* b) {
             int idx0 = face->vertexIndices[0];
             int idx1 = face->vertexIndices[j + 1];
             int idx2 = face->vertexIndices[j + 2];
-
             Vec3 p0 = b->vertices[idx0].pos;
             Vec3 p1 = b->vertices[idx1].pos;
             Vec3 p2 = b->vertices[idx2].pos;
-
             Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-
             temp_normals[idx0] = vec3_add(temp_normals[idx0], face_normal);
             temp_normals[idx1] = vec3_add(temp_normals[idx1], face_normal);
             temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
@@ -509,7 +507,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    float* final_vbo_data = calloc(total_render_verts * 21, sizeof(float));
+    float* final_vbo_data = calloc(total_render_verts * 22, sizeof(float));
     if (!final_vbo_data) {
         free(temp_normals);
         return;
@@ -546,19 +544,17 @@ void Brush_CreateRenderData(Brush* b) {
 
         SMikkTSpaceContext mikk_context = { 0 };
         mikk_context.m_pInterface = &mikk_interface;
-        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * 21);
+        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * 22);
 
         genTangSpaceDefault(&mikk_context);
 
         for (int j = 0; j < num_verts_in_face; ++j) {
-            int vbo_idx = (vbo_vertex_offset + j) * 21;
+            int vbo_idx = (vbo_vertex_offset + j) * 22;
             int vertex_index = face_tri_indices[j];
             BrushVertex vert = b->vertices[vertex_index];
             Vec3 norm = temp_normals[vertex_index];
             float uv1[2], uv2[2], uv3[2], uv4[2];
-
             getTexCoord(NULL, uv1, j / 3, j % 3);
-
             Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
             Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
             Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
@@ -570,7 +566,6 @@ void Brush_CreateRenderData(Brush* b) {
             if (dominant_axis == 0) { u = vert.pos.y; v = vert.pos.z; }
             else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
             else { u = vert.pos.x; v = vert.pos.y; }
-
             float rad2 = face->uv_rotation2 * (3.14159f / 180.0f); float cos_r2 = cosf(rad2); float sin_r2 = sinf(rad2);
             uv2[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
             float rad3 = face->uv_rotation3 * (3.14159f / 180.0f); float cos_r3 = cosf(rad3); float sin_r3 = sinf(rad3);
@@ -586,16 +581,16 @@ void Brush_CreateRenderData(Brush* b) {
             final_vbo_data[vbo_idx + 5] = norm.z;
             final_vbo_data[vbo_idx + 6] = uv1[0];
             final_vbo_data[vbo_idx + 7] = uv1[1];
-            final_vbo_data[vbo_idx + 11] = vert.color.x;
-            final_vbo_data[vbo_idx + 12] = vert.color.y;
-            final_vbo_data[vbo_idx + 13] = vert.color.z;
-            final_vbo_data[vbo_idx + 14] = vert.color.w;
-            final_vbo_data[vbo_idx + 15] = uv2[0];
-            final_vbo_data[vbo_idx + 16] = uv2[1];
-            final_vbo_data[vbo_idx + 17] = uv3[0];
-            final_vbo_data[vbo_idx + 18] = uv3[1];
-            final_vbo_data[vbo_idx + 19] = uv4[0];
-            final_vbo_data[vbo_idx + 20] = uv4[1];
+            final_vbo_data[vbo_idx + 12] = vert.color.x;
+            final_vbo_data[vbo_idx + 13] = vert.color.y;
+            final_vbo_data[vbo_idx + 14] = vert.color.z;
+            final_vbo_data[vbo_idx + 15] = vert.color.w;
+            final_vbo_data[vbo_idx + 16] = uv2[0];
+            final_vbo_data[vbo_idx + 17] = uv2[1];
+            final_vbo_data[vbo_idx + 18] = uv3[0];
+            final_vbo_data[vbo_idx + 19] = uv3[1];
+            final_vbo_data[vbo_idx + 20] = uv4[0];
+            final_vbo_data[vbo_idx + 21] = uv4[1];
         }
 
         free(face_tri_indices);
@@ -605,15 +600,15 @@ void Brush_CreateRenderData(Brush* b) {
     if (b->vao == 0) { glGenVertexArrays(1, &b->vao); glGenBuffers(1, &b->vbo); }
     glBindVertexArray(b->vao);
     glBindBuffer(GL_ARRAY_BUFFER, b->vbo);
-    glBufferData(GL_ARRAY_BUFFER, total_render_verts * 21 * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(11 * sizeof(float))); glEnableVertexAttribArray(4);
-    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(15 * sizeof(float))); glEnableVertexAttribArray(5);
-    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(17 * sizeof(float))); glEnableVertexAttribArray(6);
-    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 21 * sizeof(float), (void*)(19 * sizeof(float))); glEnableVertexAttribArray(7);
+    glBufferData(GL_ARRAY_BUFFER, total_render_verts * 22 * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(12 * sizeof(float))); glEnableVertexAttribArray(4);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(16 * sizeof(float))); glEnableVertexAttribArray(5);
+    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(18 * sizeof(float))); glEnableVertexAttribArray(6);
+    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(20 * sizeof(float))); glEnableVertexAttribArray(7);
     glBindVertexArray(0);
 
     free(final_vbo_data);
@@ -663,7 +658,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
     engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, 1.37f, 80.0f, scene->playerStart.position);
+    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
 }
 
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
@@ -986,7 +981,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
     }
     fclose(file);
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, 1.37f, 80.0f, scene->playerStart.position);
+    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
     engine->camera.position = scene->playerStart.position;
     return true;
 }

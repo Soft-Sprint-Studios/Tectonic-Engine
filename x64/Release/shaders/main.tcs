@@ -29,9 +29,9 @@ uniform vec3 viewPos;
 uniform bool isBrush;
 
 float get_tess_level(float distance) {
-    float maxDist = 80.0;
-    float minDist = 5.0;
-    float maxLevel = 16.0;
+    float maxDist = 50.0;
+    float minDist = 1.0;
+    float maxLevel = 8.0;
     float minLevel = 1.0;
     float tess = maxLevel - (maxLevel - minLevel) * smoothstep(minDist, maxDist, distance);
     return clamp(tess, minLevel, maxLevel);

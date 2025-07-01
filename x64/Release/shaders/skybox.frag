@@ -154,6 +154,10 @@ vec3 getCloudColor(vec3 r0, vec3 rd, vec3 sunDir) {
     return vec3(1.0) * alpha;
 }
 
+vec3 gammaCorrect(vec3 color, float gamma) {
+    return pow(color, vec3(1.0 / gamma));
+}
+
 void main()
 {
     vec3 rayOrigin = vec3(0.0, cameraPos.y + 6371e3, 0.0);
@@ -174,6 +178,6 @@ void main()
     vec3 cloudCol = getCloudColor(rayOrigin, rayDir, sunDirection);
     color += cloudCol;
     color = 1.0 - exp(-1.0 * color);
-    color = pow(color, vec3(1.0/2.2));
+    color = gammaCorrect(color, 2.2);
     FragColor = vec4(color, 1.0);
 }

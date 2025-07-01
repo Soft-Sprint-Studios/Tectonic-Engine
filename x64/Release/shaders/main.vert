@@ -2,7 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
-layout (location = 3) in vec3 aTangent;
+layout (location = 3) in vec4 aTangent;
 layout (location = 4) in vec4 aColor;
 layout (location = 5) in vec2 aTexCoords2;
 layout (location = 6) in vec2 aTexCoords3;
@@ -35,8 +35,8 @@ void main()
 
     mat3 normalMatrix = mat3(transpose(inverse(model)));
     vs_out.worldNormal = normalize(normalMatrix * aNormal);
-    vec3 T_world = normalize(normalMatrix * aTangent);
-    vec3 B_world = cross(vs_out.worldNormal, T_world);
+    vec3 T_world = normalize(normalMatrix * aTangent.xyz);
+    vec3 B_world = cross(vs_out.worldNormal, T_world) * aTangent.w;
     vs_out.tbn = mat3(T_world, B_world, vs_out.worldNormal);
 
     gl_Position = vec4(aPos, 1.0);

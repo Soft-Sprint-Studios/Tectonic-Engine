@@ -88,13 +88,13 @@ LoadedModel* Model_Load(const char* path) {
             if (!texcoords) texcoords = calloc(vertexCount * 2, sizeof(float));
             if (!tangents) tangents = calloc(vertexCount * 4, sizeof(float));
             newMesh->vertexData = positions;
-            newMesh->final_vbo_data_size = vertexCount * 11 * sizeof(float);
+            newMesh->final_vbo_data_size = vertexCount * 12 * sizeof(float);
             newMesh->final_vbo_data = malloc(newMesh->final_vbo_data_size);
             for (cgltf_size v = 0; v < vertexCount; v++) {
-                memcpy(&newMesh->final_vbo_data[v * 11 + 0], &positions[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 11 + 3], &normals[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 11 + 6], &texcoords[v * 2], 2 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 11 + 8], &tangents[v * 4], 3 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[v * 12 + 0], &positions[v * 3], 3 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[v * 12 + 3], &normals[v * 3], 3 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[v * 12 + 6], &texcoords[v * 2], 2 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[v * 12 + 8], &tangents[v * 4], 4 * sizeof(float));
             }
             free(normals); free(texcoords); free(tangents);
             if (primitive->indices) {
@@ -118,10 +118,10 @@ LoadedModel* Model_Load(const char* path) {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newMesh->EBO);
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indexCount * sizeof(unsigned int), newMesh->indexData, GL_STATIC_DRAW);
             }
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
             currentMeshIndex++;
         }
     }

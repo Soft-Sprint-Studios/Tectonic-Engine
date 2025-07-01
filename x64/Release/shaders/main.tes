@@ -50,16 +50,10 @@ const float PI = 3.14159265359;
 
 void main()
 {
-    bool is_brush_surface = tes_in[0].isBrush;
     vec3 p0_ws = gl_TessCoord.x * tes_in[0].worldPos;
     vec3 p1_ws = gl_TessCoord.y * tes_in[1].worldPos;
     vec3 p2_ws = gl_TessCoord.z * tes_in[2].worldPos;
     FragPos_world = p0_ws + p1_ws + p2_ws;
-
-    vec3 n0 = gl_TessCoord.x * tes_in[0].worldNormal;
-    vec3 n1 = gl_TessCoord.y * tes_in[1].worldNormal;
-    vec3 n2 = gl_TessCoord.z * tes_in[2].worldNormal;
-    vec3 worldNormal = normalize(n0 + n1 + n2);
 
     vec2 tc0 = gl_TessCoord.x * tes_in[0].texCoords;
     vec2 tc1 = gl_TessCoord.y * tes_in[1].texCoords;
@@ -75,29 +69,46 @@ void main()
     vec2 tc1_3 = gl_TessCoord.y * tes_in[1].texCoords3;
     vec2 tc2_3 = gl_TessCoord.z * tes_in[2].texCoords3;
     TexCoords3 = tc0_3 + tc1_3 + tc2_3;
-
+    
     vec2 tc0_4 = gl_TessCoord.x * tes_in[0].texCoords4;
     vec2 tc1_4 = gl_TessCoord.y * tes_in[1].texCoords4;
     vec2 tc2_4 = gl_TessCoord.z * tes_in[2].texCoords4;
     TexCoords4 = tc0_4 + tc1_4 + tc2_4;
-    
-    mat3 tbn0 = gl_TessCoord.x * tes_in[0].tbn;
-    mat3 tbn1 = gl_TessCoord.y * tes_in[1].tbn;
-    mat3 tbn2 = gl_TessCoord.z * tes_in[2].tbn;
-    TBN = tbn0 + tbn1 + tbn2;
 
     vec4 c0 = gl_TessCoord.x * tes_in[0].color;
     vec4 c1 = gl_TessCoord.y * tes_in[1].color;
     vec4 c2 = gl_TessCoord.z * tes_in[2].color;
     v_Color = c0 + c1 + c2;
     
-    vec3 N = worldNormal;
-
+    vec3 worldNormal;
+    if (tes_in[0].isBrush)
+    {
+        vec3 edge1 = tes_in[1].worldPos - tes_in[0].worldPos;
+        vec3 edge2 = tes_in[2].worldPos - tes_in[0].worldPos;
+        worldNormal = normalize(cross(edge1, edge2));
+        vec2 duv1 = tes_in[1].texCoords - tes_in[0].texCoords;
+        vec2 duv2 = tes_in[2].texCoords - tes_in[0].texCoords;
+        float r = 1.0f / (duv1.x * duv2.y - duv1.y * duv2.x);
+        vec3 tangent = normalize((edge1 * duv2.y - edge2 * duv1.y) * r);
+        vec3 bitangent = normalize(cross(worldNormal, tangent));
+        TBN = mat3(tangent, bitangent, worldNormal);
+    }
+    else
+    {
+        vec3 n0 = gl_TessCoord.x * tes_in[0].worldNormal;
+        vec3 n1 = gl_TessCoord.y * tes_in[1].worldNormal;
+        vec3 n2 = gl_TessCoord.z * tes_in[2].worldNormal;
+        worldNormal = normalize(n0 + n1 + n2);
+        
+        mat3 tbn0 = gl_TessCoord.x * tes_in[0].tbn;
+        mat3 tbn1 = gl_TessCoord.y * tes_in[1].tbn;
+        mat3 tbn2 = gl_TessCoord.z * tes_in[2].tbn;
+        TBN = tbn0 + tbn1 + tbn2;
+    }
+    
     const float BRUSH_GI_MULTIPLIER = 1.0;
     const float MODEL_GI_MULTIPLIER = 0.3;
-
-    float gi_multiplier = is_brush_surface ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
-
+    float gi_multiplier = tes_in[0].isBrush ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
     indirectLight = vec3(0.0);
     for (int i = 0; i < num_vpls; ++i)
     {
@@ -107,14 +118,14 @@ void main()
         vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
         float distance = length(vpl_pos - FragPos_world);
         vec3 L = normalize(vpl_pos - FragPos_world);
-        float NdotL = dot(N, L); 
+        float NdotL = dot(worldNormal, L); 
         if(NdotL > 0.0)
         {
             float vpl_emit_dot = dot(vpl_normal, -L); 
             if (vpl_emit_dot > 0.0)
             {
                 float attenuation = 1.0 / (distance * distance + 1.0);
-                float backface_attenuation = pow(clamp(1.0 + dot(N, vpl_normal), 0.0, 1.0), 2.0);
+                float backface_attenuation = pow(clamp(1.0 + dot(worldNormal, vpl_normal), 0.0, 1.0), 2.0);
                 indirectLight += vpl_color_rgb * gi_multiplier * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
             }
         }
@@ -125,6 +136,9 @@ void main()
     FragPosSunLightSpace = sunLightSpaceMatrix * vec4(FragPos_world, 1.0);
     TangentViewPos = TBN * viewPos;
     TangentFragPos = TBN * FragPos_world;
-    Velocity = vec2(0.0);
     gl_Position = projection * view * vec4(FragPos_world, 1.0);
+    vec4 prevClipPos = prevViewProjection * vec4(FragPos_world, 1.0);
+    vec2 prevNDC = prevClipPos.xy / prevClipPos.w;
+    vec2 currentNDC = gl_Position.xy / gl_Position.w;
+    Velocity = currentNDC - prevNDC;
 }

@@ -3615,7 +3615,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_EndMenu();
         }
         if (UI_BeginMenu("Edit", true)) { if (UI_MenuItem("Undo", "Ctrl+Z", false, true)) { Undo_PerformUndo(scene, engine); } if (UI_MenuItem("Redo", "Ctrl+Y", false, true)) { Undo_PerformRedo(scene, engine); } UI_EndMenu(); }
-        if (UI_BeginMenu("Tools", true)) { if (UI_MenuItem("Build Cubemaps", NULL, false, true)) { Editor_BuildCubemaps(scene, renderer, engine); } UI_EndMenu(); }
         UI_EndMainMenuBar();
     }
 
@@ -3691,13 +3690,18 @@ static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec
     Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
     if (!b) return;
 
-    Vec3 mouse_world_unsnapped = ScreenToWorld_Unsnapped_ForOrthoPicking(mouse_pos, view);
+    Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(mouse_pos, view);
+    if (g_EditorState.snap_to_grid) {
+        mouse_world.x = SnapValue(mouse_world.x, g_EditorState.grid_size);
+        mouse_world.y = SnapValue(mouse_world.y, g_EditorState.grid_size);
+        mouse_world.z = SnapValue(mouse_world.z, g_EditorState.grid_size);
+    }
 
     Mat4 inv_model_matrix;
-    mat4_inverse(&b->modelMatrix, &inv_model_matrix);
-    Vec3 mouse_local = mat4_mul_vec3(&inv_model_matrix, mouse_world_unsnapped);
-
-    float snap = g_EditorState.snap_to_grid ? g_EditorState.grid_size : 0.0f;
+    if (!mat4_inverse(&b->modelMatrix, &inv_model_matrix)) {
+        return;
+    }
+    Vec3 new_local_pos = mat4_mul_vec3(&inv_model_matrix, mouse_world);
 
     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -3710,14 +3714,25 @@ static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec
         local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
     }
 
-    float new_val;
     switch (g_EditorState.selected_brush_active_handle) {
-    case PREVIEW_BRUSH_HANDLE_MIN_X: new_val = snap > 0 ? SnapValue(mouse_local.x, snap) : mouse_local.x; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) b->vertices[i].pos.x = new_val; break;
-    case PREVIEW_BRUSH_HANDLE_MAX_X: new_val = snap > 0 ? SnapValue(mouse_local.x, snap) : mouse_local.x; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) b->vertices[i].pos.x = new_val; break;
-    case PREVIEW_BRUSH_HANDLE_MIN_Y: new_val = snap > 0 ? SnapValue(mouse_local.y, snap) : mouse_local.y; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) b->vertices[i].pos.y = new_val; break;
-    case PREVIEW_BRUSH_HANDLE_MAX_Y: new_val = snap > 0 ? SnapValue(mouse_local.y, snap) : mouse_local.y; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) b->vertices[i].pos.y = new_val; break;
-    case PREVIEW_BRUSH_HANDLE_MIN_Z: new_val = snap > 0 ? SnapValue(mouse_local.z, snap) : mouse_local.z; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) b->vertices[i].pos.z = new_val; break;
-    case PREVIEW_BRUSH_HANDLE_MAX_Z: new_val = snap > 0 ? SnapValue(mouse_local.z, snap) : mouse_local.z; for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) b->vertices[i].pos.z = new_val; break;
+    case PREVIEW_BRUSH_HANDLE_MIN_X:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) b->vertices[i].pos.x = new_local_pos.x;
+        break;
+    case PREVIEW_BRUSH_HANDLE_MAX_X:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) b->vertices[i].pos.x = new_local_pos.x;
+        break;
+    case PREVIEW_BRUSH_HANDLE_MIN_Y:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) b->vertices[i].pos.y = new_local_pos.y;
+        break;
+    case PREVIEW_BRUSH_HANDLE_MAX_Y:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) b->vertices[i].pos.y = new_local_pos.y;
+        break;
+    case PREVIEW_BRUSH_HANDLE_MIN_Z:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) b->vertices[i].pos.z = new_local_pos.z;
+        break;
+    case PREVIEW_BRUSH_HANDLE_MAX_Z:
+        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) b->vertices[i].pos.z = new_local_pos.z;
+        break;
     default: break;
     }
 
@@ -3835,139 +3850,4 @@ static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
         world_pos.z = SnapValue(world_pos.z, g_EditorState.grid_size);
     }
     return world_pos;
-}
-static void RenderSceneForBaking(GLuint shader, Scene* scene, Renderer* renderer, Mat4 view, Mat4 projection) {
-    glEnable(GL_DEPTH_TEST);
-    glUseProgram(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, projection.m);
-    glUniform1i(glGetUniformLocation(shader, "is_unlit"), 0);
-    Mat4 invView;
-    mat4_inverse(&view, &invView);
-    Vec3 probePos = { invView.m[12], invView.m[13], invView.m[14] };
-    glUniform3fv(glGetUniformLocation(shader, "viewPos"), 1, &probePos.x);
-    glUniform1i(glGetUniformLocation(shader, "sun.enabled"), scene->sun.enabled);
-    glUniform3fv(glGetUniformLocation(shader, "sun.direction"), 1, &scene->sun.direction.x);
-    glUniform3fv(glGetUniformLocation(shader, "sun.color"), 1, &scene->sun.color.x);
-    glUniform1f(glGetUniformLocation(shader, "sun.intensity"), scene->sun.intensity);
-    glUniform1i(glGetUniformLocation(shader, "numLights"), scene->numActiveLights);
-    char uName[64];
-    int point_light_shadow_idx = 0;
-    int spot_light_shadow_idx = 0;
-    for (int i = 0; i < scene->numActiveLights; ++i) {
-        sprintf(uName, "lights[%d].type", i); glUniform1i(glGetUniformLocation(shader, uName), scene->lights[i].type);
-        sprintf(uName, "lights[%d].position", i); glUniform3fv(glGetUniformLocation(shader, uName), 1, &scene->lights[i].position.x);
-        sprintf(uName, "lights[%d].direction", i); glUniform3fv(glGetUniformLocation(shader, uName), 1, &scene->lights[i].direction.x);
-        sprintf(uName, "lights[%d].color", i); glUniform3fv(glGetUniformLocation(shader, uName), 1, &scene->lights[i].color.x);
-        sprintf(uName, "lights[%d].intensity", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].intensity);
-        sprintf(uName, "lights[%d].radius", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].radius);
-        sprintf(uName, "lights[%d].cutOff", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].cutOff);
-        sprintf(uName, "lights[%d].outerCutOff", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].outerCutOff);
-        sprintf(uName, "lights[%d].shadowFarPlane", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].shadowFarPlane);
-        sprintf(uName, "lights[%d].shadowBias", i); glUniform1f(glGetUniformLocation(shader, uName), scene->lights[i].shadowBias);
-        int current_shadow_idx = -1; Mat4 lightSpaceMatrix; mat4_identity(&lightSpaceMatrix);
-        if (scene->lights[i].type == LIGHT_SPOT) {
-            if (spot_light_shadow_idx < MAX_LIGHTS) {
-                current_shadow_idx = spot_light_shadow_idx;
-                float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, scene->lights[i].cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
-                Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, scene->lights[i].shadowFarPlane);
-                Mat4 lightView = mat4_lookAt(scene->lights[i].position, vec3_add(scene->lights[i].position, scene->lights[i].direction), (Vec3) { 0, 1, 0 });
-                mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView); spot_light_shadow_idx++;
-            }
-        }
-        else { if (point_light_shadow_idx < MAX_LIGHTS) { current_shadow_idx = point_light_shadow_idx; point_light_shadow_idx++; } }
-        sprintf(uName, "lightSpaceMatrices[%d]", i); glUniformMatrix4fv(glGetUniformLocation(shader, uName), 1, GL_FALSE, lightSpaceMatrix.m);
-        sprintf(uName, "lights[%d].shadowMapIndex", i); glUniform1i(glGetUniformLocation(shader, uName), current_shadow_idx);
-    }
-    point_light_shadow_idx = 0; spot_light_shadow_idx = 0;
-    for (int i = 0; i < scene->numActiveLights; ++i) {
-        if (scene->lights[i].type == LIGHT_POINT) { if (point_light_shadow_idx < MAX_LIGHTS) { glActiveTexture(GL_TEXTURE4 + point_light_shadow_idx); glBindTexture(GL_TEXTURE_CUBE_MAP, scene->lights[i].shadowMapTexture); point_light_shadow_idx++; } }
-        else { if (spot_light_shadow_idx < MAX_LIGHTS) { glActiveTexture(GL_TEXTURE4 + MAX_LIGHTS + spot_light_shadow_idx); glBindTexture(GL_TEXTURE_2D, scene->lights[i].shadowMapTexture); spot_light_shadow_idx++; } }
-    }
-    glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), 0);
-    glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 0);
-    for (int i = 0; i < scene->numObjects; i++) { render_object(shader, &scene->objects[i], true, NULL); }
-    for (int i = 0; i < scene->numBrushes; i++) { render_brush(shader, &scene->brushes[i], true, NULL); }
-    glDepthFunc(GL_LEQUAL);
-    glUseProgram(renderer->skyboxShader);
-    Mat4 skyboxView = view;
-    skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
-    glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "view"), 1, GL_FALSE, skyboxView.m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "projection"), 1, GL_FALSE, projection.m);
-    glBindVertexArray(renderer->skyboxVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glDepthFunc(GL_LESS);
-}
-void Editor_BuildCubemaps(Scene* scene, Renderer* renderer, Engine* engine) {
-    Console_Printf("Starting cubemap build...");
-#ifdef _WIN32
-    _mkdir("cubemaps");
-#else
-    mkdir("cubemaps", 0777);
-#endif
-    const int CUBEMAP_RES = 128; GLuint fbo, rbo;
-    glGenFramebuffers(1, &fbo); glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glGenRenderbuffers(1, &rbo); glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, CUBEMAP_RES, CUBEMAP_RES);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-    glEnable(GL_DEPTH_TEST); glCullFace(GL_BACK);
-    Mat4 captureProjection = mat4_perspective(90.0f * (3.14159f / 180.0f), 1.0f, 0.1f, 1000.f);
-    Mat4 captureViews[6]; GLuint bakingShader = renderer->mainShader;
-    glUseProgram(bakingShader);
-    glUniform1i(glGetUniformLocation(bakingShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(bakingShader, "normalMap"), 1); glUniform1i(glGetUniformLocation(bakingShader, "specularMap"), 2);
-    char uName[32];
-    for (int i = 0; i < MAX_LIGHTS; ++i) { sprintf(uName, "pointShadowMaps[%d]", i); glUniform1i(glGetUniformLocation(bakingShader, uName), 4 + i); }
-    for (int i = 0; i < MAX_LIGHTS; ++i) { sprintf(uName, "spotShadowMaps[%d]", i); glUniform1i(glGetUniformLocation(bakingShader, uName), 4 + MAX_LIGHTS + i); }
-    unsigned char* pixels = malloc(CUBEMAP_RES * CUBEMAP_RES * 4);
-    if (!pixels) { Console_Printf("[error] Failed to allocate memory for cubemap pixels."); glDeleteFramebuffers(1, &fbo); glDeleteRenderbuffers(1, &rbo); return; }
-    GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
-    for (int i = 0; i < scene->numBrushes; ++i) {
-        Brush* probe_brush = &scene->brushes[i];
-        if (!probe_brush->isReflectionProbe) continue;
-
-        Console_Printf("Building cubemap for %s...", probe_brush->name);
-        GLuint temp_cubemap_tex; glGenTextures(1, &temp_cubemap_tex); glBindTexture(GL_TEXTURE_CUBE_MAP, temp_cubemap_tex);
-        for (int j = 0; j < 6; ++j) { glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA8, CUBEMAP_RES, CUBEMAP_RES, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); }
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        captureViews[0] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { 1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
-        captureViews[1] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { -1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
-        captureViews[2] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { 0.0f, 1.0f, 0.0f }), (Vec3) { 0.0f, 0.0f, 1.0f });
-        captureViews[3] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { 0.0f, -1.0f, 0.0f }), (Vec3) { 0.0f, 0.0f, -1.0f });
-        captureViews[4] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { 0.0f, 0.0f, 1.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
-        captureViews[5] = mat4_lookAt(probe_brush->pos, vec3_add(probe_brush->pos, (Vec3) { 0.0f, 0.0f, -1.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
-        glViewport(0, 0, CUBEMAP_RES, CUBEMAP_RES); glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        for (int j = 0; j < 6; j++) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, temp_cubemap_tex, 0);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            RenderSceneForBaking(bakingShader, scene, renderer, captureViews[j], captureProjection);
-        }
-        const char* face_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
-        for (int j = 0; j < 6; ++j) {
-            char filename[256];
-            sprintf(filename, "cubemaps/%s_%s.png", probe_brush->name, face_suffixes[j]);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, temp_cubemap_tex); glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-            SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom(pixels, CUBEMAP_RES, CUBEMAP_RES, 32, CUBEMAP_RES * 4, SDL_PIXELFORMAT_RGBA32);
-            if (surface) { IMG_SavePNG(surface, filename); SDL_FreeSurface(surface); }
-            else { Console_Printf("[error] Failed to create SDL_Surface for saving %s", filename); }
-        }
-        glDeleteTextures(1, &temp_cubemap_tex);
-        const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
-        char face_paths[6][256];
-        for (int j = 0; j < 6; ++j) {
-            sprintf(face_paths[j], "cubemaps/%s_%s.png", probe_brush->name, faces_suffixes[j]);
-        }
-        const char* face_pointers[6];
-        for (int j = 0; j < 6; ++j) {
-            face_pointers[j] = face_paths[j];
-        }
-
-        probe_brush->cubemapTexture = TextureManager_ReloadCubemap(face_pointers, probe_brush->cubemapTexture);
-
-        Console_Printf("...reloaded '%s' for instant preview.", probe_brush->name);
-    }
-    free(pixels); glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDeleteFramebuffers(1, &fbo); glDeleteRenderbuffers(1, &rbo);
-    glViewport(last_viewport[0], last_viewport[1], last_viewport[2], last_viewport[3]);
-    glUseProgram(renderer->mainShader); glUniform1i(glGetUniformLocation(bakingShader, "is_unlit"), 0);
-    Console_Printf("Cubemap build finished.");
 }

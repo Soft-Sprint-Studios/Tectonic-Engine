@@ -19,9 +19,9 @@
 static Material materials[MAX_MATERIALS];
 static int num_materials = 0;
 
-static GLuint missingTextureID;
-static GLuint defaultNormalMapID;
-static GLuint defaultRmaMapID;
+GLuint missingTextureID;
+GLuint defaultNormalMapID;
+GLuint defaultRmaMapID;
 Material g_MissingMaterial;
 
 bool g_is_editor_mode = false;
@@ -72,7 +72,7 @@ static GLuint createMissingTexture() {
 
 static GLuint createDefaultRmaTexture() {
     GLuint texID;
-    unsigned char data[] = { 128, 0, 255, 255 };
+    unsigned char data[] = { 255, 128, 0, 255 };
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

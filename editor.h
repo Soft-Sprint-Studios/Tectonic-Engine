@@ -22,7 +22,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine);
 void Editor_Update(Engine* engine, Scene* scene);
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
 void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
-void Editor_BuildCubemaps(Scene* scene, Renderer* renderer, Engine* engine);
 void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs);
 
 void Editor_DeleteModel(Scene* scene, int index, Engine* engine);
