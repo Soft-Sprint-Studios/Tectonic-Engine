@@ -99,6 +99,12 @@
     <ClCompile Include="main_menu.c">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
+    <ClCompile Include="network.c">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="dsp_reverb.cpp">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui-master\backends\imgui_impl_opengl3.h">
@@ -165,6 +171,12 @@
       <Filter>Header Files\engine</Filter>
     </ClInclude>
     <ClInclude Include="main_menu.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="network.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="dsp_reverb.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
@@ -314,6 +326,12 @@
       <Filter>Source Files\engine\shaders</Filter>
     </None>
     <None Include="x64\Release\shaders\main.tes">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\motion_blur.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\motion_blur.vert">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
   </ItemGroup>

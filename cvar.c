@@ -24,11 +24,12 @@ static void Cvar_UpdateValues(Cvar* c) {
     c->intValue = atoi(c->stringValue);
 }
 
-Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText) {
+Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText, int flags) {
     Cvar* c = Cvar_Find(name);
     if (c) {
         strcpy(c->stringValue, defaultValue);
         strcpy(c->helpText, helpText);
+        c->flags = flags;
         Cvar_UpdateValues(c);
         return c;
     }
@@ -42,6 +43,7 @@ Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* help
     strcpy(c->name, name);
     strcpy(c->stringValue, defaultValue);
     strcpy(c->helpText, helpText);
+    c->flags = flags;
     Cvar_UpdateValues(c);
 
     printf("Registered Cvar: %s (default: \"%s\")\n", name, defaultValue);
@@ -58,6 +60,21 @@ Cvar* Cvar_Find(const char* name) {
 }
 
 void Cvar_Set(const char* name, const char* value) {
+    Cvar* c = Cvar_Find(name);
+    if (c) {
+        if (c->flags & CVAR_HIDDEN) {
+            printf("Cvar '%s' is protected and cannot be modified from the console.\n", name);
+            return;
+        }
+        strcpy(c->stringValue, value);
+        Cvar_UpdateValues(c);
+    }
+    else {
+        printf("Cvar '%s' not found.\n", name);
+    }
+}
+
+void Cvar_EngineSet(const char* name, const char* value) {
     Cvar* c = Cvar_Find(name);
     if (c) {
         strcpy(c->stringValue, value);

@@ -3250,6 +3250,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
+    if (UI_CollapsingHeader("DSP Zones", 1)) {
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            if (!scene->brushes[i].isDSP) continue;
+            char label[128];
+            sprintf(label, "DSP Zone %d", i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_BRUSH;
+                g_EditorState.selected_entity_index = i;
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##dspbrush%d", i);
+            if (UI_Button(del_label)) { brush_to_delete = i; }
+        }
+    }
     if (UI_CollapsingHeader("Water", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
             if (!scene->brushes[i].isWater) continue;
@@ -3328,6 +3343,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (b->isWater) {
                 b->isTrigger = false;
                 b->isReflectionProbe = false;
+                b->isDSP = false;
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Water");
         }
@@ -3336,6 +3352,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (b->isReflectionProbe) {
                 b->isTrigger = false;
                 b->isWater = false;
+                b->isDSP = false;
                 int px = (int)roundf(b->pos.x);
                 int py = (int)roundf(b->pos.y);
                 int pz = (int)roundf(b->pos.z);
@@ -3348,8 +3365,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (b->isTrigger) {
                 b->isReflectionProbe = false;
                 b->isWater = false;
+                b->isDSP = false;
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Trigger");
+        }
+        if (UI_Checkbox("Is DSP Zone", &b->isDSP)) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            if (b->isDSP) {
+                b->isTrigger = false;
+                b->isReflectionProbe = false;
+                b->isWater = false;
+            }
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush DSP Zone");
         }
         UI_Separator();
         UI_InputText("Target Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Targetname"); }
@@ -3381,6 +3408,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         else if (b->isTrigger) {
             RenderIOEditor(ENTITY_BRUSH, g_EditorState.selected_entity_index);
+        }
+        else if (b->isDSP) {
+            UI_Separator();
+            UI_Text("DSP Zone Settings");
+            const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
+            int current_preset = (int)b->reverbPreset;
+            if (UI_Combo("Reverb Preset", &current_preset, reverb_names, REVERB_PRESET_COUNT, REVERB_PRESET_COUNT)) {
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+                b->reverbPreset = (ReverbPreset)current_preset;
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Set Reverb Preset");
+            }
         }
         else {
             UI_Text("Face Properties (Face %d)", g_EditorState.selected_face_index);
@@ -3577,6 +3615,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_CollapsingHeader("Fog", 1)) { if (UI_Checkbox("Enabled", &scene->fog.enabled)) {} UI_ColorEdit3("Color", &scene->fog.color.x); UI_DragFloat("Start Distance", &scene->fog.start, 0.5f, 0.0f, 5000.0f); UI_DragFloat("End Distance", &scene->fog.end, 0.5f, 0.0f, 5000.0f); }
     if (UI_CollapsingHeader("Post-Processing", 1)) {
         if (UI_Checkbox("Enabled", &scene->post.enabled)) {} UI_Separator(); UI_Text("CRT & Vignette"); UI_DragFloat("CRT Curvature", &scene->post.crtCurvature, 0.01f, 0.0f, 1.0f); UI_DragFloat("Vignette Strength", &scene->post.vignetteStrength, 0.01f, 0.0f, 2.0f); UI_DragFloat("Vignette Radius", &scene->post.vignetteRadius, 0.01f, 0.0f, 2.0f); UI_Separator(); UI_Text("Effects"); if (UI_Checkbox("Lens Flare", &scene->post.lensFlareEnabled)) {} UI_DragFloat("Flare Strength", &scene->post.lensFlareStrength, 0.05f, 0.0f, 5.0f); UI_DragFloat("Scanline Strength", &scene->post.scanlineStrength, 0.01f, 0.0f, 1.0f); UI_DragFloat("Film Grain", &scene->post.grainIntensity, 0.005f, 0.0f, 0.5f); UI_Separator();
+        UI_Separator();
+        UI_Checkbox("Sharpening", &scene->post.sharpenEnabled);
+        if (scene->post.sharpenEnabled)
+        {
+            UI_DragFloat("Sharpen Strength", &scene->post.sharpenAmount, 0.01f, 0.0f, 1.0f);
+        }
+        UI_Separator();
         if (UI_Checkbox("Chromatic Aberration", &scene->post.chromaticAberrationEnabled)) {}
         if (scene->post.chromaticAberrationEnabled) {
             UI_DragFloat("CA Strength", &scene->post.chromaticAberrationStrength, 0.0001f, 0.0f, 0.05f);

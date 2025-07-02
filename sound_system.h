@@ -11,6 +11,7 @@
 
 #include "math_lib.h"
 #include <stdbool.h>
+#include "dsp_reverb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,17 +22,20 @@ extern "C" {
     } Sound;
 
     typedef struct {
-        unsigned int sourceID;
+        unsigned int drySourceID;
+        unsigned int wetSourceID;
     } PlayingSound;
-
 
     bool SoundSystem_Init();
     void SoundSystem_Shutdown();
     void SoundSystem_UpdateListener(Vec3 position, Vec3 forward, Vec3 up);
+    void SoundSystem_SetCurrentReverb(ReverbPreset preset);
     unsigned int SoundSystem_LoadWAV(const char* path);
     unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping);
     void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position);
     void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance);
+    void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop);
+    void SoundSystem_SetMasterVolume(float volume);
     void SoundSystem_DeleteSource(unsigned int sourceID);
     void SoundSystem_DeleteBuffer(unsigned int bufferID);
 

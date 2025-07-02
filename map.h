@@ -17,6 +17,7 @@
 #include "model_loader.h"
 #include "physics_wrapper.h"
 #include "particle_system.h"
+#include "dsp_reverb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +102,8 @@ typedef struct {
     float dofAperture;
     bool chromaticAberrationEnabled;
     float chromaticAberrationStrength;
+    bool sharpenEnabled;
+    float sharpenAmount;
 } PostProcessSettings;
 
 typedef struct {
@@ -166,6 +169,7 @@ typedef struct {
     GLuint histogramSSBO;
     GLuint exposureSSBO;
     GLuint fxaaShader;
+    GLuint motionBlurShader;
     GLuint waterShader;
     GLuint dudvMap;
     GLuint waterNormalMap;
@@ -232,6 +236,8 @@ typedef struct {
     bool isWater;
     GLuint cubemapTexture;
     char name[64];
+    bool isDSP;
+    ReverbPreset reverbPreset;
 } Brush;
 
 typedef struct {

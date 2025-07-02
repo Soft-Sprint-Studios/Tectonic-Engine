@@ -27,6 +27,8 @@
 #include "gameconfig.h"
 #include "discord_wrapper.h"
 #include "main_menu.h"
+#include "network.h"
+#include "dsp_reverb.h"
 
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
@@ -55,6 +57,7 @@ static unsigned int g_footstep_sound_buffer = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
 static float g_distance_walked = 0.0f;
 const float FOOTSTEP_DISTANCE = 2.0f;
+static int g_current_reverb_zone_index = -1;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 float skyboxVertices[] = {
@@ -323,7 +326,7 @@ void handle_command(int argc, char** argv) {
         }
         else { g_current_mode = MODE_GAME; Editor_Shutdown(); SDL_SetRelativeMouseMode(SDL_TRUE); }
     }
-    else if (_stricmp(cmd, "quit") == 0 || _stricmp(cmd, "exit") == 0) Cvar_Set("engine_running", "0");
+    else if (_stricmp(cmd, "quit") == 0 || _stricmp(cmd, "exit") == 0) Cvar_EngineSet("engine_running", "0");
     else if (_stricmp(cmd, "setpos") == 0) {
         if (argc == 4) {
             float x = atof(argv[1]);
@@ -358,30 +361,90 @@ void handle_command(int argc, char** argv) {
             Console_Printf("Usage: bind \"key\" \"command\"");
         }
     }
+    else if (_stricmp(cmd, "download") == 0) {
+        if (argc == 2 && strncmp(argv[1], "http", 4) == 0) {
+            const char* url = argv[1];
+            const char* filename_start = strrchr(url, '/');
+            if (filename_start) {
+                filename_start++;
+            }
+            else {
+                filename_start = url;
+            }
+
+#ifdef _WIN32
+            _mkdir("downloads");
+#else
+            mkdir("downloads", 0755);
+#endif
+
+            char output_path[256];
+            snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);
+
+            Console_Printf("Starting download for %s...", url);
+            Network_DownloadFile(url, output_path);
+        }
+        else {
+            Console_Printf("Usage: download http://... or https://...");
+        }
+    }
+    else if (_stricmp(cmd, "ping") == 0) {
+        if (argc == 2) {
+            Console_Printf("Pinging %s...", argv[1]);
+            Network_Ping(argv[1]);
+        }
+        else {
+            Console_Printf("Usage: ping <hostname>");
+        }
+    }
+    else if (_stricmp(cmd, "cvarlist") == 0) {
+        Console_Printf("--- CVAR List ---");
+        for (int i = 0; i < num_cvars; i++) {
+            Cvar* c = &cvar_list[i];
+            if (c->flags & CVAR_HIDDEN) {
+                continue;
+            }
+            Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
+        }
+        Console_Printf("-----------------");
+    }
     else if (_stricmp(cmd, "build_cubemaps") == 0) {
         BuildCubemaps();
     }
     else if (argc >= 2) { if (Cvar_Find(cmd)) Cvar_Set(cmd, argv[1]); else Console_Printf("[error] Unknown cvar: %s", cmd); }
-    else if (argc == 1) { Cvar* c = Cvar_Find(cmd); if (c) Console_Printf("%s = %s", c->name, c->stringValue); else Console_Printf("[error] Unknown cvar: %s", cmd); }
+    else if (argc == 1) {
+        Cvar* c = Cvar_Find(cmd);
+        if (c && !(c->flags & CVAR_HIDDEN)) {
+            Console_Printf("%s = %s // %s", c->name, c->stringValue, c->helpText);
+        }
+        else {
+            Console_Printf("[error] Unknown cvar: %s", cmd);
+        }
+    }
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     Cvar_Init();
-    Cvar_Register("r_vpl_count", "32", "Number of VPLs to generate per light.");
-    Cvar_Register("noclip", "0", ""); Cvar_Register("gravity", "9.8", ""); Cvar_Register("engine_running", "1", "");
-    Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).");
-    Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.");
-    Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.");
-    Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.");
-    Cvar_Register("r_fxaa", "1", "Enable Fast Approximate Anti-Aliasing.");
-    Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.");
-    Cvar_Register("show_pos", "0", "Show player position in the top-left corner.");
-    Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.");
-    Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.");
+    Cvar_Register("volume", "3.0", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
+    Cvar_Register("r_vpl_count", "32", "Number of VPLs to generate per light.", CVAR_NONE);
+    Cvar_Register("noclip", "0", "", CVAR_NONE);
+    Cvar_Register("gravity", "9.8", "", CVAR_NONE);
+    Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
+    Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).", CVAR_NONE);
+    Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
+    Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
+    Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.", CVAR_NONE);
+    Cvar_Register("r_fxaa", "1", "Enable Fast Approximate Anti-Aliasing.", CVAR_NONE);
+    Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
+    Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
+    Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
+    Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
+    Cvar_Register("r_motionblur", "1", "Enable camera and object motion blur.", CVAR_NONE);
     IO_Init();
     Binds_Init();
+    Network_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadWAV("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadWAV("sounds/footstep.wav");
     Console_SetCommandHandler(handle_command);
@@ -411,6 +474,7 @@ void init_renderer() {
     g_renderer.volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
     g_renderer.volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
     g_renderer.fxaaShader = createShaderProgram("shaders/fxaa.vert", "shaders/fxaa.frag");
+    g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
@@ -510,6 +574,15 @@ void init_renderer() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, final_rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Final Render Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.postProcessFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.postProcessFBO);
+    glGenTextures(1, &g_renderer.postProcessTexture);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.postProcessTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.postProcessTexture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Post Process Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.volumetricFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
@@ -887,6 +960,7 @@ void process_input() {
 
 void update_state() {
     g_engine->running = Cvar_GetInt("engine_running");
+    SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
@@ -909,17 +983,64 @@ void update_state() {
     Vec3 playerPos;
     Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
 
+    int new_reverb_zone_index = -1;
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isDSP) continue;
+        if (b->numVertices == 0) continue;
+
+        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        for (int v = 0; v < b->numVertices; ++v) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
+            min_aabb.x = fminf(min_aabb.x, world_v.x);
+            min_aabb.y = fminf(min_aabb.y, world_v.y);
+            min_aabb.z = fminf(min_aabb.z, world_v.z);
+            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
+            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
+            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+        }
+
+        if (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
+            playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
+            playerPos.z >= min_aabb.z && playerPos.z <= max_aabb.z)
+        {
+            new_reverb_zone_index = i;
+            break;
+        }
+    }
+
+    if (new_reverb_zone_index != g_current_reverb_zone_index) {
+        g_current_reverb_zone_index = new_reverb_zone_index;
+        if (new_reverb_zone_index != -1) {
+            SoundSystem_SetCurrentReverb(g_scene.brushes[new_reverb_zone_index].reverbPreset);
+        }
+        else {
+            SoundSystem_SetCurrentReverb(REVERB_PRESET_NONE);
+        }
+    }
+
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (!b->isTrigger) continue;
 
-        Mat4 invModel;
-        mat4_inverse(&b->modelMatrix, &invModel);
-        Vec3 p_local = mat4_mul_vec3(&invModel, playerPos);
+        if (b->numVertices == 0) continue;
 
-        bool is_inside = (p_local.x >= -0.5f && p_local.x <= 0.5f &&
-            p_local.y >= -0.5f && p_local.y <= 0.5f &&
-            p_local.z >= -0.5f && p_local.z <= 0.5f);
+        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        for (int v = 0; v < b->numVertices; ++v) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
+            min_aabb.x = fminf(min_aabb.x, world_v.x);
+            min_aabb.y = fminf(min_aabb.y, world_v.y);
+            min_aabb.z = fminf(min_aabb.z, world_v.z);
+            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
+            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
+            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+        }
+
+        bool is_inside = (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
+            playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
+            playerPos.z >= min_aabb.z && playerPos.z <= max_aabb.z);
 
         if (is_inside && !b->playerIsTouching) {
             b->playerIsTouching = true;
@@ -1063,7 +1184,7 @@ static void render_vpl_pass() {
                 g_scene.num_vpls += vpls_per_face;
             }
         }
-        else { // Spot Light
+        else {
             if (g_scene.num_vpls + vpls_per_light > MAX_VPLS) continue;
             Mat4 lightView, lightProjection;
             float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
@@ -1192,6 +1313,7 @@ void render_shadows() {
 
 static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
     glUseProgram(g_renderer.waterShader);
+    glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "view"), 1, GL_FALSE, view->m);
@@ -1287,6 +1409,8 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
     glDrawBuffers(6, attachments);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
@@ -1526,6 +1650,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_grainIntensity"), g_scene.post.grainIntensity);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationEnabled"), g_scene.post.chromaticAberrationEnabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationStrength"), g_scene.post.chromaticAberrationStrength);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenEnabled"), g_scene.post.sharpenEnabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;
     if (g_scene.numActiveLights > 0) {
         Vec3 light_world_pos = g_scene.lights[0].position; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); float clip_space_pos[4]; float w = 1.0f;
@@ -1563,7 +1689,7 @@ void render_skybox(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glDepthFunc(GL_LEQUAL);
     glUseProgram(g_renderer.skyboxShader);
-
+    glCullFace(GL_FRONT);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "projection"), 1, GL_FALSE, projection->m);
 
@@ -1580,13 +1706,13 @@ void render_skybox(Mat4* view, Mat4* projection) {
 
     glBindVertexArray(g_renderer.skyboxVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-
+    glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void present_final_image() {
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
+void present_final_image(GLuint source_fbo) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1629,6 +1755,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.histogramShader);
     glDeleteProgram(g_renderer.exposureShader);
     glDeleteProgram(g_renderer.fxaaShader);
+    glDeleteProgram(g_renderer.motionBlurShader);
     glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
     glDeleteTextures(1, &g_renderer.gLitColor);
     glDeleteTextures(1, &g_renderer.gPosition);
@@ -1649,6 +1776,8 @@ void cleanup() {
     glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
     glDeleteTextures(1, &g_renderer.finalRenderTexture);
     glDeleteTextures(1, &g_renderer.finalDepthTexture);
+    glDeleteFramebuffers(1, &g_renderer.postProcessFBO);
+    glDeleteTextures(1, &g_renderer.postProcessTexture);
     glDeleteVertexArrays(1, &g_renderer.quadVAO);
     glDeleteBuffers(1, &g_renderer.quadVBO);
     glDeleteVertexArrays(1, &g_renderer.skyboxVAO);
@@ -1674,6 +1803,7 @@ void cleanup() {
     IO_Shutdown();
     Binds_Shutdown();
     Editor_Shutdown();
+    Network_Shutdown();
     UI_Shutdown();
     Discord__Shutdown();
     SDL_GL_DeleteContext(g_engine->context);
@@ -1716,8 +1846,26 @@ void render_autoexposure_pass() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void render_fxaa_pass() {
+void render_dof_pass(GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO) {
+    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(g_renderer.dofShader);
+    glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_focusDistance"), g_scene.post.dofFocusDistance);
+    glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_aperture"), g_scene.post.dofAperture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sourceTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "screenTexture"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, sourceDepthTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_fxaa_pass(GLuint sourceTexture, GLuint destFBO) {
+    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
     glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1725,16 +1873,32 @@ void render_fxaa_pass() {
     glUniform2f(glGetUniformLocation(g_renderer.fxaaShader, "u_texelStep"), 1.0f / WINDOW_WIDTH, 1.0f / WINDOW_HEIGHT);
 
     glActiveTexture(GL_TEXTURE0);
-    if (g_scene.post.dofEnabled) {
-        glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    }
-    else {
-        glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    }
+    glBindTexture(GL_TEXTURE_2D, sourceTexture);
     glUniform1i(glGetUniformLocation(g_renderer.fxaaShader, "u_colorTexture"), 0);
 
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_motion_blur_pass(GLuint sourceTexture, GLuint destFBO) {
+    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(g_renderer.motionBlurShader);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sourceTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.motionBlurShader, "sceneTexture"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gVelocity);
+    glUniform1i(glGetUniformLocation(g_renderer.motionBlurShader, "velocityTexture"), 1);
+
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
@@ -1947,35 +2111,36 @@ int main(int argc, char* argv[]) {
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
+            glDisable(GL_CULL_FACE);
             render_water(&view, &projection, &sunLightSpaceMatrix);
             for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
                 ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
             }
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
+            glEnable(GL_CULL_FACE);
+            GLuint source_fbo = g_renderer.finalRenderFBO;
+            GLuint source_tex = g_renderer.finalRenderTexture;
             if (g_scene.post.dofEnabled) {
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                glDisable(GL_DEPTH_TEST);
-                glClear(GL_COLOR_BUFFER_BIT);
-                glUseProgram(g_renderer.dofShader);
-                glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_focusDistance"), g_scene.post.dofFocusDistance);
-                glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_aperture"), g_scene.post.dofAperture);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, g_renderer.finalDepthTexture);
-                glBindVertexArray(g_renderer.quadVAO);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
+                render_dof_pass(source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
+                source_fbo = g_renderer.postProcessFBO;
+                source_tex = g_renderer.postProcessTexture;
+            }
+
+            if (Cvar_GetInt("r_motionblur")) {
+                GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
+                render_motion_blur_pass(source_tex, target_fbo);
+                source_fbo = target_fbo;
+                source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
             }
 
             if (Cvar_GetInt("r_fxaa")) {
-                render_fxaa_pass();
+                GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
+                render_fxaa_pass(source_tex, target_fbo);
+                source_fbo = target_fbo;
             }
-            else {
-                if (!g_scene.post.dofEnabled) {
-                    present_final_image();
-                }
-            }
+
+            present_final_image(source_fbo);
             Mat4 currentViewProjection;
             mat4_multiply(&currentViewProjection, &projection, &view);
             g_renderer.prevViewProjection = currentViewProjection;

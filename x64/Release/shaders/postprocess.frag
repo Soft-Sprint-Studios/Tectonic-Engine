@@ -28,6 +28,8 @@ uniform float u_scanlineStrength;
 uniform float u_grainIntensity;
 uniform bool u_chromaticAberrationEnabled;
 uniform float u_chromaticAberrationStrength;
+uniform bool u_sharpenEnabled;
+uniform float u_sharpenAmount;
 
 uniform bool u_ssaoEnabled;
 uniform sampler2D ssao;
@@ -109,6 +111,30 @@ void main()
     if(u_ssaoEnabled) {
         float occlusion = texture(ssao, curvedTexCoords).r;
         finalColor *= occlusion;
+    }
+
+    if (u_postEnabled && u_sharpenEnabled) {
+        vec2 texelSize = 1.0 / resolution;
+
+        vec3 blur = vec3(0.0);
+        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, -texelSize.y)).rgb * 1.0;
+        blur += texture(sceneTexture, curvedTexCoords + vec2(0.0, -texelSize.y)).rgb * 2.0;
+        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, -texelSize.y)).rgb * 1.0;
+
+        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, 0.0)).rgb * 2.0;
+        blur += texture(sceneTexture, curvedTexCoords).rgb * 4.0;
+        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, 0.0)).rgb * 2.0;
+
+        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, texelSize.y)).rgb * 1.0;
+        blur += texture(sceneTexture, curvedTexCoords + vec2(0.0, texelSize.y)).rgb * 2.0;
+        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, texelSize.y)).rgb * 1.0;
+
+        blur /= 16.0;
+
+        vec3 original = texture(sceneTexture, curvedTexCoords).rgb;
+        vec3 mask = original - blur;
+
+        finalColor = original + mask * u_sharpenAmount;
     }
 
     vec3 bloomColor = texture(bloomBlur, curvedTexCoords).rgb;

@@ -164,6 +164,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     strcpy(dest->targetname, src->targetname);
     dest->isTrigger = src->isTrigger;
     dest->isReflectionProbe = src->isReflectionProbe;
+    dest->isDSP = src->isDSP;
     dest->cubemapTexture = src->cubemapTexture;
     strcpy(dest->name, src->name);
     dest->numVertices = src->numVertices;
@@ -652,6 +653,8 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.dofAperture = 10.0f;
     scene->post.chromaticAberrationEnabled = true;
     scene->post.chromaticAberrationStrength = 0.005f;
+    scene->post.sharpenEnabled = false;
+    scene->post.sharpenAmount = 0.15f;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -725,12 +728,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             vec3_normalize(&scene->sun.direction);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
-            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int;
-            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength, &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity, &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength);
+            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int;
+            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength, &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity, &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount);
             scene->post.enabled = (bool)enabled_int;
             scene->post.lensFlareEnabled = (bool)flare_int;
             scene->post.dofEnabled = (bool)dof_enabled_int;
             scene->post.chromaticAberrationEnabled = (bool)ca_enabled_int;
+            scene->post.sharpenEnabled = (bool)sharpen_enabled_int;
         }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
@@ -795,6 +799,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
                 else if (sscanf(line, " is_trigger %d", &dummy_int) == 1) { b->isTrigger = (bool)dummy_int; }
+                else if (sscanf(line, " is_dsp %d", &dummy_int) == 1) { b->isDSP = (bool)dummy_int; }
+                else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) { b->reverbPreset = (ReverbPreset)dummy_int; }
                 else if (sscanf(line, " is_water %d", &dummy_int) == 1) { b->isWater = (bool)dummy_int; }
             }
             if (b->isReflectionProbe) {
@@ -809,7 +815,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             Brush_UpdateMatrix(b);
             Brush_CreateRenderData(b);
-            if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && b->numVertices > 0) {
+            if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && !b->isDSP && b->numVertices > 0) {
                 Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                 for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                 b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -991,7 +997,13 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     if (!file) { return; }
     fprintf(file, "player_start %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z);
     fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
-    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f\n\n", (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius, (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity, (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture, (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength);
+    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f%d %.4f\n\n",
+        (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
+        (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity,
+        (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture,
+        (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength,
+        (int)scene->post.sharpenEnabled, scene->post.sharpenAmount
+    );
     fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f\n\n",
         (int)scene->sun.enabled,
         scene->sun.direction.x, scene->sun.direction.y, scene->sun.direction.z,
@@ -1003,6 +1015,10 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
         if (b->isTrigger) fprintf(file, "  is_trigger 1\n");
+        if (b->isDSP) {
+            fprintf(file, " is_dsp 1\n");
+            fprintf(file, " reverb_preset %d\n", (int)b->reverbPreset);
+        }
         if (b->isReflectionProbe) {
             fprintf(file, "  is_reflection_probe 1\n");
             fprintf(file, "  name \"%s\"\n", b->name);

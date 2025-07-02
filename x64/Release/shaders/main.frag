@@ -307,6 +307,10 @@ void main()
 
     vec3 albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
     float alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
+
+    if (alpha < 0.1) 
+        discard;
+
     vec3 normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
     float roughness = rma1.g * blendBase + rma2.g * blendR + rma3.g * blendG + rma4.g * blendB;
     float metallic = rma1.b * blendBase + rma2.b * blendR + rma3.b * blendG + rma4.b * blendB;
