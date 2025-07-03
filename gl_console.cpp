@@ -202,4 +202,7 @@ extern "C" {
         if (w) *w = size.x;
         if (h) *h = size.y;
     }
+    void UI_Spacing() {
+        ImGui::Spacing();
+    }
 }

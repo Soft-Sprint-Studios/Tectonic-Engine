@@ -89,6 +89,7 @@ extern "C" {
 	void UI_PopID();
 
     void UI_GetDisplaySize(float* w, float* h);
+	void UI_Spacing();
 
 #ifdef __cplusplus
 }
