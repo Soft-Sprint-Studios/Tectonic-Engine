@@ -1767,6 +1767,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
         if (clip_w > 0) {
             float ndc_x = clip_space_pos[0] / clip_w; float ndc_y = clip_space_pos[1] / clip_w;
             if (ndc_x > -1.0 && ndc_x < 1.0 && ndc_y > -1.0 && ndc_y < 1.0) { light_pos_on_screen.x = ndc_x * 0.5 + 0.5; light_pos_on_screen.y = ndc_y * 0.5 + 0.5; flare_intensity = 1.0; }
+            glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_flareLightWorldPos"), 1, &light_world_pos.x);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.postProcessShader, "u_view"), 1, GL_FALSE, view->m);
         }
     }
     glUniform2fv(glGetUniformLocation(g_renderer.postProcessShader, "lightPosOnScreen"), 1, &light_pos_on_screen.x);
