@@ -102,7 +102,7 @@
     <ClCompile Include="network.c">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="dsp_reverb.cpp">
+    <ClCompile Include="dsp_reverb.c">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>

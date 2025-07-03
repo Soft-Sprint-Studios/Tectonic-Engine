@@ -22,7 +22,7 @@
     <ClCompile Include="binds.c" />
     <ClCompile Include="cvar.c" />
     <ClCompile Include="discord_wrapper.cpp" />
-    <ClCompile Include="dsp_reverb.cpp" />
+    <ClCompile Include="dsp_reverb.c" />
     <ClCompile Include="editor.c" />
     <ClCompile Include="editor_undo.c" />
     <ClCompile Include="gameconfig.c" />

@@ -803,7 +803,7 @@ void process_input() {
                 Console_Printf("Returning to game...");
             }
             else if (action == MAINMENU_ACTION_QUIT) {
-                Cvar_Set("engine_running", "0");
+                Cvar_EngineSet("engine_running", "0");
             }
         }
         else if (g_current_mode == MODE_EDITOR) {
@@ -1313,7 +1313,6 @@ void render_shadows() {
 
 static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
     glUseProgram(g_renderer.waterShader);
-    glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "view"), 1, GL_FALSE, view->m);
@@ -1409,8 +1408,6 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
     glDrawBuffers(6, attachments);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
@@ -2111,14 +2108,12 @@ int main(int argc, char* argv[]) {
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
-            glDisable(GL_CULL_FACE);
             render_water(&view, &projection, &sunLightSpaceMatrix);
             for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
                 ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
             }
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
-            glEnable(GL_CULL_FACE);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
             if (g_scene.post.dofEnabled) {
