@@ -8,7 +8,7 @@
  */
 #include "video_player.h"
 #include <stdio.h>
-#include <al.h>
+#include <AL/al.h>
 #include "gl_misc.h"
 
 #include "pl_mpeg/pl_mpeg.h"

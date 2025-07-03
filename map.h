@@ -18,7 +18,7 @@
 #include "physics_wrapper.h"
 #include "particle_system.h"
 #include "dsp_reverb.h"
-#include <al.h>
+#include <AL/al.h>
 
 #ifdef __cplusplus
 extern "C" {

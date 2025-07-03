@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <al.h>
-#include <alc.h>
+#include <AL/al.h>
+#include <AL/alc.h>
 #include "minimp3/minimp3.h"
 
 #define MAX_WET_CACHE_ENTRIES 256
