@@ -39,7 +39,30 @@ set(ENGINE_SOURCES
     mikktspace/mikktspace.c
 )
 
-add_executable(TectonicEngine ${ENGINE_SOURCES})
+set(ENGINE_HEADERS
+    binds.h
+    cvar.h
+    discord_wrapper.h
+    dsp_reverb.h
+    editor.h
+    editor_undo.h
+    gameconfig.h
+    gl_console.h
+    gl_misc.h
+    io_system.h
+    main_menu.h
+    map.h
+    math_lib.h
+    model_loader.h
+    network.h
+    particle_system.h
+    physics_wrapper.h
+    sound_system.h
+    texturemanager.h
+    video_player.h
+)
+
+add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 target_compile_definitions(TectonicEngine PRIVATE
     _CRT_SECURE_NO_WARNINGS
