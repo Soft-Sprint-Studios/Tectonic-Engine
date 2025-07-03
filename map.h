@@ -30,6 +30,7 @@ extern "C" {
 #define MAX_SOUNDS 256
 #define MAX_PARTICLE_EMITTERS 256
 #define MAX_VIDEO_PLAYERS 64
+#define MAX_PARALLAX_ROOMS 256
 #define MAX_BRUSH_VERTS 65536
 #define MAX_BRUSH_FACES 32768
 #define MAX_VPLS 4096
@@ -39,7 +40,7 @@ extern "C" {
 #define PLAYER_HEIGHT_CROUCH 1.37f
 
 typedef enum {
-    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER
+    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM
 } EntityType;
 
 typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
@@ -144,6 +145,7 @@ typedef struct {
     GLuint vplSSBO;
     GLuint brdfLUTTexture;
     GLuint decalVAO, decalVBO;
+    GLuint parallaxRoomVAO, parallaxRoomVBO;
     GLuint sunShadowFBO;
     GLuint sunShadowMap;
     GLuint finalRenderFBO;
@@ -178,6 +180,7 @@ typedef struct {
     GLuint waterShader;
     GLuint dudvMap;
     GLuint waterNormalMap;
+    GLuint parallaxInteriorShader;
     GLuint lightSSBO;
     float currentExposure;
     Mat4 prevViewProjection;
@@ -298,6 +301,17 @@ typedef struct {
     double nextFrameTime;
 } VideoPlayer;
 
+typedef struct {
+    char targetname[64];
+    char cubemapPath[128];
+    Vec3 pos;
+    Vec3 rot;
+    Vec2 size;
+    float roomDepth;
+    Mat4 modelMatrix;
+    GLuint cubemapTexture;
+} ParallaxRoom;
+
 typedef struct ParticleEmitter {
     char parFile[128];
     char targetname[64];
@@ -331,6 +345,8 @@ typedef struct {
     int numParticleEmitters;
     VideoPlayer videoPlayers[MAX_VIDEO_PLAYERS];
     int numVideoPlayers;
+    ParallaxRoom parallaxRooms[MAX_PARALLAX_ROOMS];
+    int numParallaxRooms;
     Fog fog;
     PostProcessSettings post;
     Sun sun;
@@ -356,6 +372,7 @@ void Brush_FreeData(Brush* b);
 void Brush_DeepCopy(Brush* dest, const Brush* src);
 void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
 void Decal_UpdateMatrix(Decal* d);
+void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
 void Scene_Clear(Scene* scene, Engine* engine);
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
 void Scene_SaveMap(Scene* scene, const char* mapPath);

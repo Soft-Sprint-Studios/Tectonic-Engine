@@ -61,6 +61,15 @@ const float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
+float parallaxRoomVertices[] = {
+    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+
+    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f
+};
 float skyboxVertices[] = {
     -1.0f,  1.0f, -1.0f,
     -1.0f, -1.0f, -1.0f,
@@ -486,6 +495,7 @@ void init_renderer() {
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
+    g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
@@ -648,6 +658,13 @@ void init_renderer() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    glGenVertexArrays(1, &g_renderer.parallaxRoomVAO); glGenBuffers(1, &g_renderer.parallaxRoomVBO);
+    glBindVertexArray(g_renderer.parallaxRoomVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.parallaxRoomVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(parallaxRoomVertices), parallaxRoomVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
     glBindVertexArray(0);
     g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
     if (g_renderer.brdfLUTTexture == 0) {
@@ -1326,6 +1343,28 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glCullFace(GL_BACK);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+void render_parallax_rooms(Mat4* view, Mat4* projection) {
+    glUseProgram(g_renderer.parallaxInteriorShader);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniform3fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "viewPos"), 1, &g_engine->camera.position.x);
+
+    for (int i = 0; i < g_scene.numParallaxRooms; ++i) {
+        ParallaxRoom* p = &g_scene.parallaxRooms[i];
+        if (p->cubemapTexture == 0) continue;
+
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "model"), 1, GL_FALSE, p->modelMatrix.m);
+        glUniform1f(glGetUniformLocation(g_renderer.parallaxInteriorShader, "roomDepth"), p->roomDepth);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, p->cubemapTexture);
+        glUniform1i(glGetUniformLocation(g_renderer.parallaxInteriorShader, "roomCubemap"), 0);
+
+        glBindVertexArray(g_renderer.parallaxRoomVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    glBindVertexArray(0);
+}
 
 void render_shadows() {
     glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT); glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -1581,6 +1620,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         render_brush(g_renderer.mainShader, &g_scene.brushes[i], false, &frustum);
     }
+    render_parallax_rooms(view, projection);
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
     for (int i = 0; i < g_scene.numDecals; ++i) {
         Decal* d = &g_scene.decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
@@ -1788,6 +1828,9 @@ void cleanup() {
         ParticleEmitter_Free(&g_scene.particleEmitters[i]);
         ParticleSystem_Free(g_scene.particleEmitters[i].system);
     }
+    for (int i = 0; i < g_scene.numParallaxRooms; ++i) {
+        if (g_scene.parallaxRooms[i].cubemapTexture) glDeleteTextures(1, &g_scene.parallaxRooms[i].cubemapTexture);
+    }
     for (int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         if (g_scene.brushes[i].isReflectionProbe) {
@@ -1814,6 +1857,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.dofShader);
     glDeleteProgram(g_renderer.ssaoShader);
     glDeleteProgram(g_renderer.ssaoBlurShader);
+    glDeleteProgram(g_renderer.parallaxInteriorShader);
     glDeleteProgram(g_renderer.volumetricShader);
     glDeleteProgram(g_renderer.volumetricBlurShader);
     glDeleteProgram(g_renderer.histogramShader);
@@ -1849,6 +1893,7 @@ void cleanup() {
     glDeleteFramebuffers(1, &g_renderer.sunShadowFBO);
     glDeleteTextures(1, &g_renderer.sunShadowMap);
     glDeleteVertexArrays(1, &g_renderer.decalVAO); glDeleteBuffers(1, &g_renderer.decalVBO);
+    glDeleteVertexArrays(1, &g_renderer.parallaxRoomVAO); glDeleteBuffers(1, &g_renderer.parallaxRoomVBO);
     glDeleteFramebuffers(1, &g_renderer.bloomFBO); glDeleteTextures(1, &g_renderer.bloomBrightnessTexture);
     glDeleteFramebuffers(2, g_renderer.pingpongFBO); glDeleteTextures(2, g_renderer.pingpongColorbuffers);
     glDeleteFramebuffers(1, &g_renderer.volumetricFBO);

@@ -31,6 +31,7 @@ typedef struct {
         SoundEntity soundEntity;
         ParticleEmitter particleEmitter;
         VideoPlayer videoPlayer;
+        ParallaxRoom parallaxRoom;
         PlayerStart playerStart;
         Fog fog;
         PostProcessSettings post;
@@ -144,6 +145,9 @@ static void capture_state(EntityState* state, Scene* scene, EntityType type, int
     case ENTITY_VIDEO_PLAYER:
         state->data.videoPlayer = scene->videoPlayers[index];
         break;
+    case ENTITY_PARALLAX_ROOM:
+        state->data.parallaxRoom = scene->parallaxRooms[index];
+        break;
     case ENTITY_PLAYERSTART: state->data.playerStart = scene->playerStart; break;
     }
 }
@@ -219,6 +223,12 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
             memmove(&scene->videoPlayers[state->index + 1], &scene->videoPlayers[state->index], (scene->numVideoPlayers - 1 - state->index) * sizeof(VideoPlayer));
             scene->videoPlayers[state->index] = state->data.videoPlayer;
             VideoPlayer_Load(&scene->videoPlayers[state->index]);
+            break;
+        case ENTITY_PARALLAX_ROOM:
+            scene->numParallaxRooms++;
+            memmove(&scene->parallaxRooms[state->index + 1], &scene->parallaxRooms[state->index], (scene->numParallaxRooms - 1 - state->index) * sizeof(ParallaxRoom));
+            scene->parallaxRooms[state->index] = state->data.parallaxRoom;
+            ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[state->index]);
             break;
         }
         return;

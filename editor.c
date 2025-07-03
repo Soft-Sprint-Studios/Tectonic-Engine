@@ -31,6 +31,7 @@ extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
 extern void SceneObject_UpdateMatrix(SceneObject* obj);
 extern void Brush_UpdateMatrix(Brush* b);
 extern void Decal_UpdateMatrix(Decal* d);
+extern void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
 extern void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
 extern void Brush_CreateRenderData(Brush* b);
 extern void handle_command(int argc, char** argv);
@@ -499,6 +500,21 @@ void Editor_DeleteVideoPlayer(Scene* scene, int index) {
         else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
     }
 }
+void Editor_DeleteParallaxRoom(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numParallaxRooms) return;
+    Undo_PushDeleteEntity(scene, ENTITY_PARALLAX_ROOM, index, "Delete Parallax Room");
+    if (scene->parallaxRooms[index].cubemapTexture) {
+        glDeleteTextures(1, &scene->parallaxRooms[index].cubemapTexture);
+    }
+    for (int i = index; i < scene->numParallaxRooms - 1; ++i) {
+        scene->parallaxRooms[i] = scene->parallaxRooms[i + 1];
+    }
+    scene->numParallaxRooms--;
+    if (g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM) {
+        if (g_EditorState.selected_entity_index == index) { g_EditorState.selected_entity_type = ENTITY_NONE; g_EditorState.selected_entity_index = -1; }
+        else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
+    }
+}
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
     SceneObject* src_obj = &scene->objects[index];
@@ -614,7 +630,28 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     g_EditorState.selected_entity_index = scene->numVideoPlayers - 1;
     Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, g_EditorState.selected_entity_index, "Duplicate Video Player");
 }
+void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numParallaxRooms || scene->numParallaxRooms >= MAX_PARALLAX_ROOMS) return;
+    ParallaxRoom* src_p = &scene->parallaxRooms[index];
+    ParallaxRoom* new_p = &scene->parallaxRooms[scene->numParallaxRooms];
+    memcpy(new_p, src_p, sizeof(ParallaxRoom));
+    new_p->pos.x += 1.0f;
+    ParallaxRoom_UpdateMatrix(new_p);
 
+    const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+    char face_paths[6][256];
+    const char* face_pointers[6];
+    for (int i = 0; i < 6; ++i) {
+        sprintf(face_paths[i], "%s%s", new_p->cubemapPath, suffixes[i]);
+        face_pointers[i] = face_paths[i];
+    }
+    new_p->cubemapTexture = loadCubemap(face_pointers);
+
+    scene->numParallaxRooms++;
+    g_EditorState.selected_entity_type = ENTITY_PARALLAX_ROOM;
+    g_EditorState.selected_entity_index = scene->numParallaxRooms - 1;
+    Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, g_EditorState.selected_entity_index, "Duplicate Parallax Room");
+}
 static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     Brush* b = &g_EditorState.preview_brush;
 
@@ -1155,6 +1192,20 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         }
     }
 
+    for (int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) {
+        ParallaxRoom* p = &g_CurrentScene->parallaxRooms[i];
+        p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, 0.01f });
+        Vec3 local_min = { -0.5f, -0.5f, -0.5f };
+        Vec3 local_max = { 0.5f, 0.5f, 0.5f };
+        float t;
+        if (RayIntersectsOBB(ray_origin_world, ray_dir_world, &p->modelMatrix, local_min, local_max, &t) && t < closest_t) {
+            closest_t = t;
+            selected_type = ENTITY_PARALLAX_ROOM;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
     g_EditorState.selected_entity_type = selected_type;
     g_EditorState.selected_entity_index = selected_index;
 
@@ -1464,6 +1515,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_object_start_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos;
                     g_EditorState.gizmo_drag_object_start_rot = scene->videoPlayers[g_EditorState.selected_entity_index].rot;
                     g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->videoPlayers[g_EditorState.selected_entity_index].size.x, scene->videoPlayers[g_EditorState.selected_entity_index].size.y, 1.0f };
+                    break;
+                case ENTITY_PARALLAX_ROOM:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->parallaxRooms[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->parallaxRooms[g_EditorState.selected_entity_index].size.x, scene->parallaxRooms[g_EditorState.selected_entity_index].size.y, 1.0f };
                     break;
                 default: break;
                 }
@@ -1951,6 +2007,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     scene->videoPlayers[g_EditorState.selected_entity_index].size.x = new_scale.x;
                     scene->videoPlayers[g_EditorState.selected_entity_index].size.y = new_scale.y;
                     break;
+                case ENTITY_PARALLAX_ROOM:
+                    scene->parallaxRooms[g_EditorState.selected_entity_index].pos = new_pos;
+                    scene->parallaxRooms[g_EditorState.selected_entity_index].rot = new_rot;
+                    scene->parallaxRooms[g_EditorState.selected_entity_index].size.x = new_scale.x;
+                    scene->parallaxRooms[g_EditorState.selected_entity_index].size.y = new_scale.y;
+                    ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[g_EditorState.selected_entity_index]);
+                    break;
                 default: break;
                 }
             }
@@ -1984,6 +2047,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_SOUND: Editor_DuplicateSoundEntity(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, g_EditorState.selected_entity_index); break;
                 default: Console_Printf("Duplication not implemented for this entity type yet."); break;
                 }
             }
@@ -2105,6 +2169,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_SOUND: if (g_EditorState.selected_entity_index != -1) Editor_DeleteSoundEntity(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARTICLE_EMITTER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParticleEmitter(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_VIDEO_PLAYER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteVideoPlayer(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_PARALLAX_ROOM: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParallaxRoom(scene, g_EditorState.selected_entity_index); break;
                 default: break;
                 }
             }
@@ -2347,6 +2412,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             case ENTITY_PARTICLE_EMITTER: gizmo_target_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PLAYERSTART: gizmo_target_pos = scene->playerStart.position; use_gizmo = true; break;
             case ENTITY_VIDEO_PLAYER: gizmo_target_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
+            case ENTITY_PARALLAX_ROOM: gizmo_target_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             default: break;
             }
         }
@@ -2410,6 +2476,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     case ENTITY_PARTICLE_EMITTER: object_pos = g_CurrentScene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
     case ENTITY_PLAYERSTART: object_pos = g_CurrentScene->playerStart.position; break;
     case ENTITY_VIDEO_PLAYER: object_pos = g_CurrentScene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
+    case ENTITY_PARALLAX_ROOM: object_pos = g_CurrentScene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
     default: has_pos = false; break;
     }
     if (!has_pos) return;
@@ -2709,6 +2776,19 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
         bool is_selected = (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index == i);
         float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        if (!is_selected) { color[3] = 0.5f; }
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glBindVertexArray(g_EditorState.decal_box_vao);
+        glLineWidth(is_selected ? 2.0f : 1.0f);
+        glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
+        glLineWidth(1.0f);
+    }
+    for (int i = 0; i < scene->numParallaxRooms; i++) {
+        ParallaxRoom* p = &scene->parallaxRooms[i];
+        p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, p->roomDepth });
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, p->modelMatrix.m);
+        bool is_selected = (g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM && g_EditorState.selected_entity_index == i);
+        float color[] = { 0.5f, 0.0f, 1.0f, 1.0f };
         if (!is_selected) { color[3] = 0.5f; }
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
         glBindVertexArray(g_EditorState.decal_box_vao);
@@ -3439,6 +3519,34 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
+    int parallax_room_to_delete = -1;
+    if (UI_CollapsingHeader("Parallax Rooms", 1)) {
+        for (int i = 0; i < scene->numParallaxRooms; ++i) {
+            char label[128];
+            sprintf(label, "%s##parallax%d", scene->parallaxRooms[i].cubemapPath, i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_PARALLAX_ROOM;
+                g_EditorState.selected_entity_index = i;
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##parallax%d", i);
+            if (UI_Button(del_label)) { parallax_room_to_delete = i; }
+        }
+        if (UI_Button("Add Parallax Room")) {
+            if (scene->numParallaxRooms < MAX_PARALLAX_ROOMS) {
+                ParallaxRoom* p = &scene->parallaxRooms[scene->numParallaxRooms];
+                memset(p, 0, sizeof(ParallaxRoom));
+                p->pos = g_EditorState.editor_camera.position;
+                p->size = (Vec2){ 2, 2 };
+                p->roomDepth = 2.0f;
+                strcpy(p->cubemapPath, "cubemaps/office1");
+                scene->numParallaxRooms++;
+                Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, scene->numParallaxRooms - 1, "Create Parallax Room");
+            }
+        }
+    }
+    if (parallax_room_to_delete != -1) { Editor_DeleteParallaxRoom(scene, parallax_room_to_delete); }
     if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
@@ -3785,6 +3893,29 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if(vp->textureID != 0) {
             UI_Image((void*)(intptr_t)vp->textureID, 256, 144);
         }
+    }
+    else if (g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM && g_EditorState.selected_entity_index < scene->numParallaxRooms) {
+        ParallaxRoom* p = &scene->parallaxRooms[g_EditorState.selected_entity_index];
+        UI_Text("Parallax Room Properties");
+        UI_Separator();
+        UI_InputText("Cubemap Path Base", p->cubemapPath, sizeof(p->cubemapPath));
+        if (UI_Button("Reload Cubemap")) {
+            if (p->cubemapTexture) glDeleteTextures(1, &p->cubemapTexture);
+            const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+            char face_paths[6][256];
+            const char* face_pointers[6];
+            for (int i = 0; i < 6; ++i) {
+                sprintf(face_paths[i], "%s%s", p->cubemapPath, suffixes[i]);
+                face_pointers[i] = face_paths[i];
+            }
+            p->cubemapTexture = loadCubemap(face_pointers);
+        }
+
+        UI_DragFloat3("Position", &p->pos.x, 0.1f, 0, 0);
+        UI_DragFloat3("Rotation", &p->rot.x, 1.0f, 0, 0);
+        UI_DragFloat2("Size", &p->size.x, 0.05f, 0, 0);
+        UI_DragFloat("Room Depth", &p->roomDepth, 0.1f, 0.1f, 100.0f);
+        ParallaxRoom_UpdateMatrix(p);
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
     if (UI_CollapsingHeader("Sun", 1)) {
