@@ -31,6 +31,11 @@
 #include "dsp_reverb.h"
 #include "video_player.h"
 
+#ifdef _WIN32
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+#endif
+
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
 #define SHADOW_WIDTH 1024
@@ -1735,7 +1740,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_renderer.postProcessShader);
     glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), (float)SDL_GetTicks() / 1000.0f);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->lastFrame);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), g_scene.fog.enabled);
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fogColor"), 1, &g_scene.fog.color.x);

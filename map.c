@@ -347,7 +347,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
                 temp_face_verts_idx[face_verts_current_idx_count++] = vert_map[p1_idx];
             }
 
-            if (side[p1_idx] * side[p2_idx] < 0) { // Edge crosses the plane
+            if (side[p1_idx] * side[p2_idx] < 0) {
                 float t = dists[p1_idx] / (dists[p1_idx] - dists[p2_idx]);
                 Vec3 intersect_pos = vec3_add(b->vertices[p1_idx].pos, vec3_muls(vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
                 Vec4 intersect_color;
@@ -377,7 +377,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
                 fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
                 goto cleanup_and_return;
             }
-            BrushFace new_face_entry = *face; // Copy material and UV data
+            BrushFace new_face_entry = *face;
             new_face_entry.numVertexIndices = face_verts_current_idx_count;
             new_face_entry.vertexIndices = (int*)malloc(face_verts_current_idx_count * sizeof(int));
             if (!new_face_entry.vertexIndices) {
