@@ -11,9 +11,7 @@
 #include <vector>
 #include <map>
 
-extern "C" {
 #include "physics_wrapper.h"
-}
 
 struct PhysicsWorld {
     btDiscreteDynamicsWorld* dynamicsWorld;

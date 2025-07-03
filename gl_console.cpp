@@ -19,9 +19,7 @@
 
 #include "gl_console.h"
 
-extern "C" {
-    #include "cvar.h"
-}
+#include "cvar.h"
 
 static bool show_console = false;
 static command_callback_t command_handler = nullptr;

@@ -188,29 +188,66 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow / 9.0;
 }
 
-vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir)
+const float PARALLAX_START_FADE_DISTANCE = 20.0;
+const float PARALLAX_END_FADE_DISTANCE = 40.0;
+
+vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
 {
-    const float minLayers = 16.0;
-    const float maxLayers = 64.0;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-    float layerDepth = 1.0 / numLayers;
-    float currentLayerDepth = 0.0;
-    vec2 P = viewDir.xy * hScale; 
-    vec2 deltaTexCoords = P / numLayers;
-    vec2 currentTexCoords = texCoords;
-    float currentDepthMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-    while(currentLayerDepth < currentDepthMapValue)
-    {
-        currentTexCoords -= deltaTexCoords;
-        currentDepthMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-        currentLayerDepth += layerDepth;  
+    if (distanceFade >= 1.0) {
+        return texCoords;
     }
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-    float afterDepth = (1.0 - texture(heightMapSampler, currentTexCoords).r) - currentLayerDepth;
-    float beforeDepth = (1.0 - texture(heightMapSampler, prevTexCoords).r) - currentLayerDepth + layerDepth;
+
+    const float maxLayers = 16.0;
+    const float minLayers = 4.0;
+
+    float numLayers = mix(maxLayers, minLayers, distanceFade);
+    numLayers = mix(numLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+
+    float layerDepth = 1.0 / numLayers;
+    vec2 p = viewDir.xy * hScale;
+    vec2 deltaTexCoords = p / numLayers;
+
+    vec2 currentTexCoords = texCoords;
+    float currentLayerDepth = 0.0;
+    float currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
+    vec2 prevTexCoords = currentTexCoords;
+
+    for (int i = 0; i < int(numLayers); ++i)
+    {
+        if(currentLayerDepth >= currentHeightMapValue) {
+            break;
+        }
+
+        prevTexCoords = currentTexCoords;
+        currentLayerDepth += layerDepth;
+        currentTexCoords -= deltaTexCoords;
+        currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
+    }
+
+    currentTexCoords = prevTexCoords;
+    const float numFineLayers = numLayers;
+    deltaTexCoords /= numFineLayers;
+    layerDepth /= numFineLayers;
+    currentLayerDepth -= layerDepth * numFineLayers;
+
+    for (int i = 0; i < int(numFineLayers); ++i)
+    {
+        currentLayerDepth += layerDepth;
+        currentTexCoords -= deltaTexCoords;
+        currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
+
+        if (currentLayerDepth >= currentHeightMapValue) {
+            break;
+        }
+    }
+
+    vec2 finalPrevTexCoords = currentTexCoords + deltaTexCoords;
+    float afterDepth = currentHeightMapValue - currentLayerDepth;
+    float beforeDepth = (1.0 - texture(heightMapSampler, finalPrevTexCoords).r) - (currentLayerDepth - layerDepth);
     float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
-    return finalTexCoords;
+    vec2 parallaxTexCoords = mix(currentTexCoords, finalPrevTexCoords, weight);
+
+    return mix(parallaxTexCoords, texCoords, distanceFade);
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -264,10 +301,6 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     return normalize(intersectPos - probePos);
 }
 
-vec3 gammaCorrect(vec3 color) {
-    return pow(color, vec3(1.0 / 2.2));
-}
-
 void main()
 {
     float blendR = v_Color.r;
@@ -277,11 +310,14 @@ void main()
     float blendBase = 1.0 - blendTotal;
 
 	vec3 viewDir_tangent = normalize(TangentViewPos - TangentFragPos);
+
+    float dist = length(FragPos_world - viewPos);
+    float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
     
-    vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent);
-    vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent);
-    vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent);
-    vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent);
+     vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
     vec3 normalTex1 = texture(normalMap, finalTexCoords1).rgb;

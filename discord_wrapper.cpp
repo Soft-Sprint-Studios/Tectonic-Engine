@@ -11,9 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 
-extern "C" {
 #include "discord_wrapper.h"
-}
 
 static const char* APPLICATION_ID = "1386692288914260071";
 static int64_t StartTime;

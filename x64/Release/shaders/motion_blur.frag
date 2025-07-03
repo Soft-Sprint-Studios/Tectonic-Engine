@@ -7,7 +7,7 @@ uniform sampler2D sceneTexture;
 uniform sampler2D velocityTexture;
 
 const int NUM_SAMPLES = 16;
-const float BLUR_STRENGTH = 1.0;
+const float BLUR_STRENGTH = 0.7;
 
 void main()
 {
