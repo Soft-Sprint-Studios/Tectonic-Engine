@@ -3944,6 +3944,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
     UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
+    for (int i = 0; i < 5; i++) {
+        UI_Spacing();
+    }
     UI_End();
 
     if (UI_BeginMainMenuBar()) {
