@@ -107,7 +107,7 @@ void main()
     }
     
     const float BRUSH_GI_MULTIPLIER = 1.0;
-    const float MODEL_GI_MULTIPLIER = 0.3;
+    const float MODEL_GI_MULTIPLIER = 1.0;
     float gi_multiplier = tes_in[0].isBrush ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
     indirectLight = vec3(0.0);
     for (int i = 0; i < num_vpls; ++i)

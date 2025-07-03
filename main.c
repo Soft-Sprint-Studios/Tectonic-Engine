@@ -436,7 +436,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.", CVAR_NONE);
-    Cvar_Register("r_fxaa", "1", "Enable Fast Approximate Anti-Aliasing.", CVAR_NONE);
+    Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
@@ -473,7 +473,7 @@ void init_renderer() {
     g_renderer.dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
     g_renderer.volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
     g_renderer.volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
-    g_renderer.fxaaShader = createShaderProgram("shaders/fxaa.vert", "shaders/fxaa.frag");
+    g_renderer.depthAaShader = createShaderProgram("shaders/depth_aa.vert", "shaders/depth_aa.frag");
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
@@ -1751,7 +1751,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.volumetricBlurShader);
     glDeleteProgram(g_renderer.histogramShader);
     glDeleteProgram(g_renderer.exposureShader);
-    glDeleteProgram(g_renderer.fxaaShader);
+    glDeleteProgram(g_renderer.depthAaShader);
     glDeleteProgram(g_renderer.motionBlurShader);
     glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
     glDeleteTextures(1, &g_renderer.gLitColor);
@@ -1861,17 +1861,25 @@ void render_dof_pass(GLuint sourceTexture, GLuint sourceDepthTexture, GLuint des
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_fxaa_pass(GLuint sourceTexture, GLuint destFBO) {
+void render_depth_aa_pass(GLuint sourceTexture, GLuint destFBO) {
     glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
     glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(g_renderer.fxaaShader);
-    glUniform2f(glGetUniformLocation(g_renderer.fxaaShader, "u_texelStep"), 1.0f / WINDOW_WIDTH, 1.0f / WINDOW_HEIGHT);
+    glUseProgram(g_renderer.depthAaShader);
+    glUniform2f(glGetUniformLocation(g_renderer.depthAaShader, "screenSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.fxaaShader, "u_colorTexture"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "finalImage"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "gPosition"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
+    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "gNormal"), 2);
 
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -2129,9 +2137,9 @@ int main(int argc, char* argv[]) {
                 source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
             }
 
-            if (Cvar_GetInt("r_fxaa")) {
+            if (Cvar_GetInt("r_depth_aa")) {
                 GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
-                render_fxaa_pass(source_tex, target_fbo);
+                render_depth_aa_pass(source_tex, target_fbo);
                 source_fbo = target_fbo;
             }
 

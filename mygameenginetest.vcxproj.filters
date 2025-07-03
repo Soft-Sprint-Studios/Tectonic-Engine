@@ -229,12 +229,6 @@
     <None Include="x64\Release\shaders\exposure.comp">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
-    <None Include="x64\Release\shaders\fxaa.frag">
-      <Filter>Source Files\engine\shaders</Filter>
-    </None>
-    <None Include="x64\Release\shaders\fxaa.vert">
-      <Filter>Source Files\engine\shaders</Filter>
-    </None>
     <None Include="x64\Release\shaders\gizmo.frag">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
@@ -332,6 +326,12 @@
       <Filter>Source Files\engine\shaders</Filter>
     </None>
     <None Include="x64\Release\shaders\motion_blur.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_aa.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\depth_aa.vert">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
   </ItemGroup>

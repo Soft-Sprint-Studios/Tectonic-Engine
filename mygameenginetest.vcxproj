@@ -82,6 +82,8 @@
     <None Include="x64\Release\shaders\blur.vert" />
     <None Include="x64\Release\shaders\debug.frag" />
     <None Include="x64\Release\shaders\debug.vert" />
+    <None Include="x64\Release\shaders\depth_aa.frag" />
+    <None Include="x64\Release\shaders\depth_aa.vert" />
     <None Include="x64\Release\shaders\depth_point.frag" />
     <None Include="x64\Release\shaders\depth_point.geom" />
     <None Include="x64\Release\shaders\depth_point.vert" />
@@ -90,8 +92,6 @@
     <None Include="x64\Release\shaders\dof.frag" />
     <None Include="x64\Release\shaders\dof.vert" />
     <None Include="x64\Release\shaders\exposure.comp" />
-    <None Include="x64\Release\shaders\fxaa.frag" />
-    <None Include="x64\Release\shaders\fxaa.vert" />
     <None Include="x64\Release\shaders\gizmo.frag" />
     <None Include="x64\Release\shaders\gizmo.vert" />
     <None Include="x64\Release\shaders\grid.frag" />
