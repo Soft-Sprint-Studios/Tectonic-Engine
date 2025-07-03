@@ -105,6 +105,9 @@
     <ClCompile Include="dsp_reverb.c">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
+    <ClCompile Include="video_player.c">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui-master\backends\imgui_impl_opengl3.h">
@@ -177,6 +180,9 @@
       <Filter>Header Files\engine</Filter>
     </ClInclude>
     <ClInclude Include="dsp_reverb.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="video_player.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
@@ -332,6 +338,12 @@
       <Filter>Source Files\engine\shaders</Filter>
     </None>
     <None Include="x64\Release\shaders\depth_aa.vert">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\video.frag">
+      <Filter>Source Files\engine\shaders</Filter>
+    </None>
+    <None Include="x64\Release\shaders\video.vert">
       <Filter>Source Files\engine\shaders</Filter>
     </None>
   </ItemGroup>

@@ -18,6 +18,7 @@
 #include "physics_wrapper.h"
 #include "particle_system.h"
 #include "dsp_reverb.h"
+#include <al.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +29,7 @@ extern "C" {
 #define MAX_DECALS 16384
 #define MAX_SOUNDS 256
 #define MAX_PARTICLE_EMITTERS 256
+#define MAX_VIDEO_PLAYERS 64
 #define MAX_BRUSH_VERTS 65536
 #define MAX_BRUSH_FACES 32768
 #define MAX_VPLS 4096
@@ -37,7 +39,7 @@ extern "C" {
 #define PLAYER_HEIGHT_CROUCH 1.37f
 
 typedef enum {
-    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER
+    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER
 } EntityType;
 
 typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
@@ -268,6 +270,34 @@ typedef struct {
     bool play_on_start;
 } SoundEntity;
 
+typedef enum {
+    VP_STOPPED,
+    VP_PLAYING,
+    VP_PAUSED
+} VideoPlayerState;
+
+typedef struct plm_t plm_t;
+
+typedef struct {
+    char targetname[64];
+    char videoPath[128];
+    Vec3 pos;
+    Vec3 rot;
+    Vec2 size;
+    Mat4 modelMatrix;
+
+    bool playOnStart;
+    bool loop;
+    VideoPlayerState state;
+
+    plm_t* plm;
+    GLuint textureID;
+    ALuint audioSource;
+    ALuint audioBuffers[4];
+    double time;
+    double nextFrameTime;
+} VideoPlayer;
+
 typedef struct ParticleEmitter {
     char parFile[128];
     char targetname[64];
@@ -299,6 +329,8 @@ typedef struct {
     int numSoundEntities;
     ParticleEmitter particleEmitters[MAX_PARTICLE_EMITTERS];
     int numParticleEmitters;
+    VideoPlayer videoPlayers[MAX_VIDEO_PLAYERS];
+    int numVideoPlayers;
     Fog fog;
     PostProcessSettings post;
     Sun sun;

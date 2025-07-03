@@ -30,6 +30,7 @@ typedef struct {
         Decal decal;
         SoundEntity soundEntity;
         ParticleEmitter particleEmitter;
+        VideoPlayer videoPlayer;
         PlayerStart playerStart;
         Fog fog;
         PostProcessSettings post;
@@ -140,6 +141,9 @@ static void capture_state(EntityState* state, Scene* scene, EntityType type, int
         memcpy(&state->data.particleEmitter, &scene->particleEmitters[index], offsetof(ParticleEmitter, particles));
         strcpy(state->parFile, scene->particleEmitters[index].parFile);
         break;
+    case ENTITY_VIDEO_PLAYER:
+        state->data.videoPlayer = scene->videoPlayers[index];
+        break;
     case ENTITY_PLAYERSTART: state->data.playerStart = scene->playerStart; break;
     }
 }
@@ -209,6 +213,12 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
             strcpy(scene->particleEmitters[state->index].parFile, state->parFile);
             ParticleSystem* ps = ParticleSystem_Load(state->parFile);
             if (ps) ParticleEmitter_Init(&scene->particleEmitters[state->index], ps, state->data.particleEmitter.pos);
+            break;
+        case ENTITY_VIDEO_PLAYER:
+            scene->numVideoPlayers++;
+            memmove(&scene->videoPlayers[state->index + 1], &scene->videoPlayers[state->index], (scene->numVideoPlayers - 1 - state->index) * sizeof(VideoPlayer));
+            scene->videoPlayers[state->index] = state->data.videoPlayer;
+            VideoPlayer_Load(&scene->videoPlayers[state->index]);
             break;
         }
         return;

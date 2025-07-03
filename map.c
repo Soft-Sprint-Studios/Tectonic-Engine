@@ -15,6 +15,7 @@
 #include "cvar.h"
 #include "sound_system.h"
 #include "io_system.h"
+#include "video_player.h"
 #include "mikktspace/mikktspace.h"
 
 typedef struct {
@@ -632,6 +633,9 @@ void Scene_Clear(Scene* scene, Engine* engine) {
         ParticleEmitter_Free(&scene->particleEmitters[i]);
         ParticleSystem_Free(scene->particleEmitters[i].system);
     }
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        VideoPlayer_Free(&scene->videoPlayers[i]);
+    }
     if (engine->physicsWorld) { Physics_DestroyWorld(engine->physicsWorld); }
 
     memset(scene, 0, sizeof(Scene));
@@ -683,6 +687,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     for (int i = 0; i < scene->numParticleEmitters; ++i) {
         ParticleEmitter_Free(&scene->particleEmitters[i]);
         ParticleSystem_Free(scene->particleEmitters[i].system);
+    }
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        VideoPlayer_Free(&scene->videoPlayers[i]);
     }
     if (engine->physicsWorld) { Physics_DestroyWorld(engine->physicsWorld); }
 
@@ -986,6 +993,29 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 scene->numSoundEntities++;
             }
         }
+        else if (strcmp(keyword, "video_player") == 0) {
+            if (scene->numVideoPlayers < MAX_VIDEO_PLAYERS) {
+                VideoPlayer* vp = &scene->videoPlayers[scene->numVideoPlayers];
+                memset(vp, 0, sizeof(VideoPlayer));
+                int play_on_start_int = 0, loop_int = 0;
+
+                sscanf(line, "%*s \"%127[^\"]\" \"%63[^\"]\" %d %d %f %f %f %f %f %f %f %f",
+                    vp->videoPath, vp->targetname, &play_on_start_int, &loop_int,
+                    &vp->pos.x, &vp->pos.y, &vp->pos.z,
+                    &vp->rot.x, &vp->rot.y, &vp->rot.z,
+                    &vp->size.x, &vp->size.y);
+
+                vp->playOnStart = (bool)play_on_start_int;
+                vp->loop = (bool)loop_int;
+
+                VideoPlayer_Load(vp);
+
+                if (vp->playOnStart) {
+                    VideoPlayer_Play(vp);
+                }
+                scene->numVideoPlayers++;
+            }
+        }
         else if (strcmp(keyword, "io_connection") == 0) {
             if (g_num_io_connections < MAX_IO_CONNECTIONS) {
                 IOConnection* conn = &g_io_connections[g_num_io_connections];
@@ -1093,6 +1123,15 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundEntity* s = &scene->soundEntities[i];
         fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start);
+    }
+    fprintf(file, "\n");
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        VideoPlayer* vp = &scene->videoPlayers[i];
+        fprintf(file, "video_player \"%s\" \"%s\" %d %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
+            vp->videoPath, vp->targetname, (int)vp->playOnStart, (int)vp->loop,
+            vp->pos.x, vp->pos.y, vp->pos.z,
+            vp->rot.x, vp->rot.y, vp->rot.z,
+            vp->size.x, vp->size.y);
     }
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];

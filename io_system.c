@@ -8,6 +8,7 @@
  */
 #include "io_system.h"
 #include "sound_system.h"
+#include "video_player.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,6 +158,19 @@ static void ExecuteInput(const char* targetName, const char* inputName, Scene* s
             if (strcmp(inputName, "TurnOn") == 0) scene->particleEmitters[i].is_on = true;
             else if (strcmp(inputName, "TurnOff") == 0) scene->particleEmitters[i].is_on = false;
             else if (strcmp(inputName, "Toggle") == 0) scene->particleEmitters[i].is_on = !scene->particleEmitters[i].is_on;
+        }
+    }
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        if (strcmp(scene->videoPlayers[i].targetname, targetName) == 0) {
+            if (strcmp(inputName, "startvideo") == 0) {
+                VideoPlayer_Play(&scene->videoPlayers[i]);
+            }
+            else if (strcmp(inputName, "stopvideo") == 0) {
+                VideoPlayer_Stop(&scene->videoPlayers[i]);
+            }
+            else if (strcmp(inputName, "restartvideo") == 0) {
+                VideoPlayer_Restart(&scene->videoPlayers[i]);
+            }
         }
     }
 }

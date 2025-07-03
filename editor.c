@@ -486,7 +486,19 @@ void Editor_DeleteParticleEmitter(Scene* scene, int index) {
         else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
     }
 }
-
+void Editor_DeleteVideoPlayer(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numVideoPlayers) return;
+    Undo_PushDeleteEntity(scene, ENTITY_VIDEO_PLAYER, index, "Delete Video Player");
+    VideoPlayer_Free(&scene->videoPlayers[index]);
+    for (int i = index; i < scene->numVideoPlayers - 1; ++i) {
+        scene->videoPlayers[i] = scene->videoPlayers[i + 1];
+    }
+    scene->numVideoPlayers--;
+    if (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER) {
+        if (g_EditorState.selected_entity_index == index) { g_EditorState.selected_entity_type = ENTITY_NONE; g_EditorState.selected_entity_index = -1; }
+        else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
+    }
+}
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
     SceneObject* src_obj = &scene->objects[index];
@@ -582,6 +594,25 @@ void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
         g_EditorState.selected_entity_index = scene->numParticleEmitters - 1;
         Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Duplicate Emitter");
     }
+}
+
+void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numVideoPlayers || scene->numVideoPlayers >= MAX_VIDEO_PLAYERS) return;
+    VideoPlayer* src_vp = &scene->videoPlayers[index];
+    VideoPlayer* new_vp = &scene->videoPlayers[scene->numVideoPlayers];
+    memcpy(new_vp, src_vp, sizeof(VideoPlayer));
+    new_vp->plm = NULL;
+    new_vp->textureID = 0;
+    new_vp->audioSource = 0;
+    new_vp->pos.x += 1.0f;
+    VideoPlayer_Load(new_vp);
+    if (new_vp->playOnStart) {
+        VideoPlayer_Play(new_vp);
+    }
+    scene->numVideoPlayers++;
+    g_EditorState.selected_entity_type = ENTITY_VIDEO_PLAYER;
+    g_EditorState.selected_entity_index = scene->numVideoPlayers - 1;
+    Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, g_EditorState.selected_entity_index, "Duplicate Video Player");
 }
 
 static void Editor_UpdatePreviewBrushFromWorldMinMax() {
@@ -1104,6 +1135,26 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         }
     }
 
+    for (int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) {
+        VideoPlayer* vp = &g_CurrentScene->videoPlayers[i];
+
+        Vec3 vp_local_min = { -0.5f, -0.5f, -0.5f };
+        Vec3 vp_local_max = { 0.5f, 0.5f, 0.5f };
+        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 0.01f });
+
+        float t;
+        if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
+            &vp->modelMatrix,
+            vp_local_min,
+            vp_local_max,
+            &t) && t < closest_t) {
+            closest_t = t;
+            selected_type = ENTITY_VIDEO_PLAYER;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
     g_EditorState.selected_entity_type = selected_type;
     g_EditorState.selected_entity_index = selected_index;
 
@@ -1176,6 +1227,7 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
     case ENTITY_SOUND: object_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
     case ENTITY_PARTICLE_EMITTER: object_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
     case ENTITY_PLAYERSTART: object_pos = scene->playerStart.position; break;
+    case ENTITY_VIDEO_PLAYER: object_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
     default: has_pos = false; break;
     }
     if (!has_pos) { g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE; return; }
@@ -1407,6 +1459,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.position;
                     g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
                     g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_VIDEO_PLAYER:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = scene->videoPlayers[g_EditorState.selected_entity_index].rot;
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->videoPlayers[g_EditorState.selected_entity_index].size.x, scene->videoPlayers[g_EditorState.selected_entity_index].size.y, 1.0f };
                     break;
                 default: break;
                 }
@@ -1888,6 +1945,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_SOUND: scene->soundEntities[g_EditorState.selected_entity_index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[g_EditorState.selected_entity_index].sourceID, new_pos); break;
                 case ENTITY_PARTICLE_EMITTER: scene->particleEmitters[g_EditorState.selected_entity_index].pos = new_pos; break;
                 case ENTITY_PLAYERSTART: scene->playerStart.position = new_pos; break;
+                case ENTITY_VIDEO_PLAYER:
+                    scene->videoPlayers[g_EditorState.selected_entity_index].pos = new_pos;
+                    scene->videoPlayers[g_EditorState.selected_entity_index].rot = new_rot;
+                    scene->videoPlayers[g_EditorState.selected_entity_index].size.x = new_scale.x;
+                    scene->videoPlayers[g_EditorState.selected_entity_index].size.y = new_scale.y;
+                    break;
                 default: break;
                 }
             }
@@ -1920,6 +1983,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_DECAL: Editor_DuplicateDecal(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_SOUND: Editor_DuplicateSoundEntity(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, g_EditorState.selected_entity_index); break;
                 default: Console_Printf("Duplication not implemented for this entity type yet."); break;
                 }
             }
@@ -2040,6 +2104,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_DECAL: if (g_EditorState.selected_entity_index != -1) Editor_DeleteDecal(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_SOUND: if (g_EditorState.selected_entity_index != -1) Editor_DeleteSoundEntity(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARTICLE_EMITTER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParticleEmitter(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_VIDEO_PLAYER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteVideoPlayer(scene, g_EditorState.selected_entity_index); break;
                 default: break;
                 }
             }
@@ -2281,6 +2346,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             case ENTITY_SOUND: gizmo_target_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PARTICLE_EMITTER: gizmo_target_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PLAYERSTART: gizmo_target_pos = scene->playerStart.position; use_gizmo = true; break;
+            case ENTITY_VIDEO_PLAYER: gizmo_target_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             default: break;
             }
         }
@@ -2343,6 +2409,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     case ENTITY_SOUND: object_pos = g_CurrentScene->soundEntities[g_EditorState.selected_entity_index].pos; break;
     case ENTITY_PARTICLE_EMITTER: object_pos = g_CurrentScene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
     case ENTITY_PLAYERSTART: object_pos = g_CurrentScene->playerStart.position; break;
+    case ENTITY_VIDEO_PLAYER: object_pos = g_CurrentScene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
     default: has_pos = false; break;
     }
     if (!has_pos) return;
@@ -2635,6 +2702,19 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
     for (int i = 0; i < scene->numDecals; i++) {
         Decal* d = &scene->decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, d->modelMatrix.m); bool is_selected = (g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index == i); float color[] = { 0.2f, 1.0f, 0.2f, 1.0f }; if (!is_selected) { color[3] = 0.5f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.decal_box_vao); glLineWidth(is_selected ? 2.0f : 1.0f); glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count); glLineWidth(1.0f);
+    }
+    for (int i = 0; i < scene->numVideoPlayers; i++) {
+        VideoPlayer* vp = &scene->videoPlayers[i];
+        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 1.0f });
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
+        bool is_selected = (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index == i);
+        float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        if (!is_selected) { color[3] = 0.5f; }
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glBindVertexArray(g_EditorState.decal_box_vao);
+        glLineWidth(is_selected ? 2.0f : 1.0f);
+        glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
+        glLineWidth(1.0f);
     }
     glDisable(GL_DEPTH_TEST); glLineWidth(2.0f);
     if (g_EditorState.is_in_brush_creation_mode || g_EditorState.is_dragging_for_creation) {
@@ -3333,6 +3413,32 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
     }
     if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
+    int video_player_to_delete = -1;
+    if (UI_CollapsingHeader("Video Players", 1)) {
+        for (int i = 0; i < scene->numVideoPlayers; ++i) {
+            char label[128];
+            sprintf(label, "%s##vidplayer%d", scene->videoPlayers[i].videoPath, i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_VIDEO_PLAYER;
+                g_EditorState.selected_entity_index = i;
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##vidplayer%d", i);
+            if (UI_Button(del_label)) { video_player_to_delete = i; }
+        }
+        if (UI_Button("Add Video Player")) {
+            if (scene->numVideoPlayers < MAX_VIDEO_PLAYERS) {
+                VideoPlayer* vp = &scene->videoPlayers[scene->numVideoPlayers];
+                memset(vp, 0, sizeof(VideoPlayer));
+                vp->pos = g_EditorState.editor_camera.position;
+                vp->size = (Vec2){ 2, 2 };
+                scene->numVideoPlayers++;
+                Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, scene->numVideoPlayers - 1, "Create Video Player");
+            }
+        }
+    }
+    if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
     if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
@@ -3649,6 +3755,36 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index < scene->numParticleEmitters) {
         ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); } UI_InputText("Target Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Targetname"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
+    }
+    else if (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index < scene->numVideoPlayers) {
+        VideoPlayer* vp = &scene->videoPlayers[g_EditorState.selected_entity_index];
+        char oldPath[sizeof(vp->videoPath)];
+        memcpy(oldPath, vp->videoPath, sizeof(vp->videoPath));
+
+        UI_Text("Video Player Properties");
+        UI_Separator();
+
+        UI_InputText("Video Path", vp->videoPath, sizeof(vp->videoPath));
+        if (strcmp(oldPath, vp->videoPath) != 0) {
+            VideoPlayer_Load(vp);
+        }
+        UI_InputText("Target Name", vp->targetname, sizeof(vp->targetname));
+        UI_Checkbox("Play on Start", &vp->playOnStart);
+        UI_Checkbox("Loop", &vp->loop);
+
+        UI_DragFloat3("Position", &vp->pos.x, 0.1f, 0, 0);
+        UI_DragFloat3("Rotation", &vp->rot.x, 1.0f, 0, 0);
+        UI_DragFloat2("Size", &vp->size.x, 0.05f, 0, 0);
+
+        if (UI_Button("Play")) { VideoPlayer_Play(vp); }
+        UI_SameLine();
+        if (UI_Button("Stop")) { VideoPlayer_Stop(vp); }
+        UI_SameLine();
+        if (UI_Button("Restart")) { VideoPlayer_Restart(vp); }
+
+        if(vp->textureID != 0) {
+            UI_Image((void*)(intptr_t)vp->textureID, 256, 144);
+        }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
     if (UI_CollapsingHeader("Sun", 1)) {

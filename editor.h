@@ -30,6 +30,7 @@ void Editor_DeleteLight(Scene* scene, int index);
 void Editor_DeleteDecal(Scene* scene, int index);
 void Editor_DeleteSoundEntity(Scene* scene, int index);
 void Editor_DeleteParticleEmitter(Scene* scene, int index);
+void Editor_DeleteVideoPlayer(Scene* scene, int index);
 
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
@@ -37,6 +38,7 @@ void Editor_DuplicateLight(Scene* scene, int index);
 void Editor_DuplicateDecal(Scene* scene, int index);
 void Editor_DuplicateSoundEntity(Scene* scene, int index);
 void Editor_DuplicateParticleEmitter(Scene* scene, int index);
+void Editor_DuplicateVideoPlayer(Scene* scene, int index);
 
 #ifdef __cplusplus
 }

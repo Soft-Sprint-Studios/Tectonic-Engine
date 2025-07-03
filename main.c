@@ -29,6 +29,7 @@
 #include "main_menu.h"
 #include "network.h"
 #include "dsp_reverb.h"
+#include "video_player.h"
 
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
@@ -456,6 +457,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Console_SetCommandHandler(handle_command);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
+    VideoPlayer_InitSystem();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         Console_Printf("[ERROR] Failed to initialize Main Menu.");
@@ -1028,6 +1030,7 @@ void update_state() {
     for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
         ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
     }
+    VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
     Vec3 playerPos;
     Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
 
@@ -1857,6 +1860,7 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.waterNormalMap);
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
+    VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
     TextureManager_Shutdown();
@@ -2182,6 +2186,9 @@ int main(int argc, char* argv[]) {
             glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             render_skybox(&view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+            for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
+                VideoPlayer_Render(&g_scene.videoPlayers[i], &view, &projection);
+            }
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
             render_water(&view, &projection, &sunLightSpaceMatrix);
