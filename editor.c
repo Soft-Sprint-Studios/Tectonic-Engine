@@ -2879,7 +2879,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             for (int i = 0; i < 6; ++i) {
                 bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
                 bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
-                float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 1.0f, 1.0f };
+                float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
                 glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
                 glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
                 glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
