@@ -289,6 +289,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         else if (dists[i] < -1e-5) { side[i] = -1; negative_count++; }
         else { side[i] = 0; }
     }
+
     if (positive_count == 0 || negative_count == 0) {
         free(dists);
         free(side);
@@ -298,115 +299,220 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         return;
     }
 
-    BrushVertex* old_verts = b->vertices;
-    BrushFace* old_faces = b->faces;
-    int old_vert_count = b->numVertices;
-    int old_face_count = b->numFaces;
+    BrushVertex* temp_new_verts = (BrushVertex*)malloc(MAX_BRUSH_VERTS * 2 * sizeof(BrushVertex));
+    int* temp_face_verts_idx = (int*)malloc(MAX_BRUSH_VERTS * sizeof(int));
+    BrushVertex* temp_cap_verts = (BrushVertex*)malloc((MAX_BRUSH_FACES + 1) * sizeof(BrushVertex));
 
-    BrushVertex new_verts[MAX_BRUSH_VERTS * 2];
+    BrushFace* new_face_list_array = (BrushFace*)malloc(MAX_BRUSH_FACES * sizeof(BrushFace));
+
+    if (!temp_new_verts || !temp_face_verts_idx || !temp_cap_verts || !new_face_list_array) {
+        fprintf(stderr, "Brush_Clip: Failed to allocate temporary memory.\n");
+        free(dists); free(side);
+        free(temp_new_verts); free(temp_face_verts_idx); free(temp_cap_verts); free(new_face_list_array);
+        return;
+    }
+
     int new_vert_count = 0;
     int vert_map[MAX_BRUSH_VERTS];
     memset(vert_map, -1, sizeof(vert_map));
 
-    BrushVertex cap_verts[MAX_BRUSH_FACES + 1];
-    int cap_vert_count = 0;
-
-    BrushFace new_faces[MAX_BRUSH_FACES];
-    int new_face_count = 0;
-
-    for (int i = 0; i < old_vert_count; ++i) {
+    for (int i = 0; i < b->numVertices; ++i) {
         if (side[i] >= 0) {
+            if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
+                fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
+                goto cleanup_and_return;
+            }
             vert_map[i] = new_vert_count;
-            new_verts[new_vert_count++] = old_verts[i];
+            temp_new_verts[new_vert_count++] = b->vertices[i];
         }
     }
 
+    int current_new_face_count = 0;
+    BrushFace* old_faces = b->faces;
+    int old_face_count = b->numFaces;
+
     for (int i = 0; i < old_face_count; ++i) {
         BrushFace* face = &old_faces[i];
-        int face_verts_idx[MAX_BRUSH_VERTS];
-        int face_vert_count = 0;
+        int face_verts_current_idx_count = 0;
 
         for (int j = 0; j < face->numVertexIndices; ++j) {
             int p1_idx = face->vertexIndices[j];
             int p2_idx = face->vertexIndices[(j + 1) % face->numVertexIndices];
 
             if (side[p1_idx] >= 0) {
-                face_verts_idx[face_vert_count++] = vert_map[p1_idx];
+                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                    fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
+                    goto cleanup_and_return;
+                }
+                temp_face_verts_idx[face_verts_current_idx_count++] = vert_map[p1_idx];
             }
 
-            if (side[p1_idx] * side[p2_idx] < 0) {
+            if (side[p1_idx] * side[p2_idx] < 0) { // Edge crosses the plane
                 float t = dists[p1_idx] / (dists[p1_idx] - dists[p2_idx]);
-                Vec3 intersect_pos = vec3_add(old_verts[p1_idx].pos, vec3_muls(vec3_sub(old_verts[p2_idx].pos, old_verts[p1_idx].pos), t));
-
-                Vec4 p1_color = old_verts[p1_idx].color;
-                Vec4 p2_color = old_verts[p2_idx].color;
+                Vec3 intersect_pos = vec3_add(b->vertices[p1_idx].pos, vec3_muls(vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
                 Vec4 intersect_color;
-                intersect_color.x = p1_color.x + (p2_color.x - p1_color.x) * t;
-                intersect_color.y = p1_color.y + (p2_color.y - p1_color.y) * t;
-                intersect_color.z = p1_color.z + (p2_color.z - p1_color.z) * t;
-                intersect_color.w = p1_color.w + (p2_color.w - p1_color.w) * t;
+                intersect_color.x = b->vertices[p1_idx].color.x + (b->vertices[p2_idx].color.x - b->vertices[p1_idx].color.x) * t;
+                intersect_color.y = b->vertices[p1_idx].color.y + (b->vertices[p2_idx].color.y - b->vertices[p1_idx].color.y) * t;
+                intersect_color.z = b->vertices[p1_idx].color.z + (b->vertices[p2_idx].color.z - b->vertices[p1_idx].color.z) * t;
+                intersect_color.w = b->vertices[p1_idx].color.w + (b->vertices[p2_idx].color.w - b->vertices[p1_idx].color.w) * t;
 
-                face_verts_idx[face_vert_count++] = new_vert_count;
-                cap_verts[cap_vert_count].pos = intersect_pos;
-                cap_verts[cap_vert_count].color = intersect_color;
-                cap_vert_count++;
-                new_verts[new_vert_count].pos = intersect_pos;
-                new_verts[new_vert_count].color = intersect_color;
+                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                    fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
+                    goto cleanup_and_return;
+                }
+                if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
+                    fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
+                    goto cleanup_and_return;
+                }
+
+                temp_face_verts_idx[face_verts_current_idx_count++] = new_vert_count;
+                temp_new_verts[new_vert_count].pos = intersect_pos;
+                temp_new_verts[new_vert_count].color = intersect_color;
                 new_vert_count++;
             }
         }
 
-        if (face_vert_count >= 3) {
-            new_faces[new_face_count] = *face;
-            new_faces[new_face_count].vertexIndices = (int*)malloc(face_vert_count * sizeof(int));
-            memcpy(new_faces[new_face_count].vertexIndices, face_verts_idx, face_vert_count * sizeof(int));
-            new_face_count++;
+        if (face_verts_current_idx_count >= 3) {
+            if (current_new_face_count >= MAX_BRUSH_FACES) {
+                fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
+                goto cleanup_and_return;
+            }
+            BrushFace new_face_entry = *face; // Copy material and UV data
+            new_face_entry.numVertexIndices = face_verts_current_idx_count;
+            new_face_entry.vertexIndices = (int*)malloc(face_verts_current_idx_count * sizeof(int));
+            if (!new_face_entry.vertexIndices) {
+                fprintf(stderr, "Brush_Clip: Failed to allocate vertexIndices for new face.\n");
+                for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+                goto cleanup_and_return;
+            }
+            memcpy(new_face_entry.vertexIndices, temp_face_verts_idx, face_verts_current_idx_count * sizeof(int));
+            new_face_list_array[current_new_face_count++] = new_face_entry;
+        }
+    }
+
+    int cap_vert_count = 0;
+    for (int i = 0; i < b->numFaces; ++i) {
+        BrushFace* face = &b->faces[i];
+        for (int j = 0; j < face->numVertexIndices; ++j) {
+            int p1_idx = face->vertexIndices[j];
+            int p2_idx = face->vertexIndices[(j + 1) % face->numVertexIndices];
+
+            if (side[p1_idx] * side[p2_idx] < 0) {
+                float t = dists[p1_idx] / (dists[p1_idx] - dists[p2_idx]);
+                Vec3 intersect_pos = vec3_add(b->vertices[p1_idx].pos, vec3_muls(vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
+                Vec4 intersect_color;
+                intersect_color.x = b->vertices[p1_idx].color.x + (b->vertices[p2_idx].color.x - b->vertices[p1_idx].color.x) * t;
+                intersect_color.y = b->vertices[p1_idx].color.y + (b->vertices[p2_idx].color.y - b->vertices[p1_idx].color.y) * t;
+                intersect_color.z = b->vertices[p1_idx].color.z + (b->vertices[p2_idx].color.z - b->vertices[p1_idx].color.z) * t;
+                intersect_color.w = b->vertices[p1_idx].color.w + (b->vertices[p2_idx].color.w - b->vertices[p1_idx].color.w) * t;
+
+                bool is_duplicate = false;
+                for (int k = 0; k < cap_vert_count; ++k) {
+                    if (vec3_length_sq(vec3_sub(temp_cap_verts[k].pos, intersect_pos)) < 1e-6) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    if (cap_vert_count >= MAX_BRUSH_FACES + 1) {
+                        fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
+                        goto cleanup_and_return;
+                    }
+                    temp_cap_verts[cap_vert_count].pos = intersect_pos;
+                    temp_cap_verts[cap_vert_count].color = intersect_color;
+                    cap_vert_count++;
+                }
+            }
         }
     }
 
     if (cap_vert_count >= 3) {
         Vec3 centroid = { 0,0,0 };
-        for (int i = 0; i < cap_vert_count; ++i) centroid = vec3_add(centroid, cap_verts[i].pos);
+        for (int i = 0; i < cap_vert_count; ++i) centroid = vec3_add(centroid, temp_cap_verts[i].pos);
         centroid = vec3_muls(centroid, 1.0f / cap_vert_count);
 
         g_sort_normal = plane_normal;
         g_sort_centroid = centroid;
-        qsort(cap_verts, cap_vert_count, sizeof(BrushVertex), compare_cap_verts);
+        qsort(temp_cap_verts, cap_vert_count, sizeof(BrushVertex), compare_cap_verts);
+
+        if (current_new_face_count >= MAX_BRUSH_FACES) {
+            fprintf(stderr, "Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
+            goto cleanup_and_return;
+        }
 
         BrushFace cap_face;
         cap_face.material = TextureManager_GetMaterial(0);
         cap_face.material2 = NULL;
+        cap_face.material3 = NULL;
+        cap_face.material4 = NULL;
         cap_face.uv_offset = (Vec2){ 0, 0 };
         cap_face.uv_scale = (Vec2){ 1, 1 };
         cap_face.uv_rotation = 0;
+        cap_face.uv_offset2 = (Vec2){ 0, 0 };
+        cap_face.uv_scale2 = (Vec2){ 1, 1 };
+        cap_face.uv_rotation2 = 0;
+        cap_face.uv_offset3 = (Vec2){ 0, 0 };
+        cap_face.uv_scale3 = (Vec2){ 1, 1 };
+        cap_face.uv_rotation3 = 0;
+        cap_face.uv_offset4 = (Vec2){ 0, 0 };
+        cap_face.uv_scale4 = (Vec2){ 1, 1 };
+        cap_face.uv_rotation4 = 0;
+
         cap_face.numVertexIndices = cap_vert_count;
         cap_face.vertexIndices = (int*)malloc(cap_vert_count * sizeof(int));
+        if (!cap_face.vertexIndices) {
+            fprintf(stderr, "Brush_Clip: Failed to allocate vertexIndices for cap face.\n");
+            for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+            goto cleanup_and_return;
+        }
 
         for (int i = 0; i < cap_vert_count; ++i) {
             int vert_idx = -1;
             for (int k = 0; k < new_vert_count; ++k) {
-                if (vec3_length_sq(vec3_sub(new_verts[k].pos, cap_verts[i].pos)) < 1e-6) {
+                if (vec3_length_sq(vec3_sub(temp_new_verts[k].pos, temp_cap_verts[i].pos)) < 1e-6) {
                     vert_idx = k;
                     break;
                 }
             }
+            if (vert_idx == -1) {
+                fprintf(stderr, "Brush_Clip: Capping vertex not found in temp_new_verts.\n");
+                free(cap_face.vertexIndices);
+                for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+                goto cleanup_and_return;
+            }
             cap_face.vertexIndices[i] = vert_idx;
         }
-
-        new_faces[new_face_count++] = cap_face;
+        new_face_list_array[current_new_face_count++] = cap_face;
     }
 
     Brush_FreeData(b);
+
     b->numVertices = new_vert_count;
     b->vertices = (BrushVertex*)malloc(new_vert_count * sizeof(BrushVertex));
-    memcpy(b->vertices, new_verts, new_vert_count * sizeof(BrushVertex));
+    if (!b->vertices) {
+        fprintf(stderr, "Brush_Clip: Failed to allocate final brush vertices.\n");
+        for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+        goto cleanup_and_return;
+    }
+    memcpy(b->vertices, temp_new_verts, new_vert_count * sizeof(BrushVertex));
 
-    b->numFaces = new_face_count;
-    b->faces = (BrushFace*)malloc(new_face_count * sizeof(BrushFace));
-    memcpy(b->faces, new_faces, new_face_count * sizeof(BrushFace));
+    b->numFaces = current_new_face_count;
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
+    if (!b->faces) {
+        fprintf(stderr, "Brush_Clip: Failed to allocate final brush faces.\n");
+        free(b->vertices); b->vertices = NULL;
+        for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+        goto cleanup_and_return;
+    }
+    memcpy(b->faces, new_face_list_array, current_new_face_count * sizeof(BrushFace));
 
+cleanup_and_return:
     free(dists);
     free(side);
+    free(temp_new_verts);
+    free(temp_face_verts_idx);
+    free(temp_cap_verts);
+    free(new_face_list_array);
 }
 
 static int getNumFaces(const SMikkTSpaceContext* pContext) {
