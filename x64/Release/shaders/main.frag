@@ -33,7 +33,7 @@ struct ShaderLight {
     vec4 params1;
     vec4 params2;
     uvec2 shadowMapHandle;
-    uvec2 _padding;
+    uvec2 cookieMapHandle;
 };
 
 struct Sun {
@@ -314,7 +314,7 @@ void main()
     float dist = length(FragPos_world - viewPos);
     float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
     
-     vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
     vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
     vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
     vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
@@ -414,6 +414,7 @@ void main()
                float radius = lights[i].params1.x;
                float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
                attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
+               float cookie_attenuation = 1.0;
                if (attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0)) {
                    float angle_rad = acos(clamp(lightCutOff, -1.0, 1.0));
                    if (angle_rad < 0.01) angle_rad = 0.01;
@@ -423,9 +424,19 @@ void main()
                    mat4 lightView = lookAt(lightPos, lightPos + lightDir, up_vector);
                    mat4 lightSpaceMatrix = lightProjection * lightView;
                    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(FragPos_world, 1.0);
-
+                    if (lights[i].cookieMapHandle[0] > 0u || lights[i].cookieMapHandle[1] > 0u) {
+                       vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+                       projCoords = projCoords * 0.5 + 0.5;
+                       if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0) {
+                           sampler2D cookieSampler = sampler2D(lights[i].cookieMapHandle);
+                           cookie_attenuation = texture(cookieSampler, projCoords.xy).r;
+                       } else {
+                           cookie_attenuation = 0.0;
+                       }
+                   }
                    shadow = calculateSpotShadow(lights[i].shadowMapHandle, fragPosLightSpace, N, L, lights[i].params2.y);
                }
+               attenuation *= cookie_attenuation;
             }
         }
         if(attenuation > 0.0) {

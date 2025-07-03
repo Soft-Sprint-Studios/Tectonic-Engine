@@ -58,6 +58,9 @@ typedef struct {
     GLuint shadowFBO;
     GLuint shadowMapTexture;
     uint64_t shadowMapHandle;
+    char cookiePath[128];
+    GLuint cookieMap;
+    uint64_t cookieMapHandle;
     float shadowFarPlane;
     float shadowBias;
     float volumetricIntensity;
@@ -70,7 +73,7 @@ typedef struct {
     Vec4 params1;
     Vec4 params2;
     unsigned int shadowMapHandle[2];
-    unsigned int _padding[2];
+    unsigned int cookieMapHandle[2];
 } ShaderLight;
 
 typedef struct {

@@ -436,12 +436,18 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.", CVAR_NONE);
+    Cvar_Register("r_bloom", "1", "Enable or disable the bloom effect.", CVAR_NONE);
+    Cvar_Register("r_volumetrics", "1", "Enable or disable volumetric lighting.", CVAR_NONE);
     Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
     Cvar_Register("r_motionblur", "1", "Enable camera and object motion blur.", CVAR_NONE);
+    Cvar_Register("g_speed", "6.0", "Player walking speed.", CVAR_NONE);
+    Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
+    Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
+    Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     IO_Init();
     Binds_Init();
     Network_Init();
@@ -944,8 +950,50 @@ void process_input() {
             if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
 
             vec3_normalize(&move);
-            Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { move.x* speed, vel.y, move.z* speed });
+            float max_wish_speed = Cvar_GetFloat("g_speed");
+            if (state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching) {
+                max_wish_speed = Cvar_GetFloat("g_sprint_speed");
+            }
+            if (g_engine->camera.isCrouching) {
+                max_wish_speed *= 0.5f;
+            }
+
+            float accel = Cvar_GetFloat("g_accel");
+            float friction = Cvar_GetFloat("g_friction");
+
+            Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+            Vec3 current_vel_flat = { current_vel.x, 0, current_vel.z };
+
+            Vec3 wish_vel = vec3_muls(move, max_wish_speed);
+
+            Vec3 vel_delta = vec3_sub(wish_vel, current_vel_flat);
+
+            if (vec3_length_sq(vel_delta) > 0.0001f) {
+                float delta_speed = vec3_length(vel_delta);
+
+                float add_speed = delta_speed * accel * g_engine->deltaTime;
+
+                if (add_speed > delta_speed) {
+                    add_speed = delta_speed;
+                }
+
+                current_vel_flat = vec3_add(current_vel_flat, vec3_muls(vel_delta, add_speed / delta_speed));
+            }
+
+            if (vec3_length_sq(move) < 0.01f) {
+                float speed = vec3_length(current_vel_flat);
+                if (speed > 0.001f) {
+                    float drop = speed * friction * g_engine->deltaTime;
+                    float new_speed = speed - drop;
+                    if (new_speed < 0) new_speed = 0;
+                    current_vel_flat = vec3_muls(current_vel_flat, new_speed / speed);
+                }
+                else {
+                    current_vel_flat = (Vec3){ 0,0,0 };
+                }
+            }
+
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { current_vel_flat.x, current_vel.y, current_vel_flat.z });
             Physics_Activate(g_engine->camera.physicsBody);
 
             if (state[SDL_SCANCODE_SPACE]) {
@@ -1461,6 +1509,19 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
             shader_lights[i].shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
             shader_lights[i].shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
 
+            if (light->cookieMap != 0) {
+                if (light->cookieMapHandle == 0) {
+                    light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
+                    glMakeTextureHandleResidentARB(light->cookieMapHandle);
+                }
+                shader_lights[i].cookieMapHandle[0] = (unsigned int)(light->cookieMapHandle & 0xFFFFFFFF);
+                shader_lights[i].cookieMapHandle[1] = (unsigned int)(light->cookieMapHandle >> 32);
+            }
+            else {
+                shader_lights[i].cookieMapHandle[0] = 0;
+                shader_lights[i].cookieMapHandle[1] = 0;
+            }
+
             if (light->type == LIGHT_SPOT) {
                 float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
                 Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
@@ -1649,6 +1710,9 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationStrength"), g_scene.post.chromaticAberrationStrength);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenEnabled"), g_scene.post.sharpenEnabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
+
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;
     if (g_scene.numActiveLights > 0) {
         Vec3 light_world_pos = g_scene.lights[0].position; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); float clip_space_pos[4]; float w = 1.0f;
@@ -2105,8 +2169,12 @@ int main(int argc, char* argv[]) {
             if (Cvar_GetInt("r_ssao")) {
                 render_ssao_pass(&projection);
             }
-            render_volumetric_pass(&view, &projection, &sunLightSpaceMatrix);
-            render_bloom_pass();
+            if (Cvar_GetInt("r_volumetrics")) {
+                render_volumetric_pass(&view, &projection, &sunLightSpaceMatrix);
+            }
+            if (Cvar_GetInt("r_bloom")) {
+                render_bloom_pass();
+            }
             render_autoexposure_pass();
             render_lighting_composite_pass(&view, &projection);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);

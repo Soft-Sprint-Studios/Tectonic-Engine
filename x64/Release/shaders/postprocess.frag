@@ -8,6 +8,9 @@ uniform sampler2D bloomBlur;
 uniform sampler2D gPosition;
 uniform sampler2D volumetricTexture;
 
+uniform bool u_bloomEnabled;
+uniform bool u_volumetricsEnabled;
+
 uniform int u_fogEnabled;
 uniform vec3 u_fogColor;
 uniform float u_fogStart;
@@ -138,10 +141,14 @@ void main()
     }
 
     vec3 bloomColor = texture(bloomBlur, curvedTexCoords).rgb;
-    finalColor += bloomColor;
+    if (u_bloomEnabled) {
+        finalColor += bloomColor;
+    }
 
     vec3 volumetricColor = texture(volumetricTexture, curvedTexCoords).rgb;
-    finalColor += volumetricColor;
+    if (u_volumetricsEnabled) {
+        finalColor += volumetricColor;
+    }
 
     if (u_fogEnabled == 1)
     {

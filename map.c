@@ -936,8 +936,21 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (scene->numActiveLights >= MAX_LIGHTS) continue;
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light)); int type_int = 0;
-            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity);
+            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, light->cookiePath);
             light->type = (LightType)type_int; light->is_on = (light->base_intensity > 0.0f); light->intensity = light->base_intensity;
+            if (items_scanned == 18 && strcmp(light->cookiePath, "none") != 0) {
+                Material* cookieMat = TextureManager_FindMaterial(light->cookiePath);
+                if (cookieMat && cookieMat != &g_MissingMaterial) {
+                    light->cookieMap = cookieMat->diffuseMap;
+                    light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
+                    glMakeTextureHandleResidentARB(light->cookieMapHandle);
+                }
+            }
+            else {
+                light->cookiePath[0] = '\0';
+                light->cookieMap = 0;
+                light->cookieMapHandle = 0;
+            }
             Light_InitShadowMap(light);
             scene->numActiveLights++;
         }
@@ -1061,7 +1074,8 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     fprintf(file, "\n");
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
-        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z, light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius, light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity);
+        const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
+        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f \"%s\"\n", (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z, light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius, light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity, cookiePathStr);
         if (strlen(light->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", light->targetname);
     }
     fprintf(file, "\n");

@@ -2447,8 +2447,12 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         if (Cvar_GetInt("r_ssao")) {
             render_ssao_pass(&g_proj_matrix[type]);
         }
-        render_volumetric_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix);
-        render_bloom_pass();
+        if (Cvar_GetInt("r_volumetrics")) {
+            render_volumetric_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix);
+        }
+        if (Cvar_GetInt("r_bloom")) {
+            render_bloom_pass();
+        }
         render_autoexposure_pass();
 
         glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
@@ -2472,7 +2476,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_lensFlareStrength"), scene->post.lensFlareStrength);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_scanlineStrength"), scene->post.scanlineStrength);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_grainIntensity"), scene->post.grainIntensity);
-
+        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
+        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, renderer->pingpongColorbuffers[0]);
         glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
@@ -3210,6 +3215,23 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
 
                     g_EditorState.show_texture_browser = false;
                 }
+                else if (g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index != -1 && g_EditorState.texture_browser_target == 4) {
+                    Light* light = &scene->lights[g_EditorState.selected_entity_index];
+                    Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index);
+
+                    strncpy(light->cookiePath, mat->name, sizeof(light->cookiePath) - 1);
+                    light->cookiePath[sizeof(light->cookiePath) - 1] = '\0';
+                    light->cookieMap = mat->diffuseMap;
+
+                    if (light->cookieMapHandle != 0) {
+                        glMakeTextureHandleNonResidentARB(light->cookieMapHandle);
+                    }
+                    light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
+                    glMakeTextureHandleResidentARB(light->cookieMapHandle);
+
+                    Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Set Light Cookie");
+                    g_EditorState.show_texture_browser = false;
+                }
             }
 
             if (UI_IsItemHovered()) {
@@ -3557,7 +3579,30 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.position.x = SnapValue(scene->playerStart.position.x, g_EditorState.grid_size); scene->playerStart.position.y = SnapValue(scene->playerStart.position.y, g_EditorState.grid_size); scene->playerStart.position.z = SnapValue(scene->playerStart.position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index < scene->numActiveLights) {
-        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Target Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Targetname"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }  if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); light->is_on = !light->is_on; Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Toggle Light On"); } UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
+        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Target Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Targetname"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }  
+        if (light->type == LIGHT_SPOT) {
+            char cookie_button_label[128];
+            const char* cookie_name = strlen(light->cookiePath) > 0 ? light->cookiePath : "None";
+            sprintf(cookie_button_label, "Cookie: %s", cookie_name);
+            if (UI_Button(cookie_button_label)) {
+                g_EditorState.texture_browser_target = 4;
+                g_EditorState.show_texture_browser = true;
+            }
+            if (strlen(light->cookiePath) > 0) {
+                UI_SameLine();
+                if (UI_Button("[X]##clearcookie")) {
+                    Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index);
+                    if (light->cookieMapHandle != 0) {
+                        glMakeTextureHandleNonResidentARB(light->cookieMapHandle);
+                    }
+                    light->cookiePath[0] = '\0';
+                    light->cookieMap = 0;
+                    light->cookieMapHandle = 0;
+                    Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Clear Light Cookie");
+                }
+            }
+        }
+        if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); light->is_on = !light->is_on; Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Toggle Light On"); } UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
     }
     else if (g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index < scene->numDecals) {
         Decal* d = &scene->decals[g_EditorState.selected_entity_index];
