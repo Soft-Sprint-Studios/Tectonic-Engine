@@ -200,7 +200,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
             memmove(&scene->soundEntities[state->index + 1], &scene->soundEntities[state->index], (scene->numSoundEntities - 1 - state->index) * sizeof(SoundEntity));
             scene->soundEntities[state->index] = state->data.soundEntity;
             strcpy(scene->soundEntities[state->index].soundPath, state->soundPath);
-            scene->soundEntities[state->index].bufferID = SoundSystem_LoadWAV(state->soundPath);
+            scene->soundEntities[state->index].bufferID = SoundSystem_LoadSound(state->soundPath);
             break;
         case ENTITY_PARTICLE_EMITTER:
             scene->numParticleEmitters++;

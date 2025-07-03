@@ -451,8 +451,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     IO_Init();
     Binds_Init();
     Network_Init();
-    g_flashlight_sound_buffer = SoundSystem_LoadWAV("sounds/flashlight01.wav");
-    g_footstep_sound_buffer = SoundSystem_LoadWAV("sounds/footstep.wav");
+    g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
+    g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
     Console_SetCommandHandler(handle_command);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");

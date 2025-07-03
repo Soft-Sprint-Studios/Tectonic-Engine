@@ -979,7 +979,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 if (items_scanned < 8) { s->volume = 1.0f; s->pitch = 1.0f; s->maxDistance = 50.0f; }
                 s->is_looping = (bool)is_looping_int;
                 s->play_on_start = (bool)play_on_start_int;
-                s->bufferID = SoundSystem_LoadWAV(s->soundPath);
+                s->bufferID = SoundSystem_LoadSound(s->soundPath);
                 if (s->play_on_start) {
                     s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
                 }

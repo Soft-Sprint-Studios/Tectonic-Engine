@@ -30,7 +30,7 @@ extern "C" {
     void SoundSystem_Shutdown();
     void SoundSystem_UpdateListener(Vec3 position, Vec3 forward, Vec3 up);
     void SoundSystem_SetCurrentReverb(ReverbPreset preset);
-    unsigned int SoundSystem_LoadWAV(const char* path);
+    unsigned int SoundSystem_LoadSound(const char* path);
     unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping);
     void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position);
     void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance);

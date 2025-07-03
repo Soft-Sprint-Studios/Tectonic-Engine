@@ -12,6 +12,8 @@
 #include <string.h>
 #include <al.h>
 #include <alc.h>
+#define MINIMP3_IMPLEMENTATION
+#include "minimp3/minimp3.h"
 
 #define MAX_WET_CACHE_ENTRIES 256
 #define MAX_PLAYING_SOUNDS 512
@@ -157,7 +159,117 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
     return wetBufferID;
 }
 
-unsigned int SoundSystem_LoadWAV(const char* path) {
+static unsigned int internal_LoadMP3(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        printf("ERROR: Could not open MP3 file %s\n", path);
+        return 0;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    unsigned char* file_buffer = (unsigned char*)malloc(file_size);
+    if (!file_buffer) {
+        fclose(file);
+        return 0;
+    }
+    fread(file_buffer, 1, file_size, file);
+    fclose(file);
+
+    mp3dec_t mp3d;
+    mp3dec_init(&mp3d);
+
+    mp3dec_frame_info_t info;
+    short* pcm_buffer = NULL;
+    size_t pcm_size = 0;
+    size_t pcm_capacity = 65536;
+    pcm_buffer = (short*)malloc(pcm_capacity * sizeof(short));
+
+    if (!pcm_buffer) {
+        free(file_buffer);
+        return 0;
+    }
+
+    int samples;
+    unsigned char* buf_ptr = file_buffer;
+    int bytes_left = file_size;
+
+    while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, NULL, &info)) > 0) {
+        if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
+            pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
+            short* new_pcm_buffer = (short*)realloc(pcm_buffer, pcm_capacity * sizeof(short));
+            if (!new_pcm_buffer) {
+                free(pcm_buffer);
+                free(file_buffer);
+                return 0;
+            }
+            pcm_buffer = new_pcm_buffer;
+        }
+
+        mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, pcm_buffer + pcm_size, &info);
+
+        pcm_size += samples * info.channels;
+        buf_ptr += info.frame_bytes;
+        bytes_left -= info.frame_bytes;
+    }
+
+    free(file_buffer);
+
+    if (pcm_size == 0) {
+        free(pcm_buffer);
+        return 0;
+    }
+
+    short* final_pcm_buffer = pcm_buffer;
+    size_t final_pcm_size_bytes = pcm_size * sizeof(short);
+    ALenum format = (info.channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+
+    if (info.channels == 2) {
+        size_t mono_samples = pcm_size / 2;
+        short* mono_buffer = (short*)malloc(mono_samples * sizeof(short));
+        if (!mono_buffer) {
+            free(pcm_buffer);
+            return 0;
+        }
+        for (size_t i = 0; i < mono_samples; i++) {
+            mono_buffer[i] = (short)(((int)pcm_buffer[i * 2] + (int)pcm_buffer[i * 2 + 1]) / 2);
+        }
+        free(pcm_buffer);
+        final_pcm_buffer = mono_buffer;
+        final_pcm_size_bytes = mono_samples * sizeof(short);
+        format = AL_FORMAT_MONO16;
+    }
+
+    ALuint bufferID;
+    alGenBuffers(1, &bufferID);
+    alBufferData(bufferID, format, final_pcm_buffer, final_pcm_size_bytes, info.hz);
+
+    if (alGetError() != AL_NO_ERROR) {
+        free(final_pcm_buffer);
+        alDeleteBuffers(1, &bufferID);
+        return 0;
+    }
+
+    if (g_buffer_count < MAX_BUFFERS) {
+        g_buffers[g_buffer_count].bufferID = bufferID;
+        g_buffers[g_buffer_count].pcmData = final_pcm_buffer;
+        g_buffers[g_buffer_count].dataSize = final_pcm_size_bytes;
+        g_buffers[g_buffer_count].format = format;
+        g_buffers[g_buffer_count].freq = info.hz;
+        g_buffer_count++;
+    }
+    else {
+        free(final_pcm_buffer);
+        alDeleteBuffers(1, &bufferID);
+        return 0;
+    }
+
+    return bufferID;
+}
+
+static unsigned int internal_LoadWAV(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) return 0;
 
@@ -244,6 +356,24 @@ unsigned int SoundSystem_LoadWAV(const char* path) {
     }
 
     return bufferID;
+}
+
+unsigned int SoundSystem_LoadSound(const char* path) {
+    const char* ext = strrchr(path, '.');
+    if (!ext) {
+        printf("ERROR: Could not determine file type for %s\n", path);
+        return 0;
+    }
+
+    if (_stricmp(ext, ".wav") == 0) {
+        return internal_LoadWAV(path);
+    }
+    else if (_stricmp(ext, ".mp3") == 0) {
+        return internal_LoadMP3(path);
+    }
+
+    printf("ERROR: Unsupported sound format for %s\n", path);
+    return 0;
 }
 
 static ALuint find_wet_source(ALuint drySourceID) {
