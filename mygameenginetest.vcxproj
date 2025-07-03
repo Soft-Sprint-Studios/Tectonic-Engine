@@ -237,7 +237,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;IMGUI_DEFINE_MATH_OPERATORS;_CRT_SECURE_NO_WARNINGS;SDL_MAIN_HANDLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;IMGUI_DEFINE_MATH_OPERATORS;_CRT_SECURE_NO_WARNINGS;SDL_MAIN_HANDLED;PL_MPEG_IMPLEMENTATION;CGLTF_IMPLEMENTATION;MINIMP3_IMPLEMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>SDL2_ttf-2.24.0\include\;DiscordRPC\include;openal-soft-1.24.3\include\AL\;bullet\include;SDL2_image-2.8.8\include;glew-2.1.0\include;sdl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

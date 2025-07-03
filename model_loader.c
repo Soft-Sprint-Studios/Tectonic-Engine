@@ -6,7 +6,6 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
-#define CGLTF_IMPLEMENTATION
 #include "cgltf/cgltf.h"
 
 #include "model_loader.h"

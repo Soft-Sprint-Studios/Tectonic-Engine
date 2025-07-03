@@ -12,7 +12,6 @@
 #include <string.h>
 #include <al.h>
 #include <alc.h>
-#define MINIMP3_IMPLEMENTATION
 #include "minimp3/minimp3.h"
 
 #define MAX_WET_CACHE_ENTRIES 256
