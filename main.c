@@ -427,8 +427,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     Cvar_Init();
-    Cvar_Register("volume", "3.0", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
-    Cvar_Register("r_vpl_count", "32", "Number of VPLs to generate per light.", CVAR_NONE);
+    Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
+    Cvar_Register("r_vpl_count", "64", "Number of VPLs to generate per light.", CVAR_NONE);
     Cvar_Register("noclip", "0", "", CVAR_NONE);
     Cvar_Register("gravity", "9.8", "", CVAR_NONE);
     Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
