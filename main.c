@@ -1894,7 +1894,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationStrength"), g_scene.post.chromaticAberrationStrength);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenEnabled"), g_scene.post.sharpenEnabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
-
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bwEnabled"), g_scene.post.bwEnabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_bwStrength"), g_scene.post.bwStrength);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;

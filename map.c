@@ -804,6 +804,8 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.chromaticAberrationStrength = 0.005f;
     scene->post.sharpenEnabled = false;
     scene->post.sharpenAmount = 0.15f;
+    scene->post.bwEnabled = false;
+    scene->post.bwStrength = 1.0f;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -841,15 +843,16 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             vec3_normalize(&scene->sun.direction);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
-            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int;
-            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
+            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int;
+            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
                 &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity,
-                &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount);
+                &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount, &bw_enabled_int, &scene->post.bwStrength);
             scene->post.enabled = (bool)enabled_int;
             scene->post.lensFlareEnabled = (bool)flare_int;
             scene->post.dofEnabled = (bool)dof_enabled_int;
             scene->post.chromaticAberrationEnabled = (bool)ca_enabled_int;
             scene->post.sharpenEnabled = (bool)sharpen_enabled_int;
+            scene->post.bwEnabled = (bool)bw_enabled_int;
         }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
@@ -1138,12 +1141,13 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     if (!file) { return; }
     fprintf(file, "player_start %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z);
     fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
-    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f%d %.4f\n\n",
+    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",
         (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
         (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity,
         (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture,
         (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength,
-        (int)scene->post.sharpenEnabled, scene->post.sharpenAmount
+        (int)scene->post.sharpenEnabled, scene->post.sharpenAmount,
+        (int)scene->post.bwEnabled, scene->post.bwStrength
     );
     fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f\n\n",
         (int)scene->sun.enabled,

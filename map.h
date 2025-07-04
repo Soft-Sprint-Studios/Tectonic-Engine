@@ -110,6 +110,8 @@ typedef struct {
     float chromaticAberrationStrength;
     bool sharpenEnabled;
     float sharpenAmount;
+    bool bwEnabled;
+    float bwStrength;
 } PostProcessSettings;
 
 typedef struct {

@@ -3937,6 +3937,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_DragFloat("Sharpen Strength", &scene->post.sharpenAmount, 0.01f, 0.0f, 1.0f);
         }
         UI_Separator();
+        if (UI_Checkbox("Black and White", &scene->post.bwEnabled)) {}
+        if (scene->post.bwEnabled) {
+            UI_DragFloat("B&W Strength", &scene->post.bwStrength, 0.01f, 0.0f, 1.0f);
+        }
+        UI_Separator();
         if (UI_Checkbox("Chromatic Aberration", &scene->post.chromaticAberrationEnabled)) {}
         if (scene->post.chromaticAberrationEnabled) {
             UI_DragFloat("CA Strength", &scene->post.chromaticAberrationStrength, 0.0001f, 0.0f, 0.05f);

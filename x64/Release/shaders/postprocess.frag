@@ -33,6 +33,8 @@ uniform bool u_chromaticAberrationEnabled;
 uniform float u_chromaticAberrationStrength;
 uniform bool u_sharpenEnabled;
 uniform float u_sharpenAmount;
+uniform bool u_bwEnabled;
+uniform float u_bwStrength;
 
 uniform vec3 u_flareLightWorldPos;
 uniform mat4 u_view;
@@ -186,6 +188,12 @@ void main()
         float dist = distance(TexCoords, vec2(0.5, 0.5));
         float vignette = smoothstep(u_vignetteRadius, u_vignetteRadius - u_vignetteStrength * 0.5, dist);
         finalColor *= vignette;
+    }
+	
+	if (u_bwEnabled) {
+        float luminance = dot(finalColor, vec3(0.2126, 0.7152, 0.0722));
+        vec3 grayscale = vec3(luminance);
+        finalColor = mix(finalColor, grayscale, u_bwStrength);
     }
 
     FragColor = vec4(finalColor, 1.0);
