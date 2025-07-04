@@ -196,6 +196,9 @@ const float PARALLAX_END_FADE_DISTANCE = 40.0;
 
 vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
 {
+    if (hScale <= 0.0) {
+        return texCoords;
+	}
     if (distanceFade >= 1.0) {
         return texCoords;
     }
