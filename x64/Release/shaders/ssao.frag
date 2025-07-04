@@ -9,7 +9,7 @@ uniform vec2 screenSize;
 const float sensitivity = 1.2;
 const float threshold = 0.15;
 const float intensity = 5.0;
-const int radius = 10;
+const int radius = 7;
 
 void main() {
     vec2 texelSize = 1.0 / screenSize;
@@ -19,8 +19,8 @@ void main() {
     float occlusion = 0.0;
     int count = 0;
 
-    for (int x = -radius; x <= radius; x += 3) {
-        for (int y = -radius; y <= radius; y += 3) {
+    for (int x = -radius; x <= radius; x += 4) {
+        for (int y = -radius; y <= radius; y += 4) {
             if (x == 0 && y == 0) continue;
 
             vec2 offset = TexCoords + vec2(x, y) * texelSize;
