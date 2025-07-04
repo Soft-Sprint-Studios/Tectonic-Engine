@@ -14,7 +14,7 @@
 #include <math.h>
 #include <float.h>
 #include <sys/stat.h>
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 #include <direct.h>
 #include <windows.h>
 #else
@@ -324,7 +324,7 @@ static void FreeModelFileList() {
 static void ScanModelFiles() {
     FreeModelFileList();
     const char* dir_path = "models/";
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     char search_path[256];
     sprintf(search_path, "%s*.gltf", dir_path);
     WIN32_FIND_DATAA find_data;
@@ -338,7 +338,7 @@ static void ScanModelFiles() {
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);
-#else
+#elif PLATFORM_LINUX
     DIR* d = opendir(dir_path);
     if (!d) return;
     struct dirent* dir;
@@ -368,7 +368,7 @@ static void FreeMapFileList() {
 static void ScanMapFiles() {
     FreeMapFileList();
     const char* dir_path = "./";
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     char search_path[256];
     sprintf(search_path, "%s*.map", dir_path);
     WIN32_FIND_DATAA find_data;
@@ -382,7 +382,7 @@ static void ScanMapFiles() {
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);
-#else
+#elif PLATFORM_LINUX
     DIR* d = opendir(dir_path);
     if (!d) return;
     struct dirent* dir;

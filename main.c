@@ -31,7 +31,7 @@
 #include "dsp_reverb.h"
 #include "video_player.h"
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
 #endif
@@ -387,11 +387,7 @@ void handle_command(int argc, char** argv) {
                 filename_start = url;
             }
 
-#ifdef _WIN32
             _mkdir("downloads");
-#else
-            mkdir("downloads", 0755);
-#endif
 
             char output_path[256];
             snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);

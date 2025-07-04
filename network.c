@@ -13,13 +13,7 @@
 #include <string.h>
 #include <SDL_thread.h>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#include <direct.h>
-#pragma comment(lib, "ws2_32.lib")
-#else
+#ifdef PLATFORM_LINUX
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -58,7 +52,7 @@ static void parse_url(const char* url, char* host, size_t host_len, char* path, 
     }
 }
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 static int download_thread_func_win32(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     SOCKET sock = INVALID_SOCKET;
@@ -178,7 +172,7 @@ cleanup:
     free(args);
     return 0;
 }
-#else
+#elif PLATFORM_LINUX
 static int download_thread_func_posix(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     int sock = -1;
@@ -298,7 +292,7 @@ cleanup:
 #endif
 
 void Network_Init(void) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         fprintf(stderr, "FATAL: WSAStartup failed.\n");
@@ -309,7 +303,7 @@ void Network_Init(void) {
 }
 
 void Network_Shutdown(void) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     WSACleanup();
 #endif
     printf("Network System Shutdown.\n");
@@ -329,9 +323,9 @@ bool Network_DownloadFile(const char* url, const char* output_filepath) {
         return false;
     }
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(download_thread_func_win32, "DownloadThread", (void*)args);
-#else
+#elif PLATFORM_LINUX
     SDL_Thread* thread = SDL_CreateThread(download_thread_func_posix, "DownloadThread", (void*)args);
 #endif
 
@@ -356,9 +350,9 @@ bool Network_Ping(const char* hostname) {
         return false;
     }
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(ping_thread_func_win32, "PingThread", (void*)args);
-#else
+#elif PLATFORM_LINUX
     SDL_Thread* thread = SDL_CreateThread(ping_thread_func_posix, "PingThread", (void*)args);
 #endif
 
