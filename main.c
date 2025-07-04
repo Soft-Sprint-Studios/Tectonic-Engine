@@ -531,8 +531,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("gravity", "9.8", "", CVAR_NONE);
     Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).", CVAR_NONE);
-    Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
-    Cvar_Register("r_autoexposure_key", "0.18", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
+    Cvar_Register("r_autoexposure_speed", "2.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
+    Cvar_Register("r_autoexposure_key", "0.1", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable or disable the bloom effect.", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable or disable volumetric lighting.", CVAR_NONE);
@@ -2212,7 +2212,7 @@ void BuildCubemaps() {
     Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
     const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
 
-    const int CUBEMAP_RES = 512;
+    const int CUBEMAP_RES = 256;
     GLuint cubemap_fbo, cubemap_texture, cubemap_rbo;
     glGenFramebuffers(1, &cubemap_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
