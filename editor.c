@@ -3271,7 +3271,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
             glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
         }
-        UI_Image((void*)g_EditorState.model_preview_texture, w, h);
+        UI_Image((void*)(intptr_t)g_EditorState.model_preview_texture, w, h);
         if (UI_IsItemHovered()) {
             float dx, dy; UI_GetMouseDragDelta(1, 0.0f, &dx, &dy);
             if (UI_IsMouseDragging(1)) {
@@ -3353,7 +3353,7 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
             UI_PushID(i);
             char btn_id[32];
             sprintf(btn_id, "##mat_btn_%d", i);
-            if (UI_ImageButton(btn_id, mat->diffuseMap, 64, 64)) {
+            if (UI_ImageButton(btn_id, (void*)(intptr_t)mat->diffuseMap, 64, 64)) {
                 if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && g_EditorState.selected_face_index != -1) {
                     Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
                     BrushFace* face = &b->faces[g_EditorState.selected_face_index];

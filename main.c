@@ -1512,7 +1512,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, &g_renderer.prevViewProjection.m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, g_renderer.prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &g_engine->camera.position.x);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sun.enabled"), g_scene.sun.enabled);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "sun.direction"), 1, &g_scene.sun.direction.x);
