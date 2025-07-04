@@ -16,6 +16,7 @@
 #include "sound_system.h"
 #include "io_system.h"
 #include "video_player.h"
+#include "gl_console.h"
 #include "mikktspace/mikktspace.h"
 
 typedef struct {
@@ -821,6 +822,25 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
     FILE* file = fopen(mapPath, "r");
     if (!file) {
+        printf("ERROR: Could not find map file: %s\n", mapPath);
+        Console_Printf("[error] Could not find map file: %s", mapPath);
+        return false;
+    }
+
+    char version_line[256];
+    int map_file_version = 0;
+    if (fgets(version_line, sizeof(version_line), file) && sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
+        if (map_file_version != MAP_VERSION) {
+            printf("ERROR: Map version mismatch! Map is v%d, Engine expects v%d.\n", map_file_version, MAP_VERSION);
+            Console_Printf("[error] Map version mismatch! Map is v%d, Engine expects v%d.", map_file_version, MAP_VERSION);
+            fclose(file);
+            return false;
+        }
+    }
+    else {
+        printf("ERROR: Invalid or missing map version. Could be an old map format.\n");
+        Console_Printf("[error] Invalid or missing map version. Could be an old map format.");
+        fclose(file);
         return false;
     }
 
@@ -1151,6 +1171,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 void Scene_SaveMap(Scene* scene, const char* mapPath) {
     FILE* file = fopen(mapPath, "w");
     if (!file) { return; }
+    fprintf(file, "MAP_VERSION %d\n\n", MAP_VERSION);
     fprintf(file, "player_start %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z);
     fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
     fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",

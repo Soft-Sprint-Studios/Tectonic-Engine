@@ -36,6 +36,8 @@ extern "C" {
 #define MAX_VPLS 4096
 #define VPL_GEN_TEXTURE_SIZE 1024
 
+#define MAP_VERSION 1
+
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
 
