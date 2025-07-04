@@ -42,6 +42,7 @@ target_compile_options(TectonicEngine PRIVATE
 )
 
 if(WIN32)
+    message(STATUS "Configuring for Windows")
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:console")
 
@@ -62,6 +63,7 @@ if(WIN32)
     )
 
 elseif(UNIX AND NOT APPLE)
+    message(STATUS "Configuring for Linux")
     find_package(SDL2 REQUIRED)
     find_package(GLEW REQUIRED)
     find_package(OpenGL REQUIRED)
