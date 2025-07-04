@@ -30,6 +30,10 @@
 #include "network.h"
 #include "dsp_reverb.h"
 #include "video_player.h"
+#ifdef PLATFORM_LINUX
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
 
 #ifdef PLATFORM_WINDOWS
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
