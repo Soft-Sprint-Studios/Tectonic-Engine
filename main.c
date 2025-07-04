@@ -69,6 +69,7 @@ static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
 static float g_distance_walked = 0.0f;
 const float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
+static int g_last_vsync_cvar_state = -1;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 float parallaxRoomVertices[] = {
@@ -531,7 +532,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("gravity", "9.8", "", CVAR_NONE);
     Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).", CVAR_NONE);
-    Cvar_Register("r_autoexposure_speed", "2.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
+    Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.1", "The middle-grey value the scene luminance will adapt towards.", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable Screen-Space Ambient Occlusion.", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable or disable the bloom effect.", CVAR_NONE);
@@ -542,7 +543,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
-    Cvar_Register("r_show_triggers", "0", "Show trigger volumes in-game. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -2329,6 +2330,13 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE; glewInit();
+    init_engine(window, context);
+    if (Cvar_GetInt("r_vsync")) {
+        SDL_GL_SetSwapInterval(1);
+    }
+    else {
+        SDL_GL_SetSwapInterval(0);
+    }
     if (!GLEW_ARB_bindless_texture) {
         fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
@@ -2336,12 +2344,22 @@ int main(int argc, char* argv[]) {
     }
     SDL_SetRelativeMouseMode(SDL_FALSE);
     GameConfig_Init();
-    UI_Init(window, context); SoundSystem_Init(); init_engine(window, context); init_renderer(); init_scene();
+    UI_Init(window, context); SoundSystem_Init(); init_renderer(); init_scene();
     Discord_Init();
     MainMenu_SetInGameMenuMode(false, false);
 
     g_fps_last_update = SDL_GetTicks();
     while (g_engine->running) {
+        int current_vsync_cvar = Cvar_GetInt("r_vsync");
+        if (current_vsync_cvar != g_last_vsync_cvar_state) {
+            if (SDL_GL_SetSwapInterval(current_vsync_cvar) == 0) {
+                Console_Printf("V-Sync set to %s.", current_vsync_cvar ? "ON" : "OFF");
+            }
+            else {
+                Console_Printf("[warning] Could not set V-Sync: %s", SDL_GetError());
+            }
+            g_last_vsync_cvar_state = current_vsync_cvar;
+        }
         float currentFrame = (float)SDL_GetTicks() / 1000.0f; g_engine->deltaTime = currentFrame - g_engine->lastFrame; g_engine->lastFrame = currentFrame;
         g_fps_frame_count++;
         Uint32 currentTicks = SDL_GetTicks();
