@@ -32,7 +32,7 @@ Volumetric Lighting: Creates visible light shafts and "god rays" from light sour
 
 Screen-Space Ambient Occlusion (SSAO): Adds contact shadows and depth to scenes.
 
-Artistic Effects: Includes customizable film grain, scanlines, chromatic aberration, and vignette effects.
+Artistic Effects: Includes customizable film grain, scanlines, chromatic aberration, black & white and vignette effects.
 
 # Advanced Mapping Techniques:
 Contact Refinment Parallax Mapping: Adds illusion of 3d surfaces
