@@ -486,6 +486,11 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
             }
             cap_face.vertexIndices[i] = vert_idx;
         }
+        for (int k = 0; k < cap_vert_count / 2; ++k) {
+            int temp = cap_face.vertexIndices[k];
+            cap_face.vertexIndices[k] = cap_face.vertexIndices[cap_vert_count - 1 - k];
+            cap_face.vertexIndices[cap_vert_count - 1 - k] = temp;
+        }
         new_face_list_array[current_new_face_count++] = cap_face;
     }
 
