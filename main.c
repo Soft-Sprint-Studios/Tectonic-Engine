@@ -374,6 +374,88 @@ void handle_command(int argc, char** argv) {
             Console_Printf("Usage: bind \"key\" \"command\"");
         }
     }
+    else if (_stricmp(cmd, "map") == 0) {
+        if (argc == 2) {
+            g_current_mode = MODE_MAINMENU;
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+
+            char map_path[256];
+            snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
+
+            Console_Printf("Loading map: %s", map_path);
+            if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
+                g_current_mode = MODE_GAME;
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+            }
+            else {
+                Console_Printf("[error] Failed to load map: %s", map_path);
+            }
+        }
+        else {
+            Console_Printf("Usage: map <mapname>");
+        }
+    }
+    else if (_stricmp(cmd, "maps") == 0) {
+        const char* dir_path = "./";
+        Console_Printf("Available maps in root directory:");
+
+#ifdef PLATFORM_WINDOWS
+        char search_path[256];
+        sprintf(search_path, "%s*.map", dir_path);
+        WIN32_FIND_DATAA find_data;
+        HANDLE h_find = FindFirstFileA(search_path, &find_data);
+        if (h_find == INVALID_HANDLE_VALUE) {
+            Console_Printf("...No maps found.");
+        }
+        else {
+            do {
+                if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                    Console_Printf("  %s", find_data.cFileName);
+                }
+            } while (FindNextFileA(h_find, &find_data) != 0);
+            FindClose(h_find);
+        }
+#else
+        DIR* d = opendir(dir_path);
+        if (!d) {
+            Console_Printf("...Could not open directory.");
+        }
+        else {
+            struct dirent* dir;
+            int count = 0;
+            while ((dir = readdir(d)) != NULL) {
+                const char* ext = strrchr(dir->d_name, '.');
+                if (ext && (_stricmp(ext, ".map") == 0)) {
+                    Console_Printf("  %s", dir->d_name);
+                    count++;
+                }
+            }
+            if (count == 0) {
+                Console_Printf("...No maps found.");
+            }
+            closedir(d);
+        }
+#endif
+    }
+    else if (_stricmp(cmd, "disconnect") == 0) {
+        if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
+            Console_Printf("Disconnecting from map...");
+            g_current_mode = MODE_MAINMENU;
+
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+
+            if (g_is_editor_mode) {
+                Editor_Shutdown();
+            }
+
+            Scene_Clear(&g_scene, g_engine);
+            MainMenu_SetInGameMenuMode(false, false);
+
+        }
+        else {
+            Console_Printf("Not currently in a map.");
+        }
+    }
     else if (_stricmp(cmd, "download") == 0) {
         if (argc == 2 && strncmp(argv[1], "http", 4) == 0) {
             const char* url = argv[1];

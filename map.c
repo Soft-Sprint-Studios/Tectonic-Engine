@@ -733,31 +733,57 @@ void Brush_CreateRenderData(Brush* b) {
 
 void Scene_Clear(Scene* scene, Engine* engine) {
     IO_Clear();
-    if (scene->objects) { for (int i = 0; i < scene->numObjects; ++i) { if (scene->objects[i].model) Model_Free(scene->objects[i].model); } free(scene->objects); }
+
+    if (scene->objects) {
+        for (int i = 0; i < scene->numObjects; ++i) {
+            if (scene->objects[i].model) {
+                Model_Free(scene->objects[i].model);
+            }
+        }
+        free(scene->objects);
+        scene->objects = NULL;
+    }
+
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush_FreeData(&scene->brushes[i]);
-        if (scene->brushes[i].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[i].physicsBody);
+        scene->brushes[i].physicsBody = NULL;
     }
-    for (int i = 0; i < scene->numActiveLights; ++i) Light_DestroyShadowMap(&scene->lights[i]);
+
+    for (int i = 0; i < scene->numActiveLights; ++i) {
+        Light_DestroyShadowMap(&scene->lights[i]);
+    }
+
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
         SoundSystem_DeleteBuffer(scene->soundEntities[i].bufferID);
     }
+
     for (int i = 0; i < scene->numParticleEmitters; ++i) {
         ParticleEmitter_Free(&scene->particleEmitters[i]);
         ParticleSystem_Free(scene->particleEmitters[i].system);
     }
+
     for (int i = 0; i < scene->numVideoPlayers; ++i) {
         VideoPlayer_Free(&scene->videoPlayers[i]);
     }
+
     for (int i = 0; i < scene->numParallaxRooms; ++i) {
         if (scene->parallaxRooms[i].cubemapTexture) {
             glDeleteTextures(1, &scene->parallaxRooms[i].cubemapTexture);
         }
     }
-    if (engine->physicsWorld) { Physics_DestroyWorld(engine->physicsWorld); }
+
+    if (engine->camera.physicsBody) {
+        engine->camera.physicsBody = NULL;
+    }
+
+    if (engine->physicsWorld) {
+        Physics_DestroyWorld(engine->physicsWorld);
+        engine->physicsWorld = NULL;
+    }
 
     memset(scene, 0, sizeof(Scene));
+
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
     scene->fog.enabled = false;
     scene->fog.color = (Vec3){ 0.5f, 0.6f, 0.7f };
@@ -783,8 +809,6 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     vec3_normalize(&scene->sun.direction);
     scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
-    engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
 }
 
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
@@ -792,75 +816,14 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     if (!file) {
         return false;
     }
+
     strncpy(scene->mapPath, mapPath, sizeof(scene->mapPath) - 1);
     scene->mapPath[sizeof(scene->mapPath) - 1] = '\0';
-    IO_Clear();
-    if (scene->objects) {
-        for (int i = 0; i < scene->numObjects; ++i) {
-            if (scene->objects[i].model) Model_Free(scene->objects[i].model);
-        }
-        free(scene->objects);
-    }
-    for (int i = 0; i < scene->numBrushes; ++i) {
-        Brush_FreeData(&scene->brushes[i]);
-        if (scene->brushes[i].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[i].physicsBody);
-    }
-    for (int i = 0; i < scene->numActiveLights; ++i) Light_DestroyShadowMap(&scene->lights[i]);
-    for (int i = 0; i < scene->numSoundEntities; ++i) {
-        SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
-        SoundSystem_DeleteBuffer(scene->soundEntities[i].bufferID);
-    }
-    for (int i = 0; i < scene->numParticleEmitters; ++i) {
-        ParticleEmitter_Free(&scene->particleEmitters[i]);
-        ParticleSystem_Free(scene->particleEmitters[i].system);
-    }
-    for (int i = 0; i < scene->numVideoPlayers; ++i) {
-        VideoPlayer_Free(&scene->videoPlayers[i]);
-    }
-    for (int i = 0; i < scene->numParallaxRooms; ++i) {
-        if (scene->parallaxRooms[i].cubemapTexture) {
-            glDeleteTextures(1, &scene->parallaxRooms[i].cubemapTexture);
-        }
-    }
-    if (engine->physicsWorld) {
-        Physics_DestroyWorld(engine->physicsWorld);
-    }
 
-    scene->objects = NULL;
-    scene->numObjects = 0;
-    scene->numBrushes = 0;
-    scene->numActiveLights = 0;
-    scene->numDecals = 0;
-    scene->numSoundEntities = 0;
-    scene->numParticleEmitters = 0;
-    scene->numVideoPlayers = 0;
-    scene->numParallaxRooms = 0;
-    scene->playerStart.position = (Vec3){ 0, 5, 0 };
-    scene->fog.enabled = false;
-    scene->fog.color = (Vec3){ 0.5f, 0.6f, 0.7f };
-    scene->fog.start = 50.0f;
-    scene->fog.end = 200.0f;
-    scene->post.enabled = true;
-    scene->post.crtCurvature = 0.1f;
-    scene->post.vignetteStrength = 0.8f;
-    scene->post.vignetteRadius = 0.75f;
-    scene->post.lensFlareEnabled = true;
-    scene->post.lensFlareStrength = 1.0f;
-    scene->post.scanlineStrength = 0.0f;
-    scene->post.grainIntensity = 0.07f;
-    scene->post.dofEnabled = false;
-    scene->post.dofFocusDistance = 0.1f;
-    scene->post.dofAperture = 10.0f;
-    scene->post.chromaticAberrationEnabled = true;
-    scene->post.chromaticAberrationStrength = 0.005f;
-    scene->post.sharpenEnabled = false;
-    scene->post.sharpenAmount = 0.15f;
-    scene->sun.enabled = true;
-    scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
-    vec3_normalize(&scene->sun.direction);
-    scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
-    scene->sun.intensity = 1.0f;
+    Scene_Clear(scene, engine);
+
     engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
+
     char line[2048];
     while (fgets(line, sizeof(line), file)) {
         if (line[0] == '#' || line[0] == '\n') continue;
@@ -1163,8 +1126,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
     }
     fclose(file);
+
     engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
     engine->camera.position = scene->playerStart.position;
+
     return true;
 }
 
