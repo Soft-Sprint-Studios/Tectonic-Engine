@@ -452,6 +452,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -2257,12 +2258,15 @@ int main(int argc, char* argv[]) {
             Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
             float fov_degrees = Cvar_GetFloat("fov_vertical");
             Mat4 projection = mat4_perspective(fov_degrees * (3.14159f / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
-            render_shadows();
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);
-            if (g_scene.sun.enabled) {
-                Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
-                render_sun_shadows(&sunLightSpaceMatrix);
+
+            if (Cvar_GetInt("r_shadows")) {
+                render_shadows();
+                if (g_scene.sun.enabled) {
+                    Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
+                    render_sun_shadows(&sunLightSpaceMatrix);
+                }
             }
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
             if (Cvar_GetInt("r_ssao")) {
