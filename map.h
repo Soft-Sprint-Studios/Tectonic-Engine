@@ -171,8 +171,6 @@ typedef struct {
     GLuint ssaoFBO, ssaoBlurFBO;
     GLuint ssaoColorBuffer, ssaoBlurColorBuffer;
     GLuint ssaoShader, ssaoBlurShader;
-    GLuint ssaoNoiseTex;
-    Vec3 ssaoKernel[64];
     GLuint postProcessFBO;
     GLuint postProcessTexture;
     GLuint histogramShader;

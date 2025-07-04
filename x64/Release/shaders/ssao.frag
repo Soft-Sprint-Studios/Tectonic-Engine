@@ -2,46 +2,42 @@
 out float FragColor;
 
 in vec2 TexCoords;
-
-uniform sampler2D gPosition;
 uniform sampler2D gNormal;
-uniform sampler2D texNoise;
-
-uniform vec3 samples[64];
-uniform mat4 projection;
+uniform sampler2D gPosition;
 uniform vec2 screenSize;
 
-const vec2 noiseScale = screenSize / 4.0;
+const float sensitivity = 1.2;
+const float threshold = 0.10;
+const float intensity = 5.0;
+const int radius = 10;
 
-const float radius = 0.5;
-const float bias = 0.025;
-const int kernelSize = 64;
-const float intensityaddition = 1.5;
+void main() {
+    vec2 texelSize = 1.0 / screenSize;
+    vec3 centerNormal = normalize(texture(gNormal, TexCoords).rgb);
+    float fragDepth = abs(texture(gPosition, TexCoords).z);
 
-void main()
-{
-    vec3 fragPos = texture(gPosition, TexCoords).xyz;
-    if (fragPos.z >= 0.0) {
-        discard;
-    }
-    vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
-    vec3 randomVec = normalize(texture(texNoise, TexCoords * noiseScale).xyz);
-    vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-    vec3 bitangent = cross(normal, tangent);
-    mat3 TBN = mat3(tangent, bitangent, normal);
     float occlusion = 0.0;
-    for(int i = 0; i < kernelSize; ++i)
-    {
-        vec3 samplePos = TBN * samples[i];
-        samplePos = fragPos + samplePos * radius; 
-        vec4 offset = vec4(samplePos, 1.0);
-        offset = projection * offset;
-        offset.xy /= offset.w;
-        offset.xy = offset.xy * 0.5 + 0.5;
-        float sampleDepth = texture(gPosition, offset.xy).z;
-        float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
-        occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;           
+    int count = 0;
+
+    for (int x = -radius; x <= radius; x += 3) {
+        for (int y = -radius; y <= radius; y += 3) {
+            if (x == 0 && y == 0) continue;
+
+            vec2 offset = TexCoords + vec2(x, y) * texelSize;
+            vec3 sampleNormal = normalize(texture(gNormal, offset).rgb);
+            
+            float diff = length(centerNormal - sampleNormal);
+            if (diff > threshold) {
+                occlusion += diff * sensitivity;
+            }
+            count++;
+        }
     }
-    occlusion = 1.0 - (occlusion / float(kernelSize));
-    FragColor = pow(occlusion, 2.2 + intensityaddition);
+
+    occlusion = clamp(occlusion / float(count), 0.0, 1.0);
+
+    float depthFade = clamp(1.0 - fragDepth * 0.5, 0.2, 1.0);
+    occlusion *= depthFade;
+
+    FragColor = pow(1.0 - occlusion, intensity);
 }

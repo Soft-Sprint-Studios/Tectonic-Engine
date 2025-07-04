@@ -844,37 +844,6 @@ void init_renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("SSAO Blur Framebuffer not complete!\n");
-    srand(time(NULL));
-    for (unsigned int i = 0; i < 64; ++i)
-    {
-        Vec3 sample = {
-            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
-            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
-            ((float)rand() / (float)RAND_MAX)
-        };
-        vec3_normalize(&sample);
-        sample = vec3_muls(sample, ((float)rand() / (float)RAND_MAX));
-        float scale = (float)i / 64.0f;
-        scale = lerp(0.1f, 1.0f, scale * scale);
-        sample = vec3_muls(sample, scale);
-        g_renderer.ssaoKernel[i] = sample;
-    }
-    Vec3 ssaoNoise[16];
-    for (unsigned int i = 0; i < 16; i++)
-    {
-        ssaoNoise[i] = (Vec3){
-            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
-            ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
-            0.0f
-        };
-    }
-    glGenTextures(1, &g_renderer.ssaoNoiseTex);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoNoiseTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glUseProgram(g_renderer.ssaoShader);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gNormal"), 1);
@@ -1845,19 +1814,12 @@ void render_ssao_pass(Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_renderer.ssaoShader);
-    for (unsigned int i = 0; i < 64; ++i) {
-        char uName[64];
-        sprintf(uName, "samples[%d]", i);
-        glUniform3fv(glGetUniformLocation(g_renderer.ssaoShader, uName), 1, &g_renderer.ssaoKernel[i].x);
-    }
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssaoShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform2f(glGetUniformLocation(g_renderer.ssaoShader, "screenSize"), (float)ssao_width, (float)ssao_height);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoNoiseTex);
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2026,7 +1988,6 @@ void cleanup() {
     glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);
     glDeleteTextures(1, &g_renderer.ssaoColorBuffer);
     glDeleteTextures(1, &g_renderer.ssaoBlurColorBuffer);
-    glDeleteTextures(1, &g_renderer.ssaoNoiseTex);
     glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
     glDeleteTextures(1, &g_renderer.finalRenderTexture);
     glDeleteTextures(1, &g_renderer.finalDepthTexture);
