@@ -4,6 +4,17 @@ project(TectonicEngine LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(MSVC)
+    foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /Zi")
+        set(CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}} /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /DEBUG")
+        set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /DEBUG")
+    endforeach()
+elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-g)
+endif()
+
 set(ENGINE_SOURCES
     binds.c cvar.c discord_wrapper.cpp dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
@@ -45,6 +56,11 @@ if(WIN32)
     message(STATUS "Configuring for Windows")
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:console")
+
+    set_target_properties(TectonicEngine PROPERTIES
+        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
+        COMPILE_PDB_NAME TectonicEngine
+    )
 
     target_link_directories(TectonicEngine PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/x64"
