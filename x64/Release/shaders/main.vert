@@ -17,7 +17,7 @@ out VS_OUT {
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
-    flat bool isBrush; 
+    flat int isBrush;
 } vs_out;
 
 uniform mat4 model;
@@ -31,7 +31,7 @@ void main()
     vs_out.texCoords3 = aTexCoords3;
     vs_out.texCoords4 = aTexCoords4;
     vs_out.color = aColor;
-    vs_out.isBrush = isBrush;
+    vs_out.isBrush = (isBrush ? 1 : 0);
 
     mat3 normalMatrix = mat3(transpose(inverse(model)));
     vs_out.worldNormal = normalize(normalMatrix * aNormal);

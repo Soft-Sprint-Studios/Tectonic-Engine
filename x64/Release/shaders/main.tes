@@ -10,7 +10,7 @@ in TCS_OUT {
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
-    flat bool isBrush;
+    flat int isBrush;
 } tes_in[];
 
 out vec3 FragPos_view;
@@ -81,7 +81,7 @@ void main()
     v_Color = c0 + c1 + c2;
     
     vec3 worldNormal;
-    if (tes_in[0].isBrush)
+    if (tes_in[0].isBrush == 1)
     {
         vec3 edge1 = tes_in[1].worldPos - tes_in[0].worldPos;
         vec3 edge2 = tes_in[2].worldPos - tes_in[0].worldPos;
@@ -108,7 +108,7 @@ void main()
     
     const float BRUSH_GI_MULTIPLIER = 1.0;
     const float MODEL_GI_MULTIPLIER = 1.0;
-    float gi_multiplier = tes_in[0].isBrush ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
+    float gi_multiplier = (tes_in[0].isBrush == 1) ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
     indirectLight = vec3(0.0);
     for (int i = 0; i < num_vpls; ++i)
     {
