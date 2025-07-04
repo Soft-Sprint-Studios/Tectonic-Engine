@@ -539,6 +539,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
+    Cvar_Register("r_show_triggers", "0", "Show trigger volumes in-game. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -549,6 +550,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_debug_ao", "0", "Show screen-space ambient occlusion buffer.", CVAR_NONE);
     Cvar_Register("r_debug_velocity", "0", "Show motion vector velocity buffer.", CVAR_NONE);
     Cvar_Register("r_debug_volumetric", "0", "Show volumetric lighting buffer.", CVAR_NONE);
+    Cvar_Register("r_debug_bloom", "0", "Show the bloom brightness mask texture.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
     Cvar_Register("r_motionblur", "1", "Enable camera and object motion blur.", CVAR_NONE);
@@ -2423,6 +2425,7 @@ int main(int argc, char* argv[]) {
             else if (Cvar_GetInt("r_debug_ao")) { render_debug_buffer(g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_velocity")) { render_debug_buffer(g_renderer.gVelocity, 0); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_volumetric")) { render_debug_buffer(g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_bloom")) { render_debug_buffer(g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
 
             if (!debug_view_active) {
                 present_final_image(source_fbo);
