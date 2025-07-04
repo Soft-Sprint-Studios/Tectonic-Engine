@@ -7,7 +7,7 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D texNoise;
 
-uniform vec3 samples[32];
+uniform vec3 samples[64];
 uniform mat4 projection;
 uniform vec2 screenSize;
 
@@ -15,7 +15,7 @@ const vec2 noiseScale = screenSize / 4.0;
 
 const float radius = 0.5;
 const float bias = 0.025;
-const int kernelSize = 32;
+const int kernelSize = 64;
 const float intensityaddition = 1.5;
 
 void main()

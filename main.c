@@ -46,6 +46,7 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 #define PLAYER_JUMP_FORCE 350.0f
 
 #define BLOOM_DOWNSAMPLE 8
+#define SSAO_DOWNSAMPLE 2
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
@@ -819,12 +820,14 @@ void init_renderer() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), NULL, GL_DYNAMIC_READ);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    const int ssao_width = WINDOW_WIDTH / SSAO_DOWNSAMPLE;
+    const int ssao_height = WINDOW_HEIGHT / SSAO_DOWNSAMPLE;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glGenFramebuffers(1, &g_renderer.ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glGenTextures(1, &g_renderer.ssaoColorBuffer);
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, ssao_width, ssao_height, 0, GL_RED, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoColorBuffer, 0);
@@ -834,14 +837,14 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
     glGenTextures(1, &g_renderer.ssaoBlurColorBuffer);
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, ssao_width, ssao_height, 0, GL_RED, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("SSAO Blur Framebuffer not complete!\n");
     srand(time(NULL));
-    for (unsigned int i = 0; i < 32; ++i)
+    for (unsigned int i = 0; i < 64; ++i)
     {
         Vec3 sample = {
             ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f,
@@ -850,7 +853,7 @@ void init_renderer() {
         };
         vec3_normalize(&sample);
         sample = vec3_muls(sample, ((float)rand() / (float)RAND_MAX));
-        float scale = (float)i / 32.0f;
+        float scale = (float)i / 64.0f;
         scale = lerp(0.1f, 1.0f, scale * scale);
         sample = vec3_muls(sample, scale);
         g_renderer.ssaoKernel[i] = sample;
@@ -1835,16 +1838,19 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
 }
 
 void render_ssao_pass(Mat4* projection) {
+    const int ssao_width = WINDOW_WIDTH / SSAO_DOWNSAMPLE;
+    const int ssao_height = WINDOW_HEIGHT / SSAO_DOWNSAMPLE;
+    glViewport(0, 0, ssao_width, ssao_height);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_renderer.ssaoShader);
-    for (unsigned int i = 0; i < 32; ++i) {
-        char uName[32];
+    for (unsigned int i = 0; i < 64; ++i) {
+        char uName[64];
         sprintf(uName, "samples[%d]", i);
         glUniform3fv(glGetUniformLocation(g_renderer.ssaoShader, uName), 1, &g_renderer.ssaoKernel[i].x);
     }
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssaoShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(g_renderer.ssaoShader, "screenSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
+    glUniform2f(glGetUniformLocation(g_renderer.ssaoShader, "screenSize"), (float)ssao_width, (float)ssao_height);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
     glActiveTexture(GL_TEXTURE1);
@@ -1861,6 +1867,7 @@ void render_ssao_pass(Mat4* projection) {
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
