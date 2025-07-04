@@ -24,6 +24,12 @@ jobs:
       - name: Build (Linux)
         run: cmake --build build --config Release
 
+      - name: Upload binary artifact (Linux)
+        uses: actions/upload-artifact@v3
+        with:
+          name: TectonicEngine-linux
+          path: build/TectonicEngine
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -35,3 +41,9 @@ jobs:
 
       - name: Build (Windows)
         run: cmake --build build --config Release
+
+      - name: Upload binary artifact (Windows)
+        uses: actions/upload-artifact@v3
+        with:
+          name: TectonicEngine-windows
+          path: build/Release/TectonicEngine.exe
