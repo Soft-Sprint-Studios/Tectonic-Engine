@@ -7,9 +7,7 @@
 #include <cstring>
 
 #define CGLTF_IMPLEMENTATION
-extern "C" {
 #include "../cgltf/cgltf.h"
-}
 
 namespace fs = std::filesystem;
 
@@ -68,7 +66,7 @@ bool save_image_data(cgltf_image* image, const std::string& base_filename, const
 int process_gltf(const fs::path& gltf_path) {
     std::string gltf_basename = gltf_path.stem().string();
 
-    cgltf_options options = { 0 };
+    cgltf_options options = {};
     cgltf_data* data = nullptr;
     cgltf_result result = cgltf_parse_file(&options, gltf_path.string().c_str(), &data);
     if (result != cgltf_result_success) {
