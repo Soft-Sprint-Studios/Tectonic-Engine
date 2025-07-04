@@ -182,6 +182,7 @@ typedef struct {
     GLuint waterNormalMap;
     GLuint parallaxInteriorShader;
     GLuint lightSSBO;
+    GLuint debugBufferShader;
     float currentExposure;
     Mat4 prevViewProjection;
 } Renderer;

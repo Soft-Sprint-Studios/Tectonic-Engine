@@ -453,6 +453,14 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
+    Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
+    Cvar_Register("r_debug_normals", "0", "Show G-Buffer view-space normals.", CVAR_NONE);
+    Cvar_Register("r_debug_position", "0", "Show G-Buffer view-space positions.", CVAR_NONE);
+    Cvar_Register("r_debug_metallic", "0", "Show PBR metallic channel.", CVAR_NONE);
+    Cvar_Register("r_debug_roughness", "0", "Show PBR roughness channel.", CVAR_NONE);
+    Cvar_Register("r_debug_ao", "0", "Show screen-space ambient occlusion buffer.", CVAR_NONE);
+    Cvar_Register("r_debug_velocity", "0", "Show motion vector velocity buffer.", CVAR_NONE);
+    Cvar_Register("r_debug_volumetric", "0", "Show volumetric lighting buffer.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
     Cvar_Register("r_motionblur", "1", "Enable camera and object motion blur.", CVAR_NONE);
@@ -479,6 +487,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 
 void init_renderer() {
     g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
+    g_renderer.debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
     g_renderer.vplGenerationShader = createShaderProgram("shaders/vpl_gen.vert", "shaders/vpl_gen.frag");
     g_renderer.vplComputeShader = createShaderProgramCompute("shaders/vpl_compute.comp");
@@ -1863,6 +1872,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.pointDepthShader);
     glDeleteProgram(g_renderer.vplGenerationShader);
     glDeleteProgram(g_renderer.vplComputeShader);
+    glDeleteProgram(g_renderer.debugBufferShader);
     glDeleteProgram(g_renderer.spotDepthShader);
     glDeleteProgram(g_renderer.skyboxShader);
     glDeleteProgram(g_renderer.postProcessShader);
@@ -2172,6 +2182,25 @@ void BuildCubemaps() {
     Console_Printf("Cubemap build finished.");
 }
 
+static void render_debug_buffer(GLuint textureID, int viewMode) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(g_renderer.debugBufferShader);
+    glUniform1i(glGetUniformLocation(g_renderer.debugBufferShader, "viewMode"), viewMode);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glUniform1i(glGetUniformLocation(g_renderer.debugBufferShader, "debugTexture"), 0);
+
+    glBindVertexArray(g_renderer.quadVAO);
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+}
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -2277,7 +2306,19 @@ int main(int argc, char* argv[]) {
                 source_fbo = target_fbo;
             }
 
-            present_final_image(source_fbo);
+            bool debug_view_active = false;
+            if (Cvar_GetInt("r_debug_albedo")) { render_debug_buffer(g_renderer.gAlbedo, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_normals")) { render_debug_buffer(g_renderer.gNormal, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_position")) { render_debug_buffer(g_renderer.gPosition, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_metallic")) { render_debug_buffer(g_renderer.gPBRParams, 1); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_roughness")) { render_debug_buffer(g_renderer.gPBRParams, 2); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_ao")) { render_debug_buffer(g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_velocity")) { render_debug_buffer(g_renderer.gVelocity, 0); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_volumetric")) { render_debug_buffer(g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
+
+            if (!debug_view_active) {
+                present_final_image(source_fbo);
+            }
             Mat4 currentViewProjection;
             mat4_multiply(&currentViewProjection, &projection, &view);
             g_renderer.prevViewProjection = currentViewProjection;
