@@ -252,6 +252,7 @@ typedef struct {
 } Brush;
 
 typedef struct {
+    char targetname[64];
     Vec3 pos;
     Vec3 rot;
     Vec3 size;

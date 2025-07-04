@@ -524,6 +524,7 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
     SceneObject* new_obj = &scene->objects[scene->numObjects - 1];
     memcpy(new_obj, src_obj, sizeof(SceneObject));
+    sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
     new_obj->physicsBody = NULL;
     new_obj->pos.x += 1.0f;
     SceneObject_UpdateMatrix(new_obj);
@@ -542,6 +543,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     Brush* src_brush = &scene->brushes[index];
     Brush* new_brush = &scene->brushes[scene->numBrushes];
     Brush_DeepCopy(new_brush, src_brush);
+    sprintf(new_brush->targetname, "Brush_%d", scene->numBrushes);
     new_brush->pos.x += 1.0f;
     Brush_UpdateMatrix(new_brush);
     Brush_CreateRenderData(new_brush);
@@ -562,6 +564,7 @@ void Editor_DuplicateLight(Scene* scene, int index) {
     Light* src_light = &scene->lights[index];
     Light* new_light = &scene->lights[scene->numActiveLights];
     memcpy(new_light, src_light, sizeof(Light));
+    sprintf(new_light->targetname, "Light_%d", scene->numActiveLights);
     new_light->shadowFBO = 0; new_light->shadowMapTexture = 0;
     new_light->position.x += 1.0f;
     Light_InitShadowMap(new_light);
@@ -576,6 +579,7 @@ void Editor_DuplicateDecal(Scene* scene, int index) {
     Decal* src_decal = &scene->decals[index];
     Decal* new_decal = &scene->decals[scene->numDecals];
     memcpy(new_decal, src_decal, sizeof(Decal));
+    sprintf(new_decal->targetname, "Decal_%d", scene->numDecals);
     new_decal->pos.x += 1.0f;
     Decal_UpdateMatrix(new_decal);
     scene->numDecals++;
@@ -589,6 +593,7 @@ void Editor_DuplicateSoundEntity(Scene* scene, int index) {
     SoundEntity* src_sound = &scene->soundEntities[index];
     SoundEntity* new_sound = &scene->soundEntities[scene->numSoundEntities];
     memcpy(new_sound, src_sound, sizeof(SoundEntity));
+    sprintf(new_sound->targetname, "Sound_%d", scene->numSoundEntities);
     new_sound->sourceID = 0; new_sound->bufferID = 0;
     new_sound->pos.x += 1.0f;
     new_sound->bufferID = SoundSystem_LoadSound(new_sound->soundPath);
@@ -603,6 +608,7 @@ void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
     ParticleEmitter* src_emitter = &scene->particleEmitters[index];
     ParticleEmitter* new_emitter = &scene->particleEmitters[scene->numParticleEmitters];
     memcpy(new_emitter, src_emitter, sizeof(ParticleEmitter));
+    sprintf(new_emitter->targetname, "Emitter_%d", scene->numParticleEmitters);
     new_emitter->pos.x += 1.0f;
     ParticleSystem* ps = ParticleSystem_Load(new_emitter->parFile);
     if (ps) {
@@ -619,6 +625,7 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     VideoPlayer* src_vp = &scene->videoPlayers[index];
     VideoPlayer* new_vp = &scene->videoPlayers[scene->numVideoPlayers];
     memcpy(new_vp, src_vp, sizeof(VideoPlayer));
+    sprintf(new_vp->targetname, "Video_%d", scene->numVideoPlayers);
     new_vp->plm = NULL;
     new_vp->textureID = 0;
     new_vp->audioSource = 0;
@@ -637,6 +644,7 @@ void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
     ParallaxRoom* src_p = &scene->parallaxRooms[index];
     ParallaxRoom* new_p = &scene->parallaxRooms[scene->numParallaxRooms];
     memcpy(new_p, src_p, sizeof(ParallaxRoom));
+    sprintf(new_p->targetname, "Parallax_%d", scene->numParallaxRooms);
     new_p->pos.x += 1.0f;
     ParallaxRoom_UpdateMatrix(new_p);
 
@@ -3423,13 +3431,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1;
     if (UI_Selectable("Player Start", g_EditorState.selected_entity_type == ENTITY_PLAYERSTART)) { g_EditorState.selected_entity_type = ENTITY_PLAYERSTART; g_EditorState.selected_vertex_index = -1; }
     if (UI_CollapsingHeader("Models", 1)) {
-        for (int i = 0; i < scene->numObjects; ++i) { char label[128]; sprintf(label, "%s##%d", scene->objects[i].modelPath, i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_MODEL; g_EditorState.selected_entity_index = i; g_EditorState.selected_vertex_index = -1; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; } }
+        for (int i = 0; i < scene->numObjects; ++i) {
+            char label[128];
+            const char* name = (strlen(scene->objects[i].targetname) > 0) ? scene->objects[i].targetname : scene->objects[i].modelPath;
+            sprintf(label, "%s##%d", name, i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_MODEL; g_EditorState.selected_entity_index = i; g_EditorState.selected_vertex_index = -1; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
+        }
         if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; ScanModelFiles(); }
     }
     if (model_to_delete != -1) { Editor_DeleteModel(scene, model_to_delete, engine); }
     if (UI_CollapsingHeader("Brushes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
-            if (scene->brushes[i].isReflectionProbe) continue; char label[128]; sprintf(label, "Brush %d %s", i, scene->brushes[i].isTrigger ? "[T]" : ""); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_BRUSH; g_EditorState.selected_entity_index = i; g_EditorState.selected_face_index = 0; g_EditorState.selected_vertex_index = 0; }
+            if (scene->brushes[i].isReflectionProbe) continue;
+            char label[128];
+            if (strlen(scene->brushes[i].targetname) > 0) {
+                sprintf(label, "%s %s##%d", scene->brushes[i].targetname, scene->brushes[i].isTrigger ? "[T]" : "", i);
+            }
+            else {
+                sprintf(label, "Brush %d %s##%d", i, scene->brushes[i].isTrigger ? "[T]" : "", i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_BRUSH; g_EditorState.selected_entity_index = i; g_EditorState.selected_face_index = 0; g_EditorState.selected_vertex_index = 0; }
             UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
@@ -3461,8 +3482,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (UI_CollapsingHeader("Lights", 1)) {
-        for (int i = 0; i < scene->numActiveLights; ++i) { char label[128]; sprintf(label, "Light %d", i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_LIGHT; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; } }
-        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light)); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
+        for (int i = 0; i < scene->numActiveLights; ++i) {
+            char label[128];
+            if (strlen(scene->lights[i].targetname) > 0) {
+                sprintf(label, "%s##%d", scene->lights[i].targetname, i);
+            }
+            else {
+                sprintf(label, "Light %d##%d", i, i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_LIGHT; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
+        }
+        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light)); sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Editor_DeleteLight(scene, light_to_delete); }
     if (UI_CollapsingHeader("Reflection Probes", 1)) {
@@ -3480,18 +3510,45 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (UI_CollapsingHeader("Decals", 1)) {
-        for (int i = 0; i < scene->numDecals; ++i) { char label[128]; sprintf(label, "%s##decal%d", scene->decals[i].material->name, i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_DECAL; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; } }
-        if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
+        for (int i = 0; i < scene->numDecals; ++i) {
+            char label[128];
+            if (strlen(scene->decals[i].targetname) > 0) {
+                sprintf(label, "%s##decal%d", scene->decals[i].targetname, i);
+            }
+            else {
+                sprintf(label, "Decal %d (%s)##decal%d", i, scene->decals[i].material->name, i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_DECAL; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
+        }
+        if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
     }
     if (decal_to_delete != -1) { Editor_DeleteDecal(scene, decal_to_delete); }
     if (UI_CollapsingHeader("Sounds", 1)) {
-        for (int i = 0; i < scene->numSoundEntities; ++i) { char label[128]; sprintf(label, "Sound %d##sound%d", i, i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_SOUND; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; } }
-        if (UI_Button("Add Sound Entity")) { if (scene->numSoundEntities < MAX_SOUNDS) { SoundEntity* s = &scene->soundEntities[scene->numSoundEntities]; memset(s, 0, sizeof(SoundEntity)); s->pos = g_EditorState.editor_camera.position; s->volume = 1.0f; s->pitch = 1.0f; s->maxDistance = 50.0f; scene->numSoundEntities++; Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound"); } }
+        for (int i = 0; i < scene->numSoundEntities; ++i) {
+            char label[128];
+            if (strlen(scene->soundEntities[i].targetname) > 0) {
+                sprintf(label, "%s##sound%d", scene->soundEntities[i].targetname, i);
+            }
+            else {
+                sprintf(label, "Sound %d##sound%d", i, i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_SOUND; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
+        }
+        if (UI_Button("Add Sound Entity")) { if (scene->numSoundEntities < MAX_SOUNDS) { SoundEntity* s = &scene->soundEntities[scene->numSoundEntities]; memset(s, 0, sizeof(SoundEntity)); sprintf(s->targetname, "Sound_%d", scene->numSoundEntities); s->pos = g_EditorState.editor_camera.position; s->volume = 1.0f; s->pitch = 1.0f; s->maxDistance = 50.0f; scene->numSoundEntities++; Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound"); } }
     }
     if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
     int particle_to_delete = -1;
     if (UI_CollapsingHeader("Particle Emitters", 1)) {
-        for (int i = 0; i < scene->numParticleEmitters; ++i) { char label[128]; sprintf(label, "%s##particle%d", scene->particleEmitters[i].parFile, i); if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_PARTICLE_EMITTER; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i); if (UI_Button(del_label)) { particle_to_delete = i; } }
+        for (int i = 0; i < scene->numParticleEmitters; ++i) {
+            char label[128];
+            if (strlen(scene->particleEmitters[i].targetname) > 0) {
+                sprintf(label, "%s##particle%d", scene->particleEmitters[i].targetname, i);
+            }
+            else {
+                sprintf(label, "%s##particle%d", scene->particleEmitters[i].parFile, i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_PARTICLE_EMITTER; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i); if (UI_Button(del_label)) { particle_to_delete = i; }
+        }
         if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
     }
     if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
@@ -3499,7 +3556,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_CollapsingHeader("Video Players", 1)) {
         for (int i = 0; i < scene->numVideoPlayers; ++i) {
             char label[128];
-            sprintf(label, "%s##vidplayer%d", scene->videoPlayers[i].videoPath, i);
+            if (strlen(scene->videoPlayers[i].targetname) > 0) {
+                sprintf(label, "%s##vidplayer%d", scene->videoPlayers[i].targetname, i);
+            }
+            else {
+                sprintf(label, "%s##vidplayer%d", scene->videoPlayers[i].videoPath, i);
+            }
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_VIDEO_PLAYER;
                 g_EditorState.selected_entity_index = i;
@@ -3513,6 +3575,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (scene->numVideoPlayers < MAX_VIDEO_PLAYERS) {
                 VideoPlayer* vp = &scene->videoPlayers[scene->numVideoPlayers];
                 memset(vp, 0, sizeof(VideoPlayer));
+                sprintf(vp->targetname, "Video_%d", scene->numVideoPlayers);
                 vp->pos = g_EditorState.editor_camera.position;
                 vp->size = (Vec2){ 2, 2 };
                 scene->numVideoPlayers++;
@@ -3525,7 +3588,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_CollapsingHeader("Parallax Rooms", 1)) {
         for (int i = 0; i < scene->numParallaxRooms; ++i) {
             char label[128];
-            sprintf(label, "%s##parallax%d", scene->parallaxRooms[i].cubemapPath, i);
+            if (strlen(scene->parallaxRooms[i].targetname) > 0) {
+                sprintf(label, "%s##parallax%d", scene->parallaxRooms[i].targetname, i);
+            }
+            else {
+                sprintf(label, "%s##parallax%d", scene->parallaxRooms[i].cubemapPath, i);
+            }
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_PARALLAX_ROOM;
                 g_EditorState.selected_entity_index = i;
@@ -3539,6 +3607,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (scene->numParallaxRooms < MAX_PARALLAX_ROOMS) {
                 ParallaxRoom* p = &scene->parallaxRooms[scene->numParallaxRooms];
                 memset(p, 0, sizeof(ParallaxRoom));
+                sprintf(p->targetname, "Parallax_%d", scene->numParallaxRooms);
                 p->pos = g_EditorState.editor_camera.position;
                 p->size = (Vec2){ 2, 2 };
                 p->roomDepth = 2.0f;
@@ -3549,13 +3618,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (parallax_room_to_delete != -1) { Editor_DeleteParallaxRoom(scene, parallax_room_to_delete); }
-    if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
+    if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Inspector & Settings", NULL); UI_Text("Inspector"); UI_Separator();
     if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) {
         SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; UI_Text(obj->modelPath); UI_Separator();
-        UI_InputText("Target Name", obj->targetname, sizeof(obj->targetname));
+        UI_InputText("Name", obj->targetname, sizeof(obj->targetname));
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Edit Model Targetname"); }
         UI_DragFloat3("Position", &obj->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { obj->pos.x = SnapValue(obj->pos.x, g_EditorState.grid_size); obj->pos.y = SnapValue(obj->pos.y, g_EditorState.grid_size); obj->pos.z = SnapValue(obj->pos.z, g_EditorState.grid_size); } SceneObject_UpdateMatrix(obj); if (obj->physicsBody) { Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); } Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Move Model"); }
@@ -3617,7 +3686,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush DSP Zone");
         }
         UI_Separator();
-        UI_InputText("Target Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Targetname"); }
+        UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Name"); }
         UI_Separator(); bool transform_changed = false;
         UI_DragFloat3("Position", &b->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->pos.x = SnapValue(b->pos.x, g_EditorState.grid_size); b->pos.y = SnapValue(b->pos.y, g_EditorState.grid_size); b->pos.z = SnapValue(b->pos.z, g_EditorState.grid_size); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Move Brush"); }
         UI_DragFloat3("Rotation", &b->rot.x, 1.0f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->rot.x = SnapAngle(b->rot.x, 15.0f); b->rot.y = SnapAngle(b->rot.y, 15.0f); b->rot.z = SnapAngle(b->rot.z, 15.0f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Rotate Brush"); }
@@ -3795,7 +3864,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.position.x = SnapValue(scene->playerStart.position.x, g_EditorState.grid_size); scene->playerStart.position.y = SnapValue(scene->playerStart.position.y, g_EditorState.grid_size); scene->playerStart.position.z = SnapValue(scene->playerStart.position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index < scene->numActiveLights) {
-        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Target Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Targetname"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }  
+        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Name"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }
         if (light->type == LIGHT_SPOT) {
             char cookie_button_label[128];
             const char* cookie_name = strlen(light->cookiePath) > 0 ? light->cookiePath : "None";
@@ -3823,6 +3892,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     else if (g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index < scene->numDecals) {
         Decal* d = &scene->decals[g_EditorState.selected_entity_index];
         UI_Text("Decal Properties");
+        UI_InputText("Name", d->targetname, sizeof(d->targetname));
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_DECAL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, g_EditorState.selected_entity_index, "Edit Decal Name"); }
         UI_Separator();
 
         char decal_mat_button_label[128];
@@ -3851,7 +3923,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index < scene->numSoundEntities) {
-        SoundEntity* s = &scene->soundEntities[g_EditorState.selected_entity_index]; UI_Text("Sound Entity Properties"); UI_Separator(); UI_InputText("Target Name", s->targetname, sizeof(s->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Targetname"); } UI_InputText("Sound Path", s->soundPath, sizeof(s->soundPath)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Path"); } if (UI_Button("Load##Sound")) { if (s->sourceID != 0) SoundSystem_DeleteSource(s->sourceID); if (s->bufferID != 0) SoundSystem_DeleteBuffer(s->bufferID);  s->bufferID = SoundSystem_LoadSound(s->soundPath);
+        SoundEntity* s = &scene->soundEntities[g_EditorState.selected_entity_index]; UI_Text("Sound Entity Properties"); UI_Separator();
+        UI_InputText("Name", s->targetname, sizeof(s->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Name"); } UI_InputText("Sound Path", s->soundPath, sizeof(s->soundPath)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Path"); } if (UI_Button("Load##Sound")) {
+            if (s->sourceID != 0) SoundSystem_DeleteSource(s->sourceID); if (s->bufferID != 0) SoundSystem_DeleteBuffer(s->bufferID);  s->bufferID = SoundSystem_LoadSound(s->soundPath);
         } UI_DragFloat3("Position", &s->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourcePosition(s->sourceID, s->pos); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Move Sound"); } UI_DragFloat("Volume", &s->volume, 0.05f, 0.0f, 2.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Volume"); } UI_DragFloat("Pitch", &s->pitch, 0.05f, 0.1f, 4.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Pitch"); } UI_DragFloat("Max Distance", &s->maxDistance, 1.0f, 1.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index, "Edit Sound Distance"); }
         if (UI_Checkbox("Looping", &s->is_looping)) {
             Undo_BeginEntityModification(scene, ENTITY_SOUND, g_EditorState.selected_entity_index);
@@ -3864,7 +3938,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index < scene->numParticleEmitters) {
-        ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); } UI_InputText("Target Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Targetname"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
+        ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); }
+        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index < scene->numVideoPlayers) {
         VideoPlayer* vp = &scene->videoPlayers[g_EditorState.selected_entity_index];
@@ -3878,7 +3953,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (strcmp(oldPath, vp->videoPath) != 0) {
             VideoPlayer_Load(vp);
         }
-        UI_InputText("Target Name", vp->targetname, sizeof(vp->targetname));
+        UI_InputText("Name", vp->targetname, sizeof(vp->targetname));
         UI_Checkbox("Play on Start", &vp->playOnStart);
         UI_Checkbox("Loop", &vp->loop);
 
@@ -3892,7 +3967,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_SameLine();
         if (UI_Button("Restart")) { VideoPlayer_Restart(vp); }
 
-        if(vp->textureID != 0) {
+        if (vp->textureID != 0) {
             UI_Image((void*)(intptr_t)vp->textureID, 256, 144);
         }
     }
@@ -3900,6 +3975,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         ParallaxRoom* p = &scene->parallaxRooms[g_EditorState.selected_entity_index];
         UI_Text("Parallax Room Properties");
         UI_Separator();
+        UI_InputText("Name", p->targetname, sizeof(p->targetname));
         UI_InputText("Cubemap Path Base", p->cubemapPath, sizeof(p->cubemapPath));
         if (UI_Button("Reload Cubemap")) {
             if (p->cubemapTexture) glDeleteTextures(1, &p->cubemapTexture);
@@ -3935,11 +4011,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (scene->post.sharpenEnabled)
         {
             UI_DragFloat("Sharpen Strength", &scene->post.sharpenAmount, 0.01f, 0.0f, 1.0f);
-        }
-        UI_Separator();
-        if (UI_Checkbox("Black and White", &scene->post.bwEnabled)) {}
-        if (scene->post.bwEnabled) {
-            UI_DragFloat("B&W Strength", &scene->post.bwStrength, 0.01f, 0.0f, 1.0f);
         }
         UI_Separator();
         if (UI_Checkbox("Chromatic Aberration", &scene->post.chromaticAberrationEnabled)) {}
