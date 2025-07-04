@@ -16,19 +16,28 @@ jobs:
       - name: Install dependencies (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
 
       - name: Configure CMake (Linux)
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
       - name: Build (Linux)
-        run: cmake --build build --config Release
+        run: cmake --build build --config RelWithDebInfo
 
-      - name: Upload binary artifact (Linux)
+      - name: Split debug info (Linux)
+        run: |
+          cp build/TectonicEngine build/TectonicEngine.debug
+          objcopy --only-keep-debug build/TectonicEngine.debug build/TectonicEngine.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build/TectonicEngine.debugsymbols build/TectonicEngine
+          file build/TectonicEngine
+
+      - name: Upload binary and debug symbols (Linux)
         uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-linux
-          path: build/TectonicEngine
+          path: |
+            build/TectonicEngine
+            build/TectonicEngine.debugsymbols
 
   build-windows:
     runs-on: windows-latest
@@ -42,8 +51,13 @@ jobs:
       - name: Build (Windows)
         run: cmake --build build --config Release
 
-      - name: Upload binary artifact (Windows)
+      - name: List Windows output (debug step)
+        run: dir build\Release
+
+      - name: Upload binary and PDB (Windows)
         uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows
-          path: build/Release/TectonicEngine.exe
+          path: |
+            build/Release/TectonicEngine.exe
+            build/Release/TectonicEngine.pdb
