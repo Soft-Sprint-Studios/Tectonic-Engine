@@ -451,6 +451,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_volumetrics", "1", "Enable or disable volumetric lighting.", CVAR_NONE);
     Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -1516,6 +1517,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     else {
         glDisable(GL_CULL_FACE);
     }
+    if (Cvar_GetInt("r_wireframe")) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
     glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
@@ -1648,6 +1652,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
+    }
+    if (Cvar_GetInt("r_wireframe")) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     glBindVertexArray(0); glDepthMask(GL_TRUE); glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
