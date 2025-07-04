@@ -453,6 +453,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_gi", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -2250,7 +2251,12 @@ int main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_GAME) {
             char details_str[128];
-            render_vpl_pass();
+            if (Cvar_GetInt("r_gi")) {
+                render_vpl_pass();
+            }
+            else {
+                g_scene.num_vpls = 0;
+            }
             sprintf(details_str, "Map: %s", g_scene.mapPath);
             Discord_Update("Playing", details_str);
             Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
