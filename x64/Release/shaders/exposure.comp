@@ -5,16 +5,30 @@ layout(std430, binding = 0) readonly buffer HistogramBuffer {
     uint histogram[256];
 };
 
-layout(std430, binding = 1) writeonly buffer ExposureResult {
-    float averageSceneLuminance;
+layout(std430, binding = 1) buffer ExposureData {
+    float exposureValue;
 };
+
+uniform float u_autoexposure_key;
+uniform float u_autoexposure_speed;
+uniform float u_deltaTime;
+uniform int u_autoexposure_enabled;
 
 const float MIN_LOG_LUM = -10.0;
 const float MAX_LOG_LUM = 10.0;
 const float LOG_LUM_RANGE = MAX_LOG_LUM - MIN_LOG_LUM;
 
+float lerp_gpu(float a, float b, float f) {
+    return a + f * (b - a);
+}
+
 void main()
 {
+    if (u_autoexposure_enabled == 0) {
+        exposureValue = lerp_gpu(exposureValue, 1.0f, 1.0f - exp(-u_deltaTime * 2.0f));
+        return;
+    }
+
     float totalLuminance = 0.0;
     uint totalPixels = 0;
 
@@ -27,10 +41,16 @@ void main()
         }
     }
 
+    float avgSceneLuminance;
     if (totalPixels > 0) {
         float avgLogLuminance = totalLuminance / float(totalPixels);
-        averageSceneLuminance = exp2(avgLogLuminance);
+        avgSceneLuminance = exp2(avgLogLuminance);
     } else {
-        averageSceneLuminance = 0.0001;
+        avgSceneLuminance = 0.0001;
     }
+
+    float targetExposure = u_autoexposure_key / (avgSceneLuminance + 0.0001f);
+    targetExposure = max(0.1f, min(targetExposure, 10.0f));
+
+    exposureValue = lerp_gpu(exposureValue, targetExposure, 1.0f - exp(-u_deltaTime * u_autoexposure_speed));
 }

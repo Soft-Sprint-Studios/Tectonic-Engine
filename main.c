@@ -813,13 +813,17 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.dofShader, "screenTexture"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
     mat4_identity(&g_renderer.prevViewProjection);
-    g_renderer.currentExposure = 1.0f;
+    glGenBuffers(1, &g_renderer.exposureSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
+    struct GPUExposureData {
+        float exposure;
+    } initialData = { 1.0f };
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(initialData), &initialData, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, g_renderer.exposureSSBO);
     glGenBuffers(1, &g_renderer.histogramSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-    glGenBuffers(1, &g_renderer.exposureSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), NULL, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     const int ssao_width = WINDOW_WIDTH / SSAO_DOWNSAMPLE;
     const int ssao_height = WINDOW_HEIGHT / SSAO_DOWNSAMPLE;
@@ -2030,36 +2034,28 @@ void cleanup() {
 }
 
 void render_autoexposure_pass() {
-    if (!Cvar_GetInt("r_autoexposure")) {
-        g_renderer.currentExposure = lerp(g_renderer.currentExposure, 1.0f, 1.0f - exp(-g_engine->deltaTime * 2.0f));
-        return;
-    }
+    bool auto_exposure_enabled = Cvar_GetInt("r_autoexposure");
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
     GLuint zero = 0;
     glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+
     glUseProgram(g_renderer.histogramShader);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glUniform1i(glGetUniformLocation(g_renderer.histogramShader, "u_inputTexture"), 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
     glDispatchCompute((GLuint)(WINDOW_WIDTH / 16), (GLuint)(WINDOW_HEIGHT / 16), 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
     glUseProgram(g_renderer.exposureShader);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, g_renderer.exposureSSBO);
+    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_key"), Cvar_GetFloat("r_autoexposure_key"));
+    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_speed"), Cvar_GetFloat("r_autoexposure_speed"));
+    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_deltaTime"), g_engine->deltaTime);
+    glUniform1i(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_enabled"), auto_exposure_enabled);
+
     glDispatchCompute(1, 1, 1);
+
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
-    float* avgLumPtr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-    if (avgLumPtr) {
-        float avgSceneLuminance = *avgLumPtr;
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        float key = Cvar_GetFloat("r_autoexposure_key");
-        float speed = Cvar_GetFloat("r_autoexposure_speed");
-        float targetExposure = key / (avgSceneLuminance + 0.0001f);
-        targetExposure = fmaxf(0.1f, fminf(targetExposure, 10.0f));
-        g_renderer.currentExposure = lerp(g_renderer.currentExposure, targetExposure, 1.0f - exp(-g_engine->deltaTime * speed));
-    }
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

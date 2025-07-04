@@ -42,7 +42,9 @@ uniform mat4 u_view;
 uniform bool u_ssaoEnabled;
 uniform sampler2D ssao;
 
-uniform float u_exposure;
+layout(std430, binding = 1) readonly buffer ExposureData {
+    float u_exposure;
+};
 
 float rand(vec2 co) {
     return fract(sin(dot(co.xy, vec2(12.9898, 78.233)) + time * 60.0) * 43758.5453);
