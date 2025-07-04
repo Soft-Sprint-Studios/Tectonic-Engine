@@ -1,0 +1,37 @@
+name: CMake Build (Linux & Windows)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev
+
+      - name: Configure CMake (Linux)
+        run: cmake -S . -B build
+
+      - name: Build (Linux)
+        run: cmake --build build --config Release
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure CMake (Windows)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build (Windows)
+        run: cmake --build build --config Release
