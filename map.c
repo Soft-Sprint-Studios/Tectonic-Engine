@@ -51,10 +51,14 @@ void Light_InitShadowMap(Light* light) {
     glGenFramebuffers(1, &light->shadowFBO);
     glGenTextures(1, &light->shadowMapTexture);
     glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
+    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
+    if (shadow_map_size <= 0) {
+        shadow_map_size = 1024;
+    }
     if (light->type == LIGHT_POINT) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, light->shadowMapTexture);
         for (int i = 0; i < 6; ++i) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -65,7 +69,7 @@ void Light_InitShadowMap(Light* light) {
     }
     else {
         glBindTexture(GL_TEXTURE_2D, light->shadowMapTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);

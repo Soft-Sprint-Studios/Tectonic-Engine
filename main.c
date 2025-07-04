@@ -38,8 +38,6 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
-#define SHADOW_WIDTH 1024
-#define SHADOW_HEIGHT 1024
 #define SUN_SHADOW_MAP_SIZE 4096
 #define PLAYER_JUMP_FORCE 350.0f
 
@@ -453,7 +451,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_gi", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -1381,11 +1380,17 @@ void render_parallax_rooms(Mat4* view, Mat4* projection) {
 }
 
 void render_shadows() {
-    glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT); glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT);  
+    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
+    if (shadow_map_size <= 0) {
+        shadow_map_size = 1024;
+    }
+    glViewport(0, 0, shadow_map_size, shadow_map_size);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
         if (light->intensity <= 0.0f) continue;
-        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO); glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO); 
+        glClear(GL_DEPTH_BUFFER_BIT);
         GLuint current_shader;
         if (light->type == LIGHT_POINT) {
             current_shader = g_renderer.pointDepthShader; glUseProgram(current_shader);
@@ -2251,7 +2256,7 @@ int main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_GAME) {
             char details_str[128];
-            if (Cvar_GetInt("r_gi")) {
+            if (Cvar_GetInt("r_vpl")) {
                 render_vpl_pass();
             }
             else {
