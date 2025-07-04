@@ -1,5 +1,5 @@
 /*
- * Copyright  2025 Soft Sprint Studios
+ * Copyright © 2025 Soft Sprint Studios
  * All rights reserved.
  *
  * This file is proprietary and confidential. Unauthorized reproduction,
