@@ -34,7 +34,7 @@ extern "C" {
 #define MAX_BRUSH_VERTS 65536
 #define MAX_BRUSH_FACES 32768
 #define MAX_VPLS 4096
-#define VPL_GEN_TEXTURE_SIZE 1024
+#define VPL_GEN_TEXTURE_SIZE 512
 
 #define MAP_VERSION 1
 
