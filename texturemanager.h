@@ -60,7 +60,7 @@ GLuint loadCubemap(const char* faces[6]);
 void TextureManager_LoadMaterialTextures(Material* material);
 GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 GLuint TextureManager_LoadLUT(const char* filename_only);
-GLuint loadTexture(const char* path);
+GLuint loadTexture(const char* path, bool isSrgb);
 
 #ifdef __cplusplus
 }

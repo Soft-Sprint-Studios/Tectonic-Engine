@@ -47,7 +47,7 @@ extern "C" {
 	bool UI_DragFloat2(const char* label, float v[2], float v_speed, float v_min, float v_max);
 	bool UI_DragInt(const char* label, int* v, float v_speed, int v_min, int v_max);
 	bool UI_ColorEdit3(const char* label, float col[3]);
-	void UI_Image(unsigned int user_texture_id, float width, float height);
+	void UI_Image(void* user_texture_id, float width, float height);
 	bool UI_IsWindowFocused();
 	bool UI_IsWindowHovered();
 	bool UI_IsMouseDragging(int button);

@@ -42,8 +42,6 @@ target_compile_options(TectonicEngine PRIVATE
 )
 
 if(WIN32)
-    message(STATUS "Configuring for Windows")
-
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:console")
 
@@ -64,30 +62,56 @@ if(WIN32)
     )
 
 elseif(UNIX AND NOT APPLE)
-    message(STATUS "Configuring for Linux")
-
     find_package(SDL2 REQUIRED)
-    find_package(SDL2_image REQUIRED)
-    find_package(SDL2_ttf REQUIRED)
     find_package(GLEW REQUIRED)
-    find_package(Bullet REQUIRED COMPONENTS BulletCollision BulletDynamics LinearMath)
-    find_package(OpenAL REQUIRED)
+    find_package(OpenGL REQUIRED)
 
-    target_link_directories(TectonicEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux")
+    set(SDL2_IMAGE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include")
+    set(SDL2_TTF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include")
+    set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
+    set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
+
+    set(BULLET_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/include")
+    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib")
+    set(BULLET_LIBS
+        "${BULLET_LIB_DIR}/linux/libBulletDynamics.a"
+        "${BULLET_LIB_DIR}/linux/libBulletCollision.a"
+        "${BULLET_LIB_DIR}/linux/libLinearMath.a"
+    )
+
+    set(OPENAL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include")
+    set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux")
+    set(OPENAL_LIB "${OPENAL_LIB_DIR}/libopenal.a")
+
+    target_include_directories(TectonicEngine PRIVATE
+        ${SDL2_INCLUDE_DIRS}
+        ${SDL2_IMAGE_INCLUDE_DIR}
+        ${SDL2_TTF_INCLUDE_DIR}
+        ${GLEW_INCLUDE_DIRS}
+        ${BULLET_INCLUDE_DIR}
+        ${OPENAL_INCLUDE_DIR}
+    )
+
+    target_link_directories(TectonicEngine PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
+        ${BULLET_LIB_DIR}
+        ${OPENAL_LIB_DIR}
+    )
 
     target_link_libraries(TectonicEngine PRIVATE
-        SDL2::SDL2
-        SDL2::SDL2_image
-        SDL2::SDL2_ttf
-        GLEW::GLEW
-        Bullet::BulletCollision
-        Bullet::BulletDynamics
-        Bullet::LinearMath
-        OpenAL::OpenAL
+        ${SDL2_LIBRARIES}
+        ${SDL2_IMAGE_LIBRARY}
+        ${SDL2_TTF_LIBRARY}
+        ${GLEW_LIBRARIES}
+        ${BULLET_LIBS}
+        ${OPENAL_LIB}
+        ${OPENGL_LIBRARIES}
         discord-rpc
-        GL
         pthread
         dl
+        freetype
     )
 else()
     message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")

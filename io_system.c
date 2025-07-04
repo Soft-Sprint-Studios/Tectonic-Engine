@@ -99,7 +99,7 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
     }
 }
 
-static void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, Engine* engine) {
+void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, Engine* engine) {
     for (int i = 0; i < scene->numObjects; ++i) {
         if (strcmp(scene->objects[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "EnablePhysics") == 0) {

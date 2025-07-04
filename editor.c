@@ -24,6 +24,8 @@
 #include "sound_system.h"
 #include "texturemanager.h"
 #include "io_system.h"
+#include "video_player.h"
+#include "cvar.h"
 
 extern void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
 extern void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
@@ -338,7 +340,7 @@ static void ScanModelFiles() {
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);
-#elif PLATFORM_LINUX
+#else
     DIR* d = opendir(dir_path);
     if (!d) return;
     struct dirent* dir;
@@ -382,7 +384,7 @@ static void ScanMapFiles() {
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);
-#elif PLATFORM_LINUX
+#else
     DIR* d = opendir(dir_path);
     if (!d) return;
     struct dirent* dir;
@@ -3269,7 +3271,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
             glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
         }
-        UI_Image((void*)(intptr_t)g_EditorState.model_preview_texture, w, h);
+        UI_Image((void*)g_EditorState.model_preview_texture, w, h);
         if (UI_IsItemHovered()) {
             float dx, dy; UI_GetMouseDragDelta(1, 0.0f, &dx, &dy);
             if (UI_IsMouseDragging(1)) {

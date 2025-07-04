@@ -172,7 +172,7 @@ cleanup:
     free(args);
     return 0;
 }
-#elif PLATFORM_LINUX
+#else
 static int download_thread_func_posix(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     int sock = -1;
@@ -325,7 +325,7 @@ bool Network_DownloadFile(const char* url, const char* output_filepath) {
 
 #ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(download_thread_func_win32, "DownloadThread", (void*)args);
-#elif PLATFORM_LINUX
+#else
     SDL_Thread* thread = SDL_CreateThread(download_thread_func_posix, "DownloadThread", (void*)args);
 #endif
 
@@ -352,7 +352,7 @@ bool Network_Ping(const char* hostname) {
 
 #ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(ping_thread_func_win32, "PingThread", (void*)args);
-#elif PLATFORM_LINUX
+#else
     SDL_Thread* thread = SDL_CreateThread(ping_thread_func_posix, "PingThread", (void*)args);
 #endif
 

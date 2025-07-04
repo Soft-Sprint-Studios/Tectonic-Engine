@@ -780,9 +780,9 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "dudvMap"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "normalMap"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
-    g_renderer.dudvMap = loadTexture("dudv.png");
-    g_renderer.waterNormalMap = loadTexture("water_normal.png");
-    g_renderer.cloudTexture = loadTexture("clouds.png");
+    g_renderer.dudvMap = loadTexture("dudv.png", false);
+    g_renderer.waterNormalMap = loadTexture("water_normal.png", false);
+    g_renderer.cloudTexture = loadTexture("clouds.png", false);
     if (g_renderer.cloudTexture == 0) {
         Console_Printf("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
     }
