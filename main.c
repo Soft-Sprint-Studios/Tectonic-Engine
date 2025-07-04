@@ -450,6 +450,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_bloom", "1", "Enable or disable the bloom effect.", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable or disable volumetric lighting.", CVAR_NONE);
     Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
+    Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
@@ -1499,6 +1500,13 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
     glDrawBuffers(6, attachments);
+    if (Cvar_GetInt("r_faceculling")) {
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+    }
+    else {
+        glDisable(GL_CULL_FACE);
+    }
     glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
@@ -1628,6 +1636,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap); glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap); glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
         glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    if (Cvar_GetInt("r_faceculling")) {
+        glDisable(GL_CULL_FACE);
     }
     glBindVertexArray(0); glDepthMask(GL_TRUE); glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
