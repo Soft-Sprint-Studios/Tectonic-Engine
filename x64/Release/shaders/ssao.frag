@@ -8,8 +8,8 @@ uniform vec2 screenSize;
 
 const float sensitivity = 1.2;
 const float threshold = 0.15;
-const float intensity = 5.0;
-const int radius = 7;
+const float intensity = 10.0;
+const int radius = 3;
 
 void main() {
     vec2 texelSize = 1.0 / screenSize;
