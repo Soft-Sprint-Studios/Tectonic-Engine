@@ -195,6 +195,8 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
+                float finalHeightScale = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
+                glUniform1f(glGetUniformLocation(shader, "heightScale"), finalHeightScale);
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
@@ -251,7 +253,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
         int vbo_offset = 0;
         for (int i = 0; i < b->numFaces; ++i) {
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
-            glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
+            float parallax_enabled = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
+            glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
@@ -265,7 +268,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), material2->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallax_enabled ? material2->heightScale : 0.0f);
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
                 glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, material2->normalMap);
                 glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, material2->rmaMap);
@@ -285,7 +288,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
                 glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), material3->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallax_enabled ? material3->heightScale : 0.0f);
                 glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, material3->diffuseMap);
                 glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, material3->normalMap);
                 glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, material3->rmaMap);
@@ -305,7 +308,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
                 glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), material4->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallax_enabled ? material4->heightScale : 0.0f);
                 glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, material4->diffuseMap);
                 glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, material4->normalMap);
                 glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, material4->rmaMap);
@@ -547,7 +550,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
-    Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("r_parallax_mapping", "1", "Enable parallax mapping. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
