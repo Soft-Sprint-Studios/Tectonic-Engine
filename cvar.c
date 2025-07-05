@@ -103,7 +103,6 @@ void Cvar_Set(const char* name, const char* value) {
     Cvar* c = Cvar_Find(name);
     if (c) {
         if (c->flags & CVAR_HIDDEN) {
-            printf("Cvar '%s' is protected and cannot be modified from the console.\n", name);
             Console_Printf("Cvar '%s' is protected and cannot be modified from the console.", name);
             return;
         }
@@ -126,7 +125,7 @@ void Cvar_EngineSet(const char* name, const char* value) {
         Cvar_UpdateValues(c);
     }
     else {
-        printf("Cvar '%s' not found.\n", name);
+        Console_Printf("Cvar '%s' not found.\n", name);
     }
 }
 
