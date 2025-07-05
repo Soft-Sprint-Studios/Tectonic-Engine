@@ -135,7 +135,6 @@ typedef struct {
     GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
     GLuint lightingCompositeShader;
     GLuint postProcessShader;
-    GLuint presentShader;
     GLuint quadVAO, quadVBO;
     GLuint skyboxVAO, skyboxVBO;
     GLuint gBufferFBO;
@@ -155,6 +154,7 @@ typedef struct {
     GLuint sunShadowMap;
     GLuint finalRenderFBO;
     GLuint finalRenderTexture;
+    GLuint finalDepthTexture;
     GLuint bloomShader;
     GLuint bloomBlurShader;
     GLuint bloomFBO;
@@ -168,7 +168,6 @@ typedef struct {
     GLuint volPingpongFBO[2];
     GLuint volPingpongTextures[2];
     GLuint dofShader;
-    GLuint finalDepthTexture;
     GLuint ssaoFBO, ssaoBlurFBO;
     GLuint ssaoColorBuffer, ssaoBlurColorBuffer;
     GLuint ssaoShader, ssaoBlurShader;
