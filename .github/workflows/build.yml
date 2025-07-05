@@ -51,9 +51,6 @@ jobs:
       - name: Build (Windows)
         run: cmake --build build --config Release
 
-      - name: List Windows output (debug step)
-        run: dir build\Release
-
       - name: Upload binary and PDB (Windows)
         uses: actions/upload-artifact@v4
         with:
