@@ -2,5 +2,4 @@
 
 void main()
 {
-    // We only need depth, so no color output is necessary.
 }

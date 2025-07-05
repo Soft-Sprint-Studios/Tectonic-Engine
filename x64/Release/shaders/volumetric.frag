@@ -41,7 +41,7 @@ uniform mat4 sunLightSpaceMatrix;
 
 const float PI = 3.14159265359;
 const float G_SCATTERING = 0.4;
-const int NB_STEPS = 2048;
+const int NB_STEPS = 1024;
 
 float dither[16] = float[](
      0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
