@@ -4,15 +4,35 @@ project(TectonicEngine LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
+
 if(MSVC)
-    foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    message(STATUS "Applying MSVC optimization settings")
+    foreach(config RELEASE RELWITHDEBINFO)
+        set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /O2 /GL /Zi")
+        set(CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}} /O2 /GL /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /LTCG /DEBUG")
+        set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /LTCG /DEBUG")
+    endforeach()
+
+    foreach(config DEBUG MINSIZEREL)
         set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /Zi")
         set(CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}} /Zi")
         set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /DEBUG")
         set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /DEBUG")
     endforeach()
+
 elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-g)
+    message(STATUS "Applying GCC/Clang optimization settings")
+    add_compile_options(
+        "$<$<CONFIG:RELEASE>:-O3 -march=native -flto>"
+        "$<$<CONFIG:RELWITHDEBINFO>:-O2 -g -march=native -flto>"
+    )
+    add_link_options(
+        "$<$<CONFIG:RELEASE>:-flto>"
+        "$<$<CONFIG:RELWITHDEBINFO>:-flto>"
+    )
 endif()
 
 set(ENGINE_SOURCES
