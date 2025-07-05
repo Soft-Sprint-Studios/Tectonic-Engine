@@ -994,7 +994,6 @@ void process_input() {
             }
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
-                printf("DEBUG: Flashlight buffer ID before call: %u\n", g_flashlight_sound_buffer);
                 SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
             else {
