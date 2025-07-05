@@ -1771,6 +1771,27 @@ void render_bloom_pass() {
 }
 
 void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+    bool should_render_volumetrics = false;
+    if (g_scene.sun.enabled && g_scene.sun.volumetricIntensity > 0.001f) {
+        should_render_volumetrics = true;
+    }
+    if (!should_render_volumetrics) {
+        for (int i = 0; i < g_scene.numActiveLights; ++i) {
+            if (g_scene.lights[i].intensity > 0.001f && g_scene.lights[i].volumetricIntensity > 0.001f) {
+                should_render_volumetrics = true;
+                break;
+            }
+        }
+    }
+
+    if (!should_render_volumetrics) {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[0]);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glViewport(0, 0, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE);
     glClear(GL_COLOR_BUFFER_BIT);
