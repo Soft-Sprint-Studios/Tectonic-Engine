@@ -59,148 +59,174 @@ struct FlareResult {
 FlareResult lensflare(vec2 uv, vec2 pos)
 {
     vec2 main = uv - pos;
-	float glare_dist = length(main);
-	float f0 = max(0.01 - pow(glare_dist, 1.5), 0.0) * 0.8;
-	vec3 glare = vec3(f0);
-	float f1 = max(0.01 - pow(length(uv + 1.2 * pos), 1.9), 0.0) * 7.0;
-	float f2 = max(1.0 / (1.0 + 32.0 * pow(length(uv + 0.8 * pos), 2.0)), 0.0) * 0.25;
-	vec2 uvx = mix(uv, uv, -0.5);
-	float f4 = max(0.01 - pow(length(uvx + 0.4 * pos), 2.4), 0.0) * 6.0;
-	uvx = mix(uv, uv, -0.4);
-	float f5 = max(0.01 - pow(length(uvx + 0.2 * pos), 5.5), 0.0) * 2.0;
-	uvx = mix(uv, uv, -0.5);
-	float f6 = max(0.01 - pow(length(uvx - 0.3 * pos), 1.6), 0.0) * 6.0;
-	float ghost_intensity = f1 + f2 + f4 + f5 + f6;
-	vec3 ghosts = vec3(ghost_intensity * 1.3);
-	return FlareResult(ghosts, glare);
+    float glare_dist = length(main);
+    float f0 = max(0.01 - pow(glare_dist, 1.5), 0.0) * 0.8;
+    vec3 glare = vec3(f0);
+    float f1 = max(0.01 - pow(length(uv + 1.2 * pos), 1.9), 0.0) * 7.0;
+    float f2 = max(1.0 / (1.0 + 32.0 * pow(length(uv + 0.8 * pos), 2.0)), 0.0) * 0.25;
+    vec2 uvx = mix(uv, uv, -0.5);
+    float f4 = max(0.01 - pow(length(uvx + 0.4 * pos), 2.4), 0.0) * 6.0;
+    uvx = mix(uv, uv, -0.4);
+    float f5 = max(0.01 - pow(length(uvx + 0.2 * pos), 5.5), 0.0) * 2.0;
+    uvx = mix(uv, uv, -0.5);
+    float f6 = max(0.01 - pow(length(uvx - 0.3 * pos), 1.6), 0.0) * 6.0;
+    float ghost_intensity = f1 + f2 + f4 + f5 + f6;
+    vec3 ghosts = vec3(ghost_intensity * 1.3);
+    return FlareResult(ghosts, glare);
 }
 
 vec3 aces(vec3 x) {
-  const float a = 2.51;
-  const float b = 0.03;
-  const float c = 2.43;
-  const float d = 0.59;
-  const float e = 0.14;
-  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 vec3 gammaCorrect(vec3 color, float gamma) {
     return pow(color, vec3(1.0 / gamma));
 }
 
+vec2 applyCurvature(vec2 uv, float curvature) {
+    vec2 centerCoords = uv - 0.5;
+    float dist = dot(centerCoords, centerCoords);
+    return uv + centerCoords * dist * curvature;
+}
+
+vec3 applyChromaticAberration(vec2 uv, float strength) {
+    vec2 offset = strength * normalize(uv - 0.5);
+    float r = texture(sceneTexture, uv - offset).r;
+    float g = texture(sceneTexture, uv).g;
+    float b = texture(sceneTexture, uv + offset).b;
+    return vec3(r, g, b);
+}
+
+vec3 applySharpen(vec2 uv, float amount) {
+    vec2 texelSize = 1.0 / resolution;
+    vec3 blur = vec3(0.0);
+    blur += texture(sceneTexture, uv + vec2(-texelSize.x, -texelSize.y)).rgb * 1.0;
+    blur += texture(sceneTexture, uv + vec2(0.0, -texelSize.y)).rgb * 2.0;
+    blur += texture(sceneTexture, uv + vec2(texelSize.x, -texelSize.y)).rgb * 1.0;
+    blur += texture(sceneTexture, uv + vec2(-texelSize.x, 0.0)).rgb * 2.0;
+    blur += texture(sceneTexture, uv).rgb * 4.0;
+    blur += texture(sceneTexture, uv + vec2(texelSize.x, 0.0)).rgb * 2.0;
+    blur += texture(sceneTexture, uv + vec2(-texelSize.x, texelSize.y)).rgb * 1.0;
+    blur += texture(sceneTexture, uv + vec2(0.0, texelSize.y)).rgb * 2.0;
+    blur += texture(sceneTexture, uv + vec2(texelSize.x, texelSize.y)).rgb * 1.0;
+    blur /= 16.0;
+
+    vec3 original = texture(sceneTexture, uv).rgb;
+    vec3 mask = original - blur;
+    return original + mask * amount;
+}
+
+vec3 applyLensFlare(vec3 color, vec2 uv) {
+    vec2 uvScaled = uv - 0.5;
+    uvScaled.x *= resolution.x / resolution.y;
+    vec2 flare_pos = lightPosOnScreen - 0.5;
+    flare_pos.x *= resolution.x / resolution.y;
+
+    vec3 lightPosView = (u_view * vec4(u_flareLightWorldPos, 1.0)).xyz;
+    float sceneDepthAtLight = texture(gPosition, lightPosOnScreen).z;
+    float occlusionFactor = (lightPosView.z > sceneDepthAtLight - 0.5) ? 1.0 : 0.0;
+
+    if (occlusionFactor > 0.0) {
+        FlareResult flare = lensflare(uvScaled, flare_pos);
+        vec3 ghostColor = flare.ghosts * vec3(0.7, 0.9, 1.0);
+        vec3 glareColor = flare.glare * vec3(1.0, 0.9, 0.7);
+        vec3 flareColor = (ghostColor + glareColor) * flareIntensity * u_lensFlareStrength * occlusionFactor;
+        color += flareColor;
+    }
+    return color;
+}
+
+vec3 applyFog(vec3 color, vec2 uv) {
+    float frag_dist = length(texture(gPosition, uv).xyz);
+    if (frag_dist > 0.001) {
+        float fogFactor = smoothstep(u_fogStart, u_fogEnd, frag_dist);
+        color = mix(color, u_fogColor, fogFactor);
+    }
+    return color;
+}
+
+vec3 applyVignette(vec3 color, vec2 uv) {
+    float dist = distance(uv, vec2(0.5, 0.5));
+    float vignette = smoothstep(u_vignetteRadius, u_vignetteRadius - u_vignetteStrength * 0.5, dist);
+    return color * vignette;
+}
+
+vec3 applyScanline(vec3 color, vec2 uv) {
+    float scanlineY = uv.y * resolution.y;
+    float scanline = sin(scanlineY * 0.8) * u_scanlineStrength + (1.0 - u_scanlineStrength);
+    return color * scanline;
+}
+
+vec3 applyGrain(vec3 color, vec2 uv) {
+    float noise = rand(uv * resolution);
+    return color + (noise - 0.5) * u_grainIntensity * 0.02;
+}
+
+vec3 applyBlackAndWhite(vec3 color) {
+    float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    vec3 grayscale = vec3(luminance);
+    return mix(color, grayscale, u_bwStrength);
+}
+
 void main()
 {
-    vec2 curvedTexCoords = TexCoords;
+    vec2 uv = TexCoords;
     if (u_postEnabled) {
-        vec2 centerCoords = TexCoords - 0.5;
-        float dist = dot(centerCoords, centerCoords);
-        curvedTexCoords = TexCoords + centerCoords * dist * u_crtCurvature;
+        uv = applyCurvature(uv, u_crtCurvature);
     }
 
-    vec3 finalColor;
+    vec3 color;
     if (u_postEnabled && u_chromaticAberrationEnabled) {
-        vec2 offset = u_chromaticAberrationStrength * normalize(curvedTexCoords - 0.5);
-        finalColor.r = texture(sceneTexture, curvedTexCoords - offset).r;
-        finalColor.g = texture(sceneTexture, curvedTexCoords).g;
-        finalColor.b = texture(sceneTexture, curvedTexCoords + offset).b;
+        color = applyChromaticAberration(uv, u_chromaticAberrationStrength);
     } else {
-        finalColor = texture(sceneTexture, curvedTexCoords).rgb;
+        color = texture(sceneTexture, uv).rgb;
     }
-	
-	vec3 indirectLight = texture(gIndirectLight, curvedTexCoords).rgb;
-    finalColor += indirectLight;
-	
-    if(u_ssaoEnabled) {
-        float occlusion = texture(ssao, curvedTexCoords).r;
-        finalColor *= occlusion;
+
+    color += texture(gIndirectLight, uv).rgb;
+
+    if (u_ssaoEnabled) {
+        float occlusion = texture(ssao, uv).r;
+        color *= occlusion;
     }
 
     if (u_postEnabled && u_sharpenEnabled) {
-        vec2 texelSize = 1.0 / resolution;
-
-        vec3 blur = vec3(0.0);
-        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, -texelSize.y)).rgb * 1.0;
-        blur += texture(sceneTexture, curvedTexCoords + vec2(0.0, -texelSize.y)).rgb * 2.0;
-        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, -texelSize.y)).rgb * 1.0;
-
-        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, 0.0)).rgb * 2.0;
-        blur += texture(sceneTexture, curvedTexCoords).rgb * 4.0;
-        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, 0.0)).rgb * 2.0;
-
-        blur += texture(sceneTexture, curvedTexCoords + vec2(-texelSize.x, texelSize.y)).rgb * 1.0;
-        blur += texture(sceneTexture, curvedTexCoords + vec2(0.0, texelSize.y)).rgb * 2.0;
-        blur += texture(sceneTexture, curvedTexCoords + vec2(texelSize.x, texelSize.y)).rgb * 1.0;
-
-        blur /= 16.0;
-
-        vec3 original = texture(sceneTexture, curvedTexCoords).rgb;
-        vec3 mask = original - blur;
-
-        finalColor = original + mask * u_sharpenAmount;
+        color = applySharpen(uv, u_sharpenAmount);
     }
 
-    vec3 bloomColor = texture(bloomBlur, curvedTexCoords).rgb;
     if (u_bloomEnabled) {
-        finalColor += bloomColor;
+        color += texture(bloomBlur, uv).rgb;
     }
 
-    vec3 volumetricColor = texture(volumetricTexture, curvedTexCoords).rgb;
     if (u_volumetricsEnabled) {
-        finalColor += volumetricColor;
+        color += texture(volumetricTexture, uv).rgb;
     }
 
-    if (u_fogEnabled == 1)
-    {
-        float frag_dist = length(texture(gPosition, curvedTexCoords).xyz);
-        if (frag_dist > 0.001)
-        {
-            float fogFactor = smoothstep(u_fogStart, u_fogEnd, frag_dist);
-            finalColor = mix(finalColor, u_fogColor, fogFactor);
-        }
+    if (u_fogEnabled == 1) {
+        color = applyFog(color, uv);
     }
 
     if (u_postEnabled && u_lensFlareEnabled) {
-        vec2 uv = TexCoords - 0.5;
-        uv.x *= resolution.x / resolution.y;
-        vec2 flare_pos = lightPosOnScreen - 0.5;
-        flare_pos.x *= resolution.x / resolution.y;
-        
-        vec3 lightPosView = (u_view * vec4(u_flareLightWorldPos, 1.0)).xyz;
-        float sceneDepthAtLight = texture(gPosition, lightPosOnScreen).z;
-        float occlusionFactor = (lightPosView.z > sceneDepthAtLight - 0.5) ? 1.0 : 0.0;
-        
-        if (occlusionFactor > 0.0)
-        {
-            FlareResult flare = lensflare(uv, flare_pos);
-            vec3 ghostColor = flare.ghosts * vec3(0.7, 0.9, 1.0);
-            vec3 glareColor = flare.glare * vec3(1.0, 0.9, 0.7);
-            vec3 flareColor = (ghostColor + glareColor) * flareIntensity * u_lensFlareStrength * occlusionFactor;
-            finalColor += flareColor;
-        }
+        color = applyLensFlare(color, TexCoords);
     }
 
-    finalColor *= u_exposure;
-    finalColor = aces(finalColor);
-    finalColor = gammaCorrect(finalColor, 2.2);
+    color *= u_exposure;
+    color = aces(color);
+    color = gammaCorrect(color, 2.2);
 
     if (u_postEnabled) {
-        float scanlineY = TexCoords.y * resolution.y;
-        float scanline = sin(scanlineY * 0.8) * u_scanlineStrength + (1.0 - u_scanlineStrength);
-        finalColor *= scanline;
-
-        float noise = rand(TexCoords * resolution);
-        finalColor += (noise - 0.5) * u_grainIntensity * 0.02;
-
-        float dist = distance(TexCoords, vec2(0.5, 0.5));
-        float vignette = smoothstep(u_vignetteRadius, u_vignetteRadius - u_vignetteStrength * 0.5, dist);
-        finalColor *= vignette;
-    }
-	
-	if (u_bwEnabled) {
-        float luminance = dot(finalColor, vec3(0.2126, 0.7152, 0.0722));
-        vec3 grayscale = vec3(luminance);
-        finalColor = mix(finalColor, grayscale, u_bwStrength);
+        color = applyScanline(color, TexCoords);
+        color = applyGrain(color, TexCoords);
+        color = applyVignette(color, TexCoords);
     }
 
-    FragColor = vec4(finalColor, 1.0);
+    if (u_bwEnabled) {
+        color = applyBlackAndWhite(color);
+    }
+
+    FragColor = vec4(color, 1.0);
 }
