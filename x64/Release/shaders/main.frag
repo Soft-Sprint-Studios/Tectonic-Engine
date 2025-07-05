@@ -7,6 +7,7 @@ layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
 layout (location = 5) out vec2 out_Velocity;
+layout (location = 6) out vec3 out_IndirectLight;
 
 in vec3 FragPos_view;
 in vec3 Normal_view;
@@ -516,10 +517,6 @@ void main()
         }
     }
 
-    vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
-    kD_indirect *= (1.0 - metallic);
-    Lo += indirectLight * kD_indirect * albedo;
-
     vec3 R_env = reflect(-V, N); 
     if (useParallaxCorrection) {
          R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
@@ -561,4 +558,7 @@ void main()
     out_Normal = normalize(Normal_view);
     out_AlbedoSpec = vec4(albedo, 1.0);
     out_PBRParams = vec4(metallic, roughness, ao, alpha);
+	vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
+    kD_indirect *= (1.0 - metallic);
+	out_IndirectLight = indirectLight * kD_indirect * albedo;
 }

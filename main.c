@@ -570,6 +570,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_motionblur", "1", "Enable camera and object motion blur.", CVAR_NONE);
     Cvar_Register("g_speed", "6.0", "Player walking speed.", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
+    Cvar_Register("r_debug_gi", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     IO_Init();
@@ -645,7 +646,13 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, g_renderer.gVelocity, 0);
-    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 }; glDrawBuffers(6, attachments);
+    glGenTextures(1, &g_renderer.gIndirectLight);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gIndirectLight);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, g_renderer.gIndirectLight, 0);
+    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 }; glDrawBuffers(7, attachments);
     GLuint rboDepth; glGenRenderbuffers(1, &rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
@@ -1600,8 +1607,8 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     extract_frustum_planes(&view_proj, &frustum, true);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO); glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
-    glDrawBuffers(6, attachments);
+    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
+    glDrawBuffers(7, attachments);
     if (Cvar_GetInt("r_faceculling")) {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
@@ -1920,6 +1927,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[0]);
     glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
     glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[0]);
+    glActiveTexture(GL_TEXTURE5); glBindTexture(GL_TEXTURE_2D, g_renderer.gIndirectLight);
     if (Cvar_GetInt("r_ssao")) {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
@@ -1928,6 +1936,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gPosition"), 2);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "volumetricTexture"), 3);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gIndirectLight"), 5);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_ssaoEnabled"), Cvar_GetInt("r_ssao"));
     glBindVertexArray(g_renderer.quadVAO);
@@ -2461,6 +2470,7 @@ int main(int argc, char* argv[]) {
             else if (Cvar_GetInt("r_debug_velocity")) { render_debug_buffer(g_renderer.gVelocity, 0); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_volumetric")) { render_debug_buffer(g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_bloom")) { render_debug_buffer(g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_gi")) { render_debug_buffer(g_renderer.gIndirectLight, 6); debug_view_active = true; }
 
             if (!debug_view_active) {
                 present_final_image(source_fbo);

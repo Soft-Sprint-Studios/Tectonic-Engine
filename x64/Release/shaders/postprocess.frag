@@ -7,6 +7,7 @@ uniform sampler2D sceneTexture;
 uniform sampler2D bloomBlur;
 uniform sampler2D gPosition;
 uniform sampler2D volumetricTexture;
+uniform sampler2D gIndirectLight;
 
 uniform bool u_bloomEnabled;
 uniform bool u_volumetricsEnabled;
@@ -105,6 +106,9 @@ void main()
     } else {
         finalColor = texture(sceneTexture, curvedTexCoords).rgb;
     }
+	
+	vec3 indirectLight = texture(gIndirectLight, curvedTexCoords).rgb;
+    finalColor += indirectLight;
 	
     if(u_ssaoEnabled) {
         float occlusion = texture(ssao, curvedTexCoords).r;

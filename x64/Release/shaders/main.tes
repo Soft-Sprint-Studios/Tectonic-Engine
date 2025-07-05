@@ -106,9 +106,6 @@ void main()
         TBN = tbn0 + tbn1 + tbn2;
     }
     
-    const float BRUSH_GI_MULTIPLIER = 1.0;
-    const float MODEL_GI_MULTIPLIER = 1.0;
-    float gi_multiplier = (tes_in[0].isBrush == 1) ? BRUSH_GI_MULTIPLIER : MODEL_GI_MULTIPLIER;
     indirectLight = vec3(0.0);
     for (int i = 0; i < num_vpls; ++i)
     {
@@ -116,17 +113,19 @@ void main()
         vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
         vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
         vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
+        
         float distance = length(vpl_pos - FragPos_world);
         vec3 L = normalize(vpl_pos - FragPos_world);
-        float NdotL = dot(worldNormal, L); 
-        if(NdotL > 0.0)
+        
+        float NdotL = dot(worldNormal, L);
+        if (NdotL > 0.0)
         {
-            float vpl_emit_dot = dot(vpl_normal, -L); 
+            float vpl_emit_dot = dot(vpl_normal, -L);
             if (vpl_emit_dot > 0.0)
             {
                 float attenuation = 1.0 / (distance * distance + 1.0);
                 float backface_attenuation = pow(clamp(1.0 + dot(worldNormal, vpl_normal), 0.0, 1.0), 2.0);
-                indirectLight += vpl_color_rgb * gi_multiplier * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
+                indirectLight += vpl_color_rgb * NdotL * attenuation * vpl_emit_dot * backface_attenuation;
             }
         }
     }

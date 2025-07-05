@@ -6,7 +6,7 @@ in vec2 TexCoords;
 uniform sampler2D sceneTexture;
 uniform sampler2D velocityTexture;
 
-const int NUM_SAMPLES = 16;
+const int NUM_SAMPLES = 8;
 const float BLUR_STRENGTH = 0.7;
 
 void main()

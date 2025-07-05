@@ -4,6 +4,7 @@ in vec2 TexCoords;
 
 uniform sampler2D debugTexture;
 uniform int viewMode;
+uniform float u_debugExposure;
 
 void main()
 {
@@ -18,6 +19,8 @@ void main()
         FragColor = vec4(texColor.a, texColor.a, texColor.a, 1.0);
     } else if (viewMode == 5) {
         FragColor = vec4(texColor.xyz, 1.0);
+    } else if (viewMode == 6) {
+        FragColor = vec4(texColor.rgb * 100.0, 1.0);
     } else {
         FragColor = vec4(texColor.rgb, 1.0);
     }
