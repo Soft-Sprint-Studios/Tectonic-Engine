@@ -549,6 +549,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_parallax_mapping", "1", "Enable parallax mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
@@ -2347,7 +2348,17 @@ int main(int argc, char* argv[]) {
         else if (g_current_mode == MODE_GAME) {
             char details_str[128];
             if (Cvar_GetInt("r_vpl")) {
-                render_vpl_pass();
+                if (Cvar_GetInt("r_vpl_static")) {
+                    if (!g_scene.static_vpls_generated) {
+                        Console_Printf("Generating static VPLs for the map...");
+                        render_vpl_pass();
+                        g_scene.static_vpls_generated = true;
+                        Console_Printf("Static VPL generation complete. %d VPLs generated.", g_scene.num_vpls);
+                    }
+                }
+                else {
+                    render_vpl_pass();
+                }
             }
             else {
                 g_scene.num_vpls = 0;

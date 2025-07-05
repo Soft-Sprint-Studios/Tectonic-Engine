@@ -354,6 +354,7 @@ typedef struct {
     Fog fog;
     PostProcessSettings post;
     Sun sun;
+    bool static_vpls_generated;
 } Scene;
 
 typedef struct {
