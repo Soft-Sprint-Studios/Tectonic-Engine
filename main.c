@@ -628,7 +628,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_renderer.gPosition, 0);
     glGenTextures(1, &g_renderer.gNormal); glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.gNormal, 0);
     glGenTextures(1, &g_renderer.gAlbedo); glBindTexture(GL_TEXTURE_2D, g_renderer.gAlbedo);
