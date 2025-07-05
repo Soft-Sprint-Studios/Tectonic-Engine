@@ -47,7 +47,7 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 
 #define BLOOM_DOWNSAMPLE 8
 #define SSAO_DOWNSAMPLE 2
-#define VOLUMETRIC_DOWNSAMPLE 2
+#define VOLUMETRIC_DOWNSAMPLE 4
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
