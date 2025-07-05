@@ -663,7 +663,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
     glGenTextures(1, &g_renderer.vplPosTex);
     glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.vplPosTex, 0);
@@ -675,7 +675,7 @@ void init_renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_renderer.vplNormalTex, 0);
     glGenTextures(1, &g_renderer.vplAlbedoTex);
     glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.vplAlbedoTex, 0);
@@ -761,7 +761,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
     glGenTextures(1, &g_renderer.sunShadowMap);
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
