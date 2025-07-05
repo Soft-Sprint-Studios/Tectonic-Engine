@@ -641,7 +641,7 @@ void init_renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, g_renderer.gPBRParams, 0);
     glGenTextures(1, &g_renderer.gVelocity);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gVelocity);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8_SNORM, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, g_renderer.gVelocity, 0);
@@ -685,7 +685,7 @@ void init_renderer() {
     const int bloom_height = WINDOW_HEIGHT / BLOOM_DOWNSAMPLE;
     glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
     glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, bloom_width, bloom_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture, 0);
@@ -693,7 +693,7 @@ void init_renderer() {
     glGenFramebuffers(2, g_renderer.pingpongFBO); glGenTextures(2, g_renderer.pingpongColorbuffers);
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[i]); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, bloom_width, bloom_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f }; glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -728,7 +728,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -740,7 +740,7 @@ void init_renderer() {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -845,7 +845,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glGenTextures(1, &g_renderer.ssaoColorBuffer);
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, ssao_width, ssao_height, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoColorBuffer, 0);
@@ -855,7 +855,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
     glGenTextures(1, &g_renderer.ssaoBlurColorBuffer);
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, ssao_width, ssao_height, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
