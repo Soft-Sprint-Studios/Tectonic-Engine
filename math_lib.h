@@ -47,6 +47,7 @@ Mat4 mat4_rotate_y(float radians);
 Mat4 mat4_rotate_z(float radians);
 Vec3 mat4_mul_vec3_dir(const Mat4* m, Vec3 v);
 Vec4 mat4_mul_vec4(const Mat4* m, Vec4 v);
+void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale);
 Mat4 create_trs_matrix(Vec3 pos, Vec3 rot_deg, Vec3 scale);
 
 bool RayIntersectsOBB(Vec3 rayOrigin, Vec3 rayDir, const Mat4* modelMatrix, Vec3 localAABBMin, Vec3 localAABBMax, float* t);

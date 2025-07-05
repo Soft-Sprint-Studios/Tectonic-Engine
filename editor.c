@@ -191,7 +191,6 @@ static Scene* g_CurrentScene;
 static Mat4 g_view_matrix[VIEW_COUNT];
 static Mat4 g_proj_matrix[VIEW_COUNT];
 
-void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale);
 static Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
@@ -4188,43 +4187,6 @@ static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec
         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
         free(world_verts);
     }
-}
-void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale) {
-    translation->x = matrix->m[12];
-    translation->y = matrix->m[13];
-    translation->z = matrix->m[14];
-    Vec3 row0 = { matrix->m[0], matrix->m[1], matrix->m[2] };
-    Vec3 row1 = { matrix->m[4], matrix->m[5], matrix->m[6] };
-    Vec3 row2 = { matrix->m[8], matrix->m[9], matrix->m[10] };
-    scale->x = vec3_length(row0);
-    scale->y = vec3_length(row1);
-    scale->z = vec3_length(row2);
-    Mat4 rot_mat;
-    memcpy(&rot_mat, matrix, sizeof(Mat4));
-    if (fabs(scale->x) < 1e-6 || fabs(scale->y) < 1e-6 || fabs(scale->z) < 1e-6) {
-        rotation->x = rotation->y = rotation->z = 0.0f;
-        return;
-    }
-    rot_mat.m[0] /= scale->x; rot_mat.m[1] /= scale->x; rot_mat.m[2] /= scale->x;
-    rot_mat.m[4] /= scale->y; rot_mat.m[5] /= scale->y; rot_mat.m[6] /= scale->y;
-    rot_mat.m[8] /= scale->z; rot_mat.m[9] /= scale->z; rot_mat.m[10] /= scale->z;
-    float sy = sqrtf(rot_mat.m[0] * rot_mat.m[0] + rot_mat.m[4] * rot_mat.m[4]);
-    bool singular = sy < 1e-6;
-    float x_rad, y_rad, z_rad;
-    if (!singular) {
-        x_rad = atan2f(rot_mat.m[9], rot_mat.m[10]);
-        y_rad = atan2f(-rot_mat.m[8], sy);
-        z_rad = atan2f(rot_mat.m[4], rot_mat.m[0]);
-    }
-    else {
-        x_rad = atan2f(-rot_mat.m[6], rot_mat.m[5]);
-        y_rad = atan2f(-rot_mat.m[8], sy);
-        z_rad = 0;
-    }
-    const float rad_to_deg = 180.0f / 3.1415926535f;
-    rotation->x = x_rad * rad_to_deg;
-    rotation->y = y_rad * rad_to_deg;
-    rotation->z = z_rad * rad_to_deg;
 }
 static Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
     float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
