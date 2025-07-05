@@ -47,6 +47,7 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 
 #define BLOOM_DOWNSAMPLE 8
 #define SSAO_DOWNSAMPLE 2
+#define VOLUMETRIC_DOWNSAMPLE 2
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
@@ -727,7 +728,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -739,7 +740,7 @@ void init_renderer() {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1771,7 +1772,7 @@ void render_bloom_pass() {
 
 void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
-    glViewport(0, 0, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+    glViewport(0, 0, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(g_renderer.volumetricShader);
