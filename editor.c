@@ -4018,7 +4018,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_DragFloat("CA Strength", &scene->post.chromaticAberrationStrength, 0.0001f, 0.0f, 0.05f);
         }
         UI_Separator();
-        UI_Separator();
         if (UI_Checkbox("Black & White", &scene->post.bwEnabled)) {}
         if (scene->post.bwEnabled) {
             UI_DragFloat("Black & White Strength", &scene->post.bwStrength, 0.0001f, 0.0f, 0.05f);
