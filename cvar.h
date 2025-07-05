@@ -16,13 +16,14 @@ extern "C" {
 #endif
 
 #define MAX_CVARS 1024
+#define MAX_COMMAND_LENGTH 128
 
 #define CVAR_NONE   (0)
 #define CVAR_HIDDEN (1 << 0)
 
 typedef struct {
     char name[64];
-    char stringValue[128];
+    char stringValue[MAX_COMMAND_LENGTH];
     float floatValue;
     int intValue;
     char helpText[128];
@@ -33,6 +34,8 @@ extern Cvar cvar_list[MAX_CVARS];
 extern int num_cvars;
 
 void Cvar_Init();
+void Cvar_Load(const char* filename);
+void Cvar_Save(const char* filename);
 Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText, int flags);
 Cvar* Cvar_Find(const char* name);
 void Cvar_Set(const char* name, const char* value);

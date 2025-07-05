@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "compat.h"
+#include "gl_console.h"
 
 Cvar cvar_list[MAX_CVARS];
 int num_cvars = 0;
@@ -24,13 +26,51 @@ static void Cvar_UpdateValues(Cvar* c) {
     c->intValue = atoi(c->stringValue);
 }
 
+void Cvar_Load(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        Console_Printf("No %s found. Using default cvar values.", filename);
+        return;
+    }
+
+    char line[256];
+    char name[64];
+    char value[128];
+    int loaded_count = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value) == 2) {
+            Cvar_EngineSet(name, value);
+            loaded_count++;
+        }
+    }
+    fclose(file);
+    Console_Printf("Loaded %d cvars from %s", loaded_count, filename);
+}
+
+void Cvar_Save(const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        Console_Printf("[error] Could not save cvars to %s", filename);
+        return;
+    }
+
+    int saved_count = 0;
+    for (int i = 0; i < num_cvars; i++) {
+        if (!(cvar_list[i].flags & CVAR_HIDDEN)) {
+            fprintf(file, "set \"%s\" \"%s\"\n", cvar_list[i].name, cvar_list[i].stringValue);
+            saved_count++;
+        }
+    }
+    fclose(file);
+    Console_Printf("Saved %d cvars to %s", saved_count, filename);
+}
+
 Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText, int flags) {
     Cvar* c = Cvar_Find(name);
     if (c) {
-        strcpy(c->stringValue, defaultValue);
         strcpy(c->helpText, helpText);
         c->flags = flags;
-        Cvar_UpdateValues(c);
         return c;
     }
 
@@ -64,20 +104,25 @@ void Cvar_Set(const char* name, const char* value) {
     if (c) {
         if (c->flags & CVAR_HIDDEN) {
             printf("Cvar '%s' is protected and cannot be modified from the console.\n", name);
+            Console_Printf("Cvar '%s' is protected and cannot be modified from the console.", name);
             return;
         }
-        strcpy(c->stringValue, value);
+        strncpy(c->stringValue, value, MAX_COMMAND_LENGTH - 1);
+        c->stringValue[MAX_COMMAND_LENGTH - 1] = '\0';
         Cvar_UpdateValues(c);
+        Console_Printf("Cvar '%s' set to '%s'", name, value);
     }
     else {
         printf("Cvar '%s' not found.\n", name);
+        Console_Printf("Cvar '%s' not found.", name);
     }
 }
 
 void Cvar_EngineSet(const char* name, const char* value) {
     Cvar* c = Cvar_Find(name);
     if (c) {
-        strcpy(c->stringValue, value);
+        strncpy(c->stringValue, value, MAX_COMMAND_LENGTH - 1);
+        c->stringValue[MAX_COMMAND_LENGTH - 1] = '\0';
         Cvar_UpdateValues(c);
     }
     else {

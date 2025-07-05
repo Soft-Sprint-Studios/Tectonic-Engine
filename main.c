@@ -574,6 +574,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_debug_gi", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
+    Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
     Network_Init();
@@ -2067,6 +2068,7 @@ void cleanup() {
     SoundSystem_Shutdown();
     IO_Shutdown();
     Binds_Shutdown();
+    Cvar_Save("cvars.txt");
     Editor_Shutdown();
     Network_Shutdown();
     UI_Shutdown();
