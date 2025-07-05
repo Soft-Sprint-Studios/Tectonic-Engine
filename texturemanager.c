@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "texturemanager.h"
+#include "cvar.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -103,6 +104,37 @@ GLuint loadTexture(const char* path, bool isSrgb) {
         return missingTextureID;
     }
 
+    if (!g_is_editor_mode) {
+        int quality = Cvar_GetInt("r_texture_quality");
+        float scale_factor = 1.0f;
+        switch (quality) {
+        case 1: scale_factor = 0.25f; break;
+        case 2: scale_factor = 0.33f; break;
+        case 3: scale_factor = 0.5f; break;
+        case 4: scale_factor = 0.75f; break;
+        case 5: scale_factor = 1.0f; break;
+        default: scale_factor = 1.0f; break;
+        }
+
+        if (scale_factor < 1.0f) {
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+
+            if (scaled_w == 0) scaled_w = 1;
+            if (scaled_h == 0) scaled_h = 1;
+
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+            else {
+                printf("TextureManager WARNING: Failed to create scaled surface for '%s' (quality). Using original resolution.\n", fullPath);
+            }
+        }
+    }
+
     if (g_is_editor_mode) {
         int max_editor_dim = 128;
 
@@ -118,7 +150,7 @@ GLuint loadTexture(const char* path, bool isSrgb) {
                 surf = scaled_surf;
             }
             else {
-                printf("TextureManager ERROR: Failed to create scaled surface for '%s'. Using full-res.\n", fullPath);
+                printf("TextureManager ERROR: Failed to create scaled surface for '%s' (editor). Using full-res.\n", fullPath);
             }
         }
     }
