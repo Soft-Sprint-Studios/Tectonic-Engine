@@ -51,6 +51,9 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
 
+static void init_renderer(void);
+static void init_scene(void);
+
 typedef enum { MODE_GAME, MODE_EDITOR, MODE_MAINMENU, MODE_INGAMEMENU } EngineMode;
 
 static Engine g_engine_instance;
@@ -525,6 +528,9 @@ void handle_command(int argc, char** argv) {
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
+    GameConfig_Init();
+    UI_Init(window, context);
+    SoundSystem_Init();
     Cvar_Init();
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("r_vpl_count", "64", "Number of VPLs to generate per light.", CVAR_NONE);
@@ -571,6 +577,9 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
     VideoPlayer_InitSystem();
+    init_renderer();
+    init_scene();
+    Discord_Init();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         Console_Printf("[ERROR] Failed to initialize Main Menu.");
@@ -985,6 +994,7 @@ void process_input() {
             }
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
+                printf("DEBUG: Flashlight buffer ID before call: %u\n", g_flashlight_sound_buffer);
                 SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
             else {
@@ -2300,9 +2310,6 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     SDL_SetRelativeMouseMode(SDL_FALSE);
-    GameConfig_Init();
-    UI_Init(window, context); SoundSystem_Init(); init_renderer(); init_scene();
-    Discord_Init();
     MainMenu_SetInGameMenuMode(false, false);
 
     g_fps_last_update = SDL_GetTicks();
