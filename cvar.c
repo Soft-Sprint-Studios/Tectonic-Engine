@@ -75,7 +75,7 @@ Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* help
     }
 
     if (num_cvars >= MAX_CVARS) {
-        printf("ERROR: Max CVars reached!\n");
+        Console_Printf("ERROR: Max CVars reached!\n");
         return NULL;
     }
 
@@ -86,7 +86,7 @@ Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* help
     c->flags = flags;
     Cvar_UpdateValues(c);
 
-    printf("Registered Cvar: %s (default: \"%s\")\n", name, defaultValue);
+    Console_Printf("Registered Cvar: %s (default: \"%s\")\n", name, defaultValue);
     return c;
 }
 
@@ -112,7 +112,6 @@ void Cvar_Set(const char* name, const char* value) {
         Console_Printf("Cvar '%s' set to '%s'", name, value);
     }
     else {
-        printf("Cvar '%s' not found.\n", name);
         Console_Printf("Cvar '%s' not found.", name);
     }
 }
