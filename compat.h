@@ -9,6 +9,12 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
+#ifdef __cplusplus
+    #include <cctype>
+#else
+    #include <ctype.h>
+#endif
+
 #if defined(_WIN32)
     #define PLATFORM_WINDOWS
     #ifndef WIN32_LEAN_AND_MEAN

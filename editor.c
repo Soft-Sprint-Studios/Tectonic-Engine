@@ -29,7 +29,8 @@
 
 typedef enum {
     BRUSH_SHAPE_BLOCK,
-    BRUSH_SHAPE_CYLINDER
+    BRUSH_SHAPE_CYLINDER,
+    BRUSH_SHAPE_WEDGE
 } BrushCreationShapeType;
 
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
@@ -653,6 +654,9 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
         break;
     case BRUSH_SHAPE_CYLINDER:
         Brush_SetVerticesFromCylinder(b, local_size, g_EditorState.cylinder_creation_steps);
+        break;
+    case BRUSH_SHAPE_WEDGE:
+        Brush_SetVerticesFromWedge(b, local_size);
         break;
     }
     Brush_UpdateMatrix(b);
@@ -4001,6 +4005,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Block", g_EditorState.current_brush_shape == BRUSH_SHAPE_BLOCK)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK; }
     UI_SameLine();
     if (UI_RadioButton("Cylinder", g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_CYLINDER; }
+    UI_SameLine();
+    if (UI_RadioButton("Wedge", g_EditorState.current_brush_shape == BRUSH_SHAPE_WEDGE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_WEDGE; }
     if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER) {
         UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 3, 64);
     }

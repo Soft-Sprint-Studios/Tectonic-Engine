@@ -375,6 +375,7 @@ void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 came
 void Light_DestroyShadowMap(Light* light);
 void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
 void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
+void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
 void Brush_UpdateMatrix(Brush* b);
 void Brush_CreateRenderData(Brush* b);
 void Brush_FreeData(Brush* b);

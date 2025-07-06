@@ -299,6 +299,45 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
     for (int i = 0; i < num_sides; ++i) b->faces[num_sides + 1].vertexIndices[i] = (num_sides - 1 - i) + num_sides;
 }
 
+void Brush_SetVerticesFromWedge(Brush* b, Vec3 size) {
+    Brush_FreeData(b);
+    Vec3 half_size = vec3_muls(size, 0.5f);
+
+    b->numVertices = 6;
+    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+
+    b->vertices[0].pos = (Vec3){ -half_size.x, -half_size.y, -half_size.z };
+    b->vertices[1].pos = (Vec3){ half_size.x, -half_size.y, -half_size.z };
+    b->vertices[2].pos = (Vec3){ half_size.x, -half_size.y,  half_size.z };
+    b->vertices[3].pos = (Vec3){ -half_size.x, -half_size.y,  half_size.z };
+    b->vertices[4].pos = (Vec3){ -half_size.x,  half_size.y, -half_size.z };
+    b->vertices[5].pos = (Vec3){ half_size.x,  half_size.y, -half_size.z };
+
+    for (int i = 0; i < b->numVertices; ++i) {
+        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    }
+
+    b->numFaces = 5;
+    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+
+    int face_defs[5][4] = {
+        {0, 3, 2, 1},
+        {0, 1, 5, 4},
+        {3, 2, 5, 4},
+        {0, 4, 3, -1},
+        {1, 2, 5, -1}
+    };
+    int num_indices_per_face[] = { 4, 4, 4, 3, 3 };
+
+    for (int i = 0; i < 5; ++i) {
+        b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_indices_per_face[i], .uv_scale = {1,1} };
+        b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
+        for (int j = 0; j < b->faces[i].numVertexIndices; ++j) {
+            b->faces[i].vertexIndices[j] = face_defs[i][j];
+        }
+    }
+}
+
 static int compare_cap_verts(const void* a, const void* b) {
     Vec3 va = *(const Vec3*)a;
     Vec3 vb = *(const Vec3*)b;
