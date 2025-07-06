@@ -27,30 +27,10 @@
 #include "video_player.h"
 #include "cvar.h"
 
-extern void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
-extern void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
-extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
-extern void SceneObject_UpdateMatrix(SceneObject* obj);
-extern void Brush_UpdateMatrix(Brush* b);
-extern void Decal_UpdateMatrix(Decal* d);
-extern void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
-extern void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
-extern void Brush_CreateRenderData(Brush* b);
-extern void handle_command(int argc, char** argv);
-extern void Light_InitShadowMap(Light* light);
-extern void Light_DestroyShadowMap(Light* light);
-extern Vec3 mat4_mul_vec3_dir(const Mat4* m, Vec3 v);
-extern void Physics_SetWorldTransform(RigidBodyHandle body, Mat4 transform);
-extern void render_shadows();
-extern void render_sun_shadows(const Mat4* sunLightSpaceMatrix);
-extern void render_ssao_pass(Mat4* projection);
-extern void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, bool unlit);
-extern void render_bloom_pass();
-extern void render_lighting_composite_pass(Mat4* view, Mat4* projection);
-extern void render_skybox(Mat4* view, Mat4* projection);
-extern void render_autoexposure_pass();
-extern void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
-extern bool g_is_editor_mode;
+typedef enum {
+    BRUSH_SHAPE_BLOCK,
+    BRUSH_SHAPE_CYLINDER
+} BrushCreationShapeType;
 
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
 typedef enum { GIZMO_AXIS_NONE, GIZMO_AXIS_X, GIZMO_AXIS_Y, GIZMO_AXIS_Z } GizmoAxis;
@@ -87,6 +67,8 @@ static const char* _stristr(const char* haystack, const char* needle) {
 typedef struct {
     bool initialized; Camera editor_camera;
     bool is_in_z_mode;
+    BrushCreationShapeType current_brush_shape;
+    int cylinder_creation_steps;
     ViewportType captured_viewport;
     GLuint viewport_fbo[VIEW_COUNT], viewport_texture[VIEW_COUNT], viewport_rbo[VIEW_COUNT];
     int viewport_width[VIEW_COUNT], viewport_height[VIEW_COUNT];
@@ -685,7 +667,14 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     b->scale = (Vec3){ 1,1,1 };
 
     Vec3 local_size = vec3_sub(g_EditorState.preview_brush_world_max, g_EditorState.preview_brush_world_min);
-    Brush_SetVerticesFromBox(b, local_size);
+    switch (g_EditorState.current_brush_shape) {
+    case BRUSH_SHAPE_BLOCK:
+        Brush_SetVerticesFromBox(b, local_size);
+        break;
+    case BRUSH_SHAPE_CYLINDER:
+        Brush_SetVerticesFromCylinder(b, local_size, g_EditorState.cylinder_creation_steps);
+        break;
+    }
     Brush_UpdateMatrix(b);
     Brush_CreateRenderData(b);
 }
@@ -959,6 +948,8 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     memset(&g_EditorState, 0, sizeof(EditorState));
     g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
     g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
+    g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK;
+    g_EditorState.cylinder_creation_steps = 16;
     g_EditorState.is_dragging_preview_brush_handle = false;
     g_EditorState.is_hovering_preview_brush_body = false;
     g_EditorState.is_dragging_preview_brush_body = false;
@@ -4023,6 +4014,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         UI_Separator();
         UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f);
+    }
+    UI_Separator();
+    UI_Text("Creation Tools");
+    UI_Separator();
+    if (UI_RadioButton("Block", g_EditorState.current_brush_shape == BRUSH_SHAPE_BLOCK)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK; }
+    UI_SameLine();
+    if (UI_RadioButton("Cylinder", g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_CYLINDER; }
+    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER) {
+        UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 3, 64);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
     UI_Checkbox("Unlit Mode", &g_is_unlit_mode);

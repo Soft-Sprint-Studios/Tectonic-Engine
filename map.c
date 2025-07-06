@@ -254,6 +254,51 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
     }
 }
 
+void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
+    if (num_sides < 3) num_sides = 3;
+    Brush_FreeData(b);
+
+    float radius_x = size.x / 2.0f;
+    float radius_z = size.z / 2.0f;
+    float height = size.y;
+
+    b->numVertices = num_sides * 2;
+    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+
+    for (int i = 0; i < num_sides; ++i) {
+        float angle = (float)i / (float)num_sides * 2.0f * 3.14159f;
+        float x = cosf(angle) * radius_x;
+        float z = sinf(angle) * radius_z;
+
+        b->vertices[i].pos = (Vec3){ x, height / 2.0f, z };
+        b->vertices[i + num_sides].pos = (Vec3){ x, -height / 2.0f, z };
+    }
+
+    for (int i = 0; i < b->numVertices; ++i) {
+        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    }
+
+    b->numFaces = num_sides + 2;
+    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+
+    for (int i = 0; i < num_sides; ++i) {
+        b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1} };
+        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[i].vertexIndices[0] = i;
+        b->faces[i].vertexIndices[1] = (i + 1) % num_sides;
+        b->faces[i].vertexIndices[2] = ((i + 1) % num_sides) + num_sides;
+        b->faces[i].vertexIndices[3] = i + num_sides;
+    }
+
+    b->faces[num_sides] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    b->faces[num_sides].vertexIndices = malloc(num_sides * sizeof(int));
+    for (int i = 0; i < num_sides; ++i) b->faces[num_sides].vertexIndices[i] = i;
+
+    b->faces[num_sides + 1] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    b->faces[num_sides + 1].vertexIndices = malloc(num_sides * sizeof(int));
+    for (int i = 0; i < num_sides; ++i) b->faces[num_sides + 1].vertexIndices[i] = (num_sides - 1 - i) + num_sides;
+}
+
 static int compare_cap_verts(const void* a, const void* b) {
     Vec3 va = *(const Vec3*)a;
     Vec3 vb = *(const Vec3*)b;
