@@ -2635,7 +2635,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
-        glBlitFramebuffer(0, 0, 1920, 1080,
+        glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
             0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type],
             GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);

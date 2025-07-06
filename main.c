@@ -40,8 +40,6 @@ __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
 #endif
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
 #define SUN_SHADOW_MAP_SIZE 4096
 #define PLAYER_JUMP_FORCE 350.0f
 

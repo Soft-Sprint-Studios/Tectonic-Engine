@@ -24,6 +24,9 @@
 extern "C" {
 #endif
 
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
+
 #define MAX_LIGHTS 256
 #define MAX_BRUSHES 16384
 #define MAX_DECALS 16384
