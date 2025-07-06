@@ -620,7 +620,7 @@ void init_renderer() {
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -1756,8 +1756,6 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     if (Cvar_GetInt("r_wireframe")) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
-    glGenerateMipmap(GL_TEXTURE_2D);
     glBindVertexArray(0); glDepthMask(GL_TRUE); glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
