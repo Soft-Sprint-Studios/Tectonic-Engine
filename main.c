@@ -570,7 +570,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur.", CVAR_NONE);
     Cvar_Register("g_speed", "6.0", "Player walking speed.", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
-    Cvar_Register("r_debug_gi", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
+    Cvar_Register("r_debug_vpl", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     Cvar_Load("cvars.txt");
@@ -2471,7 +2471,7 @@ int main(int argc, char* argv[]) {
             else if (Cvar_GetInt("r_debug_velocity")) { render_debug_buffer(g_renderer.gVelocity, 0); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_volumetric")) { render_debug_buffer(g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_bloom")) { render_debug_buffer(g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_gi")) { render_debug_buffer(g_renderer.gIndirectLight, 6); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_vpl")) { render_debug_buffer(g_renderer.gIndirectLight, 6); debug_view_active = true; }
 
             if (!debug_view_active) {
                 present_final_image(source_fbo);
