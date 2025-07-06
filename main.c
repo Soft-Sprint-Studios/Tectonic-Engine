@@ -933,7 +933,6 @@ void process_input() {
             else if (action == MAINMENU_ACTION_CONTINUE_GAME) {
                 g_current_mode = MODE_GAME;
                 SDL_SetRelativeMouseMode(SDL_TRUE);
-                Console_Printf("Returning to game...");
             }
             else if (action == MAINMENU_ACTION_QUIT) {
                 Cvar_EngineSet("engine_running", "0");
@@ -987,12 +986,10 @@ void process_input() {
                     bool map_is_currently_loaded = (g_scene.numObjects > 0 || g_scene.numBrushes > 0);
                     MainMenu_SetInGameMenuMode(true, map_is_currently_loaded);
                     SDL_SetRelativeMouseMode(SDL_FALSE);
-                    Console_Printf("In-game menu opened.");
                 }
                 else if (g_current_mode == MODE_INGAMEMENU) {
                     g_current_mode = MODE_GAME;
                     SDL_SetRelativeMouseMode(SDL_TRUE);
-                    Console_Printf("In-game menu closed.");
                 }
             }
             else if (event.key.keysym.sym == SDLK_BACKQUOTE) {
