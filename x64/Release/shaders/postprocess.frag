@@ -1,4 +1,5 @@
 #version 460 core
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
@@ -102,7 +103,7 @@ vec3 applyChromaticAberration(vec2 uv, float strength) {
     return vec3(r, g, b);
 }
 
-vec3 applySharpen(vec2 uv, float amount) {
+vec3 applySharpen(vec2 uv, float amount, vec3 baseColor) {
     vec2 texelSize = 1.0 / resolution;
     vec3 blur = vec3(0.0);
     blur += texture(sceneTexture, uv + vec2(-texelSize.x, -texelSize.y)).rgb * 1.0;
@@ -116,9 +117,8 @@ vec3 applySharpen(vec2 uv, float amount) {
     blur += texture(sceneTexture, uv + vec2(texelSize.x, texelSize.y)).rgb * 1.0;
     blur /= 16.0;
 
-    vec3 original = texture(sceneTexture, uv).rgb;
-    vec3 mask = original - blur;
-    return original + mask * amount;
+    vec3 mask = texture(sceneTexture, uv).rgb - blur;
+    return baseColor + mask * amount;
 }
 
 vec3 applyLensFlare(vec3 color, vec2 uv) {
@@ -195,7 +195,7 @@ void main()
     }
 
     if (u_postEnabled && u_sharpenEnabled) {
-        color = applySharpen(uv, u_sharpenAmount);
+        color = applySharpen(uv, u_sharpenAmount, color);
     }
 
     if (u_bloomEnabled) {
