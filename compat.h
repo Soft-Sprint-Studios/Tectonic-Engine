@@ -39,4 +39,24 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
+static const char* _stristr(const char* haystack, const char* needle) {
+    if (!needle || !*needle) {
+        return haystack;
+    }
+    for (; *haystack; ++haystack) {
+        if (tolower((unsigned char)*haystack) == tolower((unsigned char)*needle)) {
+            const char* h = haystack;
+            const char* n = needle;
+            while (*h && *n && tolower((unsigned char)*h) == tolower((unsigned char)*n)) {
+                h++;
+                n++;
+            }
+            if (!*n) {
+                return haystack;
+            }
+        }
+    }
+    return NULL;
+}
+
 #endif // COMPAT_H
