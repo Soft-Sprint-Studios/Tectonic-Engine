@@ -30,7 +30,8 @@
 typedef enum {
     BRUSH_SHAPE_BLOCK,
     BRUSH_SHAPE_CYLINDER,
-    BRUSH_SHAPE_WEDGE
+    BRUSH_SHAPE_WEDGE,
+    BRUSH_SHAPE_SPIKE
 } BrushCreationShapeType;
 
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
@@ -657,6 +658,9 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
         break;
     case BRUSH_SHAPE_WEDGE:
         Brush_SetVerticesFromWedge(b, local_size);
+        break;
+    case BRUSH_SHAPE_SPIKE:
+        Brush_SetVerticesFromSpike(b, local_size, g_EditorState.cylinder_creation_steps);
         break;
     }
     Brush_UpdateMatrix(b);
@@ -4007,7 +4011,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Cylinder", g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_CYLINDER; }
     UI_SameLine();
     if (UI_RadioButton("Wedge", g_EditorState.current_brush_shape == BRUSH_SHAPE_WEDGE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_WEDGE; }
+    UI_SameLine();
+    if (UI_RadioButton("Spike", g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SPIKE; }
     if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER) {
+        UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 3, 64);
+    }
+    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE) {
         UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 3, 64);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
