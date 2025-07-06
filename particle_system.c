@@ -27,7 +27,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
     if (!ps) { fclose(file); return NULL; }
 
     ps->maxParticles = 1000;
-    ps->gravity = (Vec3){ 0.0f, -9.8f, 0.0f };
+    ps->gravity = (Vec3){ 0.0f, -9.81f, 0.0f };
     ps->spawnRate = 100.0f;
     ps->lifetime = 2.0f;
     ps->startColor = (Vec4){ 1.0f, 1.0f, 1.0f, 1.0f };

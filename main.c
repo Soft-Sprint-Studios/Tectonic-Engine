@@ -535,7 +535,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("r_vpl_count", "64", "Number of VPLs to generate per light.", CVAR_NONE);
     Cvar_Register("noclip", "0", "", CVAR_NONE);
-    Cvar_Register("gravity", "9.8", "", CVAR_NONE);
+    Cvar_Register("gravity", "9.81", "", CVAR_NONE);
     Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (tonemapping).", CVAR_NONE);
     Cvar_Register("r_autoexposure_speed", "1.0", "Adaptation speed for auto-exposure.", CVAR_NONE);
