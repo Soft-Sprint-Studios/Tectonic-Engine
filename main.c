@@ -552,6 +552,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_parallax_mapping", "1", "Enable parallax mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
@@ -2348,6 +2349,7 @@ int main(int argc, char* argv[]) {
 
     g_fps_last_update = SDL_GetTicks();
     while (g_engine->running) {
+        Uint32 frameStartTicks = SDL_GetTicks();
         int current_vsync_cvar = Cvar_GetInt("r_vsync");
         if (current_vsync_cvar != g_last_vsync_cvar_state) {
             if (SDL_GL_SetSwapInterval(current_vsync_cvar) == 0) {
@@ -2494,7 +2496,18 @@ int main(int argc, char* argv[]) {
         else {
             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
         }
-        Console_Draw(); UI_EndFrame(window);
+        Console_Draw(); 
+        int vsync_enabled = Cvar_GetInt("r_vsync");
+        int fps_max = Cvar_GetInt("fps_max");
+
+        if (vsync_enabled == 0 && fps_max > 0) {
+            float targetFrameTimeMs = 1000.0f / (float)fps_max;
+            Uint32 frameTicks = SDL_GetTicks() - frameStartTicks;
+            if (frameTicks < targetFrameTimeMs) {
+                SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
+            }
+        }
+        UI_EndFrame(window);
     }
     cleanup(); return 0;
 }
