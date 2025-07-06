@@ -197,62 +197,61 @@ const float PARALLAX_END_FADE_DISTANCE = 40.0;
 
 vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
 {
-    if (hScale <= 0.0) {
-        return texCoords;
-	}
-    if (distanceFade >= 1.0) {
+    if (hScale <= 0.001 || distanceFade >= 1.0) {
         return texCoords;
     }
 
-    const float maxLayers = 16.0;
-    const float minLayers = 4.0;
+    const float MAX_INITIAL_STEPS = 8.0;
+    const float MIN_INITIAL_STEPS = 1.0;
+    const int REFINEMENT_STEPS = 4;
 
-    float numLayers = mix(maxLayers, minLayers, distanceFade);
-    numLayers = mix(numLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
-
+    float numLayers = mix(MAX_INITIAL_STEPS, MIN_INITIAL_STEPS, distanceFade);
+    numLayers = mix(numLayers, MIN_INITIAL_STEPS, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+    
     float layerDepth = 1.0 / numLayers;
     vec2 p = viewDir.xy * hScale;
     vec2 deltaTexCoords = p / numLayers;
 
-    vec2 currentTexCoords = texCoords;
+    vec2  currentTexCoords = texCoords;
     float currentLayerDepth = 0.0;
     float currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-    vec2 prevTexCoords = currentTexCoords;
 
-    for (int i = 0; i < int(numLayers); ++i)
+    for (int i = 0; i < int(numLayers); i++)
     {
         if(currentLayerDepth >= currentHeightMapValue) {
             break;
         }
-
-        prevTexCoords = currentTexCoords;
-        currentLayerDepth += layerDepth;
         currentTexCoords -= deltaTexCoords;
+        currentLayerDepth += layerDepth;
         currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
     }
+    
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
 
-    currentTexCoords = prevTexCoords;
-    const float numFineLayers = numLayers;
-    deltaTexCoords /= numFineLayers;
-    layerDepth /= numFineLayers;
-    currentLayerDepth -= layerDepth * numFineLayers;
+    float depthStart = currentLayerDepth - layerDepth;
+    float depthEnd = currentLayerDepth;
+    vec2 texCoordsStart = prevTexCoords;
+    vec2 texCoordsEnd = currentTexCoords;
 
-    for (int i = 0; i < int(numFineLayers); ++i)
+    for (int i = 0; i < REFINEMENT_STEPS; i++)
     {
-        currentLayerDepth += layerDepth;
-        currentTexCoords -= deltaTexCoords;
-        currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-
-        if (currentLayerDepth >= currentHeightMapValue) {
-            break;
+        float midDepth = (depthStart + depthEnd) * 0.5;
+        vec2 midTexCoords = mix(texCoordsStart, texCoordsEnd, 0.5);
+        float midHeightMapValue = 1.0 - texture(heightMapSampler, midTexCoords).r;
+        
+        if (midDepth > midHeightMapValue)
+        {
+            depthEnd = midDepth;
+            texCoordsEnd = midTexCoords;
+        }
+        else
+        {
+            depthStart = midDepth;
+            texCoordsStart = midTexCoords;
         }
     }
-
-    vec2 finalPrevTexCoords = currentTexCoords + deltaTexCoords;
-    float afterDepth = currentHeightMapValue - currentLayerDepth;
-    float beforeDepth = (1.0 - texture(heightMapSampler, finalPrevTexCoords).r) - (currentLayerDepth - layerDepth);
-    float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 parallaxTexCoords = mix(currentTexCoords, finalPrevTexCoords, weight);
+    
+    vec2 parallaxTexCoords = texCoordsEnd;
 
     return mix(parallaxTexCoords, texCoords, distanceFade);
 }
