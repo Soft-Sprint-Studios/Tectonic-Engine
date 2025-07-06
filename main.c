@@ -564,13 +564,13 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_debug_velocity", "0", "Show motion vector velocity buffer.", CVAR_NONE);
     Cvar_Register("r_debug_volumetric", "0", "Show volumetric lighting buffer.", CVAR_NONE);
     Cvar_Register("r_debug_bloom", "0", "Show the bloom brightness mask texture.", CVAR_NONE);
+    Cvar_Register("r_debug_vpl", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality setting (1=very low, 2=low, 3=medium, 4=high, 5=very high).", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur.", CVAR_NONE);
     Cvar_Register("g_speed", "6.0", "Player walking speed.", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
-    Cvar_Register("r_debug_vpl", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     Cvar_Load("cvars.txt");
