@@ -7,7 +7,7 @@ uniform sampler2D gPosition;
 uniform vec2 screenSize;
 
 const float sensitivity = 1.2;
-const float threshold = 0.15;
+const float threshold = 0.25;
 const float intensity = 10.0;
 const int radius = 3;
 
