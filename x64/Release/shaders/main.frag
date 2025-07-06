@@ -324,26 +324,6 @@ void main()
     vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
     vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
     vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
-	
-	float height1 = (1.0 - texture(heightMap, finalTexCoords1).r);
-    float height2 = (1.0 - texture(heightMap2, finalTexCoords2).r);
-    float height3 = (1.0 - texture(heightMap3, finalTexCoords3).r);
-    float height4 = (1.0 - texture(heightMap4, finalTexCoords4).r);
-
-    float blendedHeight = height1 * blendBase + height2 * blendR + height3 * blendG + height4 * blendB;
-    float blendedHeightScale = heightScale * blendBase + heightScale2 * blendR + heightScale3 * blendG + heightScale4 * blendB;
-
-    if (blendedHeightScale > 0.0) {
-        float pdo = (blendedHeight - 1.0) * blendedHeightScale;
-        vec3 worldSpaceOffset = TBN[2] * pdo;
-        vec3 viewSpaceOffset = mat3(view) * worldSpaceOffset;
-        vec3 newFragPos_view = FragPos_view + viewSpaceOffset;
-        vec4 newClipPos = projection * vec4(newFragPos_view, 1.0);
-        gl_FragDepth = (newClipPos.z / newClipPos.w) * 0.5 + 0.5;
-    }
-    else {
-        gl_FragDepth = gl_FragCoord.z;
-    }
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
     vec3 normalTex1 = texture(normalMap, finalTexCoords1).rgb;
