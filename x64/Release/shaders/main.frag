@@ -92,6 +92,7 @@ uniform float heightScale3;
 uniform float heightScale4;
 
 uniform bool useParallaxCorrection;
+uniform bool isBuildingCubemaps;
 uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
@@ -519,16 +520,18 @@ void main()
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
         kD_ibl *= (1.0 - metallic);
 
-        float diffuseLuminance = dot(totalDirectDiffuse, vec3(0.2126, 0.7152, 0.0722));
-        float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
-        float specularIBLStrength = 2.0 + (1.0 * diffuseLuminance);
-
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion * 10.0) * ao;
+        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * 1.0) * ao;
     }
 	
     out_Velocity = Velocity;
+    vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
+    kD_indirect *= (1.0 - metallic);
+	out_IndirectLight = indirectLight * kD_indirect * albedo;
     if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
+    }
+    else if (isBuildingCubemaps) {
+        out_LitColor = vec4(indirectLight * kD_indirect * albedo, 1.0);
     }
     else {
         out_LitColor = vec4(ambient + Lo, alpha);
@@ -537,7 +540,4 @@ void main()
     out_Normal = normalize(Normal_view);
     out_AlbedoSpec = vec4(albedo, 1.0);
     out_PBRParams = vec4(metallic, roughness, ao, alpha);
-	vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
-    kD_indirect *= (1.0 - metallic);
-	out_IndirectLight = indirectLight * kD_indirect * albedo;
 }
