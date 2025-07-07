@@ -1717,12 +1717,33 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         SceneObject* obj = &g_scene.objects[i];
         glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
         if (obj->model) {
-            Vec3 world_min = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_min);
-            Vec3 world_max = mat4_mul_vec3(&obj->modelMatrix, obj->model->aabb_max);
-            Vec3 real_min = { fminf(world_min.x, world_max.x), fminf(world_min.y, world_max.y), fminf(world_min.z, world_max.z) };
-            Vec3 real_max = { fmaxf(world_min.x, world_max.x), fmaxf(world_min.y, world_max.y), fmaxf(world_min.z, world_max.z) };
+            Vec3 local_corners[8] = {
+                {obj->model->aabb_min.x, obj->model->aabb_min.y, obj->model->aabb_min.z},
+                {obj->model->aabb_max.x, obj->model->aabb_min.y, obj->model->aabb_min.z},
+                {obj->model->aabb_min.x, obj->model->aabb_max.y, obj->model->aabb_min.z},
+                {obj->model->aabb_max.x, obj->model->aabb_max.y, obj->model->aabb_min.z},
+                {obj->model->aabb_min.x, obj->model->aabb_min.y, obj->model->aabb_max.z},
+                {obj->model->aabb_max.x, obj->model->aabb_min.y, obj->model->aabb_max.z},
+                {obj->model->aabb_min.x, obj->model->aabb_max.y, obj->model->aabb_max.z},
+                {obj->model->aabb_max.x, obj->model->aabb_max.y, obj->model->aabb_max.z}
+            };
 
-            if (!frustum_check_aabb(&frustum, real_min, real_max)) {
+            Vec3 world_aabb_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 world_aabb_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+            for (int j = 0; j < 8; ++j) {
+                Vec3 transformed_corner = mat4_mul_vec3(&obj->modelMatrix, local_corners[j]);
+
+                world_aabb_min.x = fminf(world_aabb_min.x, transformed_corner.x);
+                world_aabb_min.y = fminf(world_aabb_min.y, transformed_corner.y);
+                world_aabb_min.z = fminf(world_aabb_min.z, transformed_corner.z);
+
+                world_aabb_max.x = fmaxf(world_aabb_max.x, transformed_corner.x);
+                world_aabb_max.y = fmaxf(world_aabb_max.y, transformed_corner.y);
+                world_aabb_max.z = fmaxf(world_aabb_max.z, transformed_corner.z);
+            }
+
+            if (!frustum_check_aabb(&frustum, world_aabb_min, world_aabb_max)) {
                 continue;
             }
         }
