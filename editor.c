@@ -148,6 +148,13 @@ typedef struct {
     bool is_sculpting_mode_enabled;
     float sculpt_brush_radius;
     float sculpt_brush_strength;
+    bool show_sound_browser_popup;
+    char** sound_file_list;
+    int num_sound_files;
+    int selected_sound_file_index;
+    char sound_search_filter[64];
+    unsigned int preview_sound_buffer;
+    unsigned int preview_sound_source;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -313,6 +320,53 @@ static void ScanModelFiles() {
             g_EditorState.model_file_list = realloc(g_EditorState.model_file_list, (g_EditorState.num_model_files + 1) * sizeof(char*));
             g_EditorState.model_file_list[g_EditorState.num_model_files] = strdup(dir->d_name);
             g_EditorState.num_model_files++;
+        }
+    }
+    closedir(d);
+#endif
+}
+
+static void FreeSoundFileList() {
+    if (g_EditorState.sound_file_list) {
+        for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
+            free(g_EditorState.sound_file_list[i]);
+        }
+        free(g_EditorState.sound_file_list);
+        g_EditorState.sound_file_list = NULL;
+        g_EditorState.num_sound_files = 0;
+    }
+}
+
+static void ScanSoundFiles() {
+    FreeSoundFileList();
+    const char* dir_path = "sounds/";
+#ifdef PLATFORM_WINDOWS
+    char search_path[256];
+    sprintf(search_path, "%s*.*", dir_path);
+    WIN32_FIND_DATAA find_data;
+    HANDLE h_find = FindFirstFileA(search_path, &find_data);
+    if (h_find == INVALID_HANDLE_VALUE) return;
+    do {
+        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            const char* ext = strrchr(find_data.cFileName, '.');
+            if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0)) {
+                g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
+                g_EditorState.sound_file_list[g_EditorState.num_sound_files] = _strdup(find_data.cFileName);
+                g_EditorState.num_sound_files++;
+            }
+        }
+    } while (FindNextFileA(h_find, &find_data) != 0);
+    FindClose(h_find);
+#else
+    DIR* d = opendir(dir_path);
+    if (!d) return;
+    struct dirent* dir;
+    while ((dir = readdir(d)) != NULL) {
+        const char* ext = strrchr(dir->d_name, '.');
+        if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0)) {
+            g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
+            g_EditorState.sound_file_list[g_EditorState.num_sound_files] = strdup(dir->d_name);
+            g_EditorState.num_sound_files++;
         }
     }
     closedir(d);
@@ -999,6 +1053,13 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_sculpting_mode_enabled = false;
     g_EditorState.sculpt_brush_radius = 2.0f;
     g_EditorState.sculpt_brush_strength = 0.5f;
+    g_EditorState.show_sound_browser_popup = false;
+    g_EditorState.sound_file_list = NULL;
+    g_EditorState.num_sound_files = 0;
+    g_EditorState.selected_sound_file_index = -1;
+    memset(g_EditorState.sound_search_filter, 0, sizeof(g_EditorState.sound_search_filter));
+    g_EditorState.preview_sound_buffer = 0;
+    g_EditorState.preview_sound_source = 0;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -1007,6 +1068,14 @@ void Editor_Shutdown() {
     for (int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
     if (g_EditorState.preview_model) Model_Free(g_EditorState.preview_model);
+    if (g_EditorState.preview_sound_source != 0) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+    if (g_EditorState.preview_sound_buffer != 0) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+    if (g_EditorState.sound_file_list) {
+        for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
+            free(g_EditorState.sound_file_list[i]);
+        }
+        free(g_EditorState.sound_file_list);
+    }
     FreeModelFileList();
     FreeMapFileList();
     glDeleteProgram(g_EditorState.debug_shader); glDeleteVertexArrays(1, &g_EditorState.light_gizmo_vao);
@@ -3308,6 +3377,81 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
     }
     UI_End();
 }
+static void Editor_RenderSoundBrowser(Scene* scene) {
+    if (!g_EditorState.show_sound_browser_popup) return;
+
+    UI_SetNextWindowSize(400, 500);
+    if (UI_Begin("Sound Browser", &g_EditorState.show_sound_browser_popup)) {
+        UI_InputText("Search", g_EditorState.sound_search_filter, sizeof(g_EditorState.sound_search_filter));
+        UI_Separator();
+
+        if (UI_BeginChild("sound_list_child", 0, -40, true, 0)) {
+            if (g_EditorState.num_sound_files > 0) {
+                for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
+                    const char* sound_name = g_EditorState.sound_file_list[i];
+                    if (g_EditorState.sound_search_filter[0] == '\0' || _stristr(sound_name, g_EditorState.sound_search_filter) != NULL) {
+                        if (UI_Selectable(sound_name, g_EditorState.selected_sound_file_index == i)) {
+                            g_EditorState.selected_sound_file_index = i;
+                            if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+                            if (g_EditorState.preview_sound_buffer) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+                            char path_buffer[256];
+                            sprintf(path_buffer, "sounds/%s", g_EditorState.sound_file_list[i]);
+                            g_EditorState.preview_sound_buffer = SoundSystem_LoadSound(path_buffer);
+                            if (g_EditorState.preview_sound_buffer != 0) {
+                                g_EditorState.preview_sound_source = SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        UI_EndChild();
+
+        UI_Separator();
+
+        if (g_EditorState.selected_sound_file_index != -1) {
+            if (UI_Button("Add to Scene")) {
+                if (scene->numSoundEntities < MAX_SOUNDS) {
+                    SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
+                    memset(s, 0, sizeof(SoundEntity));
+                    sprintf(s->targetname, "Sound_%d", scene->numSoundEntities);
+                    char full_path[256];
+                    sprintf(full_path, "sounds/%s", g_EditorState.sound_file_list[g_EditorState.selected_sound_file_index]);
+                    strncpy(s->soundPath, full_path, sizeof(s->soundPath) - 1);
+                    s->pos = g_EditorState.editor_camera.position;
+                    s->volume = 1.0f;
+                    s->pitch = 1.0f;
+                    s->maxDistance = 50.0f;
+                    s->bufferID = SoundSystem_LoadSound(s->soundPath);
+                    scene->numSoundEntities++;
+                    Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound");
+                    g_EditorState.show_sound_browser_popup = false;
+                }
+                else {
+                    Console_Printf("[error] Max sound entities reached.");
+                }
+            }
+            UI_SameLine();
+            if (UI_Button("Preview")) {
+                if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+                if (g_EditorState.preview_sound_buffer) {
+                    g_EditorState.preview_sound_source = SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
+                }
+            }
+        }
+    }
+    if (!g_EditorState.show_sound_browser_popup) {
+        if (g_EditorState.preview_sound_source) {
+            SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+            g_EditorState.preview_sound_source = 0;
+        }
+        if (g_EditorState.preview_sound_buffer) {
+            SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+            g_EditorState.preview_sound_buffer = 0;
+        }
+    }
+    UI_End();
+}
 static void Editor_RenderTextureBrowser(Scene* scene) {
     if (!g_EditorState.show_texture_browser) return;
 
@@ -3514,7 +3658,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_SOUND; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
         }
-        if (UI_Button("Add Sound Entity")) { if (scene->numSoundEntities < MAX_SOUNDS) { SoundEntity* s = &scene->soundEntities[scene->numSoundEntities]; memset(s, 0, sizeof(SoundEntity)); sprintf(s->targetname, "Sound_%d", scene->numSoundEntities); s->pos = g_EditorState.editor_camera.position; s->volume = 1.0f; s->pitch = 1.0f; s->maxDistance = 50.0f; scene->numSoundEntities++; Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound"); } }
+        if (UI_Button("Add Sound Entity")) {
+            g_EditorState.show_sound_browser_popup = true;
+            ScanSoundFiles();
+        }
     }
     if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
     int particle_to_delete = -1;
@@ -4093,6 +4240,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
     Editor_RenderTextureBrowser(scene);
     Editor_RenderModelBrowser(scene, engine);
+    Editor_RenderSoundBrowser(scene);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
     for (int i = 0; i < 4; i++) {
