@@ -74,7 +74,7 @@ extern "C" {
     void UI_Init(SDL_Window* window, SDL_GLContext context) {
         IMGUI_CHECKVERSION(); ImGui::CreateContext(); ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui::StyleColorsDark(); ImGui_ImplSDL2_InitForOpenGL(window, context);
-        ImGui_ImplOpenGL3_Init("#version 330"); console_instance.AddLog("Console Initialized.");
+        ImGui_ImplOpenGL3_Init("#version 460"); console_instance.AddLog("Console Initialized.");
     }
     void UI_Shutdown() { ImGui_ImplOpenGL3_Shutdown(); ImGui_ImplSDL2_Shutdown(); ImGui::DestroyContext(); }
     void UI_ProcessEvent(SDL_Event* event) { ImGui_ImplSDL2_ProcessEvent(event); }
