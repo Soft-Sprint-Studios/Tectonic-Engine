@@ -1347,7 +1347,9 @@ static void render_vpl_pass() {
                 glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
                 glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
                 glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
-                glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
+                glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity / 6.0f);
+
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpls_to_generate"), vpls_per_face);
 
                 int workgroup_size = 64;
                 int num_workgroups = (vpls_per_face + workgroup_size - 1) / workgroup_size;
@@ -1413,6 +1415,8 @@ static void render_vpl_pass() {
             glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
             glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
             glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
+
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpls_to_generate"), Cvar_GetInt("r_vpl_count"));
 
             int workgroup_size = 64;
             int num_workgroups = (vpls_per_light + workgroup_size - 1) / workgroup_size;

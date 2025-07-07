@@ -17,6 +17,7 @@ uniform sampler2D u_normalTex;
 uniform sampler2D u_albedoTex;
 
 uniform int u_vpl_offset;
+uniform int u_vpls_to_generate;
 
 uniform vec3 u_lightPos;
 uniform vec3 u_lightColor;
@@ -37,6 +38,11 @@ float halton(uint i, uint b) {
 
 void main() {
     uint index = gl_GlobalInvocationID.x;
+	
+	if (index >= u_vpls_to_generate) {
+        return;
+    }
+	
     uint total_index = index + u_vpl_offset;
     if (total_index >= vpls.length()) return;
 
