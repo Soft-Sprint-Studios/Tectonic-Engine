@@ -2262,7 +2262,12 @@ void BuildCubemaps() {
                 render_sun_shadows(&sunLightSpaceMatrix);
             }
 
+            glUseProgram(g_renderer.mainShader);
+            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 1);
+
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
+
+            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 0);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
             glViewport(0, 0, CUBEMAP_RES, CUBEMAP_RES);
