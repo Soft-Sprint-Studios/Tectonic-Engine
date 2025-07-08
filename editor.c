@@ -1294,7 +1294,47 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         g_EditorState.selected_vertex_index = -1;
     }
 }
+static int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport) {
+    if (g_EditorState.selected_entity_type != ENTITY_BRUSH || g_EditorState.selected_entity_index == -1) {
+        return -1;
+    }
 
+    float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
+    float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
+    Mat4 inv_proj, inv_view;
+    mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
+    mat4_inverse(&g_view_matrix[viewport], &inv_view);
+    Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
+    Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+    ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+    Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
+    vec3_normalize(&ray_dir);
+    Vec3 ray_origin = g_EditorState.editor_camera.position;
+
+    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+    float closest_t = FLT_MAX;
+    int picked_vertex = -1;
+    const float pick_radius = 0.1f;
+
+    for (int i = 0; i < b->numVertices; ++i) {
+        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+
+        Vec3 oc = vec3_sub(ray_origin, vert_world_pos);
+        float b_dot = vec3_dot(oc, ray_dir);
+        float c = vec3_dot(oc, oc) - pick_radius * pick_radius;
+        float discriminant = b_dot * b_dot - c;
+        if (discriminant > 0) {
+            float t = -b_dot - sqrtf(discriminant);
+            if (t > 0 && t < closest_t) {
+                closest_t = t;
+                picked_vertex = i;
+            }
+        }
+    }
+
+    return picked_vertex;
+}
 static float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg) {
     Vec3 seg_dir = vec3_sub(seg_p1, seg_p0);
     Vec3 w0 = vec3_sub(ray_origin, seg_p0);
@@ -1680,7 +1720,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
         }
-
+        if (active_viewport == VIEW_PERSPECTIVE && g_EditorState.selected_entity_type == ENTITY_BRUSH && !g_EditorState.is_manipulating_gizmo && !g_EditorState.is_manipulating_vertex_gizmo) {
+            int picked_vertex = Editor_PickVertexAtScreenPos(scene, g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE], VIEW_PERSPECTIVE);
+            if (picked_vertex != -1) {
+                g_EditorState.selected_vertex_index = picked_vertex;
+                return;
+            }
+        }
         if (active_viewport == VIEW_PERSPECTIVE && !g_EditorState.is_in_brush_creation_mode) {
             Editor_PickObjectAtScreenPos(g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE], VIEW_PERSPECTIVE);
         }
@@ -2293,6 +2339,45 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
     g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_NONE;
+
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && g_EditorState.selected_vertex_index != -1 && !g_EditorState.is_manipulating_gizmo && !g_EditorState.is_manipulating_vertex_gizmo) {
+        if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
+            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
+            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Mat4 inv_proj, inv_view;
+            mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+            mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
+            Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+            ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+            Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
+            vec3_normalize(&ray_dir);
+            Vec3 ray_origin = g_EditorState.editor_camera.position;
+
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[g_EditorState.selected_vertex_index].pos);
+
+            const float pick_threshold = 0.1f;
+            float min_dist = FLT_MAX;
+            float t_ray, t_seg;
+
+            float GIZMO_AXIS_LENGTH = 0.5f;
+
+            Vec3 x_p1 = { vert_world_pos.x + GIZMO_AXIS_LENGTH, vert_world_pos.y, vert_world_pos.z };
+            float dist_x = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, x_p1, &t_ray, &t_seg);
+            if (dist_x < pick_threshold && dist_x < min_dist) { min_dist = dist_x; g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_X; }
+
+            Vec3 y_p1 = { vert_world_pos.x, vert_world_pos.y + GIZMO_AXIS_LENGTH, vert_world_pos.z };
+            float dist_y = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, y_p1, &t_ray, &t_seg);
+            if (dist_y < pick_threshold && dist_y < min_dist) { min_dist = dist_y; g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_Y; }
+
+            Vec3 z_p1 = { vert_world_pos.x, vert_world_pos.y, vert_world_pos.z + GIZMO_AXIS_LENGTH };
+            float dist_z = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, z_p1, &t_ray, &t_seg);
+            if (dist_z < pick_threshold && dist_z < min_dist) { g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_Z; }
+        }
+    }
 
     if (!g_EditorState.is_dragging_preview_brush_handle) {
         g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
