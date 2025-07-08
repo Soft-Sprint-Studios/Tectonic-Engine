@@ -3754,9 +3754,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_InputText("Name", obj->targetname, sizeof(obj->targetname));
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Edit Model Targetname"); }
-        UI_DragFloat3("Position", &obj->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { obj->pos.x = SnapValue(obj->pos.x, g_EditorState.grid_size); obj->pos.y = SnapValue(obj->pos.y, g_EditorState.grid_size); obj->pos.z = SnapValue(obj->pos.z, g_EditorState.grid_size); } SceneObject_UpdateMatrix(obj); if (obj->physicsBody) { Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); } Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Move Model"); }
-        UI_DragFloat3("Rotation", &obj->rot.x, 1.0f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { obj->rot.x = SnapAngle(obj->rot.x, 15.0f); obj->rot.y = SnapAngle(obj->rot.y, 15.0f); obj->rot.z = SnapAngle(obj->rot.z, 15.0f); } SceneObject_UpdateMatrix(obj); if (obj->physicsBody) { Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); } Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Rotate Model"); }
-        UI_DragFloat3("Scale", &obj->scale.x, 0.01f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { obj->scale.x = SnapValue(obj->scale.x, 0.25f); obj->scale.y = SnapValue(obj->scale.y, 0.25f); obj->scale.z = SnapValue(obj->scale.z, 0.25f); } SceneObject_UpdateMatrix(obj); if (obj->physicsBody) { Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); } Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Scale Model"); }
+        if (UI_DragFloat3("Position", &obj->pos.x, 0.1f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Move Model"); }
+
+        if (UI_DragFloat3("Rotation", &obj->rot.x, 1.0f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Rotate Model"); }
+
+        if (UI_DragFloat3("Scale", &obj->scale.x, 0.01f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Scale Model"); }
         UI_Separator();
         UI_Text("Physics Properties");
         UI_DragFloat("Mass", &obj->mass, 0.1f, 0.0f, 1000.0f);
