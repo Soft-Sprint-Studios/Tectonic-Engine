@@ -415,6 +415,8 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
             }
             current_material = &materials[num_materials];
             memset(current_material, 0, sizeof(Material));
+            current_material->roughness = -1.0f;
+            current_material->metalness = -1.0f;
             sscanf(trimmed_line, "\"%[^\"]\"", current_material->name);
         }
         else if (trimmed_line[0] == '{') {
@@ -452,6 +454,12 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                     }
                     else if (strcmp(key, "detailscale") == 0) {
                         current_material->detailScale = float_val;
+                    }
+                    else if (strcmp(key, "roughness") == 0) {
+                        current_material->roughness = float_val;
+                    }
+                    else if (strcmp(key, "metalness") == 0) {
+                        current_material->metalness = float_val;
                     }
                 }
             }

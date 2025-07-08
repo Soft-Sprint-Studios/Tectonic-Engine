@@ -2698,7 +2698,6 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glBindVertexArray(renderer->skyboxVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthFunc(GL_LESS);
-
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
@@ -3566,7 +3565,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (model_to_delete != -1) { Editor_DeleteModel(scene, model_to_delete, engine); }
     if (UI_CollapsingHeader("Brushes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
-            if (scene->brushes[i].isReflectionProbe) continue;
+            if (scene->brushes[i].isReflectionProbe || scene->brushes[i].isGlass || scene->brushes[i].isDSP || scene->brushes[i].isWater) continue;
             char label[128];
             if (strlen(scene->brushes[i].targetname) > 0) {
                 sprintf(label, "%s %s##%d", scene->brushes[i].targetname, scene->brushes[i].isTrigger ? "[T]" : "", i);
@@ -3591,6 +3590,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_SameLine(0, 20.0f);
             char del_label[32];
             sprintf(del_label, "[X]##dspbrush%d", i);
+            if (UI_Button(del_label)) { brush_to_delete = i; }
+        }
+    }
+    if (UI_CollapsingHeader("Glass", 1)) {
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            if (!scene->brushes[i].isGlass) continue;
+            char label[128];
+            if (strlen(scene->brushes[i].targetname) > 0) {
+                sprintf(label, "%s##glass%d", scene->brushes[i].targetname, i);
+            }
+            else {
+                sprintf(label, "Glass Brush %d##glass%d", i, i);
+            }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_BRUSH;
+                g_EditorState.selected_entity_index = i;
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##glassbrush%d", i);
             if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
@@ -3786,6 +3805,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 b->isTrigger = false;
                 b->isReflectionProbe = false;
                 b->isDSP = false;
+                b->isGlass = false;
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Water");
         }
@@ -3795,6 +3815,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 b->isTrigger = false;
                 b->isWater = false;
                 b->isDSP = false;
+                b->isGlass = false;
                 int px = (int)roundf(b->pos.x);
                 int py = (int)roundf(b->pos.y);
                 int pz = (int)roundf(b->pos.z);
@@ -3808,6 +3829,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 b->isReflectionProbe = false;
                 b->isWater = false;
                 b->isDSP = false;
+                b->isGlass = false;
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Trigger");
         }
@@ -3817,8 +3839,20 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 b->isTrigger = false;
                 b->isReflectionProbe = false;
                 b->isWater = false;
+                b->isGlass = false;
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush DSP Zone");
+        }
+        if (UI_Checkbox("Is Glass", &b->isGlass)) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            if (b->isGlass) {
+                b->isTrigger = false;
+                b->isReflectionProbe = false;
+                b->isWater = false;
+                b->isDSP = false;
+                b->refractionStrength = 0.01f;
+            }
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush Glass");
         }
         UI_Separator();
         UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Name"); }
@@ -3861,6 +3895,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 b->reverbPreset = (ReverbPreset)current_preset;
                 Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Set Reverb Preset");
             }
+        }
+        else if (b->isGlass) {
+            UI_Separator();
+            UI_Text("Glass Settings");
+            UI_DragFloat("Refraction Strength", &b->refractionStrength, 0.001f, 0.0f, 0.1f);
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Glass Strength"); }
         }
         else {
             UI_Text("Face Properties (Face %d)", g_EditorState.selected_face_index);

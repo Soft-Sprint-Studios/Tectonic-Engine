@@ -91,6 +91,15 @@ uniform float heightScale2;
 uniform float heightScale3;
 uniform float heightScale4;
 
+uniform float u_roughness_override;
+uniform float u_metalness_override;
+uniform float u_roughness_override2;
+uniform float u_metalness_override2;
+uniform float u_roughness_override3;
+uniform float u_metalness_override3;
+uniform float u_roughness_override4;
+uniform float u_metalness_override4;
+
 uniform bool useParallaxCorrection;
 uniform bool isBuildingCubemaps;
 uniform vec3 probeBoxMin;
@@ -355,8 +364,20 @@ void main()
         discard;
 
     vec3 normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
-    float roughness = rma1.g * blendBase + rma2.g * blendR + rma3.g * blendG + rma4.g * blendB;
-    float metallic = rma1.b * blendBase + rma2.b * blendR + rma3.b * blendG + rma4.b * blendB;
+    float r1 = (u_roughness_override >= 0.0) ? u_roughness_override : rma1.g;
+    float m1 = (u_metalness_override >= 0.0) ? u_metalness_override : rma1.b;
+
+    float r2 = (u_roughness_override2 >= 0.0) ? u_roughness_override2 : rma2.g;
+    float m2 = (u_metalness_override2 >= 0.0) ? u_metalness_override2 : rma2.b;
+
+    float r3 = (u_roughness_override3 >= 0.0) ? u_roughness_override3 : rma3.g;
+    float m3 = (u_metalness_override3 >= 0.0) ? u_metalness_override3 : rma3.b;
+
+    float r4 = (u_roughness_override4 >= 0.0) ? u_roughness_override4 : rma4.g;
+    float m4 = (u_metalness_override4 >= 0.0) ? u_metalness_override4 : rma4.b;
+
+    float roughness = r1 * blendBase + r2 * blendR + r3 * blendG + r4 * blendB;
+    float metallic = m1 * blendBase + m2 * blendR + m3 * blendG + m4 * blendB;
     float ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
 	
     vec3 N = normalize(TBN * (normalTex * 2.0 - 1.0));

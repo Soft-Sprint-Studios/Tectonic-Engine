@@ -175,6 +175,9 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->isTrigger = src->isTrigger;
     dest->isReflectionProbe = src->isReflectionProbe;
     dest->isDSP = src->isDSP;
+    dest->isGlass = src->isGlass;
+    dest->refractionStrength = src->refractionStrength;
+    dest->isWater = src->isWater;
     dest->cubemapTexture = src->cubemapTexture;
     strcpy(dest->name, src->name);
     dest->numVertices = src->numVertices;
@@ -1075,6 +1078,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " is_water %d", &dummy_int) == 1) {
                     b->isWater = (bool)dummy_int;
                 }
+                else if (sscanf(line, " is_glass %d", &dummy_int) == 1) {
+                    b->isGlass = (bool)dummy_int;
+                }
+                else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {
+                }
             }
             if (b->isReflectionProbe) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -1328,6 +1336,10 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }
         if (b->isWater) fprintf(file, "  is_water 1\n");
+        if (b->isGlass) {
+            fprintf(file, "  is_glass 1\n");
+            fprintf(file, "  refraction_strength %.4f\n", b->refractionStrength);
+        }
         fprintf(file, "  num_verts %d\n", b->numVertices);
         for (int v = 0; v < b->numVertices; ++v) {
             fprintf(file, "  v %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", v,

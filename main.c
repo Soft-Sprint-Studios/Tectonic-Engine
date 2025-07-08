@@ -196,7 +196,8 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
                 float finalHeightScale = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), finalHeightScale);
-                glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
                 glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
@@ -218,7 +219,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 }
 
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
-    if (b->isReflectionProbe || b->isTrigger || b->isWater) return;
+    if (b->isReflectionProbe || b->isTrigger || b->isWater || b->isGlass) return;
     bool envMapEnabled = false;
 
     if (!is_baking_pass && shader == g_renderer.mainShader) {
@@ -254,6 +255,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
             float parallax_enabled = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
             glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
+            glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
+            glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
@@ -268,6 +271,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallax_enabled ? material2->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), material2->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), material2->metalness);
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
                 glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, material2->normalMap);
                 glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, material2->rmaMap);
@@ -275,6 +280,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), -1.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), -1.0f);
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, missingTextureID);
                 glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
                 glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
@@ -288,6 +295,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
                 glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
                 glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallax_enabled ? material3->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), material3->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), material3->metalness);
                 glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, material3->diffuseMap);
                 glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, material3->normalMap);
                 glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, material3->rmaMap);
@@ -295,6 +304,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale3"), 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), -1.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), -1.0f);
                 glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, missingTextureID);
                 glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
                 glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
@@ -308,6 +319,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
                 glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
                 glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallax_enabled ? material4->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), material4->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), material4->metalness);
                 glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, material4->diffuseMap);
                 glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, material4->normalMap);
                 glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, material4->rmaMap);
@@ -315,6 +328,8 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale4"), 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), -1.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), -1.0f);
                 glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, missingTextureID);
                 glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
                 glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
@@ -614,6 +629,7 @@ void init_renderer() {
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
+    g_renderer.refractShader = createShaderProgram("shaders/refract.vert", "shaders/refract.frag");
     g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -1475,6 +1491,38 @@ void render_parallax_rooms(Mat4* view, Mat4* projection) {
     glBindVertexArray(0);
 }
 
+void render_refractive_glass(Mat4* view, Mat4* projection) {
+    glUseProgram(g_renderer.refractShader);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "projection"), 1, GL_FALSE, projection->m);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.refractShader, "sceneTexture"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
+    glUniform1i(glGetUniformLocation(g_renderer.refractShader, "normalMap"), 1);
+
+    for (int i = 0; i < g_scene.numBrushes; i++) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isGlass) continue;
+
+        glUniform1f(glGetUniformLocation(g_renderer.refractShader, "refractionStrength"), b->refractionStrength);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glBindVertexArray(b->vao);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
+}
+
 void render_shadows() {
     glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT);  
     int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
@@ -2044,6 +2092,8 @@ void cleanup() {
     glDeleteProgram(g_renderer.exposureShader);
     glDeleteProgram(g_renderer.depthAaShader);
     glDeleteProgram(g_renderer.motionBlurShader);
+    glDeleteProgram(g_renderer.waterShader);
+    glDeleteProgram(g_renderer.refractShader);
     glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
     glDeleteTextures(1, &g_renderer.gLitColor);
     glDeleteTextures(1, &g_renderer.gPosition);
@@ -2462,6 +2512,7 @@ int main(int argc, char* argv[]) {
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             render_skybox(&view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+            render_refractive_glass(&view, &projection);
             for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
                 VideoPlayer_Render(&g_scene.videoPlayers[i], &view, &projection);
             }

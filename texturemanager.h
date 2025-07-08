@@ -35,6 +35,8 @@ typedef struct {
 
     float heightScale;
     float detailScale;
+    float roughness;
+    float metalness;
 } Material;
 
 extern Material g_MissingMaterial;

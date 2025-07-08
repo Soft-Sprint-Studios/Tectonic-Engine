@@ -188,6 +188,7 @@ typedef struct {
     GLuint dudvMap;
     GLuint waterNormalMap;
     GLuint parallaxInteriorShader;
+    GLuint refractShader;
     GLuint lightSSBO;
     GLuint debugBufferShader;
     float currentExposure;
@@ -254,6 +255,8 @@ typedef struct {
     char name[64];
     bool isDSP;
     ReverbPreset reverbPreset;
+    bool isGlass;
+    float refractionStrength;
 } Brush;
 
 typedef struct {
