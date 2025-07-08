@@ -1367,16 +1367,28 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
     }
     Vec3 object_pos;
     bool has_pos = true;
-    switch (g_EditorState.selected_entity_type) {
-    case ENTITY_MODEL: object_pos = scene->objects[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_BRUSH: object_pos = scene->brushes[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_LIGHT: object_pos = scene->lights[g_EditorState.selected_entity_index].position; break;
-    case ENTITY_DECAL: object_pos = scene->decals[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_SOUND: object_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_PARTICLE_EMITTER: object_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_PLAYERSTART: object_pos = scene->playerStart.position; break;
-    case ENTITY_VIDEO_PLAYER: object_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
-    default: has_pos = false; break;
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+        Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        BrushFace* face = &b->faces[g_EditorState.selected_face_index];
+        Vec3 face_center_local = { 0 };
+        for (int i = 0; i < face->numVertexIndices; ++i) {
+            face_center_local = vec3_add(face_center_local, b->vertices[face->vertexIndices[i]].pos);
+        }
+        face_center_local = vec3_muls(face_center_local, 1.0f / face->numVertexIndices);
+        object_pos = mat4_mul_vec3(&b->modelMatrix, face_center_local);
+    }
+    else {
+        switch (g_EditorState.selected_entity_type) {
+        case ENTITY_MODEL: object_pos = scene->objects[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_BRUSH: object_pos = scene->brushes[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_LIGHT: object_pos = scene->lights[g_EditorState.selected_entity_index].position; break;
+        case ENTITY_DECAL: object_pos = scene->decals[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_SOUND: object_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PARTICLE_EMITTER: object_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PLAYERSTART: object_pos = scene->playerStart.position; break;
+        case ENTITY_VIDEO_PLAYER: object_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
+        default: has_pos = false; break;
+        }
     }
     if (!has_pos) { g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE; return; }
 
@@ -1565,7 +1577,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (!g_EditorState.is_in_brush_creation_mode) {
                 Undo_BeginEntityModification(scene, g_EditorState.selected_entity_type, g_EditorState.selected_entity_index);
             }
-
+            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+            }
+            else {
             if (g_EditorState.is_in_brush_creation_mode) {
                 g_EditorState.gizmo_drag_object_start_pos = g_EditorState.preview_brush.pos;
                 g_EditorState.gizmo_drag_object_start_rot = g_EditorState.preview_brush.rot;
@@ -1619,6 +1633,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->parallaxRooms[g_EditorState.selected_entity_index].size.x, scene->parallaxRooms[g_EditorState.selected_entity_index].size.y, 1.0f };
                     break;
                 default: break;
+                }
                 }
             }
 
@@ -1980,6 +1995,73 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     }
                 }
             }
+        }
+        else if (g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            BrushFace* face = &b->faces[g_EditorState.selected_face_index];
+            if (face->numVertexIndices < 3) return;
+
+            Vec3 p0 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[0]].pos);
+            Vec3 p1 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[1]].pos);
+            Vec3 p2 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[2]].pos);
+            Vec3 plane_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+            vec3_normalize(&plane_normal);
+            float plane_d = -vec3_dot(plane_normal, p0);
+
+            Vec3 delta = { 0 };
+            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view];
+
+            if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
+                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Vec3 current_intersect_point;
+                if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
+                    delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                }
+            }
+            else {
+                Vec3 current_point = ScreenToWorld(screen_pos, g_EditorState.gizmo_drag_view);
+                delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
+            }
+
+            Vec3 axis_dir = { 0 };
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
+            float projection_len = vec3_dot(delta, axis_dir);
+            Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+
+            if (g_EditorState.snap_to_grid) {
+                projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
+                projected_delta.y = SnapValue(projected_delta.y, g_EditorState.grid_size);
+                projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
+            }
+
+            Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
+            for (int i = 0; i < face->numVertexIndices; ++i) {
+                int vert_idx = face->vertexIndices[i];
+                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
+                Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
+                b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
+            }
+
+            g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
+
+            Brush_CreateRenderData(b);
+            if (b->physicsBody) {
+                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                if (!b->isTrigger && b->numVertices > 0) {
+                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                    for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                    free(world_verts);
+                }
+                else { b->physicsBody = NULL; }
+            }
+            return;
         }
         else if (g_EditorState.is_vertex_manipulating) {
             Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
@@ -2609,17 +2691,29 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     }
     Vec3 object_pos;
     bool has_pos = true;
-    switch (g_EditorState.selected_entity_type) {
-    case ENTITY_MODEL: object_pos = g_CurrentScene->objects[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_BRUSH: object_pos = g_CurrentScene->brushes[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_LIGHT: object_pos = g_CurrentScene->lights[g_EditorState.selected_entity_index].position; break;
-    case ENTITY_DECAL: object_pos = g_CurrentScene->decals[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_SOUND: object_pos = g_CurrentScene->soundEntities[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_PARTICLE_EMITTER: object_pos = g_CurrentScene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_PLAYERSTART: object_pos = g_CurrentScene->playerStart.position; break;
-    case ENTITY_VIDEO_PLAYER: object_pos = g_CurrentScene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
-    case ENTITY_PARALLAX_ROOM: object_pos = g_CurrentScene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
-    default: has_pos = false; break;
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+        Brush* b = &g_CurrentScene->brushes[g_EditorState.selected_entity_index];
+        BrushFace* face = &b->faces[g_EditorState.selected_face_index];
+        Vec3 face_center_local = { 0 };
+        for (int i = 0; i < face->numVertexIndices; ++i) {
+            face_center_local = vec3_add(face_center_local, b->vertices[face->vertexIndices[i]].pos);
+        }
+        face_center_local = vec3_muls(face_center_local, 1.0f / face->numVertexIndices);
+        object_pos = mat4_mul_vec3(&b->modelMatrix, face_center_local);
+    }
+    else {
+        switch (g_EditorState.selected_entity_type) {
+        case ENTITY_MODEL: object_pos = g_CurrentScene->objects[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_BRUSH: object_pos = g_CurrentScene->brushes[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_LIGHT: object_pos = g_CurrentScene->lights[g_EditorState.selected_entity_index].position; break;
+        case ENTITY_DECAL: object_pos = g_CurrentScene->decals[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_SOUND: object_pos = g_CurrentScene->soundEntities[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PARTICLE_EMITTER: object_pos = g_CurrentScene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PLAYERSTART: object_pos = g_CurrentScene->playerStart.position; break;
+        case ENTITY_VIDEO_PLAYER: object_pos = g_CurrentScene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PARALLAX_ROOM: object_pos = g_CurrentScene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
+        default: has_pos = false; break;
+        }
     }
     if (!has_pos) return;
 
