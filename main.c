@@ -2021,6 +2021,10 @@ void render_skybox(Mat4* view, Mat4* projection) {
     glDepthFunc(GL_LEQUAL);
     glUseProgram(g_renderer.skyboxShader);
     glCullFace(GL_FRONT);
+    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "u_use_cubemap"), g_scene.use_cubemap_skybox);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.skybox_cubemap);
+    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "u_skybox_cubemap"), 1);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "projection"), 1, GL_FALSE, projection->m);
 

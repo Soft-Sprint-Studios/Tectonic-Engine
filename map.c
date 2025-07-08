@@ -1008,6 +1008,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             scene->post.sharpenEnabled = (bool)sharpen_enabled_int;
             scene->post.bwEnabled = (bool)bw_enabled_int;
         }
+        else if (strcmp(keyword, "skybox") == 0) {
+            int use_cubemap_int = 0;
+            sscanf(line, "%*s %d \"%127[^\"]\"", &use_cubemap_int, scene->skybox_path);
+            scene->use_cubemap_skybox = (bool)use_cubemap_int;
+        }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
             sscanf(line, "%*s %d %f %f %f %f %f %f %f", &enabled_int, &scene->sun.direction.x, &scene->sun.direction.y,
@@ -1296,6 +1301,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     }
     fclose(file);
 
+    if (scene->use_cubemap_skybox && strlen(scene->skybox_path) > 0) {
+        const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+        char face_paths[6][256];
+        const char* face_pointers[6];
+        for (int i = 0; i < 6; ++i) {
+            sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]);
+            face_pointers[i] = face_paths[i];
+        }
+        scene->skybox_cubemap = loadCubemap(face_pointers);
+    }
+    else {
+        scene->skybox_cubemap = 0;
+    }
+
     engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
     engine->camera.position = scene->playerStart.position;
 
@@ -1316,6 +1335,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         (int)scene->post.sharpenEnabled, scene->post.sharpenAmount,
         (int)scene->post.bwEnabled, scene->post.bwStrength
     );
+    fprintf(file, "skybox %d \"%s\"\n\n", (int)scene->use_cubemap_skybox, scene->skybox_path);
     fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f\n\n",
         (int)scene->sun.enabled,
         scene->sun.direction.x, scene->sun.direction.y, scene->sun.direction.z,

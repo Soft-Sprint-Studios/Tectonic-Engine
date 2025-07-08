@@ -5,6 +5,9 @@ layout(location = 0) out vec4 FragColor;
 
 in vec3 v_worldPos;
 
+uniform bool u_use_cubemap;
+uniform samplerCube u_skybox_cubemap;
+
 uniform vec3 sunDirection;
 uniform vec3 cameraPos;
 uniform sampler2D cloudMap;
@@ -160,6 +163,10 @@ vec3 gammaCorrect(vec3 color, float gamma) {
 
 void main()
 {
+    if (u_use_cubemap) {
+        FragColor = texture(u_skybox_cubemap, v_worldPos);
+        return;
+    }
     vec3 rayOrigin = vec3(0.0, cameraPos.y + 6371e3, 0.0);
     vec3 rayDir = normalize(v_worldPos);
     vec3 color = atmosphere(

@@ -362,6 +362,9 @@ typedef struct {
     Fog fog;
     PostProcessSettings post;
     Sun sun;
+    bool use_cubemap_skybox;
+    char skybox_path[128];
+    GLuint skybox_cubemap;
     bool static_vpls_generated;
 } Scene;
 

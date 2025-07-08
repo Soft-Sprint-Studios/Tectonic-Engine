@@ -4511,6 +4511,25 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat("Volumetric Intensity##Sun", &scene->sun.volumetricIntensity, 0.05f, 0.0f, 20.0f);
         UI_DragFloat3("Direction##Sun", &scene->sun.direction.x, 0.01f, -1.0f, 1.0f);
     }
+    if (UI_CollapsingHeader("Skybox", 1)) {
+        UI_Checkbox("Use Cubemap Skybox", &scene->use_cubemap_skybox);
+        if (scene->use_cubemap_skybox) {
+            UI_InputText("Cubemap Name", scene->skybox_path, sizeof(scene->skybox_path));
+            if (UI_Button("Reload Skybox")) {
+                if (glIsTexture(scene->skybox_cubemap)) {
+                    glDeleteTextures(1, &scene->skybox_cubemap);
+                }
+                const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+                char face_paths[6][256];
+                const char* face_pointers[6];
+                for (int i = 0; i < 6; ++i) {
+                    sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]);
+                    face_pointers[i] = face_paths[i];
+                }
+                scene->skybox_cubemap = loadCubemap(face_pointers);
+            }
+        }
+    }
     if (UI_CollapsingHeader("Fog", 1)) { if (UI_Checkbox("Enabled", &scene->fog.enabled)) {} UI_ColorEdit3("Color", &scene->fog.color.x); UI_DragFloat("Start Distance", &scene->fog.start, 0.5f, 0.0f, 5000.0f); UI_DragFloat("End Distance", &scene->fog.end, 0.5f, 0.0f, 5000.0f); }
     if (UI_CollapsingHeader("Post-Processing", 1)) {
         if (UI_Checkbox("Enabled", &scene->post.enabled)) {} UI_Separator(); UI_Text("CRT & Vignette"); UI_DragFloat("CRT Curvature", &scene->post.crtCurvature, 0.01f, 0.0f, 1.0f); UI_DragFloat("Vignette Strength", &scene->post.vignetteStrength, 0.01f, 0.0f, 2.0f); UI_DragFloat("Vignette Radius", &scene->post.vignetteRadius, 0.01f, 0.0f, 2.0f); UI_Separator(); UI_Text("Effects"); if (UI_Checkbox("Lens Flare", &scene->post.lensFlareEnabled)) {} UI_DragFloat("Flare Strength", &scene->post.lensFlareStrength, 0.05f, 0.0f, 5.0f); UI_DragFloat("Scanline Strength", &scene->post.scanlineStrength, 0.01f, 0.0f, 1.0f); UI_DragFloat("Film Grain", &scene->post.grainIntensity, 0.005f, 0.0f, 0.5f); UI_Separator();
