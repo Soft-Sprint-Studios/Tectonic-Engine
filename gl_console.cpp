@@ -205,4 +205,10 @@ extern "C" {
     void UI_Spacing() {
         ImGui::Spacing();
     }
+    bool UI_BeginPopupContextItem(const char* str_id) {
+        return ImGui::BeginPopupContextItem(str_id);
+    }
+    void UI_EndPopup() {
+        ImGui::EndPopup();
+    }
 }

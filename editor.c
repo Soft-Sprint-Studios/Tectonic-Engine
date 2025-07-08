@@ -3864,18 +3864,24 @@ static void Editor_RenderFaceEditSheet(Scene* scene) {
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     static bool show_add_particle_popup = false;
     static char add_particle_path[128] = "particles/fire.par";
+    int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
     float right_panel_width = 300.0f; float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w - right_panel_width, 22); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Hierarchy", NULL);
-    int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1;
     if (UI_Selectable("Player Start", g_EditorState.selected_entity_type == ENTITY_PLAYERSTART)) { g_EditorState.selected_entity_type = ENTITY_PLAYERSTART; g_EditorState.selected_vertex_index = -1; }
     if (UI_CollapsingHeader("Models", 1)) {
         for (int i = 0; i < scene->numObjects; ++i) {
             char label[128];
             const char* name = (strlen(scene->objects[i].targetname) > 0) ? scene->objects[i].targetname : scene->objects[i].modelPath;
             sprintf(label, "%s##%d", name, i);
-            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_MODEL; g_EditorState.selected_entity_index = i; g_EditorState.selected_vertex_index = -1; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_MODEL; g_EditorState.selected_entity_index = i; g_EditorState.selected_vertex_index = -1; }  char popup_id[64];
+            sprintf(popup_id, "ModelContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateModel(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { model_to_delete = i; }
+                UI_EndPopup();
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
         }
         if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; ScanModelFiles(); }
     }
@@ -3891,10 +3897,16 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 sprintf(label, "Brush %d %s##%d", i, scene->brushes[i].isTrigger ? "[T]" : "", i);
             }
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_BRUSH; g_EditorState.selected_entity_index = i; g_EditorState.selected_face_index = 0; g_EditorState.selected_vertex_index = 0; }
+            char popup_id[64];
+            sprintf(popup_id, "BrushContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                UI_EndPopup();
+            }
             UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
-    if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
     if (UI_CollapsingHeader("DSP Zones", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
             if (!scene->brushes[i].isDSP) continue;
@@ -3903,6 +3915,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_BRUSH;
                 g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "DSPContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                UI_EndPopup();
             }
             UI_SameLine(0, 20.0f);
             char del_label[32];
@@ -3924,6 +3943,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 g_EditorState.selected_entity_type = ENTITY_BRUSH;
                 g_EditorState.selected_entity_index = i;
             }
+            char popup_id[64];
+            sprintf(popup_id, "GlassContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                UI_EndPopup();
+            }
             UI_SameLine(0, 20.0f);
             char del_label[32];
             sprintf(del_label, "[X]##glassbrush%d", i);
@@ -3938,9 +3964,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 g_EditorState.selected_entity_type = ENTITY_BRUSH;
                 g_EditorState.selected_entity_index = i;
             }
+            char popup_id[64];
+            sprintf(popup_id, "WaterContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                UI_EndPopup();
+            }
             UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##waterbrush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
+    if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
     if (UI_CollapsingHeader("Lights", 1)) {
         for (int i = 0; i < scene->numActiveLights; ++i) {
             char label[128];
@@ -3950,7 +3984,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 sprintf(label, "Light %d##%d", i, i);
             }
-            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_LIGHT; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_LIGHT; g_EditorState.selected_entity_index = i; } char popup_id[64];
+            sprintf(popup_id, "LightContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateLight(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { light_to_delete = i; }
+                UI_EndPopup();
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
         if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light)); sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
@@ -3962,6 +4002,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             sprintf(label, "%s##probebrush%d", scene->brushes[i].name, i);
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_BRUSH; g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "ProbeContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                UI_EndPopup();
             }
             UI_SameLine(0, 20.0f);
             char del_label[32];
@@ -3978,7 +4025,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 sprintf(label, "Decal %d (%s)##decal%d", i, scene->decals[i].material->name, i);
             }
-            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_DECAL; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_DECAL; g_EditorState.selected_entity_index = i; }  char popup_id[64];
+            sprintf(popup_id, "DecalContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateDecal(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { decal_to_delete = i; }
+                UI_EndPopup();
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
         if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
     }
@@ -3992,7 +4045,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 sprintf(label, "Sound %d##sound%d", i, i);
             }
-            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_SOUND; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_SOUND; g_EditorState.selected_entity_index = i; }  char popup_id[64];
+            sprintf(popup_id, "SoundContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateSoundEntity(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { sound_to_delete = i; }
+                UI_EndPopup();
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
         }
         if (UI_Button("Add Sound Entity")) {
             g_EditorState.show_sound_browser_popup = true;
@@ -4000,7 +4059,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
-    int particle_to_delete = -1;
     if (UI_CollapsingHeader("Particle Emitters", 1)) {
         for (int i = 0; i < scene->numParticleEmitters; ++i) {
             char label[128];
@@ -4010,12 +4068,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 sprintf(label, "%s##particle%d", scene->particleEmitters[i].parFile, i);
             }
-            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_PARTICLE_EMITTER; g_EditorState.selected_entity_index = i; } UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i); if (UI_Button(del_label)) { particle_to_delete = i; }
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index == i)) { g_EditorState.selected_entity_type = ENTITY_PARTICLE_EMITTER; g_EditorState.selected_entity_index = i; }   char popup_id[64];
+            sprintf(popup_id, "ParticleContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { particle_to_delete = i; }
+                UI_EndPopup();
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i); if (UI_Button(del_label)) { particle_to_delete = i; }
         }
         if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
     }
     if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
-    int video_player_to_delete = -1;
     if (UI_CollapsingHeader("Video Players", 1)) {
         for (int i = 0; i < scene->numVideoPlayers; ++i) {
             char label[128];
@@ -4028,6 +4091,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_VIDEO_PLAYER;
                 g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "VideoContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateVideoPlayer(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { video_player_to_delete = i; }
+                UI_EndPopup();
             }
             UI_SameLine(0, 20.0f);
             char del_label[32];
@@ -4047,7 +4117,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
-    int parallax_room_to_delete = -1;
     if (UI_CollapsingHeader("Parallax Rooms", 1)) {
         for (int i = 0; i < scene->numParallaxRooms; ++i) {
             char label[128];
@@ -4060,6 +4129,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_PARALLAX_ROOM && g_EditorState.selected_entity_index == i)) {
                 g_EditorState.selected_entity_type = ENTITY_PARALLAX_ROOM;
                 g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "ParallaxContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParallaxRoom(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { parallax_room_to_delete = i; }
+                UI_EndPopup();
             }
             UI_SameLine(0, 20.0f);
             char del_label[32];
@@ -4081,6 +4157,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (parallax_room_to_delete != -1) { Editor_DeleteParallaxRoom(scene, parallax_room_to_delete); }
+    if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
+    if (light_to_delete != -1) { Editor_DeleteLight(scene, light_to_delete); }
+    if (decal_to_delete != -1) { Editor_DeleteDecal(scene, decal_to_delete); }
+    if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
+    if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
+    if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
     if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);

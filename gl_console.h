@@ -91,6 +91,9 @@ extern "C" {
     void UI_GetDisplaySize(float* w, float* h);
 	void UI_Spacing();
 
+	bool UI_BeginPopupContextItem(const char* str_id);
+	void UI_EndPopup();
+
 #ifdef __cplusplus
 }
 #endif
