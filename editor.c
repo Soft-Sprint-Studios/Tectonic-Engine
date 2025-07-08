@@ -1361,6 +1361,10 @@ static bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal
     return false;
 }
 static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1 && g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
+        g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
+        return;
+    }
     if (g_EditorState.selected_entity_type == ENTITY_NONE) {
         g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
         return;
@@ -2686,6 +2690,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
 }
 
 static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1 && g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
+        return;
+    }
     if (g_EditorState.selected_entity_type == ENTITY_NONE || g_EditorState.selected_entity_index == -1) {
         return;
     }
