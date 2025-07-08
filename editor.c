@@ -148,6 +148,7 @@ typedef struct {
     bool is_sculpting_mode_enabled;
     float sculpt_brush_radius;
     float sculpt_brush_strength;
+    bool show_face_edit_sheet;
     bool show_sound_browser_popup;
     char** sound_file_list;
     int num_sound_files;
@@ -1053,6 +1054,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_sculpting_mode_enabled = false;
     g_EditorState.sculpt_brush_radius = 2.0f;
     g_EditorState.sculpt_brush_strength = 0.5f;
+    g_EditorState.show_face_edit_sheet = false;
     g_EditorState.show_sound_browser_popup = false;
     g_EditorState.sound_file_list = NULL;
     g_EditorState.num_sound_files = 0;
@@ -2052,8 +2054,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
             }
 
-            g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
-
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
@@ -2242,7 +2242,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
             return;
         }
-
+        if (event->key.keysym.sym == SDLK_t) {
+            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+                g_EditorState.show_face_edit_sheet = !g_EditorState.show_face_edit_sheet;
+            }
+        }
         if (event->key.keysym.sym == SDLK_ESCAPE) {
             if (g_EditorState.is_in_z_mode) {
                 g_EditorState.is_in_z_mode = false;
@@ -2361,6 +2365,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_PARALLAX_ROOM: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParallaxRoom(scene, g_EditorState.selected_entity_index); break;
                 default: break;
                 }
+            }
+        }
+    }
+    if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_RIGHT && !g_EditorState.is_in_z_mode) {
+        for (int i = 0; i < VIEW_COUNT; ++i) {
+            if (g_EditorState.is_viewport_hovered[i]) {
+                if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+                    g_EditorState.show_texture_browser = true;
+                }
+                break;
             }
         }
     }
@@ -3730,6 +3744,123 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
     }
     UI_End();
 }
+static void Editor_RenderFaceEditSheet(Scene* scene) {
+    if (!g_EditorState.show_face_edit_sheet) {
+        return;
+    }
+
+    UI_SetNextWindowSize(300, 450);
+    if (UI_Begin("Face Edit Sheet", &g_EditorState.show_face_edit_sheet)) {
+        if (g_EditorState.selected_entity_type != ENTITY_BRUSH || g_EditorState.selected_entity_index == -1 || g_EditorState.selected_face_index == -1) {
+            UI_Text("No brush face selected.");
+            UI_End();
+            return;
+        }
+
+        Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        BrushFace* face = &b->faces[g_EditorState.selected_face_index];
+
+        UI_Text("Brush %d, Face %d", g_EditorState.selected_entity_index, g_EditorState.selected_face_index);
+
+        if (UI_CollapsingHeader("Materials", 1)) {
+            char mat_label[128];
+
+            sprintf(mat_label, "Base: %s", face->material ? face->material->name : "None");
+            if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 0; g_EditorState.show_texture_browser = true; }
+            UI_SameLine();
+            UI_Image((void*)(intptr_t)(face->material ? face->material->diffuseMap : missingTextureID), 32, 32);
+
+            sprintf(mat_label, "Blend R: %s", face->material2 ? face->material2->name : "None");
+            if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 1; g_EditorState.show_texture_browser = true; }
+            UI_SameLine();
+            UI_Image((void*)(intptr_t)(face->material2 ? face->material2->diffuseMap : missingTextureID), 32, 32);
+            if (face->material2) { UI_SameLine(); if (UI_Button("[X]##mat2")) { face->material2 = NULL; } }
+
+            sprintf(mat_label, "Blend G: %s", face->material3 ? face->material3->name : "None");
+            if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 2; g_EditorState.show_texture_browser = true; }
+            UI_SameLine();
+            UI_Image((void*)(intptr_t)(face->material3 ? face->material3->diffuseMap : missingTextureID), 32, 32);
+            if (face->material3) { UI_SameLine(); if (UI_Button("[X]##mat3")) { face->material3 = NULL; } }
+
+            sprintf(mat_label, "Blend B: %s", face->material4 ? face->material4->name : "None");
+            if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 3; g_EditorState.show_texture_browser = true; }
+            UI_SameLine();
+            UI_Image((void*)(intptr_t)(face->material4 ? face->material4->diffuseMap : missingTextureID), 32, 32);
+            if (face->material4) { UI_SameLine(); if (UI_Button("[X]##mat4")) { face->material4 = NULL; } }
+        }
+
+        UI_Separator();
+        UI_Text("Justify");
+        if (UI_Button("Left")) { face->uv_offset.x = 0; Brush_CreateRenderData(b); } UI_SameLine();
+        if (UI_Button("Right")) { face->uv_offset.x = 1.0f - (face->uv_scale.x > 0 ? fmodf(1.0f, face->uv_scale.x) : 0); Brush_CreateRenderData(b); } UI_SameLine();
+        if (UI_Button("Top")) { face->uv_offset.y = 0; Brush_CreateRenderData(b); } UI_SameLine();
+        if (UI_Button("Bottom")) { face->uv_offset.y = 1.0f - (face->uv_scale.y > 0 ? fmodf(1.0f, face->uv_scale.y) : 0); Brush_CreateRenderData(b); } UI_SameLine();
+        if (UI_Button("Center")) { face->uv_offset.x = 0.5f - (face->uv_scale.x / 2.0f); face->uv_offset.y = 0.5f - (face->uv_scale.y / 2.0f); Brush_CreateRenderData(b); }
+
+        UI_Separator();
+        if (UI_CollapsingHeader("UV Transforms", 1)) {
+            UI_Text("Base Layer");
+            if (UI_DragFloat2("Scale", &face->uv_scale.x, 0.05f, 0, 0)) {}
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+            if (UI_DragFloat2("Shift", &face->uv_offset.x, 0.05f, 0, 0)) {}
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+            if (UI_DragFloat("Rotation", &face->uv_rotation, 1.0f, -360.0f, 360.0f)) {}
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+            if (face->material2) {
+                UI_Separator();
+                UI_Text("Blend Layer R");
+                if (UI_DragFloat2("Scale##2", &face->uv_scale2.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat2("Shift##2", &face->uv_offset2.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat("Rotation##2", &face->uv_rotation2, 1.0f, -360.0f, 360.0f)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+            }
+            if (face->material3) {
+                UI_Separator();
+                UI_Text("Blend Layer G");
+                if (UI_DragFloat2("Scale##3", &face->uv_scale3.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat2("Shift##3", &face->uv_offset3.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat("Rotation##3", &face->uv_rotation3, 1.0f, -360.0f, 360.0f)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+            }
+            if (face->material4) {
+                UI_Separator();
+                UI_Text("Blend Layer B");
+                if (UI_DragFloat2("Scale##4", &face->uv_scale4.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat2("Shift##4", &face->uv_offset4.x, 0.05f, 0, 0)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+
+                if (UI_DragFloat("Rotation##4", &face->uv_rotation4, 1.0f, -360.0f, 360.0f)) {}
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+            }
+        }
+    }
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     static bool show_add_particle_popup = false;
     static char add_particle_path[128] = "particles/fire.par";
@@ -4108,73 +4239,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
             }
             UI_DragInt("Selected Face", &g_EditorState.selected_face_index, 1, 0, b->numFaces - 1);
-            if (g_EditorState.selected_face_index >= 0 && g_EditorState.selected_face_index < b->numFaces) {
-                BrushFace* face = &b->faces[g_EditorState.selected_face_index];
-
-                char mat_button_label[128];
-                sprintf(mat_button_label, "Material: %s", face->material->name);
-                if (UI_Button(mat_button_label)) {
-                    g_EditorState.texture_browser_target = 0;
-                    g_EditorState.show_texture_browser = true;
-                }
-
-                char mat2_button_label[128];
-                const char* mat2_name = face->material2 ? face->material2->name : "NULL";
-                sprintf(mat2_button_label, "Material 2: %s", mat2_name);
-                if (UI_Button(mat2_button_label)) {
-                    g_EditorState.texture_browser_target = 1;
-                    g_EditorState.show_texture_browser = true;
-                }
-                if (face->material2) {
-                    UI_SameLine();
-                    if (UI_Button("[X]##clear_mat2")) {
-                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-                        face->material2 = NULL;
-                        Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Clear Blend Material");
-                    }
-                }
-                char mat3_button_label[128];
-                const char* mat3_name = face->material3 ? face->material3->name : "NULL";
-                sprintf(mat3_button_label, "Material 3 (Green): %s", mat3_name);
-                if (UI_Button(mat3_button_label)) {
-                    g_EditorState.texture_browser_target = 2;
-                    g_EditorState.show_texture_browser = true;
-                }
-
-                char mat4_button_label[128];
-                const char* mat4_name = face->material4 ? face->material4->name : "NULL";
-                sprintf(mat4_button_label, "Material 4 (Blue): %s", mat4_name);
-                if (UI_Button(mat4_button_label)) {
-                    g_EditorState.texture_browser_target = 3;
-                    g_EditorState.show_texture_browser = true;
-                }
-
-                UI_DragFloat2("UV Offset", &face->uv_offset.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                UI_DragFloat2("UV Scale", &face->uv_scale.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                UI_DragFloat("UV Rotation", &face->uv_rotation, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); } UI_Separator();
-
-                if (face->material2) {
-                    UI_Separator();
-                    UI_Text("Material 2 UVs");
-                    UI_DragFloat2("UV Offset 2##uv2", &face->uv_offset2.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat2("UV Scale 2##uv2", &face->uv_scale2.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat("UV Rotation 2##uv2", &face->uv_rotation2, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                }
-                if (face->material3) {
-                    UI_Separator();
-                    UI_Text("Material 3 UVs");
-                    UI_DragFloat2("UV Offset 3##uv3", &face->uv_offset3.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat2("UV Scale 3##uv3", &face->uv_scale3.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat("UV Rotation 3##uv3", &face->uv_rotation3, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                }
-                if (face->material4) {
-                    UI_Separator();
-                    UI_Text("Material 4 UVs");
-                    UI_DragFloat2("UV Offset 4##uv4", &face->uv_offset4.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat2("UV Scale 4##uv4", &face->uv_scale4.x, 0.05f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                    UI_DragFloat("UV Rotation 4##uv4", &face->uv_rotation4, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush UVs"); }
-                }
-            }
             UI_Separator();
             UI_Text("Face Tools");
 
@@ -4506,6 +4570,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_End();
         UI_PopStyleVar(1);
     }
+    Editor_RenderFaceEditSheet(scene);
 }
 static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view) {
     if (g_EditorState.selected_brush_active_handle == PREVIEW_BRUSH_HANDLE_NONE) return;
