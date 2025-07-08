@@ -3738,7 +3738,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 p->pos = g_EditorState.editor_camera.position;
                 p->size = (Vec2){ 2, 2 };
                 p->roomDepth = 2.0f;
-                strcpy(p->cubemapPath, "cubemaps/office1");
+                strcpy(p->cubemapPath, "cubemaps/");
                 scene->numParallaxRooms++;
                 Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, scene->numParallaxRooms - 1, "Create Parallax Room");
             }
@@ -3764,10 +3764,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Edit Model Mass"); }
         UI_Text("(Mass 0 = static, >0 = dynamic)");
 
-        if (UI_Selectable("Physics Enabled", obj->isPhysicsEnabled)) {
+        if (UI_Checkbox("Physics Enabled", &obj->isPhysicsEnabled)) {
             Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index);
-            obj->isPhysicsEnabled = !obj->isPhysicsEnabled;
-            Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Toggle Model Physics Default");
+            Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
+            Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Toggle Model Physics");
         }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes) {
