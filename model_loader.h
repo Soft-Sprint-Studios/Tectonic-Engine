@@ -18,39 +18,38 @@
 extern "C" {
 #endif
 
-typedef struct {
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
-    int indexCount;
-    bool useEBO;
-    Material* material;
+    typedef struct {
+        GLuint VAO;
+        GLuint VBO;
+        GLuint EBO;
+        int indexCount;
+        bool useEBO;
+        Material* material;
+        float* vertexData;
+        unsigned int* indexData;
+        unsigned int vertexCount;
+        float* final_vbo_data;
+        size_t final_vbo_data_size;
+    } Mesh;
 
-    float* vertexData;
-    unsigned int* indexData;
-    unsigned int vertexCount;
+    typedef struct {
+        Vec3 aabb_min;
+        Vec3 aabb_max;
+        Mesh* meshes;
+        int meshCount;
+        float* combinedVertexData;
+        float* combinedWorldVertexData;
+        unsigned int* combinedIndexData;
+        unsigned int totalVertexCount;
+        unsigned int totalIndexCount;
+    } LoadedModel;
 
-    float* final_vbo_data;
-    size_t final_vbo_data_size;
-} Mesh;
-
-typedef struct {
-    Vec3 aabb_min;
-    Vec3 aabb_max;
-    Mesh* meshes;
-    int meshCount;
-    float* combinedVertexData;
-    float* combinedWorldVertexData;
-    unsigned int* combinedIndexData;
-    unsigned int totalVertexCount;
-    unsigned int totalIndexCount;
-} LoadedModel;
-
-LoadedModel* Model_Load(const char* path);
-void Model_Free(LoadedModel* model);
+    LoadedModel* Model_Load(const char* path);
+    void Model_Free(LoadedModel* model);
+    void ModelLoader_Shutdown();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // MODEL_LOADER_H
+#endif

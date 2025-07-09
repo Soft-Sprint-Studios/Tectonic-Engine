@@ -2149,6 +2149,7 @@ void cleanup() {
     VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
+    ModelLoader_Shutdown();
     TextureManager_Shutdown();
     SoundSystem_Shutdown();
     IO_Shutdown();
