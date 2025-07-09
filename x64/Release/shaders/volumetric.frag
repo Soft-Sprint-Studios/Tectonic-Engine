@@ -169,7 +169,7 @@ void main()
             float sunVisibility = calculateSunShadow(currentPosition);
             if (sunVisibility > 0.0) {
                 float scattering = ComputeScattering(dot(rayDirection, -sun.direction));
-                accumFog += scattering * sun.color * sun.intensity * sun.volumetricIntensity * sunVisibility;
+                accumFog += scattering * sun.color * sun.intensity * sun.volumetricIntensity * sunVisibility * stepLength;
             }
         }
 
@@ -225,12 +225,11 @@ void main()
                 float scattering = ComputeScattering(dot(rayDirection, -lightDir));
                 vec3 lightColor = lights[l].color.rgb;
                 float lightIntensity = lights[l].color.a;
-                accumFog += scattering * lightColor * lightIntensity * volumetricIntensity * lightVisibility * attenuation;
+                accumFog += scattering * lightColor * lightIntensity * volumetricIntensity * lightVisibility * attenuation * stepLength;
             }
         }
         currentPosition += step;
     }
 
-    accumFog /= float(NB_STEPS);
     FragColor = vec4(accumFog, 1.0);
 }
