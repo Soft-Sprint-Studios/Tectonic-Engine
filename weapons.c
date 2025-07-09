@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2025 Soft Sprint Studios
+ * All rights reserved.
+ *
+ * This file is proprietary and confidential. Unauthorized reproduction,
+ * modification, or distribution is strictly prohibited unless explicit
+ * written permission is granted by Soft Sprint Studios.
+ */
 #include "weapons.h"
 #include "gl_console.h"
 #include "sound_system.h"
