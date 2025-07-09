@@ -76,6 +76,11 @@ typedef struct {
     Vec3 preview_brush_drag_body_start_mouse_world;
     Vec3 preview_brush_drag_body_start_brush_pos;
     bool is_dragging_selected_brush_handle;
+    bool is_hovering_selected_brush_body;
+    bool is_dragging_selected_brush_body;
+    ViewportType selected_brush_drag_body_view;
+    Vec3 selected_brush_drag_body_start_mouse_world;
+    Vec3 selected_brush_drag_body_start_brush_pos;
     PreviewBrushHandleType selected_brush_hovered_handle;
     PreviewBrushHandleType selected_brush_active_handle;
     Vec3 preview_brush_drag_body_start_brush_world_min_at_drag_start;
@@ -1562,6 +1567,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
             return;
         }
+        else if (g_EditorState.is_hovering_selected_brush_body && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
+            g_EditorState.is_dragging_selected_brush_body = true;
+            g_EditorState.selected_brush_drag_body_view = active_viewport;
+            g_EditorState.selected_brush_drag_body_start_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+            g_EditorState.selected_brush_drag_body_start_brush_pos = scene->brushes[g_EditorState.selected_entity_index].pos;
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            return;
+        }
         if (g_EditorState.is_in_brush_creation_mode && g_EditorState.preview_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
             g_EditorState.is_dragging_preview_brush_handle = true;
             g_EditorState.preview_brush_active_handle = g_EditorState.preview_brush_hovered_handle;
@@ -1785,6 +1798,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.selected_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Resize Brush");
         }
+        if (g_EditorState.is_dragging_selected_brush_body) {
+            g_EditorState.is_dragging_selected_brush_body = false;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Move Brush");
+        }
         if (g_EditorState.is_dragging_preview_brush_handle) {
             g_EditorState.is_dragging_preview_brush_handle = false;
             g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
@@ -1965,6 +1982,24 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (g_EditorState.is_dragging_selected_brush_handle) {
             Editor_AdjustSelectedBrushByHandle(scene, engine, g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
         }
+        else if (g_EditorState.is_dragging_selected_brush_body) {
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            Vec3 current_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[g_EditorState.selected_brush_drag_body_view], g_EditorState.selected_brush_drag_body_view);
+            Vec3 delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
+
+            b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
+
+            if (g_EditorState.snap_to_grid) {
+                b->pos.x = SnapValue(b->pos.x, g_EditorState.grid_size);
+                b->pos.y = SnapValue(b->pos.y, g_EditorState.grid_size);
+                b->pos.z = SnapValue(b->pos.z, g_EditorState.grid_size);
+            }
+
+            Brush_UpdateMatrix(b);
+            if (b->physicsBody) {
+                Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+            }
+        }
         else if (g_EditorState.is_manipulating_vertex_gizmo) {
             Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
@@ -2002,7 +2037,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
         }
-        else if (g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+        else if (g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1 && g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
             Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
             BrushFace* face = &b->faces[g_EditorState.selected_face_index];
             if (face->numVertexIndices < 3) return;
@@ -2637,6 +2672,49 @@ void Editor_Update(Engine* engine, Scene* scene) {
     else if (g_EditorState.preview_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE) {
         g_EditorState.is_hovering_preview_brush_body = false;
     }
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 &&
+        !g_EditorState.is_dragging_selected_brush_handle && !g_EditorState.is_dragging_selected_brush_body && !g_EditorState.is_manipulating_gizmo &&
+        g_EditorState.selected_brush_hovered_handle == PREVIEW_BRUSH_HANDLE_NONE) {
+        g_EditorState.is_hovering_selected_brush_body = false;
+        Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+        if (b->numVertices > 0) {
+            Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int i = 0; i < b->numVertices; ++i) {
+                local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
+                local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
+                local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
+                local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x);
+                local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
+                local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
+            }
+            Vec3 world_min = mat4_mul_vec3(&b->modelMatrix, local_min);
+            Vec3 world_max = mat4_mul_vec3(&b->modelMatrix, local_max);
+
+            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+                if (g_EditorState.is_viewport_hovered[i]) {
+                    Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
+                    bool hovered_this_view = false;
+                    if (i == VIEW_TOP_XZ) {
+                        if (mouse_world.x >= world_min.x && mouse_world.x <= world_max.x && mouse_world.z >= world_min.z && mouse_world.z <= world_max.z)
+                            hovered_this_view = true;
+                    }
+                    else if (i == VIEW_FRONT_XY) {
+                        if (mouse_world.x >= world_min.x && mouse_world.x <= world_max.x && mouse_world.y >= world_min.y && mouse_world.y <= world_max.y)
+                            hovered_this_view = true;
+                    }
+                    else if (i == VIEW_SIDE_YZ) {
+                        if (mouse_world.y >= world_min.y && mouse_world.y <= world_max.y && mouse_world.z >= world_min.z && mouse_world.z <= world_max.z)
+                            hovered_this_view = true;
+                    }
+                    if (hovered_this_view) {
+                        g_EditorState.is_hovering_selected_brush_body = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_NONE && (g_EditorState.selected_entity_type != ENTITY_NONE || g_EditorState.is_in_brush_creation_mode)) {
         Vec3 gizmo_target_pos;
         bool use_gizmo = false;
@@ -2678,6 +2756,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
             if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_NONE) {
                 for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                     if (g_EditorState.is_viewport_hovered[i]) {
+                        if (g_EditorState.selected_entity_type == ENTITY_BRUSH) {
+                            continue;
+                        }
                         Vec3 mouse_world = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
                         float threshold = g_EditorState.ortho_cam_zoom[i - 1] * 0.05f;
                         float GIZMO_SIZE = 1.0f;
@@ -2708,6 +2789,9 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         return;
     }
     if (g_EditorState.selected_entity_type == ENTITY_NONE || g_EditorState.selected_entity_index == -1) {
+        return;
+    }
+    if (g_EditorState.selected_entity_type == ENTITY_BRUSH && type != VIEW_PERSPECTIVE) {
         return;
     }
     Vec3 object_pos;
