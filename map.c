@@ -43,41 +43,6 @@ void Decal_UpdateMatrix(Decal* d) {
     d->modelMatrix = create_trs_matrix(d->pos, d->rot, d->size);
 }
 
-void Decal_Create(Scene* scene, const char* materialName, Vec3 pos, Vec3 normal) {
-    if (scene->numDecals >= MAX_DECALS) {
-        return;
-    }
-
-    Decal* d = &scene->decals[scene->numDecals];
-    memset(d, 0, sizeof(Decal));
-
-    d->pos = vec3_add(pos, vec3_muls(normal, 0.01f));
-    d->size = (Vec3){ 0.2f, 0.2f, 0.2f };
-
-    Vec3 up = (fabs(normal.y) > 0.99f) ? (Vec3) { 1, 0, 0 } : (Vec3) { 0, 1, 0 };
-    Vec3 forward = normal;
-    Vec3 right = vec3_cross(up, forward);
-    vec3_normalize(&right);
-    up = vec3_cross(forward, right);
-
-    Mat4 rotMat;
-    mat4_identity(&rotMat);
-    rotMat.m[0] = right.x;   rotMat.m[1] = right.y;   rotMat.m[2] = right.z;
-    rotMat.m[4] = up.x;      rotMat.m[5] = up.y;      rotMat.m[6] = up.z;
-    rotMat.m[8] = forward.x; rotMat.m[9] = forward.y; rotMat.m[10] = forward.z;
-
-    Vec3 target = vec3_add(d->pos, normal);
-    Mat4 viewMat = mat4_lookAt(d->pos, target, up);
-    Mat4 invView;
-    mat4_inverse(&viewMat, &invView);
-    mat4_decompose(&invView, &d->pos, &d->rot, &d->size);
-
-    d->material = TextureManager_FindMaterial(materialName);
-    Decal_UpdateMatrix(d);
-
-    scene->numDecals++;
-}
-
 void ParallaxRoom_UpdateMatrix(ParallaxRoom* p) {
     p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, 1.0f });
 }
