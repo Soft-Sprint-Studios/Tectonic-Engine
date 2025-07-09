@@ -1362,7 +1362,7 @@ static void render_vpl_shadows() {
     glViewport(0, 0, shadow_map_size, shadow_map_size);
 
     glUseProgram(g_renderer.pointDepthShader);
-    float far_plane = 25.0f; 
+    float far_plane = 25.0f;
     glUniform1f(glGetUniformLocation(g_renderer.pointDepthShader, "far_plane"), far_plane);
 
     for (int i = 0; i < g_scene.num_vpls; ++i) {
@@ -1378,6 +1378,9 @@ static void render_vpl_shadows() {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+            uint64_t handle = glGetTextureHandleARB(g_vpl_shadow_textures[i]);
+            glMakeTextureHandleResidentARB(handle);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, g_vpl_shadow_fbos[i]);
@@ -1408,7 +1411,6 @@ static void render_vpl_shadows() {
         for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(g_renderer.pointDepthShader, &g_scene.brushes[j], false, NULL);
 
         vpls[i].shadowMapHandle = glGetTextureHandleARB(g_vpl_shadow_textures[i]);
-        glMakeTextureHandleResidentARB(vpls[i].shadowMapHandle);
     }
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
