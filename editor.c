@@ -1588,6 +1588,33 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.preview_brush_drag_body_start_brush_world_min_at_drag_start = g_EditorState.preview_brush_world_min;
             return;
         }
+        if (g_EditorState.vertex_gizmo_hovered_axis != GIZMO_AXIS_NONE && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
+            g_EditorState.is_manipulating_vertex_gizmo = true;
+            g_EditorState.vertex_gizmo_active_axis = g_EditorState.vertex_gizmo_hovered_axis;
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            g_EditorState.vertex_drag_start_pos_world = mat4_mul_vec3(&b->modelMatrix, b->vertices[g_EditorState.selected_vertex_index].pos);
+
+            Vec3 cam_forward = { g_view_matrix[VIEW_PERSPECTIVE].m[2], g_view_matrix[VIEW_PERSPECTIVE].m[6], g_view_matrix[VIEW_PERSPECTIVE].m[10] };
+            Vec3 axis_dir = { 0 };
+            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
+            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
+            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
+            float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
+            if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 1, 0, 0 }; } }
+            else { g_EditorState.vertex_gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
+            g_EditorState.vertex_gizmo_drag_plane_d = -vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
+
+            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
+            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+            ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_gizmo_drag_plane_d, &g_EditorState.vertex_gizmo_drag_start_world);
+            return;
+        }
         else if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_active_axis = g_EditorState.gizmo_hovered_axis;
@@ -1703,33 +1730,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 break;
             }
             }
-            return;
-        }
-        else if (g_EditorState.vertex_gizmo_hovered_axis != GIZMO_AXIS_NONE && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
-            g_EditorState.is_manipulating_vertex_gizmo = true;
-            g_EditorState.vertex_gizmo_active_axis = g_EditorState.vertex_gizmo_hovered_axis;
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-
-            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
-            g_EditorState.vertex_drag_start_pos_world = mat4_mul_vec3(&b->modelMatrix, b->vertices[g_EditorState.selected_vertex_index].pos);
-
-            Vec3 cam_forward = { g_view_matrix[VIEW_PERSPECTIVE].m[2], g_view_matrix[VIEW_PERSPECTIVE].m[6], g_view_matrix[VIEW_PERSPECTIVE].m[10] };
-            Vec3 axis_dir = { 0 };
-            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
-            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
-            if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
-            if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 1, 0, 0 }; } }
-            else { g_EditorState.vertex_gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
-            g_EditorState.vertex_gizmo_drag_plane_d = -vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
-
-            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-            Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
-            ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_gizmo_drag_plane_d, &g_EditorState.vertex_gizmo_drag_start_world);
             return;
         }
         else if (active_viewport >= VIEW_TOP_XZ && !g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
@@ -2126,6 +2126,67 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     b->physicsBody = NULL;
                 }
             }
+            return;
+        }
+        else if (g_EditorState.is_manipulating_gizmo && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
+            Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+            BrushFace* face = &b->faces[g_EditorState.selected_face_index];
+            if (face->numVertexIndices < 3) return;
+
+            Vec3 delta = { 0 };
+            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view];
+
+            if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
+                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Vec3 current_intersect_point;
+                if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
+                    delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                }
+            }
+            else {
+                Vec3 current_point = ScreenToWorld(screen_pos, g_EditorState.gizmo_drag_view);
+                delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
+            }
+
+            Vec3 axis_dir = { 0 };
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
+            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
+            float projection_len = vec3_dot(delta, axis_dir);
+            Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+
+            if (g_EditorState.snap_to_grid) {
+                projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
+                projected_delta.y = SnapValue(projected_delta.y, g_EditorState.grid_size);
+                projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
+            }
+
+            Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
+            for (int i = 0; i < face->numVertexIndices; ++i) {
+                int vert_idx = face->vertexIndices[i];
+                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
+                Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
+                b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
+            }
+
+            Brush_CreateRenderData(b);
+            if (b->physicsBody) {
+                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                if (!b->isTrigger && b->numVertices > 0) {
+                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                    for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                    free(world_verts);
+                }
+                else { b->physicsBody = NULL; }
+            }
+
+            g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
+
             return;
         }
         else if (g_EditorState.is_manipulating_gizmo) {
@@ -2715,7 +2776,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             }
         }
     }
-    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_NONE && (g_EditorState.selected_entity_type != ENTITY_NONE || g_EditorState.is_in_brush_creation_mode)) {
+    if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_NONE && g_EditorState.gizmo_active_axis == GIZMO_AXIS_NONE && (g_EditorState.selected_entity_type != ENTITY_NONE || g_EditorState.is_in_brush_creation_mode)) {
         Vec3 gizmo_target_pos;
         bool use_gizmo = false;
         if (g_EditorState.is_in_brush_creation_mode) {
