@@ -107,7 +107,7 @@ extern "C" {
 
         body->setAngularFactor(btVector3(0, 1, 0));
         body->setActivationState(DISABLE_DEACTIVATION);
-        body->setFriction(0.7f);
+        body->setFriction(0.2f);
 
         world->dynamicsWorld->addRigidBody(body);
 
