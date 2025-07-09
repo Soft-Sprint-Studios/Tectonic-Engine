@@ -93,6 +93,26 @@ void Binds_Set(const char* keyName, const char* command) {
     }
 }
 
+void Binds_Unset(const char* keyName) {
+    SDL_Keycode key = SDL_GetKeyFromName(keyName);
+    if (key == SDLK_UNKNOWN) {
+        Console_Printf("[error] Unknown key name: %s", keyName);
+        return;
+    }
+
+    for (int i = 0; i < g_num_binds; i++) {
+        if (g_binds[i].key == key) {
+            for (int j = i; j < g_num_binds - 1; j++) {
+                g_binds[j] = g_binds[j + 1];
+            }
+            g_num_binds--;
+            Console_Printf("Unbound key '%s'", keyName);
+            return;
+        }
+    }
+    Console_Printf("Key '%s' is not bound.", keyName);
+}
+
 const char* Binds_GetCommand(SDL_Keycode key) {
     for (int i = 0; i < g_num_binds; i++) {
         if (g_binds[i].key == key) {

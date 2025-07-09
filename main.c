@@ -400,6 +400,14 @@ void handle_command(int argc, char** argv) {
             Console_Printf("Usage: bind \"key\" \"command\"");
         }
     }
+    else if (_stricmp(cmd, "unbind") == 0) {
+        if (argc == 2) {
+            Binds_Unset(argv[1]);
+        }
+        else {
+            Console_Printf("Usage: unbind \"key\"");
+        }
+    }
     else if (_stricmp(cmd, "map") == 0) {
         if (argc == 2) {
             g_current_mode = MODE_MAINMENU;

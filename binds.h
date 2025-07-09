@@ -28,6 +28,7 @@ void Binds_Shutdown(void);
 void Binds_Load(const char* filename);
 void Binds_Save(const char* filename);
 void Binds_Set(const char* keyName, const char* command);
+void Binds_Unset(const char* keyName);
 const char* Binds_GetCommand(SDL_Keycode key);
 
 #ifdef __cplusplus
