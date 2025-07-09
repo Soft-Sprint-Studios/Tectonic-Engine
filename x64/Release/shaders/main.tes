@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_ARB_bindless_texture : enable
 layout(triangles, equal_spacing, ccw) in;
 
 in TCS_OUT {
@@ -39,7 +40,7 @@ struct VPL {
     vec3  position;
     uint  packedColor;
     uint  packedNormal;
-    uint  _padding;
+    uvec2 shadowMapHandle;
 };
 
 layout(std430, binding = 4) readonly buffer VPLBlock {
@@ -47,6 +48,28 @@ layout(std430, binding = 4) readonly buffer VPLBlock {
 };
 uniform int num_vpls;
 const float PI = 3.14159265359;
+
+float calculateVPLShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos)
+{
+    if (shadowMapHandleUvec2.x == 0u && shadowMapHandleUvec2.y == 0u) {
+        return 1.0; 
+    }
+    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
+    
+    vec3 fragToLight = fragPos - lightPos;
+    float currentDepth = length(fragToLight);
+
+    float farPlane = 25.0;
+    if(currentDepth > farPlane) {
+        return 0.0;
+    }
+
+    float closestDepth = texture(shadowSampler, fragToLight).r;
+    closestDepth *= farPlane; 
+    
+    float bias = 0.05;
+    return currentDepth > closestDepth + bias ? 0.0 : 1.0;
+}
 
 void main()
 {
@@ -110,34 +133,40 @@ void main()
     for (int i = 0; i < num_vpls; ++i)
     {
         vec3 vpl_pos = vpls[i].position;
-        vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
-        vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
-        vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
+        if (vpls[i].packedColor == 0u) continue;
 
-        float distance = length(vpl_pos - FragPos_world);
-        if (distance < 0.001) distance = 0.001; 
-        
-        vec3 L = normalize(vpl_pos - FragPos_world);
-
-        float NdotL = dot(worldNormal, L);
-        
-        if (NdotL > 0.0) 
+        float shadow = calculateVPLShadow(vpls[i].shadowMapHandle, FragPos_world, vpl_pos);
+        if (shadow > 0.0) 
         {
-            float attenuation = 1.0 / (distance * distance + 1.0);
-            
-            float backface_attenuation_factor;
-			float gi_brightness_multiplier;
+            vec3 vplToFrag = FragPos_world - vpl_pos;
+            float distance = length(vplToFrag);
+            if (distance < 0.001) distance = 0.001; 
 
-            if (tes_in[0].isBrush == 1) {
-                backface_attenuation_factor = 1.0; 
-                gi_brightness_multiplier = 1.0; 
-            } else {
-                float dot_normals = dot(worldNormal, vpl_normal);
-                backface_attenuation_factor = clamp(1.0 + dot_normals, 0.0, 1.0); 
-                gi_brightness_multiplier = 0.4;
+            vec3 L = -normalize(vplToFrag);
+            float NdotL = max(dot(worldNormal, L), 0.0);
+
+            if (NdotL > 0.0) 
+            {
+                vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
+                vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
+                vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
+
+                float attenuation = 1.0 / (distance * distance + 1.0);
+                
+                float backface_attenuation_factor;
+                float gi_brightness_multiplier;
+
+                if (tes_in[0].isBrush == 1) {
+                    backface_attenuation_factor = 1.0; 
+                    gi_brightness_multiplier = 1.0; 
+                } else {
+                    float dot_normals = dot(worldNormal, vpl_normal);
+                    backface_attenuation_factor = clamp(1.0 + dot_normals, 0.0, 1.0); 
+                    gi_brightness_multiplier = 0.4;
+                }
+
+                indirectLight += vpl_color_rgb * NdotL * attenuation * backface_attenuation_factor * gi_brightness_multiplier * shadow;
             }
-
-            indirectLight += vpl_color_rgb * NdotL * attenuation * backface_attenuation_factor * gi_brightness_multiplier;
         }
     }
 

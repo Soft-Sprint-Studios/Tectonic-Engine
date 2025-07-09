@@ -66,6 +66,9 @@ static Uint32 g_fps_last_update = 0;
 static int g_fps_frame_count = 0;
 static float g_fps_display = 0.0f;
 
+static GLuint g_vpl_shadow_fbos[MAX_VPLS];
+static GLuint g_vpl_shadow_textures[MAX_VPLS];
+
 static unsigned int g_flashlight_sound_buffer = 0;
 static unsigned int g_footstep_sound_buffer = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
@@ -559,6 +562,8 @@ void handle_command(int argc, char** argv) {
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
+    memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
+    memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
@@ -1337,6 +1342,81 @@ void update_state() {
             }
         }
     }
+}
+
+static void render_vpl_shadows() {
+    if (g_scene.num_vpls == 0) return;
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
+    VPL* vpls = (VPL*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+    if (!vpls) {
+        Console_Printf("[error] Failed to map VPL SSBO for shadow map generation.");
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        return;
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_FRONT);
+
+    int shadow_map_size = 256;
+    glViewport(0, 0, shadow_map_size, shadow_map_size);
+
+    glUseProgram(g_renderer.pointDepthShader);
+    float far_plane = 25.0f; 
+    glUniform1f(glGetUniformLocation(g_renderer.pointDepthShader, "far_plane"), far_plane);
+
+    for (int i = 0; i < g_scene.num_vpls; ++i) {
+        if (g_vpl_shadow_fbos[i] == 0) {
+            glGenFramebuffers(1, &g_vpl_shadow_fbos[i]);
+            glGenTextures(1, &g_vpl_shadow_textures[i]);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, g_vpl_shadow_textures[i]);
+            for (int face = 0; face < 6; ++face) {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+            }
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, g_vpl_shadow_fbos[i]);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, g_vpl_shadow_textures[i], 0);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        Vec3 vpl_pos = vpls[i].position;
+        glUniform3fv(glGetUniformLocation(g_renderer.pointDepthShader, "lightPos"), 1, &vpl_pos.x);
+
+        Mat4 shadowProj = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 1.0f, far_plane);
+        Mat4 shadowTransforms[6];
+        shadowTransforms[0] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
+        shadowTransforms[1] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
+        shadowTransforms[2] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 0, 1, 0 }), (Vec3) { 0, 0, 1 });
+        shadowTransforms[3] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 0, -1, 0 }), (Vec3) { 0, 0, -1 });
+        shadowTransforms[4] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 0, 0, 1 }), (Vec3) { 0, -1, 0 });
+        shadowTransforms[5] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 0, 0, -1 }), (Vec3) { 0, -1, 0 });
+
+        for (int j = 0; j < 6; ++j) {
+            Mat4 finalMatrix;
+            mat4_multiply(&finalMatrix, &shadowProj, &shadowTransforms[j]);
+            char uName[64];
+            sprintf(uName, "shadowMatrices[%d]", j);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.pointDepthShader, uName), 1, GL_FALSE, finalMatrix.m);
+        }
+
+        for (int j = 0; j < g_scene.numObjects; ++j) render_object(g_renderer.pointDepthShader, &g_scene.objects[j], false, NULL);
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(g_renderer.pointDepthShader, &g_scene.brushes[j], false, NULL);
+
+        vpls[i].shadowMapHandle = glGetTextureHandleARB(g_vpl_shadow_textures[i]);
+        glMakeTextureHandleResidentARB(vpls[i].shadowMapHandle);
+    }
+
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    glCullFace(GL_BACK);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 static void render_vpl_pass() {
@@ -2133,6 +2213,10 @@ void cleanup() {
         free(g_scene.objects);
         g_scene.objects = NULL;
     }
+    for (int i = 0; i < MAX_VPLS; ++i) {
+        if (g_vpl_shadow_fbos[i] != 0) glDeleteFramebuffers(1, &g_vpl_shadow_fbos[i]);
+        if (g_vpl_shadow_textures[i] != 0) glDeleteTextures(1, &g_vpl_shadow_textures[i]);
+    }
     glDeleteProgram(g_renderer.mainShader);
     glDeleteProgram(g_renderer.pointDepthShader);
     glDeleteProgram(g_renderer.vplGenerationShader);
@@ -2528,12 +2612,14 @@ int main(int argc, char* argv[]) {
                     if (!g_scene.static_vpls_generated) {
                         Console_Printf("Generating static VPLs for the map...");
                         render_vpl_pass();
+                        render_vpl_shadows();
                         g_scene.static_vpls_generated = true;
                         Console_Printf("Static VPL generation complete. %d VPLs generated.", g_scene.num_vpls);
                     }
                 }
                 else {
                     render_vpl_pass();
+                    render_vpl_shadows();
                 }
             }
             else {

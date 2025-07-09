@@ -133,7 +133,7 @@ typedef struct {
     Vec3 position;
     unsigned int packedColor;
     unsigned int packedNormal;
-    unsigned int _padding[1];
+    uint64_t shadowMapHandle;
 } VPL;
 
 typedef struct {
