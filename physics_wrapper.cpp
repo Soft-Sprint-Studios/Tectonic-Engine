@@ -359,4 +359,42 @@ extern "C" {
             world->dynamicsWorld->getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(rb->body->getBroadphaseHandle(), world->dynamicsWorld->getDispatcher());
         }
     }
+
+    bool Physics_Raycast(PhysicsWorldHandle handle, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo) {
+        if (!handle || !hitInfo) return false;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+
+        btVector3 btStart(start.x, start.y, start.z);
+        btVector3 btEnd(end.x, end.y, end.z);
+
+        btCollisionWorld::ClosestRayResultCallback rayCallback(btStart, btEnd);
+
+        world->dynamicsWorld->rayTest(btStart, btEnd, rayCallback);
+
+        if (rayCallback.hasHit()) {
+            hitInfo->hasHit = true;
+            const btVector3& point = rayCallback.m_hitPointWorld;
+            const btVector3& normal = rayCallback.m_hitNormalWorld;
+            hitInfo->point = { point.x(), point.y(), point.z() };
+            hitInfo->normal = { normal.x(), normal.y(), normal.z() };
+
+            RigidBody* rb = new RigidBody();
+            rb->body = (btRigidBody*)btRigidBody::upcast(rayCallback.m_collisionObject);
+            hitInfo->hitBody = rb;
+
+            return true;
+        }
+
+        hitInfo->hasHit = false;
+        return false;
+    }
+
+    void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos) {
+        if (!bodyHandle) return;
+        RigidBody* rb = (RigidBody*)bodyHandle;
+        if (rb->body && rb->body->getMass() > 0.0f) {
+            rb->body->activate(true);
+            rb->body->applyImpulse(btVector3(impulse.x, impulse.y, impulse.z), btVector3(rel_pos.x, rel_pos.y, rel_pos.z));
+        }
+    }
 }

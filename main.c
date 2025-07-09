@@ -30,6 +30,7 @@
 #include "network.h"
 #include "dsp_reverb.h"
 #include "video_player.h"
+#include "weapons.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
@@ -126,7 +127,14 @@ float skyboxVertices[] = {
     -1.0f, -1.0f,  1.0f,
      1.0f, -1.0f,  1.0f
 };
-float decalQuadVertices[] = { -0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,0.0f,1.0f,0.0f,0.0f,0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.0f,0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,1.0f,1.0f,0.0f,0.0f,-0.5f,0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,1.0f,1.0f,0.0f,0.0f,-0.5f,-0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,1.0f,0.0f,0.0f };
+float decalQuadVertices[] = {
+    -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f
+};
 
 static int FindReflectionProbeForPoint(Vec3 p) {
     for (int i = 0; i < g_scene.numBrushes; ++i) {
@@ -596,6 +604,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
+    Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
@@ -609,6 +618,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     init_renderer();
     init_scene();
     Discord_Init();
+    Weapons_Init();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         Console_Printf("[ERROR] Failed to initialize Main Menu.");
@@ -808,13 +818,28 @@ void init_renderer() {
     glBindVertexArray(g_renderer.skyboxVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.skyboxVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glGenVertexArrays(1, &g_renderer.decalVAO); glGenBuffers(1, &g_renderer.decalVBO);
-    glBindVertexArray(g_renderer.decalVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.decalVBO);
+    glGenVertexArrays(1, &g_renderer.decalVAO);
+    glGenBuffers(1, &g_renderer.decalVBO);
+    glBindVertexArray(g_renderer.decalVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_renderer.decalVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(decalQuadVertices), &decalQuadVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    size_t stride = 22 * sizeof(float);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (void*)(12 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, stride, (void*)(16 * sizeof(float)));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, stride, (void*)(18 * sizeof(float)));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, stride, (void*)(20 * sizeof(float)));
+    glEnableVertexAttribArray(7);
     glGenVertexArrays(1, &g_renderer.parallaxRoomVAO); glGenBuffers(1, &g_renderer.parallaxRoomVBO);
     glBindVertexArray(g_renderer.parallaxRoomVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.parallaxRoomVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(parallaxRoomVertices), parallaxRoomVertices, GL_STATIC_DRAW);
@@ -945,7 +970,20 @@ void process_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         UI_ProcessEvent(&event);
+        if (event.type == SDL_MOUSEWHEEL && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+            if (event.wheel.y > 0) {
+                Weapons_SwitchPrev();
+            }
+            else if (event.wheel.y < 0) {
+                Weapons_SwitchNext();
+            }
+        }
 
+        if (event.type == SDL_MOUSEBUTTONDOWN && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                Weapons_TryFire(g_engine, &g_scene);
+            }
+        }
         if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
             MainMenuAction action = MainMenu_HandleEvent(&event);
             if (action == MAINMENU_ACTION_START_GAME) {
@@ -1033,6 +1071,14 @@ void process_input() {
             }
             else {
                 if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                    if (event.key.keysym.sym == SDLK_1) {
+                        Weapons_Switch(WEAPON_NONE);
+                        continue;
+                    }
+                    if (event.key.keysym.sym == SDLK_2) {
+                        Weapons_Switch(WEAPON_PISTOL);
+                        continue;
+                    }
                     const char* command = Binds_GetCommand(event.key.keysym.sym);
                     if (command) {
                         char cmd_copy[MAX_COMMAND_LENGTH];
@@ -1158,6 +1204,7 @@ void update_state() {
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
+    Weapons_Update(g_engine->deltaTime);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
         light->intensity = light->is_on ? light->base_intensity : 0.0f;
@@ -1825,11 +1872,13 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     render_parallax_rooms(view, projection);
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
     for (int i = 0; i < g_scene.numDecals; ++i) {
         Decal* d = &g_scene.decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
         glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap); glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap); glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
-        glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_PATCHES, 0, 6);
     }
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
@@ -2156,6 +2205,7 @@ void cleanup() {
     Binds_Shutdown();
     Cvar_Save("cvars.txt");
     Editor_Shutdown();
+    Weapons_Shutdown();
     Network_Shutdown();
     UI_Shutdown();
     Discord__Shutdown();

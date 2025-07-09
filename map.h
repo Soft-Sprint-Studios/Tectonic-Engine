@@ -391,6 +391,7 @@ void Brush_FreeData(Brush* b);
 void Brush_DeepCopy(Brush* dest, const Brush* src);
 void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
 void Decal_UpdateMatrix(Decal* d);
+void Decal_Create(Scene* scene, const char* materialName, Vec3 pos, Vec3 normal);
 void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
 void Scene_Clear(Scene* scene, Engine* engine);
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);

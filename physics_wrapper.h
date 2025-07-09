@@ -19,6 +19,13 @@ extern "C" {
 	typedef struct PhysicsWorld* PhysicsWorldHandle;
 	typedef struct RigidBody* RigidBodyHandle;
 
+	typedef struct {
+		bool hasHit;
+		Vec3 point;
+		Vec3 normal;
+		RigidBodyHandle hitBody;
+	} RaycastHitInfo;
+
 	PhysicsWorldHandle Physics_CreateWorld(float gravity_y);
 	void Physics_DestroyWorld(PhysicsWorldHandle world);
 	void Physics_StepSimulation(PhysicsWorldHandle world, float deltaTime);
@@ -40,6 +47,9 @@ extern "C" {
 	void Physics_ToggleCollision(PhysicsWorldHandle world, RigidBodyHandle body, bool enabled);
 	void Physics_Teleport(RigidBodyHandle body, Vec3 position);
 	void Physics_RecheckCollision(PhysicsWorldHandle world, RigidBodyHandle body);
+
+	bool Physics_Raycast(PhysicsWorldHandle world, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo);
+	void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos);
 
 #ifdef __cplusplus
 }

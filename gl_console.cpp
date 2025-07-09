@@ -88,6 +88,7 @@ extern "C" {
     void UI_RenderGameHUD(float fps, float px, float py, float pz) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
+        bool show_crosshair = Cvar_GetInt("crosshair");
 
         if (!show_fps && !show_pos) {
             return;
@@ -111,6 +112,27 @@ extern "C" {
             }
         }
         ImGui::End();
+        if (show_crosshair) {
+            float screen_width = ImGui::GetIO().DisplaySize.x;
+            float screen_height = ImGui::GetIO().DisplaySize.y;
+            float center_x = screen_width / 2.0f;
+            float center_y = screen_height / 2.0f;
+
+            ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+
+            float line_length = 8.0f;
+            float gap_size = 6.0f;
+            float thickness = 2.0f;
+            ImU32 color = IM_COL32(255, 255, 255, 200);
+
+            draw_list->AddLine(ImVec2(center_x, center_y - gap_size - line_length), ImVec2(center_x, center_y - gap_size), color, thickness);
+
+            draw_list->AddLine(ImVec2(center_x, center_y + gap_size), ImVec2(center_x, center_y + gap_size + line_length), color, thickness);
+
+            draw_list->AddLine(ImVec2(center_x - gap_size - line_length, center_y), ImVec2(center_x - gap_size, center_y), color, thickness);
+
+            draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
+        }
     }
     bool UI_Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
     void UI_End() { ImGui::End(); }
