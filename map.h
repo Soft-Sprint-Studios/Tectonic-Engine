@@ -193,7 +193,7 @@ typedef struct {
     GLuint dudvMap;
     GLuint waterNormalMap;
     GLuint parallaxInteriorShader;
-    GLuint refractShader;
+    GLuint glassShader;
     GLuint lightSSBO;
     GLuint debugBufferShader;
     float currentExposure;

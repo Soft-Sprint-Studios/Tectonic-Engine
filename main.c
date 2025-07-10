@@ -653,7 +653,7 @@ void init_renderer() {
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
-    g_renderer.refractShader = createShaderProgram("shaders/refract.vert", "shaders/refract.frag");
+    g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -1665,28 +1665,28 @@ void render_parallax_rooms(Mat4* view, Mat4* projection) {
 }
 
 void render_refractive_glass(Mat4* view, Mat4* projection) {
-    glUseProgram(g_renderer.refractShader);
+    glUseProgram(g_renderer.glassShader);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "projection"), 1, GL_FALSE, projection->m);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.refractShader, "sceneTexture"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.glassShader, "sceneTexture"), 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
-    glUniform1i(glGetUniformLocation(g_renderer.refractShader, "normalMap"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.glassShader, "normalMap"), 1);
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
         if (!b->isGlass) continue;
 
-        glUniform1f(glGetUniformLocation(g_renderer.refractShader, "refractionStrength"), b->refractionStrength);
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.refractShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glUniform1f(glGetUniformLocation(g_renderer.glassShader, "refractionStrength"), b->refractionStrength);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }
@@ -2278,7 +2278,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.depthAaShader);
     glDeleteProgram(g_renderer.motionBlurShader);
     glDeleteProgram(g_renderer.waterShader);
-    glDeleteProgram(g_renderer.refractShader);
+    glDeleteProgram(g_renderer.glassShader);
     glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
     glDeleteTextures(1, &g_renderer.gLitColor);
     glDeleteTextures(1, &g_renderer.gPosition);
