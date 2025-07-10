@@ -16,6 +16,14 @@
 extern "C" {
 #endif
 
+	typedef enum {
+		COL_NOTHING = 0,
+		COL_STATIC = 1 << 0,
+		COL_PLAYER = 1 << 1,
+		COL_DYNAMIC = 1 << 2,
+		COL_ALL = -1
+	} CollisionGroup;
+
 	typedef struct PhysicsWorld* PhysicsWorldHandle;
 	typedef struct RigidBody* RigidBodyHandle;
 

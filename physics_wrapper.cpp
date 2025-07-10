@@ -109,7 +109,7 @@ extern "C" {
         body->setActivationState(DISABLE_DEACTIVATION);
         body->setFriction(0.2f);
 
-        world->dynamicsWorld->addRigidBody(body);
+        world->dynamicsWorld->addRigidBody(body, COL_PLAYER, COL_STATIC | COL_DYNAMIC);
 
         RigidBody* rb = new RigidBody();
         rb->body = body;
@@ -139,7 +139,7 @@ extern "C" {
         body->setRestitution(0.2f);
 
         if (mass > 0.0f) {
-            world->dynamicsWorld->addRigidBody(body);
+            world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
         }
 
         RigidBody* rb = new RigidBody();
@@ -167,7 +167,7 @@ extern "C" {
         body->setFriction(0.7f);
         body->setRestitution(0.1f);
 
-        world->dynamicsWorld->addRigidBody(body);
+        world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
 
         RigidBody* rb = new RigidBody();
         rb->body = body;
@@ -208,7 +208,7 @@ extern "C" {
 
         body->setFriction(1.0f);
         body->setActivationState(DISABLE_DEACTIVATION);
-        world->dynamicsWorld->addRigidBody(body);
+        world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
         world->meshInterfaces[body] = meshInterface;
 
         RigidBody* rb = new RigidBody();
@@ -232,7 +232,7 @@ extern "C" {
         btRigidBody* body = new btRigidBody(rbInfo);
 
         body->setFriction(1.0f);
-        world->dynamicsWorld->addRigidBody(body);
+        world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
 
         RigidBody* rb = new RigidBody();
         rb->body = body;
