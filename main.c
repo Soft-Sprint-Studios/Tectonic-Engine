@@ -48,6 +48,22 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 #define SSAO_DOWNSAMPLE 2
 #define VOLUMETRIC_DOWNSAMPLE 4
 
+static const char* g_light_styles[] = {
+    "m",
+    "mmnmmommommnonmmonqnmmo",
+    "abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba",
+    "mmmmmaaaaammmmmaaaaaabcdefgabcdefg",
+    "mamamamamama",
+    "jklmnopqrstuvwxyzyxwvutsrqponmlkj",
+    "nmonqnmomnmomomno",
+    "mmmaaaabcdefgmmmmaaaammmaamm",
+    "mmmaaammmaaammmabcdefaaaammmmabcdefmmmaaaa",
+    "aaaaaaaazzzzzzzz",
+    "mmamammmmammamamaaamammma",
+    "abcdefghijklmnopqrrqponmlkjihgfedcba"
+};
+const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
+
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
 
@@ -1214,7 +1230,33 @@ void update_state() {
     Weapons_Update(g_engine->deltaTime);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
-        light->intensity = light->is_on ? light->base_intensity : 0.0f;
+
+        if (!light->is_on) {
+            light->intensity = 0.0f;
+            continue;
+        }
+
+        if (light->preset > 0 && light->preset < NUM_LIGHT_STYLES) {
+            const char* style = g_light_styles[light->preset];
+            int style_len = strlen(style);
+            if (style_len == 0) {
+                light->intensity = light->base_intensity;
+                continue;
+            }
+
+            light->preset_time += g_engine->deltaTime;
+            while (light->preset_time >= 0.1f) {
+                light->preset_time -= 0.1f;
+                light->preset_index = (light->preset_index + 1) % style_len;
+            }
+
+            char c = style[light->preset_index];
+            float brightness = (float)(c - 'a') / (float)('m' - 'a');
+            light->intensity = light->base_intensity * brightness;
+        }
+        else {
+            light->intensity = light->base_intensity;
+        }
     }
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         if (g_scene.lights[i].type == LIGHT_SPOT) {

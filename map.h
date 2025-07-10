@@ -43,7 +43,7 @@ extern "C" {
 #define MAX_VPLS 4096
 #define VPL_GEN_TEXTURE_SIZE 512
 
-#define MAP_VERSION 1
+#define MAP_VERSION 2
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -76,6 +76,9 @@ typedef struct {
     float shadowFarPlane;
     float shadowBias;
     float volumetricIntensity;
+    int preset;
+    float preset_time;
+    int preset_index;
 } Light;
 
 typedef struct {

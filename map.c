@@ -1180,7 +1180,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
             int type_int = 0;
-            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, light->cookiePath);
+            int preset_int = 0;
+            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, light->cookiePath);
+            light->preset = preset_int;
             light->type = (LightType)type_int;
             light->is_on = (light->base_intensity > 0.0f);
             light->intensity = light->base_intensity;
@@ -1444,7 +1446,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
-        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f \"%s\"\n", (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z, light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius, light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity, cookiePathStr);
+        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d \"%s\"\n", (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z, light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius, light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity, light->preset, cookiePathStr);
         if (strlen(light->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", light->targetname);
     }
     fprintf(file, "\n");
