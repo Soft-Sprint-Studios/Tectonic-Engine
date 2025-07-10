@@ -32,6 +32,7 @@ void Editor_DeleteSoundEntity(Scene* scene, int index);
 void Editor_DeleteParticleEmitter(Scene* scene, int index);
 void Editor_DeleteVideoPlayer(Scene* scene, int index);
 void Editor_DeleteParallaxRoom(Scene* scene, int index);
+void Editor_DeleteLogicEntity(Scene* scene, int index);
 
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
@@ -41,6 +42,7 @@ void Editor_DuplicateSoundEntity(Scene* scene, int index);
 void Editor_DuplicateParticleEmitter(Scene* scene, int index);
 void Editor_DuplicateVideoPlayer(Scene* scene, int index);
 void Editor_DuplicateParallaxRoom(Scene* scene, int index);
+void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
 
 #ifdef __cplusplus
 }

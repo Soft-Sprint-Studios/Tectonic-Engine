@@ -38,6 +38,8 @@ extern "C" {
 #define MAX_PARALLAX_ROOMS 256
 #define MAX_BRUSH_VERTS 65536
 #define MAX_BRUSH_FACES 32768
+#define MAX_LOGIC_ENTITIES 512
+#define MAX_ENTITY_PROPERTIES 16
 #define MAX_VPLS 4096
 #define VPL_GEN_TEXTURE_SIZE 512
 
@@ -47,7 +49,7 @@ extern "C" {
 #define PLAYER_HEIGHT_CROUCH 1.37f
 
 typedef enum {
-    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM
+    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC
 } EntityType;
 
 typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
@@ -342,6 +344,25 @@ typedef struct ParticleEmitter {
 } ParticleEmitter;
 
 typedef struct {
+    char key[64];
+    char value[128];
+} KeyValue;
+
+typedef struct {
+    char targetname[64];
+    char classname[64];
+    Vec3 pos;
+    Vec3 rot;
+
+    KeyValue properties[MAX_ENTITY_PROPERTIES];
+    int numProperties;
+
+    bool runtime_active;
+    float runtime_float_a;
+
+} LogicEntity;
+
+typedef struct {
     char mapPath[256];
     Light lights[MAX_LIGHTS];
     int numActiveLights;
@@ -358,6 +379,8 @@ typedef struct {
     int numSoundEntities;
     ParticleEmitter particleEmitters[MAX_PARTICLE_EMITTERS];
     int numParticleEmitters;
+    LogicEntity logicEntities[MAX_LOGIC_ENTITIES];
+    int numLogicEntities;
     VideoPlayer videoPlayers[MAX_VIDEO_PLAYERS];
     int numVideoPlayers;
     ParallaxRoom parallaxRooms[MAX_PARALLAX_ROOMS];
@@ -395,6 +418,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src);
 void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
 void Decal_UpdateMatrix(Decal* d);
 void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
+void LogicSystem_Update(Scene* scene, float deltaTime);
 void Scene_Clear(Scene* scene, Engine* engine);
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
 void Scene_SaveMap(Scene* scene, const char* mapPath);

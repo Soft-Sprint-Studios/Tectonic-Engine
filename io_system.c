@@ -100,6 +100,46 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
 }
 
 void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, Engine* engine) {
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (strcmp(scene->logicEntities[i].targetname, targetName) == 0) {
+            LogicEntity* ent = &scene->logicEntities[i];
+            if (strcmp(ent->classname, "logic_timer") == 0) {
+                if (strcmp(inputName, "StartTimer") == 0) {
+                    ent->runtime_active = true;
+                    const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                    ent->runtime_float_a = atof(delay_val);
+                }
+                else if (strcmp(inputName, "StopTimer") == 0) {
+                    ent->runtime_active = false;
+                }
+                else if (strcmp(inputName, "ToggleTimer") == 0) {
+                    ent->runtime_active = !ent->runtime_active;
+                    if (ent->runtime_active && ent->runtime_float_a <= 0) {
+                        const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                        ent->runtime_float_a = atof(delay_val);
+                    }
+                }
+            }
+            else if (strcmp(ent->classname, "math_counter") == 0) {
+                int min = atoi(LogicEntity_GetProperty(ent, "min", "0"));
+                int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));
+
+                if (strcmp(inputName, "Add") == 0) {
+                    ent->runtime_float_a += 1.0f;
+                }
+                else if (strcmp(inputName, "Subtract") == 0) {
+                    ent->runtime_float_a -= 1.0f;
+                }
+
+                if (max != 0 && ent->runtime_float_a >= max) {
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0);
+                }
+                if (min != 0 && ent->runtime_float_a <= min) {
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0);
+                }
+            }
+        }
+    }
     for (int i = 0; i < scene->numObjects; ++i) {
         if (strcmp(scene->objects[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "EnablePhysics") == 0) {
@@ -194,4 +234,38 @@ void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
         }
     }
     g_num_pending_events = write_idx;
+}
+
+static const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
+    for (int i = 0; i < ent->numProperties; ++i) {
+        if (strcmp(ent->properties[i].key, key) == 0) {
+            return ent->properties[i].value;
+        }
+    }
+    return default_val;
+}
+
+void LogicSystem_Update(Scene* scene, float deltaTime) {
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        LogicEntity* ent = &scene->logicEntities[i];
+        if (strcmp(ent->classname, "logic_timer") == 0) {
+            if (ent->runtime_active) {
+                ent->runtime_float_a -= deltaTime;
+                if (ent->runtime_float_a <= 0) {
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0);
+
+                    const char* repeat_val = LogicEntity_GetProperty(ent, "repeat", "1");
+                    int repeat = atoi(repeat_val);
+
+                    if (repeat == -1) {
+                        const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                        ent->runtime_float_a = atof(delay_val);
+                    }
+                    else {
+                        ent->runtime_active = false;
+                    }
+                }
+            }
+        }
+    }
 }

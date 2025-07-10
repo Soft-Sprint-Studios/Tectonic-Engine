@@ -542,6 +542,18 @@ void Editor_DeleteParallaxRoom(Scene* scene, int index) {
         else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
     }
 }
+void Editor_DeleteLogicEntity(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numLogicEntities) return;
+    Undo_PushDeleteEntity(scene, ENTITY_LOGIC, index, "Delete Logic Entity");
+    for (int i = index; i < scene->numLogicEntities - 1; ++i) {
+        scene->logicEntities[i] = scene->logicEntities[i + 1];
+    }
+    scene->numLogicEntities--;
+    if (g_EditorState.selected_entity_type == ENTITY_LOGIC) {
+        if (g_EditorState.selected_entity_index == index) { g_EditorState.selected_entity_type = ENTITY_NONE; g_EditorState.selected_entity_index = -1; }
+        else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
+    }
+}
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
     SceneObject* src_obj = &scene->objects[index];
@@ -695,6 +707,18 @@ void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
     g_EditorState.selected_entity_type = ENTITY_PARALLAX_ROOM;
     g_EditorState.selected_entity_index = scene->numParallaxRooms - 1;
     Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, g_EditorState.selected_entity_index, "Duplicate Parallax Room");
+}
+void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index) {
+    if (index < 0 || index >= scene->numLogicEntities || scene->numLogicEntities >= MAX_LOGIC_ENTITIES) return;
+    LogicEntity* src_ent = &scene->logicEntities[index];
+    LogicEntity* new_ent = &scene->logicEntities[scene->numLogicEntities];
+    memcpy(new_ent, src_ent, sizeof(LogicEntity));
+    sprintf(new_ent->targetname, "%s_%d", src_ent->classname, scene->numLogicEntities);
+    new_ent->pos.x += 1.0f;
+    scene->numLogicEntities++;
+    g_EditorState.selected_entity_type = ENTITY_LOGIC;
+    g_EditorState.selected_entity_index = scene->numLogicEntities - 1;
+    Undo_PushCreateEntity(scene, ENTITY_LOGIC, g_EditorState.selected_entity_index, "Duplicate Logic Entity");
 }
 static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     Brush* b = &g_EditorState.preview_brush;
@@ -1409,6 +1433,8 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
         case ENTITY_PARTICLE_EMITTER: object_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PLAYERSTART: object_pos = scene->playerStart.position; break;
         case ENTITY_VIDEO_PLAYER: object_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_PARALLAX_ROOM: object_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_LOGIC: object_pos = scene->logicEntities[g_EditorState.selected_entity_index].pos; break;
         default: has_pos = false; break;
         }
     }
@@ -2344,6 +2370,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, g_EditorState.selected_entity_index); break;
                 default: Console_Printf("Duplication not implemented for this entity type yet."); break;
                 }
             }
@@ -2470,6 +2497,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_PARTICLE_EMITTER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParticleEmitter(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_VIDEO_PLAYER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteVideoPlayer(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARALLAX_ROOM: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParallaxRoom(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_LOGIC: if (g_EditorState.selected_entity_index != -1) Editor_DeleteLogicEntity(scene, g_EditorState.selected_entity_index); break;
                 default: break;
                 }
             }
@@ -3421,6 +3449,19 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     glUseProgram(g_EditorState.debug_shader);
     for (int i = 0; i < scene->numSoundEntities; ++i) { bool is_selected = (g_EditorState.selected_entity_type == ENTITY_SOUND && g_EditorState.selected_entity_index == i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); float color[] = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
     for (int i = 0; i < scene->numParticleEmitters; ++i) { bool is_selected = (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index == i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); float color[] = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
+    glUseProgram(g_EditorState.debug_shader);
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        bool is_selected = (g_EditorState.selected_entity_type == ENTITY_LOGIC && g_EditorState.selected_entity_index == i);
+        Mat4 modelMatrix = mat4_translate(scene->logicEntities[i].pos);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
+        float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+        if (!is_selected) {
+            color[3] = 0.5f;
+        }
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glBindVertexArray(g_EditorState.light_gizmo_vao);
+        glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
+    }
     if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes && g_EditorState.selected_vertex_index >= 0) {
         Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
         if (g_EditorState.selected_vertex_index < b->numVertices) {
@@ -3604,17 +3645,15 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
         Editor_RenderModelPreviewerScene(renderer);
     }
 }
-static void RenderIOEditor(EntityType type, int index) {
-    const char* outputs[16]; int output_count = 0;
-    if (type == ENTITY_BRUSH) { outputs[0] = "OnTouch"; outputs[1] = "OnEndTouch"; outputs[2] = "OnUse"; output_count = 3; }
-    if (output_count == 0) return;
+static void RenderIOEditor(EntityType type, int index, const char** valid_outputs, int num_valid_outputs) {
+    if (num_valid_outputs == 0) return;
     UI_Separator(); UI_Text("Outputs");
-    for (int i = 0; i < output_count; ++i) {
-        if (UI_CollapsingHeader(outputs[i], 1)) {
+    for (int i = 0; i < num_valid_outputs; ++i) {
+        if (UI_CollapsingHeader(valid_outputs[i], 1)) {
             int conn_to_delete = -1;
             for (int k = 0; k < g_num_io_connections; k++) {
                 IOConnection* conn = &g_io_connections[k];
-                if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, outputs[i]) == 0) {
+                if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, valid_outputs[i]) == 0) {
                     char header_label[128]; sprintf(header_label, "To '%s' -> '%s'##%d", conn->targetName, conn->inputName, k);
                     if (UI_CollapsingHeader(header_label, 1)) {
                         char target_buf[64], input_buf[64];
@@ -3630,7 +3669,7 @@ static void RenderIOEditor(EntityType type, int index) {
             }
             if (conn_to_delete != -1) { IO_RemoveConnection(conn_to_delete); }
             char add_label[64]; sprintf(add_label, "Add Connection##%d", i);
-            if (UI_Button(add_label)) { IO_AddConnection(type, index, outputs[i]); }
+            if (UI_Button(add_label)) { IO_AddConnection(type, index, valid_outputs[i]); }
         }
     }
 }
@@ -4312,6 +4351,43 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
+    int logic_entity_to_delete = -1;
+    if (UI_CollapsingHeader("Logic Entities", 1)) {
+        for (int i = 0; i < scene->numLogicEntities; ++i) {
+            char label[128];
+            sprintf(label, "%s (%s)##logic%d", scene->logicEntities[i].targetname, scene->logicEntities[i].classname, i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_LOGIC && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_LOGIC;
+                g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "LogicContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateLogicEntity(scene, engine, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { logic_entity_to_delete = i; }
+                UI_EndPopup();
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##logic%d", i);
+            if (UI_Button(del_label)) { logic_entity_to_delete = i; }
+        }
+        if (UI_Button("Add Logic Entity")) {
+            if (scene->numLogicEntities < MAX_LOGIC_ENTITIES) {
+                LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
+                memset(ent, 0, sizeof(LogicEntity));
+                strcpy(ent->classname, "logic_timer");
+                sprintf(ent->targetname, "timer_%d", scene->numLogicEntities);
+                ent->pos = g_EditorState.editor_camera.position;
+                ent->numProperties = 1;
+                strcpy(ent->properties[0].key, "delay");
+                strcpy(ent->properties[0].value, "1.0");
+                scene->numLogicEntities++;
+                Undo_PushCreateEntity(scene, ENTITY_LOGIC, scene->numLogicEntities - 1, "Create Logic Entity");
+            }
+        }
+    }
+    if (logic_entity_to_delete != -1) { Editor_DeleteLogicEntity(scene, logic_entity_to_delete); }
     if (parallax_room_to_delete != -1) { Editor_DeleteParallaxRoom(scene, parallax_room_to_delete); }
     if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
     if (light_to_delete != -1) { Editor_DeleteLight(scene, light_to_delete); }
@@ -4460,7 +4536,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Text("Probe Name: %s", b->name);
         }
         else if (b->isTrigger) {
-            RenderIOEditor(ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            const char* brush_outputs[] = { "OnTouch", "OnEndTouch", "OnUse" };
+            RenderIOEditor(ENTITY_BRUSH, g_EditorState.selected_entity_index, brush_outputs, 3);
         }
         else if (b->isDSP) {
             UI_Separator();
@@ -4680,6 +4757,49 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat2("Size", &p->size.x, 0.05f, 0, 0);
         UI_DragFloat("Room Depth", &p->roomDepth, 0.1f, 0.1f, 100.0f);
         ParallaxRoom_UpdateMatrix(p);
+    }
+    else if (g_EditorState.selected_entity_type == ENTITY_LOGIC && g_EditorState.selected_entity_index < scene->numLogicEntities) {
+        LogicEntity* ent = &scene->logicEntities[g_EditorState.selected_entity_index];
+        UI_Text("Logic Entity Properties");
+        UI_InputText("Classname", ent->classname, sizeof(ent->classname));
+        UI_InputText("Targetname", ent->targetname, sizeof(ent->targetname));
+        if (UI_DragFloat3("Position", &ent->pos.x, 0.1f, 0, 0)) {}
+        if (UI_DragFloat3("Rotation", &ent->rot.x, 1.0f, 0, 0)) {}
+        
+        UI_Separator();
+        UI_Text("Properties");
+        int prop_to_delete = -1;
+        for (int i = 0; i < ent->numProperties; ++i) {
+            char key_label[32], val_label[32], del_label[32];
+            sprintf(key_label, "##key%d", i);
+            sprintf(val_label, "##val%d", i);
+            sprintf(del_label, "[X]##prop%d", i);
+            UI_PushID(i);
+            UI_InputText(key_label, ent->properties[i].key, sizeof(ent->properties[i].key)); UI_SameLine();
+            UI_InputText(val_label, ent->properties[i].value, sizeof(ent->properties[i].value)); UI_SameLine();
+            if(UI_Button(del_label)) { prop_to_delete = i; }
+            UI_PopID();
+        }
+        if (prop_to_delete != -1) {
+            for(int i = prop_to_delete; i < ent->numProperties - 1; ++i) {
+                ent->properties[i] = ent->properties[i+1];
+            }
+            ent->numProperties--;
+        }
+        if (UI_Button("Add Property")) {
+            if(ent->numProperties < MAX_ENTITY_PROPERTIES) {
+                ent->numProperties++;
+            }
+        }
+
+        if (strcmp(ent->classname, "logic_timer") == 0) {
+            const char* timer_outputs[] = { "OnTimer" };
+            RenderIOEditor(ENTITY_LOGIC, g_EditorState.selected_entity_index, timer_outputs, 1);
+        }
+        else if (strcmp(ent->classname, "math_counter") == 0) {
+            const char* counter_outputs[] = { "OnHitMax", "OnHitMin" };
+            RenderIOEditor(ENTITY_LOGIC, g_EditorState.selected_entity_index, counter_outputs, 2);
+        }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
     if (UI_CollapsingHeader("Sun", 1)) {

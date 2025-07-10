@@ -1209,6 +1209,7 @@ void update_state() {
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
+    LogicSystem_Update(&g_scene, g_engine->deltaTime);
     Weapons_Update(g_engine->deltaTime);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];

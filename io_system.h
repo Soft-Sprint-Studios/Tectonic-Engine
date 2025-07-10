@@ -49,6 +49,8 @@ int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connec
 void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime);
 void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, Engine* engine);
 
+static const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val);
+
 extern IOConnection g_io_connections[MAX_IO_CONNECTIONS];
 extern int g_num_io_connections;
 

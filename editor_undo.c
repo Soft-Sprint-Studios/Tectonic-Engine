@@ -32,6 +32,7 @@ typedef struct {
         ParticleEmitter particleEmitter;
         VideoPlayer videoPlayer;
         ParallaxRoom parallaxRoom;
+        LogicEntity logicEntity;
         PlayerStart playerStart;
         Fog fog;
         PostProcessSettings post;
@@ -114,6 +115,12 @@ static void _raw_delete_particle_emitter(Scene* scene, int index) {
     scene->numParticleEmitters--;
 }
 
+static void _raw_delete_logic_entity(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numLogicEntities) return;
+    for (int i = index; i < scene->numLogicEntities - 1; ++i) scene->logicEntities[i] = scene->logicEntities[i + 1];
+    scene->numLogicEntities--;
+}
+
 static void free_entity_state_data(EntityState* state) {
     if (state->type == ENTITY_BRUSH) {
         Brush_FreeData(&state->data.brush);
@@ -149,6 +156,9 @@ static void capture_state(EntityState* state, Scene* scene, EntityType type, int
         state->data.parallaxRoom = scene->parallaxRooms[index];
         break;
     case ENTITY_PLAYERSTART: state->data.playerStart = scene->playerStart; break;
+    case ENTITY_LOGIC:
+        state->data.logicEntity = scene->logicEntities[index];
+        break;
     }
 }
 
@@ -160,6 +170,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         else if (state->type == ENTITY_DECAL) _raw_delete_decal(scene, state->index);
         else if (state->type == ENTITY_SOUND) _raw_delete_sound_entity(scene, state->index);
         else if (state->type == ENTITY_PARTICLE_EMITTER) _raw_delete_particle_emitter(scene, state->index);
+        else if (state->type == ENTITY_LOGIC) _raw_delete_logic_entity(scene, state->index);
         return;
     }
     if (is_creation) {
@@ -230,6 +241,11 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
             scene->parallaxRooms[state->index] = state->data.parallaxRoom;
             ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[state->index]);
             break;
+        case ENTITY_LOGIC:
+            scene->numLogicEntities++;
+            memmove(&scene->logicEntities[state->index + 1], &scene->logicEntities[state->index], (scene->numLogicEntities - 1 - state->index) * sizeof(LogicEntity));
+            scene->logicEntities[state->index] = state->data.logicEntity;
+            break;
         }
         return;
     }
@@ -269,6 +285,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
     case ENTITY_SOUND: scene->soundEntities[state->index] = state->data.soundEntity; break;
     case ENTITY_PARTICLE_EMITTER: memcpy(&scene->particleEmitters[state->index], &state->data.particleEmitter, offsetof(ParticleEmitter, particles)); break;
     case ENTITY_PLAYERSTART: scene->playerStart = state->data.playerStart; break;
+    case ENTITY_LOGIC: scene->logicEntities[state->index] = state->data.logicEntity; break;
     }
 }
 

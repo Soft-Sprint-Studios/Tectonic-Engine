@@ -908,6 +908,8 @@ void Scene_Clear(Scene* scene, Engine* engine) {
         }
     }
 
+    scene->numLogicEntities = 0;
+
     if (engine->camera.physicsBody) {
         engine->camera.physicsBody = NULL;
     }
@@ -1306,6 +1308,29 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 g_num_io_connections++;
             }
         }
+        else if (strcmp(keyword, "logic_entity_begin") == 0) {
+            if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) continue;
+            LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
+            memset(ent, 0, sizeof(LogicEntity));
+            
+            while (fgets(line, sizeof(line), file) && strncmp(line, "logic_entity_end", 16) != 0) {
+                char prop_key[64];
+                if (sscanf(line, " classname \"%63[^\"]\"", ent->classname) == 1) {}
+                else if (sscanf(line, " targetname \"%63[^\"]\"", ent->targetname) == 1) {}
+                else if (sscanf(line, " pos %f %f %f", &ent->pos.x, &ent->pos.y, &ent->pos.z) == 3) {}
+                else if (sscanf(line, " rot %f %f %f", &ent->rot.x, &ent->rot.y, &ent->rot.z) == 3) {}
+                else if (strstr(line, "properties")) {
+                    while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
+                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
+                            if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) {
+                                ent->numProperties++;
+                            }
+                        }
+                    }
+                }
+            }
+            scene->numLogicEntities++;
+        }
         else if (strcmp(keyword, "targetname") == 0) {
             if (scene->numActiveLights > 0) {
                 Light* last_light = &scene->lights[scene->numActiveLights - 1];
@@ -1451,6 +1476,21 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             p->rot.x, p->rot.y, p->rot.z,
             p->size.x, p->size.y,
             p->roomDepth);
+    }
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        LogicEntity* ent = &scene->logicEntities[i];
+        fprintf(file, "logic_entity_begin\n");
+        fprintf(file, "  classname \"%s\"\n", ent->classname);
+        fprintf(file, "  targetname \"%s\"\n", ent->targetname);
+        fprintf(file, "  pos %.4f %.4f %.4f\n", ent->pos.x, ent->pos.y, ent->pos.z);
+        fprintf(file, "  rot %.4f %.4f %.4f\n", ent->rot.x, ent->rot.y, ent->rot.z);
+        fprintf(file, "  properties\n");
+        fprintf(file, "  {\n");
+        for (int j = 0; j < ent->numProperties; ++j) {
+            fprintf(file, "    \"%s\" \"%s\"\n", ent->properties[j].key, ent->properties[j].value);
+        }
+        fprintf(file, "  }\n");
+        fprintf(file, "logic_entity_end\n\n");
     }
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
