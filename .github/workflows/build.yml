@@ -59,7 +59,7 @@ jobs:
             build/Release/TectonicEngine.exe
             build/Release/TectonicEngine.pdb
             
-    build-windows-x86:
+  build-windows-x86:
     runs-on: windows-latest
     steps:
       - name: Checkout code
