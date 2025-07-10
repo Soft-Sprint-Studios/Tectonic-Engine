@@ -13,25 +13,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install dependencies (Linux)
+      - name: Install dependencies (Linux x64)
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
 
-      - name: Configure CMake (Linux)
+      - name: Configure CMake (Linux x64)
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-      - name: Build (Linux)
+      - name: Build (Linux x64)
         run: cmake --build build --config RelWithDebInfo
 
-      - name: Split debug info (Linux)
+      - name: Split debug info (Linux x64)
         run: |
           cp build/TectonicEngine build/TectonicEngine.debug
           objcopy --only-keep-debug build/TectonicEngine.debug build/TectonicEngine.debugsymbols
           objcopy --strip-debug --add-gnu-debuglink=build/TectonicEngine.debugsymbols build/TectonicEngine
           file build/TectonicEngine
 
-      - name: Upload binary and debug symbols (Linux)
+      - name: Upload binary and debug symbols (Linux x64)
         uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-linux
@@ -45,13 +45,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Configure CMake (Windows)
+      - name: Configure CMake (Windows x64)
         run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
-      - name: Build (Windows)
+      - name: Build (Windows x64)
         run: cmake --build build --config Release
 
-      - name: Upload binary and PDB (Windows)
+      - name: Upload binary and PDB (Windows x64)
         uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows
