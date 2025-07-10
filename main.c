@@ -629,6 +629,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
+    printf("Tectonic Engine initialized successfully (%s).\n", ARCH_STRING);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 

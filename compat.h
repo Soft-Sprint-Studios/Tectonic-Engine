@@ -30,9 +30,29 @@
     #include <string.h>  
     #include <sys/stat.h>
     #include <sys/types.h>
-    #include <unistd.h>  
+    #include <unistd.h>
 #else
-    #error "Unsupported platform detected. This engine is designed for Windows and Linux."
+    #error "Unsupported platform"
+#endif
+
+#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
+    #define ARCH_64BIT
+#elif defined(_WIN32) || defined(__i386__) || defined(__arm__) || defined(__arm)
+    #define ARCH_32BIT
+#else
+    #error "Unknown architecture"
+#endif
+
+#ifdef PLATFORM_WINDOWS
+    #define OS_STRING "Windows"
+#else
+    #define OS_STRING "Linux"
+#endif
+
+#ifdef ARCH_64BIT
+    #define ARCH_STRING "x64 " OS_STRING
+#else
+    #define ARCH_STRING "x86 " OS_STRING
 #endif
 
 #ifdef PLATFORM_LINUX

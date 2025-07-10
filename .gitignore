@@ -1,13 +1,14 @@
-
 *.exe
-*.dll
 *.pdb
 
+*.dll
 
-!OpenAL32.dll
-!glew32.dll
-!SDL2_image.dll
-!SDL2_ttf.dll
+!x64/
+!x64/release/
+!x64/release/x64_dlls/
+!x64/release/x64_dlls/**/*.dll
+!x64/release/x86_dlls/
+!x64/release/x86_dlls/**/*.dll
 
 .vs/
 build/
