@@ -37,6 +37,8 @@ uniform bool u_sharpenEnabled;
 uniform float u_sharpenAmount;
 uniform bool u_bwEnabled;
 uniform float u_bwStrength;
+uniform bool u_isUnderwater;
+uniform vec3 u_underwaterColor;
 
 uniform vec3 u_flareLightWorldPos;
 uniform mat4 u_view;
@@ -173,11 +175,19 @@ vec3 applyBlackAndWhite(vec3 color) {
     return mix(color, grayscale, u_bwStrength);
 }
 
+vec2 underwater_distort(vec2 uv, float t) {
+    return uv + vec2(sin(uv.y * 10.0 + t) * 0.01, cos(uv.x * 8.0 + t * 0.7) * 0.01);
+}
+
 void main()
 {
     vec2 uv = TexCoords;
     if (u_postEnabled) {
         uv = applyCurvature(uv, u_crtCurvature);
+    }
+	
+    if (u_isUnderwater) {
+        uv = underwater_distort(uv, time);
     }
 
     vec3 color;
@@ -226,6 +236,11 @@ void main()
 
     if (u_bwEnabled) {
         color = applyBlackAndWhite(color);
+    }
+	
+    if (u_isUnderwater) {
+        color = mix(color, u_underwaterColor, 0.6);
+        color *= 0.8;
     }
 
     FragColor = vec4(color, 1.0);

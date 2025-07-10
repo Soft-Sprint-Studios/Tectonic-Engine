@@ -1330,6 +1330,32 @@ void update_state() {
     if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
     g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
     }
+    g_scene.post.isUnderwater = false;
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (!b->isWater) continue;
+
+        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        for (int v = 0; v < b->numVertices; ++v) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
+            min_aabb.x = fminf(min_aabb.x, world_v.x);
+            min_aabb.y = fminf(min_aabb.y, world_v.y);
+            min_aabb.z = fminf(min_aabb.z, world_v.z);
+            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
+            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
+            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+        }
+
+        if (g_engine->camera.position.x >= min_aabb.x && g_engine->camera.position.x <= max_aabb.x &&
+            g_engine->camera.position.y >= min_aabb.y && g_engine->camera.position.y <= max_aabb.y &&
+            g_engine->camera.position.z >= min_aabb.z && g_engine->camera.position.z <= max_aabb.z)
+        {
+            g_scene.post.isUnderwater = true;
+            g_scene.post.underwaterColor = (Vec3){ 0.1f, 0.3f, 0.4f };
+            break;
+        }
+    }
     if (g_current_mode == MODE_GAME) {
         for (int i = 0; i < g_scene.numObjects; ++i) {
             SceneObject* obj = &g_scene.objects[i];
@@ -2125,6 +2151,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bwEnabled"), g_scene.post.bwEnabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_bwStrength"), g_scene.post.bwStrength);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_isUnderwater"), g_scene.post.isUnderwater);
+    glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_underwaterColor"), 1, &g_scene.post.underwaterColor.x);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;

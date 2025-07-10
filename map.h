@@ -121,6 +121,8 @@ typedef struct {
     float sharpenAmount;
     bool bwEnabled;
     float bwStrength;
+    bool isUnderwater;
+    Vec3 underwaterColor;
 } PostProcessSettings;
 
 typedef struct {
