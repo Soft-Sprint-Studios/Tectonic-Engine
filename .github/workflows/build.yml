@@ -29,15 +29,15 @@ jobs:
           cp buildx64/TectonicEngine buildx64/TectonicEngine.debug
           objcopy --only-keep-debug buildx64/TectonicEngine.debug buildx64/TectonicEngine.debugsymbols
           objcopy --strip-debug --add-gnu-debuglink=build/TectonicEngine.debugsymbols buildx64/TectonicEngine
-          file build/TectonicEngine
+          file buildx64/TectonicEngine
 
       - name: Upload binary and debug symbols (Linux x64)
         uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-linux
           path: |
-            build/TectonicEngine
-            build/TectonicEngine.debugsymbols
+            buildx64/TectonicEngine
+            buildx64/TectonicEngine.debugsymbols
 
   build-windows-x64:
     runs-on: windows-latest
@@ -56,8 +56,8 @@ jobs:
         with:
           name: TectonicEngine-windows
           path: |
-            build/Release/TectonicEngine.exe
-            build/Release/TectonicEngine.pdb
+            buildx64/Release/TectonicEngine.exe
+            buildx64/Release/TectonicEngine.pdb
             
   build-windows-x86:
     runs-on: windows-latest
@@ -76,5 +76,5 @@ jobs:
         with:
           name: TectonicEngine-windows-x86
           path: |
-            build/Release/TectonicEngine.exe
-            build/Release/TectonicEngine.pdb
+            buildx86/Release/TectonicEngine.exe
+            buildx86/Release/TectonicEngine.pdb
