@@ -1,4 +1,4 @@
-#version 460 core
+#version 450 core
 
 layout (location = 0) out vec4 out_LitColor;
 layout (location = 1) out vec3 out_Position;

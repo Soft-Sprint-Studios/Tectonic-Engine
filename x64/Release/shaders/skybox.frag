@@ -1,4 +1,4 @@
-#version 460 core
+#version 450 core
 #define PI 3.14159265359
 
 layout(location = 0) out vec4 FragColor;
