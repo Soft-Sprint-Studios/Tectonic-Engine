@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-linux:
+  build-linux x64:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -39,7 +39,7 @@ jobs:
             build/TectonicEngine
             build/TectonicEngine.debugsymbols
 
-  build-windows:
+  build-windows x64:
     runs-on: windows-latest
     steps:
       - name: Checkout code
