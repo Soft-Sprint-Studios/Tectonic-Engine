@@ -28,8 +28,9 @@ jobs:
         run: |
           cp buildx64/TectonicEngine buildx64/TectonicEngine.debug
           objcopy --only-keep-debug buildx64/TectonicEngine.debug buildx64/TectonicEngine.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=TectonicEngine.debugsymbols buildx64/TectonicEngine
-          file buildx64/TectonicEngine
+          cd buildx64
+          objcopy --strip-debug --add-gnu-debuglink=TectonicEngine.debugsymbols TectonicEngine
+          file TectonicEngine
 
       - name: Upload binary and debug symbols (Linux x64)
         uses: actions/upload-artifact@v4
