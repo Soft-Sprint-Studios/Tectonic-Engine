@@ -147,6 +147,33 @@ extern "C" {
         return rb;
     }
 
+    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, float mass, Mat4 transform) {
+        if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return NULL;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+
+        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(float));
+        world->collisionShapes.push_back(hullShape);
+
+        btTransform startTransform;
+        startTransform.setFromOpenGLMatrix(transform.m);
+
+        btVector3 localInertia(0, 0, 0);
+        hullShape->calculateLocalInertia(mass, localInertia);
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, hullShape, localInertia);
+        btRigidBody* body = new btRigidBody(rbInfo);
+
+        body->setFriction(0.7f);
+        body->setRestitution(0.1f);
+
+        world->dynamicsWorld->addRigidBody(body);
+
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        return rb;
+    }
+
     RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle handle, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale) {
         if (!handle || !vertices || numVertices == 0 || !indices || numIndices == 0) return NULL;
         PhysicsWorld* world = (PhysicsWorld*)handle;

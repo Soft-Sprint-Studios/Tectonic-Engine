@@ -249,6 +249,8 @@ typedef struct {
     GLuint vao, vbo;
     int totalRenderVertexCount;
     RigidBodyHandle physicsBody;
+    float mass;
+    bool isPhysicsEnabled;
     bool isReflectionProbe;
     bool isWater;
     GLuint cubemapTexture;

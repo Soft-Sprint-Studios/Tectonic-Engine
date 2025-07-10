@@ -1024,6 +1024,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (scene->numBrushes >= MAX_BRUSHES) continue;
             Brush* b = &scene->brushes[scene->numBrushes];
             memset(b, 0, sizeof(Brush));
+            b->mass = 0.0f;
+            b->isPhysicsEnabled = true;
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
             while (fgets(line, sizeof(line), file) && strncmp(line, "brush_end", 9) != 0) {
                 int dummy_int;
@@ -1088,6 +1090,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
                 else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {
                 }
+                else if (sscanf(line, " mass %f", &b->mass) == 1) {}
+                else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) {
+                    b->isPhysicsEnabled = (bool)dummy_int;
+                }
             }
             if (b->isReflectionProbe) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -1100,10 +1106,18 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Brush_UpdateMatrix(b);
             Brush_CreateRenderData(b);
             if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && !b->isDSP && b->numVertices > 0) {
-                Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                free(world_verts);
+                if (b->mass > 0.0f) {
+                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
+                    if (!b->isPhysicsEnabled) {
+                        Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
+                    }
+                }
+                else {
+                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                    for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                    free(world_verts);
+                }
             }
             scene->numBrushes++;
         }
@@ -1346,6 +1360,8 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
+        fprintf(file, "  mass %.4f\n", b->mass);
+        fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
         if (b->isTrigger) fprintf(file, "  is_trigger 1\n");
         if (b->isDSP) {
             fprintf(file, " is_dsp 1\n");

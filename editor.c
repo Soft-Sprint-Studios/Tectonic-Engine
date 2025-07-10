@@ -429,6 +429,8 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     memset(b, 0, sizeof(Brush));
     Brush_DeepCopy(b, preview);
     b->vao = 0; b->vbo = 0;
+    b->mass = 0.0f;
+    b->isPhysicsEnabled = true;
     b->isReflectionProbe = false; b->isTrigger = false; b->physicsBody = NULL;
     Brush_UpdateMatrix(b); Brush_CreateRenderData(b);
     if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
@@ -571,11 +573,20 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     Brush_UpdateMatrix(new_brush);
     Brush_CreateRenderData(new_brush);
     if (!new_brush->isTrigger && !new_brush->isReflectionProbe && !new_brush->isWater && new_brush->numVertices > 0) {
-        Vec3* world_verts = malloc(new_brush->numVertices * sizeof(Vec3));
-        for (int i = 0; i < new_brush->numVertices; i++) world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
-        new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_brush->numVertices);
-        free(world_verts);
+        if (new_brush->mass > 0.0f) {
+            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)new_brush->vertices, new_brush->numVertices, new_brush->mass, new_brush->modelMatrix);
+            if (!new_brush->isPhysicsEnabled) {
+                Physics_ToggleCollision(engine->physicsWorld, new_brush->physicsBody, false);
+            }
+        }
+        else {
+            Vec3* world_verts = malloc(new_brush->numVertices * sizeof(Vec3));
+            for (int i = 0; i < new_brush->numVertices; i++) world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
+            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_brush->numVertices);
+            free(world_verts);
+        }
     }
+    scene->numBrushes++;
     scene->numBrushes++;
     g_EditorState.selected_entity_type = ENTITY_BRUSH;
     g_EditorState.selected_entity_index = scene->numBrushes - 1;
@@ -4405,6 +4416,28 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat3("Rotation", &b->rot.x, 1.0f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->rot.x = SnapAngle(b->rot.x, 15.0f); b->rot.y = SnapAngle(b->rot.y, 15.0f); b->rot.z = SnapAngle(b->rot.z, 15.0f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Rotate Brush"); }
         UI_DragFloat3("Scale", &b->scale.x, 0.01f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->scale.x = SnapValue(b->scale.x, 0.25f); b->scale.y = SnapValue(b->scale.y, 0.25f); b->scale.z = SnapValue(b->scale.z, 0.25f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Scale Brush"); }
         if (transform_changed) { Brush_UpdateMatrix(b); if (b->physicsBody) { Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); } }
+        UI_Separator();
+        UI_Text("Physics Properties");
+        if (UI_DragFloat("Mass", &b->mass, 0.1f, 0.0f, 10000.0f)) {}
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            if (b->physicsBody) {
+                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                b->physicsBody = NULL;
+            }
+            if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                if (b->mass > 0.0f) {
+                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
+                }
+                else {
+                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                    for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                    free(world_verts);
+                }
+            }
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Mass");
+        }
         UI_Text("Vertex Paint");
         UI_Checkbox("Paint Mode Active (0)", &g_EditorState.is_painting_mode_enabled);
         if (g_EditorState.is_painting_mode_enabled) {

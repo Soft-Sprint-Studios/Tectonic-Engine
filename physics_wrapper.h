@@ -33,6 +33,7 @@ extern "C" {
 	RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle world, float radius, float height, float mass, Vec3 startPos);
 	RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle world, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale);
 	RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle world, const float* points, int numPoints, float mass, Mat4 transform);
+	RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, float mass, Mat4 transform);
 	RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle world, const float* points, int numPoints);
 	void Physics_RemoveRigidBody(PhysicsWorldHandle world, RigidBodyHandle body);
 

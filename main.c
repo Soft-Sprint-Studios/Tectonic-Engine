@@ -1341,6 +1341,14 @@ void update_state() {
                 mat4_multiply(&obj->modelMatrix, &physics_transform, &scale_transform);
             }
         }
+        for (int i = 0; i < g_scene.numBrushes; ++i) {
+            Brush* b = &g_scene.brushes[i];
+            if (b->physicsBody && b->mass > 0.0f) {
+                float phys_matrix_data[16];
+                Physics_GetRigidBodyTransform(b->physicsBody, phys_matrix_data);
+                memcpy(&b->modelMatrix, phys_matrix_data, sizeof(Mat4));
+            }
+        }
     }
 }
 
