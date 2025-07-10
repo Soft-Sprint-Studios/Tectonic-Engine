@@ -4775,7 +4775,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             sprintf(val_label, "##val%d", i);
             sprintf(del_label, "[X]##prop%d", i);
             UI_PushID(i);
+            UI_SetNextItemWidth(100.0f);
             UI_InputText(key_label, ent->properties[i].key, sizeof(ent->properties[i].key)); UI_SameLine();
+            UI_SetNextItemWidth(120.0f);
             UI_InputText(val_label, ent->properties[i].value, sizeof(ent->properties[i].value)); UI_SameLine();
             if(UI_Button(del_label)) { prop_to_delete = i; }
             UI_PopID();

@@ -233,4 +233,7 @@ extern "C" {
     void UI_EndPopup() {
         ImGui::EndPopup();
     }
+    void UI_SetNextItemWidth(float item_width) {
+        ImGui::SetNextItemWidth(item_width);
+    }
 }

@@ -94,6 +94,8 @@ extern "C" {
 	bool UI_BeginPopupContextItem(const char* str_id);
 	void UI_EndPopup();
 
+	void UI_SetNextItemWidth(float item_width);
+
 #ifdef __cplusplus
 }
 #endif
