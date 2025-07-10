@@ -1,5 +1,5 @@
 @echo off
-if not exist build (
+if not exist buildx64 (
     mkdir buildx64
 )
 

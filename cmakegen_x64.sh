@@ -13,7 +13,7 @@ sudo apt install -y \
     libdl-dev \
     libgl1-mesa-dev
 
-if [ ! -d "build" ]; then
+if [ ! -d "buildx64" ]; then
     mkdir buildx64
 fi
 
