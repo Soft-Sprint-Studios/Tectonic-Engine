@@ -205,7 +205,7 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 const float PARALLAX_START_FADE_DISTANCE = 20.0;
 const float PARALLAX_END_FADE_DISTANCE = 40.0;
 
-vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
+vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
 {
     if (hScale <= 0.001 || distanceFade >= 1.0) {
         return texCoords;
@@ -328,10 +328,10 @@ void main()
     float dist = length(FragPos_world - viewPos);
     float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
     
-    vec2 finalTexCoords1 = CalculateParallaxUVs(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords2 = CalculateParallaxUVs(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords3 = CalculateParallaxUVs(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords4 = CalculateParallaxUVs(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
+    vec2 finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
     vec3 normalTex1 = texture(normalMap, finalTexCoords1).rgb;
