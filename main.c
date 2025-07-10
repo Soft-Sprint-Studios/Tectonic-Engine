@@ -1233,35 +1233,34 @@ void update_state() {
 
         if (!light->is_on) {
             light->intensity = 0.0f;
-            continue;
         }
-
-        if (light->preset > 0 && light->preset < NUM_LIGHT_STYLES) {
+        else if (light->preset > 0 && light->preset < NUM_LIGHT_STYLES) {
             const char* style = g_light_styles[light->preset];
             int style_len = strlen(style);
             if (style_len == 0) {
                 light->intensity = light->base_intensity;
-                continue;
             }
+            else {
+                light->preset_time += g_engine->deltaTime;
+                while (light->preset_time >= 0.1f) {
+                    light->preset_time -= 0.1f;
+                    light->preset_index = (light->preset_index + 1) % style_len;
+                }
 
-            light->preset_time += g_engine->deltaTime;
-            while (light->preset_time >= 0.1f) {
-                light->preset_time -= 0.1f;
-                light->preset_index = (light->preset_index + 1) % style_len;
+                char c = style[light->preset_index];
+                float brightness = (float)(c - 'a') / (float)('m' - 'a');
+                light->intensity = light->base_intensity * brightness;
             }
-
-            char c = style[light->preset_index];
-            float brightness = (float)(c - 'a') / (float)('m' - 'a');
-            light->intensity = light->base_intensity * brightness;
         }
         else {
             light->intensity = light->base_intensity;
         }
-    }
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        if (g_scene.lights[i].type == LIGHT_SPOT) {
-            Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, g_scene.lights[i].rot, (Vec3) { 1, 1, 1 });
-            Vec3 forward = { 0, 0, -1 }; g_scene.lights[i].direction = mat4_mul_vec3_dir(&rot_mat, forward); vec3_normalize(&g_scene.lights[i].direction);
+
+        if (light->type == LIGHT_SPOT) {
+            Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, light->rot, (Vec3) { 1, 1, 1 });
+            Vec3 forward = { 0, 0, -1 };
+            light->direction = mat4_mul_vec3_dir(&rot_mat, forward);
+            vec3_normalize(&light->direction);
         }
     }
     if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
