@@ -89,15 +89,27 @@ if(WIN32)
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
         COMPILE_PDB_NAME TectonicEngine
     )
+	
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        message(STATUS "Configuring for 64-bit (x64) build.")
+        set(ARCH_DIR "x64")
+        set(OPENAL_ARCH_DIR "Win64")
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(STATUS "Configuring for 32-bit (x86) build.")
+        set(ARCH_DIR "x86")
+        set(OPENAL_ARCH_DIR "Win32")
+    else()
+        message(FATAL_ERROR "Unsupported architecture size.")
+    endif()
 
     target_link_directories(TectonicEngine PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/x64"
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/x64"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/x64"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/x64"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Win64"
+        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${OPENAL_ARCH_DIR}"
     )
 
     target_link_libraries(TectonicEngine PRIVATE
