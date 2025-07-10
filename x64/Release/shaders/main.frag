@@ -261,9 +261,7 @@ vec2 CalculateParallaxUVs(sampler2D heightMapSampler, vec2 texCoords, float hSca
         }
     }
     
-    vec2 parallaxTexCoords = texCoordsEnd;
-
-    return mix(parallaxTexCoords, texCoords, distanceFade);
+    return texCoordsEnd;
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
