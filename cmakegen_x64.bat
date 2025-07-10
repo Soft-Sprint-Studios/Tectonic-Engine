@@ -1,7 +1,7 @@
 @echo off
 if not exist build (
-    mkdir build
+    mkdir buildx64
 )
 
-cd build
+cd buildx64
 cmake -G "Visual Studio 17 2022" ..

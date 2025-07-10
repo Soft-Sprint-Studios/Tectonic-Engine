@@ -14,10 +14,10 @@ sudo apt install -y \
     libgl1-mesa-dev
 
 if [ ! -d "build" ]; then
-    mkdir build
+    mkdir buildx64
 fi
 
-cd build
+cd buildx64
 
 echo "Running CMake..."
 cmake ..
