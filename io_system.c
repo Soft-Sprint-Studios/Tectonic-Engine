@@ -74,6 +74,10 @@ int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connec
     return count;
 }
 
+static float rand_float_range(float min, float max) {
+    if (min >= max) return min;
+    return min + (rand() / (float)RAND_MAX) * (max - min);
+}
 
 void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime) {
     for (int i = 0; i < g_num_io_connections; ++i) {
@@ -136,6 +140,19 @@ void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, E
                 }
                 if (min != 0 && ent->runtime_float_a <= min) {
                     IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0);
+                }
+            }
+            else if (strcmp(ent->classname, "logic_random") == 0) {
+                if (strcmp(inputName, "Enable") == 0) {
+                    if (!ent->runtime_active) {
+                        const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
+                        const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
+                        ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
+                    }
+                    ent->runtime_active = true;
+                }
+                else if (strcmp(inputName, "Disable") == 0) {
+                    ent->runtime_active = false;
                 }
             }
         }
@@ -236,7 +253,7 @@ void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
     g_num_pending_events = write_idx;
 }
 
-static const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
+const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
     for (int i = 0; i < ent->numProperties; ++i) {
         if (strcmp(ent->properties[i].key, key) == 0) {
             return ent->properties[i].value;
@@ -264,6 +281,17 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                     else {
                         ent->runtime_active = false;
                     }
+                }
+            }
+        }
+        else if (strcmp(ent->classname, "logic_random") == 0) {
+            if (ent->runtime_active) {
+                ent->runtime_float_a -= deltaTime;
+                if (ent->runtime_float_a <= 0) {
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0);
+                    const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
+                    const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
+                    ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
                 }
             }
         }

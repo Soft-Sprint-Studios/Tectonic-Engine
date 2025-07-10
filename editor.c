@@ -4802,6 +4802,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             const char* counter_outputs[] = { "OnHitMax", "OnHitMin" };
             RenderIOEditor(ENTITY_LOGIC, g_EditorState.selected_entity_index, counter_outputs, 2);
         }
+        else if (strcmp(ent->classname, "logic_random") == 0) {
+            const char* random_outputs[] = { "OnRandom" };
+            RenderIOEditor(ENTITY_LOGIC, g_EditorState.selected_entity_index, random_outputs, 1);
+        }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
     if (UI_CollapsingHeader("Sun", 1)) {

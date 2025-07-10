@@ -1329,6 +1329,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     }
                 }
             }
+            if (strcmp(ent->classname, "logic_random") == 0) {
+                if (strcmp(LogicEntity_GetProperty(ent, "is_default_enabled", "0"), "1") == 0) {
+                    ent->runtime_active = true;
+                }
+            }
             scene->numLogicEntities++;
         }
         else if (strcmp(keyword, "targetname") == 0) {
