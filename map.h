@@ -131,6 +131,7 @@ typedef struct {
 
 typedef struct {
     Vec3 position;
+    float _padding0;
     unsigned int packedColor;
     unsigned int packedNormal;
     uint64_t shadowMapHandle;

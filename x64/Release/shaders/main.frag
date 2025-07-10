@@ -520,7 +520,7 @@ void main()
 
     vec3 R_env = reflect(-V, N); 
     if (useParallaxCorrection) {
-         R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
+        R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
     }
     
     vec3 F_for_IBL_specular = fresnelSchlick(max(dot(N, V), 0.0), F0); 
