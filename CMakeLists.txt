@@ -84,6 +84,11 @@ if(WIN32)
     message(STATUS "Configuring for Windows")
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:console")
+	
+	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(STATUS "Disabling SAFESEH for 32-bit Windows build.")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+    endif()
 
     set_target_properties(TectonicEngine PROPERTIES
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
