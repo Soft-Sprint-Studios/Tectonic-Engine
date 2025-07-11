@@ -7,123 +7,75 @@ on:
     branches: [main]
 
 jobs:
-  build-linux-gcc-x64:
-    name: Build Linux x64 (GCC)
+  build-linux-x64:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code with submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Install dependencies (Linux x64)
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
 
-      - name: Configure CMake (GCC x64)
-        run: cmake -S . -B build-gcc-x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Configure CMake (Linux x64)
+        run: cmake -S . -B buildx64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-      - name: Build (GCC x64)
-        run: cmake --build build-gcc-x64 --config RelWithDebInfo
+      - name: Build (Linux x64)
+        run: cmake --build buildx64 --config RelWithDebInfo
 
-      - name: Split debug info (GCC x64)
+      - name: Split debug info (Linux x64)
         run: |
-          cp build-gcc-x64/TectonicEngine build-gcc-x64/TectonicEngine.debug
-          objcopy --only-keep-debug build-gcc-x64/TectonicEngine.debug build-gcc-x64/TectonicEngine.debugsymbols
-          cd build-gcc-x64
+          cp buildx64/TectonicEngine buildx64/TectonicEngine.debug
+          objcopy --only-keep-debug buildx64/TectonicEngine.debug buildx64/TectonicEngine.debugsymbols
+          cd buildx64
           objcopy --strip-debug --add-gnu-debuglink=TectonicEngine.debugsymbols TectonicEngine
           file TectonicEngine
 
-      - name: Upload binary and debug symbols (Linux GCC x64)
+      - name: Upload binary and debug symbols (Linux x64)
         uses: actions/upload-artifact@v4
         with:
-          name: TectonicEngine-linux-gcc-x64
+          name: TectonicEngine-linux
           path: |
-            build-gcc-x64/TectonicEngine
-            build-gcc-x64/TectonicEngine.debugsymbols
+            buildx64/TectonicEngine
+            buildx64/TectonicEngine.debugsymbols
 
-  build-linux-clang-x64:
-    name: Build Linux x64 (Clang)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code with submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: Install dependencies (Clang x64)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake clang libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
-
-      - name: Configure CMake (Clang x64)
-        env:
-          CC: clang
-          CXX: clang++
-        run: cmake -S . -B build-clang-x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-
-      - name: Build (Clang x64)
-        run: cmake --build build-clang-x64 --config RelWithDebInfo
-
-      - name: Split debug info (Clang x64)
-        run: |
-          cp build-clang-x64/TectonicEngine build-clang-x64/TectonicEngine.debug
-          objcopy --only-keep-debug build-clang-x64/TectonicEngine.debug build-clang-x64/TectonicEngine.debugsymbols
-          cd build-clang-x64
-          objcopy --strip-debug --add-gnu-debuglink=TectonicEngine.debugsymbols TectonicEngine
-          file TectonicEngine
-
-      - name: Upload binary and debug symbols (Linux Clang x64)
-        uses: actions/upload-artifact@v4
-        with:
-          name: TectonicEngine-linux-clang-x64
-          path: |
-            build-clang-x64/TectonicEngine
-            build-clang-x64/TectonicEngine.debugsymbols
-
-  build-windows-msvc-x64:
-    name: Build Windows x64 (MSVC)
+  build-windows-x64:
     runs-on: windows-latest
     steps:
-      - name: Checkout code with submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Configure CMake (MSVC x64)
-        run: cmake -S . -B build-win-x64 -G "Visual Studio 17 2022" -A x64
+      - name: Configure CMake (Windows x64)
+        run: cmake -S . -B buildx64 -G "Visual Studio 17 2022" -A x64
 
-      - name: Build (MSVC x64)
-        run: cmake --build build-win-x64 --config Release
+      - name: Build (Windows x64)
+        run: cmake --build buildx64 --config Release
 
-      - name: Upload binary and PDB (Windows MSVC x64)
+      - name: Upload binary and PDB (Windows x64)
         uses: actions/upload-artifact@v4
         with:
-          name: TectonicEngine-windows-msvc-x64
+          name: TectonicEngine-windows
           path: |
-            build-win-x64/Release/TectonicEngine.exe
-            build-win-x64/Release/TectonicEngine.pdb
-
-  build-windows-msvc-x86:
-    name: Build Windows x86 (MSVC)
+            buildx64/Release/TectonicEngine.exe
+            buildx64/Release/TectonicEngine.pdb
+            
+  build-windows-x86:
     runs-on: windows-latest
     steps:
-      - name: Checkout code with submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Configure CMake (MSVC x86)
-        run: cmake -S . -B build-win-x86 -G "Visual Studio 17 2022" -A Win32
+      - name: Configure CMake (Windows x86)
+        run: cmake -S . -B buildx86 -G "Visual Studio 17 2022" -A Win32
 
-      - name: Build (MSVC x86)
-        run: cmake --build build-win-x86 --config Release
+      - name: Build (Windows x86)
+        run: cmake --build buildx86 --config Release
 
-      - name: Upload binary and PDB (Windows MSVC x86)
+      - name: Upload binary and PDB (Windows x86)
         uses: actions/upload-artifact@v4
         with:
-          name: TectonicEngine-windows-msvc-x86
+          name: TectonicEngine-windows-x86
           path: |
-            build-win-x86/Release/TectonicEngine.exe
-            build-win-x86/Release/TectonicEngine.pdb
+            buildx86/Release/TectonicEngine.exe
+            buildx86/Release/TectonicEngine.pdb
