@@ -55,10 +55,7 @@ set(ENGINE_HEADERS
 add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 if(WIN32)
-    target_link_options(TectonicEngine PRIVATE
-        $<$<CONFIG:Debug,RelWithDebInfo>:/subsystem:console>
-        $<$<CONFIG:Release>:/subsystem:windows>
-    )
+    target_link_options(TectonicEngine PRIVATE /subsystem:windows)
 endif()
 
 target_compile_definitions(TectonicEngine PRIVATE
@@ -191,3 +188,7 @@ endif()
 add_executable(Batchmodelimporter Batchmodelimporter/main.cpp)
 target_compile_definitions(Batchmodelimporter PRIVATE _CRT_SECURE_NO_WARNINGS)
 set_target_properties(Batchmodelimporter PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
+if(WIN32)
+    target_link_options(Batchmodelimporter PRIVATE /subsystem:console)
+endif()
