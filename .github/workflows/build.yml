@@ -14,12 +14,12 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build --config Release
+      - run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-linux-x64-release --config Release
       - uses: actions/upload-artifact@v4
         with:
-          name: TectonicEngine-linux-release
-          path: build/TectonicEngine
+          name: TectonicEngine-linux-x64-release
+          path: build-linux-x64-release/TectonicEngine
 
   build-linux-x64-relwithdebinfo:
     runs-on: ubuntu-latest
@@ -28,63 +28,63 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build --config RelWithDebInfo
+      - run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo
       - run: |
-          cp build/TectonicEngine build/TectonicEngine.debug
-          objcopy --only-keep-debug build/TectonicEngine.debug build/TectonicEngine.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=build/TectonicEngine.debugsymbols build/TectonicEngine
+          cp build-linux-x64-relwithdebinfo/TectonicEngine build-linux-x64-relwithdebinfo/TectonicEngine.debug
+          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/TectonicEngine.debug build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols build-linux-x64-relwithdebinfo/TectonicEngine
       - uses: actions/upload-artifact@v4
         with:
-          name: TectonicEngine-linux-relwithdebinfo
+          name: TectonicEngine-linux-x64-relwithdebinfo
           path: |
-            build/TectonicEngine
-            build/TectonicEngine.debugsymbols
+            build-linux-x64-relwithdebinfo/TectonicEngine
+            build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols
 
   build-windows-x64-release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-      - run: cmake --build build --config Release
+      - run: cmake -S . -B build-windows-x64-release -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-windows-x64-release --config Release
       - uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows-x64-release
-          path: build/Release/TectonicEngine.exe
+          path: build-windows-x64-release/Release/TectonicEngine.exe
 
   build-windows-x64-relwithdebinfo:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build --config RelWithDebInfo
+      - run: cmake -S . -B build-windows-x64-relwithdebinfo -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
       - uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows-x64-relwithdebinfo
           path: |
-            build/RelWithDebInfo/TectonicEngine.exe
-            build/RelWithDebInfo/TectonicEngine.pdb
+            build-windows-x64-relwithdebinfo/RelWithDebInfo/TectonicEngine.exe
+            build-windows-x64-relwithdebinfo/RelWithDebInfo/TectonicEngine.pdb
 
   build-windows-x86-release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
-      - run: cmake --build build --config Release
+      - run: cmake -S . -B build-windows-x86-release -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-windows-x86-release --config Release
       - uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows-x86-release
-          path: build/Release/TectonicEngine.exe
+          path: build-windows-x86-release/Release/TectonicEngine.exe
 
   build-windows-x86-relwithdebinfo:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cmake -S . -B build -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build --config RelWithDebInfo
+      - run: cmake -S . -B build-windows-x86-relwithdebinfo -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
       - uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-windows-x86-relwithdebinfo
           path: |
-            build/RelWithDebInfo/TectonicEngine.exe
-            build/RelWithDebInfo/TectonicEngine.pdb
+            build-windows-x86-relwithdebinfo/RelWithDebInfo/TectonicEngine.exe
+            build-windows-x86-relwithdebinfo/RelWithDebInfo/TectonicEngine.pdb
