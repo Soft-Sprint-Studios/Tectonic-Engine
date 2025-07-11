@@ -31,6 +31,7 @@
 #include "dsp_reverb.h"
 #include "video_player.h"
 #include "weapons.h"
+#include "sentry_wrapper.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
@@ -629,6 +630,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
+    Sentry_Init();
     Network_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
@@ -2375,6 +2377,7 @@ void cleanup() {
     Weapons_Shutdown();
     Network_Shutdown();
     UI_Shutdown();
+    Sentry_Shutdown();
     Discord__Shutdown();
     SDL_GL_DeleteContext(g_engine->context);
     SDL_DestroyWindow(g_engine->window);

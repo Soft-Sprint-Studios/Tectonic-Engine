@@ -44,12 +44,12 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(ENGINE_SOURCES
-    binds.c cvar.c discord_wrapper.cpp dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c
+    binds.c cvar.c discord_wrapper.cpp dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
     mikktspace/mikktspace.c
 )
 set(ENGINE_HEADERS
-    compat.h binds.h cvar.h discord_wrapper.h dsp_reverb.h editor.h editor_undo.h gameconfig.h gl_console.h gl_misc.h io_system.h main_menu.h map.h math_lib.h model_loader.h network.h particle_system.h physics_wrapper.h sound_system.h texturemanager.h video_player.h weapons.h
+    compat.h binds.h cvar.h discord_wrapper.h dsp_reverb.h editor.h editor_undo.h gameconfig.h gl_console.h gl_misc.h io_system.h main_menu.h map.h math_lib.h model_loader.h network.h particle_system.h physics_wrapper.h sound_system.h texturemanager.h video_player.h weapons.h sentry_wrapper.h
 )
 
 add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
@@ -80,6 +80,7 @@ target_include_directories(TectonicEngine PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master"
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include"
 )
 
 target_compile_options(TectonicEngine PRIVATE
@@ -115,12 +116,14 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/${ARCH_DIR}"
     )
 
     target_link_libraries(TectonicEngine PRIVATE
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         BulletCollision BulletDynamics LinearMath
         OpenAL32 discord-rpc ws2_32
+        sentry
     )
 
 elseif(UNIX AND NOT APPLE)
@@ -146,6 +149,9 @@ elseif(UNIX AND NOT APPLE)
     set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux")
     set(OPENAL_LIB "${OPENAL_LIB_DIR}/libopenal.a")
 
+    set(SENTRY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include")
+    set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
+
     target_include_directories(TectonicEngine PRIVATE
         ${SDL2_INCLUDE_DIRS}
         ${SDL2_IMAGE_INCLUDE_DIR}
@@ -153,6 +159,7 @@ elseif(UNIX AND NOT APPLE)
         ${GLEW_INCLUDE_DIRS}
         ${BULLET_INCLUDE_DIR}
         ${OPENAL_INCLUDE_DIR}
+        ${SENTRY_INCLUDE_DIR}
     )
 
     target_link_directories(TectonicEngine PRIVATE
@@ -171,6 +178,7 @@ elseif(UNIX AND NOT APPLE)
         ${BULLET_LIBS}
         ${OPENAL_LIB}
         ${OPENGL_LIBRARIES}
+        ${SENTRY_LIBRARY}
         discord-rpc
         pthread
         dl
