@@ -1,71 +1,74 @@
 # Tectonic Engine
 A modern, feature-rich 3D game engine written in pure C, inspired by classic FPS engines.
 
-# About The Project
-Tectonic Engine is a proprietary, closed-source game engine developed by Soft Sprint Studios. Built from the ground up in C, it combines a performant, old-school architectural approach with a modern, physically-based deferred rendering pipeline.
+# Tectonic Engine - Feature Set
+An overview of the core technologies and rendering capabilities of the Tectonic Engine.
 
-The core philosophy is to provide a powerful, data-driven framework for creating games, supported by a robust, integrated 3D editor for a seamless content creation workflow.
+# Rendering & Lighting
+Physically-Based Rendering (PBR) Pipeline: Core rendering is built on a deferred PBR model using a metallic/roughness workflow, enabling realistic material interactions with light.
 
-# Rendering & Visuals
-Deferred Rendering Pipeline: Efficiently handles scenes with a large number of dynamic lights by decoupling geometry and lighting passes.
+Normal Mapping: Supported on both world geometry (brushes) and models for high-frequency surface detail.
 
-Physically-Based Rendering (PBR): Supports metallic/roughness workflow for realistic material definition.
+Parallax Occlusion Mapping: Height maps can be used to create the illusion of depth and self-shadowing on surfaces, providing a more convincing 3D effect than standard normal mapping.
 
-# Advanced Lighting:
-Dynamic Lighting: Supports hundreds of dynamic point and spot lights.
+# Dynamic Lighting System: Supports a large number of fully dynamic point and spot lights with configurable color, intensity, and radius.
+Light Styles & Presets: Lights can utilize preset animation styles for effects such as flickering, strobing, and pulsing.
 
-Global Illumination: Uses Virtual Point Lights (VPLs) for real-time, single-bounce indirect lighting.
+Light Cookies: Spotlights support projected textures (cookies) for gobo and patterned lighting effects.
 
-Dynamic Sun & Sky: Procedural skybox with atmospheric scattering and a dynamic sun light.
+Shadow Mapping: Real-time dynamic shadows are supported for all light types.
 
-# Advanced Shadows:
-Dynamic Shadows: Real-time shadows for all light types (Point, Spot, and Sun).
+Omnidirectional Shadows: Point lights use cubemap shadow maps for 360-degree shadow coverage.
 
-PCF Filtering: Basic percentage-closer filtering for soft shadow edges.
+Projected Shadows: Spotlights and the sun use standard 2D shadow maps for efficient directional shadowing.
 
-# Post-Processing Stack:
-Auto-Exposure (Eye Adaptation): Automatically adjusts scene brightness based on luminance.
+Percentage-Closer Filtering (PCF): Implemented for soft shadow edges.
 
-Bloom: High-quality bloom for emissive surfaces and bright lights.
+Global Illumination via Virtual Point Lights (VPLs): The engine supports real-time, one-bounce global illumination by generating hundreds of virtual point lights from surfaces hit by direct light, providing realistic color bleeding and indirect lighting.
 
-Volumetric Lighting: Creates visible light shafts and "god rays" from light sources.
+High-Dynamic Range (HDR) Lighting: The entire lighting pipeline operates in HDR.
 
-Screen-Space Ambient Occlusion (SSAO): Adds contact shadows and depth to scenes.
+Auto-Exposure: The final image exposure is automatically adjusted based on scene luminance, simulating the human eye's adaptation to light and dark areas.
 
-Artistic Effects: Includes customizable film grain, scanlines, chromatic aberration, black & white and vignette effects.
+Bloom: Bright areas of the scene realistically "bloom" into neighboring areas, enhancing the HDR effect.
 
-# Advanced Mapping Techniques:
-Contact Refinment Parallax Mapping: Adds illusion of 3d surfaces
+Screen-Space Ambient Occlusion (SSAO): Adds contact shadows and depth to scenes by darkening creases, corners, and ambiently lit areas.
 
-Parallax Interiors: Creates the illusion of a full 3D room behind a simple quad, perfect for window details.
+Volumetric Lighting: Supports "god rays" and light shafts from the sun and other dynamic lights, rendering visible beams of light through the environment.
 
-Dynamic Water: Renders realistic water surfaces with waves, reflections, and lighting interaction.
+Water Rendering: Features real-time environmental reflections using cubemaps, Fresnel effects for angle-dependent reflectivity, and animated surface normals for a dynamic appearance.
 
-# Integrated Editor
-Full 3D Level Editor: Create and edit levels directly within the engine.
+Reflection Probes: Static cubemaps can be baked from any point in the world and applied to nearby geometry for accurate, parallax-corrected local reflections on PBR materials and water.
 
-Multi-Viewport Interface: Classic four-pane view (3D Perspective, Top, Front, Side) for precise object placement.
+Procedural Skybox: A dynamic skybox system with procedural atmospheric scattering (Rayleigh & Mie) and animated clouds, removing the need for static 2D skybox images.
 
-Brush-Based Geometry: Build complex level geometry using CSG-style additive brushes, similar to editors like Valve Hammer or id Radiant.
+# Post-Processing Stack
+Includes a suite of configurable effects such as Film Grain, Chromatic Aberration, CRT screen curvature, Vignette, Sharpening, and Depth of Field.
 
-# Real-Time Manipulation:
-Standard translation, rotation, and scale gizmos for all entities.
+# Engine & World
+Brush-Based World Construction: World geometry is built using classic CSG (Constructive Solid Geometry) brush techniques, allowing for rapid and robust level design.
 
-Direct vertex and face manipulation tools for fine-tuning brush geometry.
+Advanced Particle System: Capable of emitting sprites with configurable properties like gravity, velocity, color-over-life, and size-over-life, loaded from simple .par definition files.
 
-Asset Browsers: In-editor browsers for previewing and placing models and applying textures.
+Physics Integration: Utilizes the Bullet Physics library for a robust simulation environment.
 
-Entity Inspector: A detailed properties panel to edit any selected entity in real-time.
+Collision Primitives: Supports player capsules, static triangle meshes, dynamic and static convex hulls.
 
-Robust Undo/Redo System: A comprehensive undo stack makes editing safe and non-destructive.
+Dynamic Objects: Brushes and models can be configured with mass to become fully dynamic physics objects.
 
-# Core Engine & Gameplay
-Cross-Platform: Architected for and tested on both Windows and Linux.
+Input/Output (I/O) Logic System: A powerful, trigger-based system inspired by Source's entity I/O allows for complex scripting and level interactivity without writing code. Entities can fire outputs (e.g., OnTrigger, OnTimer) which connect to the inputs of other entities (TurnOn, PlaySound).
 
-Physics Engine: Powered by Bullet Physics for robust collision detection and rigid body simulation. Supports dynamic objects, static geometry, and a capsule-based character controller.
+Hierarchical Undo/Redo System: The integrated editor features a robust, multi-level undo/redo stack for all entity creation, deletion, and modification actions.
 
-I/O and Trigger System: A powerful input/output system allows for creating complex entity interactions and game logic without changing engine code.
+# Platform & Tools
+Cross-Platform Support: The engine and its tooling are built with modern CMake for compilation on Windows (32/64-bit, MSVC) and Linux (GCC/Clang).
 
-CVar System: Quake-style console with a fully-featured CVar (console variable) system for tweaking engine parameters at runtime.
+In-Engine Editor: A comprehensive, real-time "Hammer-style" editor is built directly into the engine.
 
-Particle System: Data-driven particle emitters for effects like fire, smoke, and explosions.
+Multi-Viewport Editing: Features classic 3D perspective, top, side, and front 2D orthographic views.
+
+CSG Tools: Includes tools for brush creation, clipping, and vertex manipulation.
+
+Vertex Painting & Sculpting: Terrain and complex brushes can be directly painted with vertex colors for texture blending or sculpted for organic shapes.
+
+Developer Console & CVars: A Quake-style dropdown console provides direct access to engine commands and tunable "CVars" for runtime configuration.
