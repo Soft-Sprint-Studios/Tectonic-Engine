@@ -45,7 +45,7 @@ Reflection Probes: Static cubemaps can be baked from any point in the world and 
 Procedural Skybox: A dynamic skybox system with procedural atmospheric scattering (Rayleigh & Mie) and animated clouds, removing the need for static 2D skybox images.
 
 # Post-Processing Stack
-Includes a suite of configurable effects such as Film Grain, Chromatic Aberration, CRT screen curvature, Vignette, Sharpening, and Depth of Field.
+Includes a suite of configurable effects such as Film Grain, Chromatic Aberration, CRT screen curvature, Vignette, Sharpening, Black and White and Depth of Field.
 
 # Engine & World
 Brush-Based World Construction: World geometry is built using classic CSG (Constructive Solid Geometry) brush techniques, allowing for rapid and robust level design.
