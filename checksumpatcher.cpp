@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <string>
 #include <stddef.h>
+#include <cstring>
 
 static uint32_t crc_table[256];
 static bool table_initialized = false;
