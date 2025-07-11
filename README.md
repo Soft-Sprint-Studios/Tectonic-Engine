@@ -9,7 +9,7 @@ Physically-Based Rendering (PBR) Pipeline: Core rendering is built on a deferred
 
 Normal Mapping: Supported on both world geometry (brushes) and models for high-frequency surface detail.
 
-Parallax Occlusion Mapping: Height maps can be used to create the illusion of depth and self-shadowing on surfaces, providing a more convincing 3D effect than standard normal mapping.
+Relief Mapping: Height maps can be used to create the illusion of depth and self-shadowing on surfaces, providing a more convincing 3D effect than standard normal mapping.
 
 # Dynamic Lighting System: Supports a large number of fully dynamic point and spot lights with configurable color, intensity, and radius.
 Light Styles & Presets: Lights can utilize preset animation styles for effects such as flickering, strobing, and pulsing.
@@ -37,6 +37,8 @@ Screen-Space Ambient Occlusion (SSAO): Adds contact shadows and depth to scenes 
 Volumetric Lighting: Supports "god rays" and light shafts from the sun and other dynamic lights, rendering visible beams of light through the environment.
 
 Water Rendering: Features real-time environmental reflections using cubemaps, Fresnel effects for angle-dependent reflectivity, and animated surface normals for a dynamic appearance.
+
+Glass & Refraction: Supports translucent glass surfaces that refract the scene behind them, creating a realistic distortion effect.
 
 Reflection Probes: Static cubemaps can be baked from any point in the world and applied to nearby geometry for accurate, parallax-corrected local reflections on PBR materials and water.
 
