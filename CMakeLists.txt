@@ -54,6 +54,13 @@ set(ENGINE_HEADERS
 
 add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
+if(WIN32)
+    target_link_options(TectonicEngine PRIVATE
+        $<$<CONFIG:Debug,RelWithDebInfo>:/subsystem:console>
+        $<$<CONFIG:Release>:/subsystem:windows>
+    )
+endif()
+
 target_compile_definitions(TectonicEngine PRIVATE
     IMGUI_DEFINE_MATH_OPERATORS
     SDL_MAIN_HANDLED
@@ -83,7 +90,6 @@ target_compile_options(TectonicEngine PRIVATE
 if(WIN32)
     message(STATUS "Configuring for Windows")
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /subsystem:console")
 
     set_target_properties(TectonicEngine PROPERTIES
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"

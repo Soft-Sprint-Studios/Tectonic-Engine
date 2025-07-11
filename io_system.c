@@ -9,6 +9,7 @@
 #include "io_system.h"
 #include "sound_system.h"
 #include "video_player.h"
+#include "gl_console.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,11 +23,11 @@ void IO_Init() {
     IO_Clear();
     memset(g_pending_events, 0, sizeof(g_pending_events));
     g_num_pending_events = 0;
-    printf("IO System Initialized.\n");
+    Console_Printf("IO System Initialized.\n");
 }
 
 void IO_Shutdown() {
-    printf("IO System Shutdown.\n");
+    Console_Printf("IO System Shutdown.\n");
 }
 
 void IO_Clear() {
@@ -36,7 +37,7 @@ void IO_Clear() {
 
 IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const char* output) {
     if (g_num_io_connections >= MAX_IO_CONNECTIONS) {
-        printf("ERROR: Max IO connections reached!\n");
+        Console_Printf("ERROR: Max IO connections reached!\n");
         return NULL;
     }
     IOConnection* conn = &g_io_connections[g_num_io_connections];
@@ -88,7 +89,7 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
             }
 
             if (g_num_pending_events >= MAX_PENDING_EVENTS) {
-                printf("ERROR: Max pending events reached!\n");
+                Console_Printf("ERROR: Max pending events reached!\n");
                 return;
             }
 

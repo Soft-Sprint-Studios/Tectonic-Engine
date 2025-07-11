@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "DiscordRPC/include/discord_rpc.h"
+#include "gl_console.h"
 #include <time.h>
 #include <string.h>
 #include <stdio.h>
@@ -17,18 +18,18 @@ static const char* APPLICATION_ID = "1386692288914260071";
 static int64_t StartTime;
 
 static void handleDiscordReady(const DiscordUser* request) {
-    printf("Discord: connected to user %s#%s - %s\n",
+    Console_Printf("Discord: connected to user %s#%s - %s\n",
         request->username,
         request->discriminator,
         request->userId);
 }
 
 static void handleDiscordDisconnected(int errcode, const char* message) {
-    printf("Discord: disconnected (%d: %s)\n", errcode, message);
+    Console_Printf("Discord: disconnected (%d: %s)\n", errcode, message);
 }
 
 static void handleDiscordError(int errcode, const char* message) {
-    printf("Discord: error (%d: %s)\n", errcode, message);
+    Console_Printf("Discord: error (%d: %s)\n", errcode, message);
 }
 
 void Discord_Init() {
@@ -38,13 +39,13 @@ void Discord_Init() {
     handlers.disconnected = handleDiscordDisconnected;
     handlers.errored = handleDiscordError;
     Discord_Initialize(APPLICATION_ID, &handlers, 1, NULL);
-    printf("Discord RPC Initialized.\n");
+    Console_Printf("Discord RPC Initialized.\n");
     StartTime = time(0);
 }
 
 void Discord__Shutdown() {
     Discord_Shutdown();
-    printf("Discord RPC Shutdown.\n");
+    Console_Printf("Discord RPC Shutdown.\n");
 }
 
 void Discord_Update(const char* state, const char* details) {

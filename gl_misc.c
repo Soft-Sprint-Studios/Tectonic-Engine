@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "gl_misc.h"
+#include "gl_console.h"
 #include <stdlib.h>
 
 char* load_shader_source(const char* path) {
@@ -25,7 +26,7 @@ char* load_shader_source(const char* path) {
         fclose(f);
     }
     else {
-        printf("Error: Could not open shader file %s\n", path);
+        Console_Printf("Error: Could not open shader file %s\n", path);
     }
     return buffer;
 }
@@ -39,7 +40,7 @@ GLuint compileShader(GLenum type, const char* src) {
     if (!success) {
         GLchar infoLog[1024];
         glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-        printf("SHADER COMPILE ERROR: %s\n", infoLog);
+        Console_Printf("SHADER COMPILE ERROR: %s\n", infoLog);
     }
     return shader;
 }
@@ -65,7 +66,7 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     if (!success) {
         GLchar infoLog[512];
         glGetProgramInfoLog(program, 512, NULL, infoLog);
-        printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(frag);
@@ -100,7 +101,7 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(geom);
@@ -141,7 +142,7 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(tcs);
@@ -169,7 +170,7 @@ GLuint createShaderProgramCompute(const char* computePath) {
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
     }
 
     glDeleteShader(compute);

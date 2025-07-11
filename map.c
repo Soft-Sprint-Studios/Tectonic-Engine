@@ -82,7 +82,7 @@ void Light_InitShadowMap(Light* light) {
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        printf("Shadow Framebuffer not complete! Light Type: %d\n", light->type);
+        Console_Printf("Shadow Framebuffer not complete! Light Type: %d\n", light->type);
 
     light->shadowMapHandle = glGetTextureHandleARB(light->shadowMapTexture);
     glMakeTextureHandleResidentARB(light->shadowMapHandle);
@@ -953,7 +953,6 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
     FILE* file = fopen(mapPath, "r");
     if (!file) {
-        printf("ERROR: Could not find map file: %s\n", mapPath);
         Console_Printf("[error] Could not find map file: %s", mapPath);
         return false;
     }
@@ -962,14 +961,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     int map_file_version = 0;
     if (fgets(version_line, sizeof(version_line), file) && sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
         if (map_file_version != MAP_VERSION) {
-            printf("ERROR: Map version mismatch! Map is v%d, Engine expects v%d.\n", map_file_version, MAP_VERSION);
             Console_Printf("[error] Map version mismatch! Map is v%d, Engine expects v%d.", map_file_version, MAP_VERSION);
             fclose(file);
             return false;
         }
     }
     else {
-        printf("ERROR: Invalid or missing map version. Could be an old map format.\n");
         Console_Printf("[error] Invalid or missing map version. Could be an old map format.");
         fclose(file);
         return false;

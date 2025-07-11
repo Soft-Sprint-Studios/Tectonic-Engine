@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "sound_system.h"
+#include "gl_console.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,7 +162,7 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
 static unsigned int internal_LoadMP3(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
-        printf("ERROR: Could not open MP3 file %s\n", path);
+        Console_Printf("ERROR: Could not open MP3 file %s\n", path);
         return 0;
     }
 
@@ -360,7 +361,7 @@ static unsigned int internal_LoadWAV(const char* path) {
 unsigned int SoundSystem_LoadSound(const char* path) {
     const char* ext = strrchr(path, '.');
     if (!ext) {
-        printf("ERROR: Could not determine file type for %s\n", path);
+        Console_Printf("ERROR: Could not determine file type for %s\n", path);
         return 0;
     }
 
@@ -371,7 +372,7 @@ unsigned int SoundSystem_LoadSound(const char* path) {
         return internal_LoadMP3(path);
     }
 
-    printf("ERROR: Unsupported sound format for %s\n", path);
+    Console_Printf("ERROR: Unsupported sound format for %s\n", path);
     return 0;
 }
 

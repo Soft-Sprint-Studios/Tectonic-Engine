@@ -19,12 +19,12 @@ void Binds_Init(void) {
     memset(g_binds, 0, sizeof(g_binds));
     g_num_binds = 0;
     Binds_Load("binds.txt");
-    printf("Binds System Initialized.\n");
+    Console_Printf("Binds System Initialized.\n");
 }
 
 void Binds_Shutdown(void) {
     Binds_Save("binds.txt");
-    printf("Binds System Shutdown.\n");
+    Console_Printf("Binds System Shutdown.\n");
 }
 
 void Binds_Load(const char* filename) {

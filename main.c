@@ -717,7 +717,7 @@ void init_renderer() {
     GLuint rboDepth; glGenRenderbuffers(1, &rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("G-Buffer Framebuffer not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("G-Buffer Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.vplGenerationFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.vplGenerationFBO);
     glGenTextures(1, &g_renderer.vplPosTex);
@@ -743,7 +743,7 @@ void init_renderer() {
     GLuint vpl_rboDepth; glGenRenderbuffers(1, &vpl_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, vpl_rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, vpl_rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("VPL Generation Framebuffer not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("VPL Generation Framebuffer not complete!\n");
     glGenBuffers(1, &g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_DRAW);
@@ -757,7 +757,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Bloom FBO not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Bloom FBO not complete!\n");
     glGenFramebuffers(2, g_renderer.pingpongFBO); glGenTextures(2, g_renderer.pingpongColorbuffers);
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[i]); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i]);
@@ -766,7 +766,7 @@ void init_renderer() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f }; glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i], 0);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Ping-pong FBO %d not complete!\n", i);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Ping-pong FBO %d not complete!\n", i);
     }
     glGenFramebuffers(1, &g_renderer.finalRenderFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
@@ -791,7 +791,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.postProcessTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Post Process Framebuffer not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Post Process Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.volumetricFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
@@ -802,7 +802,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volumetricTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Volumetric FBO not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Volumetric FBO not complete!\n");
     glGenFramebuffers(2, g_renderer.volPingpongFBO);
     glGenTextures(2, g_renderer.volPingpongTextures);
     for (unsigned int i = 0; i < 2; i++) {
@@ -814,7 +814,7 @@ void init_renderer() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volPingpongTextures[i], 0);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Volumetric Ping-Pong FBO %d not complete!\n", i);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Volumetric Ping-Pong FBO %d not complete!\n", i);
     }
     glGenFramebuffers(1, &g_renderer.sunShadowFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
@@ -831,7 +831,7 @@ void init_renderer() {
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        printf("Sun Shadow Framebuffer not complete!\n");
+        Console_Printf("Sun Shadow Framebuffer not complete!\n");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glGenVertexArrays(1, &g_renderer.quadVAO); glGenBuffers(1, &g_renderer.quadVBO);
     glBindVertexArray(g_renderer.quadVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.quadVBO);
@@ -933,7 +933,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        printf("SSAO Framebuffer not complete!\n");
+        Console_Printf("SSAO Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.ssaoBlurFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
     glGenTextures(1, &g_renderer.ssaoBlurColorBuffer);
@@ -943,7 +943,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        printf("SSAO Blur Framebuffer not complete!\n");
+        Console_Printf("SSAO Blur Framebuffer not complete!\n");
     glUseProgram(g_renderer.ssaoShader);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gNormal"), 1);
@@ -974,11 +974,11 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
-    printf("------------------------------------------------------\n");
-    printf("Renderer Context Initialized:\n");
-    printf("  GPU: %s\n", (const char*)gpu);
-    printf("  OpenGL Version: %s\n", (const char*)gl_version);
-    printf("------------------------------------------------------\n");
+    Console_Printf("------------------------------------------------------\n");
+    Console_Printf("Renderer Context Initialized:\n");
+    Console_Printf("  GPU: %s\n", (const char*)gpu);
+    Console_Printf("  OpenGL Version: %s\n", (const char*)gl_version);
+    Console_Printf("------------------------------------------------------\n");
 }
 
 void init_scene() {
@@ -2634,7 +2634,11 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
     glBindVertexArray(0);
 }
 
+#ifdef PLATFORM_WINDOWS
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+#else
 int main(int argc, char* argv[]) {
+#endif
     SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -2649,7 +2653,7 @@ int main(int argc, char* argv[]) {
         SDL_GL_SetSwapInterval(0);
     }
     if (!GLEW_ARB_bindless_texture) {
-        fprintf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
+        Console_Printf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
         return -1;
     }

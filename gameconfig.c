@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "gameconfig.h"
+#include "gl_console.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -27,7 +28,7 @@ static GameConfig g_GameConfig;
 void GameConfig_Init(void) {
     FILE* file = fopen("gameconf.txt", "r");
     if (!file) {
-        printf("gameconf.txt not found.\n");
+        Console_Printf("gameconf.txt not found.\n");
         return;
     }
 

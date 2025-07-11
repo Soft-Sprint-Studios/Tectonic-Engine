@@ -299,14 +299,14 @@ void Network_Init(void) {
         exit(EXIT_FAILURE);
     }
 #endif
-    printf("Network System Initialized.\n");
+    Console_Printf("Network System Initialized.\n");
 }
 
 void Network_Shutdown(void) {
 #ifdef PLATFORM_WINDOWS
     WSACleanup();
 #endif
-    printf("Network System Shutdown.\n");
+    Console_Printf("Network System Shutdown.\n");
 }
 
 bool Network_DownloadFile(const char* url, const char* output_filepath) {

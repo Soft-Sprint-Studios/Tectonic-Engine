@@ -137,12 +137,12 @@ LoadedModel* Model_Load(const char* path) {
     }
     cgltf_options options = { 0 }; cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
-        printf("ModelLoader ERROR: Failed to parse %s. Returning error model.\n", path);
+        Console_Printf("ModelLoader ERROR: Failed to parse %s. Returning error model.\n", path);
         return g_ErrorModel;
     }
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
         cgltf_free(data);
-        printf("ModelLoader ERROR: Failed to load buffers for %s. Returning error model.\n", path);
+        Console_Printf("ModelLoader ERROR: Failed to load buffers for %s. Returning error model.\n", path);
         return g_ErrorModel;
     }
     LoadedModel* loadedModel = malloc(sizeof(LoadedModel));

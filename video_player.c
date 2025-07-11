@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "video_player.h"
+#include "gl_console.h"
 #include <stdio.h>
 #include <AL/al.h>
 #include "gl_misc.h"
@@ -56,7 +57,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     }
     vp->plm = plm_create_with_filename(vp->videoPath);
     if (!vp->plm) {
-        printf("Error loading video: %s\n", vp->videoPath);
+        Console_Printf("Error loading video: %s\n", vp->videoPath);
         return;
     }
 
