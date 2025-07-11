@@ -2645,7 +2645,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 int main(int argc, char* argv[]) {
 #endif
-    SDL_Init(SDL_INIT_VIDEO); 
 #ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
@@ -2657,7 +2656,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 #endif
-    IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
+    SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
