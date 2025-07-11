@@ -2646,6 +2646,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int main(int argc, char* argv[]) {
 #endif
     SDL_Init(SDL_INIT_VIDEO); 
+#ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
     GetModuleFileNameA(NULL, exePath, sizeof(exePath));
@@ -2653,9 +2654,9 @@ int main(int argc, char* argv[]) {
     readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
 #endif
     if (!Checksum_Verify(exePath)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Security Error", "Checksum verification failed. The game files may be modified or corrupt. The application will now exit.", NULL );
-        return 1;
+        return 0;
     }
+#endif
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);

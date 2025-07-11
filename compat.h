@@ -10,6 +10,7 @@
 #define COMPAT_H
 
 //#define GAME_RELEASE 1
+#define ENABLE_CHECKSUM 1
 
 #ifdef __cplusplus
     #include <cctype>
