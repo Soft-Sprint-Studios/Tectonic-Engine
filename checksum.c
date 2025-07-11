@@ -12,9 +12,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#ifdef PLATFORM_LINUX
-#include <dlfcn.h>
-#endif
 
 static uint32_t crc_table[256];
 static int table_initialized = 0;
@@ -71,20 +68,6 @@ bool Checksum_Verify(const char* exePath) {
     }
     fclose(file);
 
-#ifdef PLATFORM_WINDOWS
-    HMODULE hModule = GetModuleHandle(NULL);
-    const unsigned char* struct_in_memory = (const unsigned char*)&g_EmbeddedChecksum;
-    long memory_offset_of_struct = struct_in_memory - (const unsigned char*)hModule;
-#else
-    Dl_info info;
-    if (!dladdr((void*)&g_EmbeddedChecksum, &info)) {
-        free(buffer);
-        return false;
-    }
-    const unsigned char* struct_in_memory = (const unsigned char*)&g_EmbeddedChecksum;
-    long memory_offset_of_struct = struct_in_memory - (const unsigned char*)info.dli_fbase;
-#endif
-
     long checksumStructFileOffset = -1;
     for (long i = 0; i <= fileSize - (long)sizeof(EmbeddedChecksum); ++i) {
         if (memcmp(buffer + i, &g_EmbeddedChecksum.signature, sizeof(uint32_t)) == 0) {
@@ -113,6 +96,5 @@ bool Checksum_Verify(const char* exePath) {
         return false;
     }
 
-    Console_Printf("Checksum OK (0x%08X)\n", storedChecksum);
     return true;
 }
