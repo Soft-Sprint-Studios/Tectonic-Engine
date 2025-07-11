@@ -44,7 +44,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(ENGINE_SOURCES
-    binds.c cvar.c discord_wrapper.cpp dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c
+    binds.c cvar.c discord_wrapper.c dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
     mikktspace/mikktspace.c
 )

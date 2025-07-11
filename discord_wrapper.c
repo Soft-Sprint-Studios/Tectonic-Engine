@@ -6,7 +6,7 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
-#include "DiscordRPC/include/discord_rpc.h"
+#include <discord_rpc.h>
 #include "gl_console.h"
 #include <time.h>
 #include <string.h>
