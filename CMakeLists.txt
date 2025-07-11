@@ -44,12 +44,12 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(ENGINE_SOURCES
-    binds.c cvar.c discord_wrapper.c dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c
+    binds.c cvar.c discord_wrapper.c dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c checksum.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
     mikktspace/mikktspace.c
 )
 set(ENGINE_HEADERS
-    compat.h binds.h cvar.h discord_wrapper.h dsp_reverb.h editor.h editor_undo.h gameconfig.h gl_console.h gl_misc.h io_system.h main_menu.h map.h math_lib.h model_loader.h network.h particle_system.h physics_wrapper.h sound_system.h texturemanager.h video_player.h weapons.h sentry_wrapper.h
+    compat.h binds.h cvar.h discord_wrapper.h dsp_reverb.h editor.h editor_undo.h gameconfig.h gl_console.h gl_misc.h io_system.h main_menu.h map.h math_lib.h model_loader.h network.h particle_system.h physics_wrapper.h sound_system.h texturemanager.h video_player.h weapons.h sentry_wrapper.h checksum.h
 )
 
 add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
@@ -192,3 +192,14 @@ set_target_properties(Batchmodelimporter PROPERTIES CXX_STANDARD 17 CXX_STANDARD
 if(WIN32)
     target_link_options(Batchmodelimporter PRIVATE /subsystem:console)
 endif()
+
+add_executable(Patcher checksumpatcher.cpp)
+set_target_properties(Patcher PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
+add_custom_command(
+    TARGET TectonicEngine
+    POST_BUILD
+    COMMAND $<$<CONFIG:RELEASE>:${CMAKE_COMMAND}> -E env $<TARGET_FILE:Patcher> $<TARGET_FILE:TectonicEngine>
+    COMMENT "Patching executable with checksum..."
+    VERBATIM
+)
