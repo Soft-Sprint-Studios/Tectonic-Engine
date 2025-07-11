@@ -9,6 +9,8 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
+//#define GAME_RELEASE 1
+
 #ifdef __cplusplus
     #include <cctype>
 #else
