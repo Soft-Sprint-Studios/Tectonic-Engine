@@ -43,7 +43,7 @@ extern "C" {
 #define MAX_VPLS 4096
 #define VPL_GEN_TEXTURE_SIZE 512
 
-#define MAP_VERSION 5
+#define MAP_VERSION 6
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -214,6 +214,8 @@ typedef struct {
 typedef struct {
     char targetname[64];
     float mass;
+    float fadeStartDist;
+    float fadeEndDist;
     bool isPhysicsEnabled;
     bool swayEnabled;
     char modelPath[270];

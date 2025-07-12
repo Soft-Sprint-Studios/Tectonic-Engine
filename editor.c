@@ -4462,6 +4462,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Checkbox("Enable Tree Sway", &obj->swayEnabled);
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Toggle Model Sway"); }
+        UI_Separator();
+        UI_Text("Fading");
+        UI_DragFloat("Fade Start", &obj->fadeStartDist, 1.0f, 0.0f, 1000.0f);
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Edit Fade Distance"); }
+
+        UI_DragFloat("Fade End", &obj->fadeEndDist, 1.0f, 0.0f, 1000.0f);
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Edit Fade Distance"); }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes) {
         Brush* b = &scene->brushes[g_EditorState.selected_entity_index];

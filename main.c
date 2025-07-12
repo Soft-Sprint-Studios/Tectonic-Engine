@@ -224,6 +224,9 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
 
+    glUniform1f(glGetUniformLocation(shader, "u_fadeStartDist"), obj->fadeStartDist);
+    glUniform1f(glGetUniformLocation(shader, "u_fadeEndDist"), obj->fadeEndDist);
+
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), obj->swayEnabled);
     if (obj->model) {
