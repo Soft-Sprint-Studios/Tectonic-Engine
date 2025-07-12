@@ -640,6 +640,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     TextureManager_ParseMaterialsFromFile("materials.def");
     VideoPlayer_InitSystem();
     init_renderer();
+    DSP_Reverb_Thread_Init();
     init_scene();
     Discord_Init();
     Weapons_Init();
@@ -2384,6 +2385,7 @@ void cleanup() {
     IO_Shutdown();
     Binds_Shutdown();
     Cvar_Save("cvars.txt");
+    DSP_Reverb_Thread_Shutdown();
     Editor_Shutdown();
     Weapons_Shutdown();
     Network_Shutdown();

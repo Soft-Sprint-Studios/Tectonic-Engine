@@ -10,10 +10,15 @@
 #define DSP_REVERB_H
 
 #include <stdbool.h>
+#include <SDL_thread.h>
+#include <SDL_mutex.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    void DSP_Reverb_Thread_Init(void);
+    void DSP_Reverb_Thread_Shutdown(void);
 
     typedef enum {
         REVERB_PRESET_NONE,
@@ -46,4 +51,4 @@ extern "C" {
 }
 #endif
 
-#endif // DSP_REVERB_H
+#endif

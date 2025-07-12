@@ -10,6 +10,81 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <SDL_thread.h>
+#include <SDL_mutex.h>
+
+#define MAX_DSP_JOBS 16
+
+typedef struct {
+    const short* input;
+    int num_samples;
+    int sample_rate;
+    const ReverbSettings* settings;
+    bool wet_only;
+    ProcessedAudio* result_target;
+    SDL_sem* completion_sem;
+} DSP_Job;
+
+static DSP_Job g_dsp_job_queue[MAX_DSP_JOBS];
+static int g_dsp_job_queue_head = 0;
+static int g_dsp_job_queue_tail = 0;
+static int g_dsp_job_count = 0;
+
+static SDL_Thread* g_dsp_thread = NULL;
+static SDL_mutex* g_dsp_queue_mutex = NULL;
+static SDL_sem* g_dsp_jobs_available_sem = NULL;
+static volatile bool g_dsp_thread_running = false;
+
+static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
+
+static int DSP_Thread_Worker(void* data) {
+    (void)data;
+    while (g_dsp_thread_running) {
+        SDL_SemWait(g_dsp_jobs_available_sem);
+        if (!g_dsp_thread_running) break;
+
+        SDL_LockMutex(g_dsp_queue_mutex);
+        if (g_dsp_job_count == 0) {
+            SDL_UnlockMutex(g_dsp_queue_mutex);
+            continue;
+        }
+
+        DSP_Job job = g_dsp_job_queue[g_dsp_job_queue_tail];
+        g_dsp_job_queue_tail = (g_dsp_job_queue_tail + 1) % MAX_DSP_JOBS;
+        g_dsp_job_count--;
+        SDL_UnlockMutex(g_dsp_queue_mutex);
+
+        *(job.result_target) = DSP_Reverb_Process_Internal(job.input, job.num_samples, job.sample_rate, job.settings, job.wet_only);
+
+        SDL_SemPost(job.completion_sem);
+    }
+    return 0;
+}
+
+void DSP_Reverb_Thread_Init(void) {
+    if (g_dsp_thread) return;
+
+    g_dsp_queue_mutex = SDL_CreateMutex();
+    g_dsp_jobs_available_sem = SDL_CreateSemaphore(0);
+    g_dsp_thread_running = true;
+
+    g_dsp_thread = SDL_CreateThread(DSP_Thread_Worker, "DSPThread", NULL);
+}
+
+void DSP_Reverb_Thread_Shutdown(void) {
+    if (!g_dsp_thread) return;
+
+    g_dsp_thread_running = false;
+    SDL_SemPost(g_dsp_jobs_available_sem);
+    SDL_WaitThread(g_dsp_thread, NULL);
+
+    SDL_DestroyMutex(g_dsp_queue_mutex);
+    SDL_DestroySemaphore(g_dsp_jobs_available_sem);
+
+    g_dsp_thread = NULL;
+    g_dsp_queue_mutex = NULL;
+    g_dsp_jobs_available_sem = NULL;
+}
 
 #define REVERB_TAIL_SECONDS 5.0f
 
@@ -192,12 +267,12 @@ ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset) {
     return s;
 }
 
-ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
+static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
     ProcessedAudio result = { NULL, 0 };
     if (!input || num_samples <= 0) return result;
 
-    int tail_samples = (int)(sample_rate * REVERB_TAIL_SECONDS); \
-        int total_samples = num_samples + tail_samples;
+    int tail_samples = (int)(sample_rate * REVERB_TAIL_SECONDS);
+    int total_samples = num_samples + tail_samples;
 
     float* padded_input_float = (float*)malloc(total_samples * sizeof(float));
     float* output_float = (float*)malloc(total_samples * sizeof(float));
@@ -234,5 +309,46 @@ ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sampl
 
     result.data = output_short;
     result.num_samples = total_samples;
+    return result;
+}
+
+ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
+    if (!g_dsp_thread) {
+        return DSP_Reverb_Process_Internal(input, num_samples, sample_rate, settings, wet_only);
+    }
+
+    SDL_sem* completion_sem = SDL_CreateSemaphore(0);
+    if (!completion_sem) {
+        return (ProcessedAudio) { NULL, 0 };
+    }
+
+    ProcessedAudio result = { NULL, 0 };
+
+    SDL_LockMutex(g_dsp_queue_mutex);
+    if (g_dsp_job_count >= MAX_DSP_JOBS) {
+        SDL_UnlockMutex(g_dsp_queue_mutex);
+        SDL_DestroySemaphore(completion_sem);
+        return result;
+    }
+
+    DSP_Job* job = &g_dsp_job_queue[g_dsp_job_queue_head];
+    job->input = input;
+    job->num_samples = num_samples;
+    job->sample_rate = sample_rate;
+    job->settings = settings;
+    job->wet_only = wet_only;
+    job->result_target = &result;
+    job->completion_sem = completion_sem;
+
+    g_dsp_job_queue_head = (g_dsp_job_queue_head + 1) % MAX_DSP_JOBS;
+    g_dsp_job_count++;
+    SDL_UnlockMutex(g_dsp_queue_mutex);
+
+    SDL_SemPost(g_dsp_jobs_available_sem);
+
+    SDL_SemWait(completion_sem);
+
+    SDL_DestroySemaphore(completion_sem);
+
     return result;
 }
