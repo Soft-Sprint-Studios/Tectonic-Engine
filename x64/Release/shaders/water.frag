@@ -184,7 +184,9 @@ void main() {
         }
     }
 
-    float brightness = 0.5;
-    vec3 finalColor = brightness * (baseWaterColor + diffuse / 5.0 + specular / 5.0 + ambient);
+    vec3 blueTint = vec3(0.0, 0.05, 0.1);
+    vec3 finalColor = baseWaterColor / 0.9 + diffuse / 4.0 + specular / 4.0 + ambient;
+    finalColor = mix(finalColor, finalColor + blueTint, 0.25); 
+
     fragColor = vec4(finalColor, 0.85);
 }
