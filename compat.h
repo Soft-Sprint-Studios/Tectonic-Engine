@@ -71,7 +71,6 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
-#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
 static const char* _stristr(const char* haystack, const char* needle) {
     if (!needle || !*needle) {
         return haystack;
@@ -91,9 +90,7 @@ static const char* _stristr(const char* haystack, const char* needle) {
     }
     return NULL;
 }
-#endif
 
-#ifdef DISABLE_DEBUGGER
 static bool CheckForDebugger(void) {
 #ifdef PLATFORM_WINDOWS
     return IsDebuggerPresent();
@@ -115,6 +112,5 @@ static bool CheckForDebugger(void) {
     return false;
 #endif
 }
-#endif
 
 #endif // COMPAT_H
