@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include "cvar.h"
+#include "commands.h"
 #include "gl_console.h"
 #include "gl_misc.h"
 #include "map.h"
@@ -395,195 +396,178 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
 }
 
 void handle_command(int argc, char** argv) {
-    if (argc == 0) return;
-    char* cmd = argv[0];
-    if (_stricmp(cmd, "edit") == 0) {
-        if (g_current_mode == MODE_GAME) {
-            g_current_mode = MODE_EDITOR; SDL_SetRelativeMouseMode(SDL_FALSE); Editor_Init(g_engine, &g_renderer, &g_scene);
-        }
-        else { g_current_mode = MODE_GAME; Editor_Shutdown(); SDL_SetRelativeMouseMode(SDL_TRUE); }
+    Commands_Execute(argc, argv);
+}
+
+void Cmd_Edit(int argc, char** argv) {
+    if (g_current_mode == MODE_GAME) {
+        g_current_mode = MODE_EDITOR; SDL_SetRelativeMouseMode(SDL_FALSE); Editor_Init(g_engine, &g_renderer, &g_scene);
     }
-    else if (_stricmp(cmd, "quit") == 0 || _stricmp(cmd, "exit") == 0) Cvar_EngineSet("engine_running", "0");
-    else if (_stricmp(cmd, "setpos") == 0) {
-        if (argc == 4) {
-            float x = atof(argv[1]);
-            float y = atof(argv[2]);
-            float z = atof(argv[3]);
-            Vec3 new_pos = { x, y, z };
+    else { g_current_mode = MODE_GAME; Editor_Shutdown(); SDL_SetRelativeMouseMode(SDL_TRUE); }
+}
 
-            if (g_engine->camera.physicsBody) {
-                Physics_Teleport(g_engine->camera.physicsBody, new_pos);
-            }
-            g_engine->camera.position = new_pos;
+void Cmd_Quit(int argc, char** argv) {
+    Cvar_EngineSet("engine_running", "0");
+}
 
-            Console_Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
+void Cmd_SetPos(int argc, char** argv) {
+    if (argc == 4) {
+        float x = atof(argv[1]);
+        float y = atof(argv[2]);
+        float z = atof(argv[3]);
+        Vec3 new_pos = { x, y, z };
+        if (g_engine->camera.physicsBody) {
+            Physics_Teleport(g_engine->camera.physicsBody, new_pos);
+        }
+        g_engine->camera.position = new_pos;
+        Console_Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
+    }
+    else {
+        Console_Printf("Usage: setpos <x> <y> <z>");
+    }
+}
+
+void Cmd_Noclip(int argc, char** argv) {
+    Cvar* c = Cvar_Find("noclip");
+    if (c) {
+        bool currently_noclip = c->intValue;
+        Cvar_Set("noclip", currently_noclip ? "0" : "1");
+        Console_Printf("noclip %s", Cvar_GetString("noclip"));
+        if (currently_noclip) {
+            Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position);
+        }
+    }
+}
+
+void Cmd_Bind(int argc, char** argv) {
+    if (argc == 3) {
+        Binds_Set(argv[1], argv[2]);
+    }
+    else {
+        Console_Printf("Usage: bind \"key\" \"command\"");
+    }
+}
+
+void Cmd_Unbind(int argc, char** argv) {
+    if (argc == 2) {
+        Binds_Unset(argv[1]);
+    }
+    else {
+        Console_Printf("Usage: unbind \"key\"");
+    }
+}
+
+void Cmd_Map(int argc, char** argv) {
+    if (argc == 2) {
+        g_current_mode = MODE_MAINMENU;
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        char map_path[256];
+        snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
+        Console_Printf("Loading map: %s", map_path);
+        if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
+            g_current_mode = MODE_GAME;
+            SDL_SetRelativeMouseMode(SDL_TRUE);
         }
         else {
-            Console_Printf("Usage: setpos <x> <y> <z>");
+            Console_Printf("[error] Failed to load map: %s", map_path);
         }
     }
-    else if (_stricmp(cmd, "noclip") == 0) {
-        Cvar* c = Cvar_Find("noclip");
-        if (c) {
-            bool currently_noclip = c->intValue;
-            Cvar_Set("noclip", currently_noclip ? "0" : "1"); Console_Printf("noclip %s", Cvar_GetString("noclip"));
-            if (currently_noclip) { Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position); }
-        }
+    else {
+        Console_Printf("Usage: map <mapname>");
     }
-    else if (_stricmp(cmd, "bind") == 0) {
-        if (argc == 3) {
-            Binds_Set(argv[1], argv[2]);
-        }
-        else {
-            Console_Printf("Usage: bind \"key\" \"command\"");
-        }
-    }
-    else if (_stricmp(cmd, "unbind") == 0) {
-        if (argc == 2) {
-            Binds_Unset(argv[1]);
-        }
-        else {
-            Console_Printf("Usage: unbind \"key\"");
-        }
-    }
-    else if (_stricmp(cmd, "map") == 0) {
-        if (argc == 2) {
-            g_current_mode = MODE_MAINMENU;
-            SDL_SetRelativeMouseMode(SDL_FALSE);
+}
 
-            char map_path[256];
-            snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
-
-            Console_Printf("Loading map: %s", map_path);
-            if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
-                g_current_mode = MODE_GAME;
-                SDL_SetRelativeMouseMode(SDL_TRUE);
-            }
-            else {
-                Console_Printf("[error] Failed to load map: %s", map_path);
-            }
-        }
-        else {
-            Console_Printf("Usage: map <mapname>");
-        }
-    }
-    else if (_stricmp(cmd, "maps") == 0) {
-        const char* dir_path = "./";
-        Console_Printf("Available maps in root directory:");
-
+void Cmd_Maps(int argc, char** argv) {
+    const char* dir_path = "./";
+    Console_Printf("Available maps in root directory:");
 #ifdef PLATFORM_WINDOWS
-        char search_path[256];
-        sprintf(search_path, "%s*.map", dir_path);
-        WIN32_FIND_DATAA find_data;
-        HANDLE h_find = FindFirstFileA(search_path, &find_data);
-        if (h_find == INVALID_HANDLE_VALUE) {
+    char search_path[256];
+    sprintf(search_path, "%s*.map", dir_path);
+    WIN32_FIND_DATAA find_data;
+    HANDLE h_find = FindFirstFileA(search_path, &find_data);
+    if (h_find == INVALID_HANDLE_VALUE) {
+        Console_Printf("...No maps found.");
+    }
+    else {
+        do {
+            if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                Console_Printf("  %s", find_data.cFileName);
+            }
+        } while (FindNextFileA(h_find, &find_data) != 0);
+        FindClose(h_find);
+    }
+#else
+    DIR* d = opendir(dir_path);
+    if (!d) {
+        Console_Printf("...Could not open directory.");
+    }
+    else {
+        struct dirent* dir;
+        int count = 0;
+        while ((dir = readdir(d)) != NULL) {
+            const char* ext = strrchr(dir->d_name, '.');
+            if (ext && (_stricmp(ext, ".map") == 0)) {
+                Console_Printf("  %s", dir->d_name);
+                count++;
+            }
+        }
+        if (count == 0) {
             Console_Printf("...No maps found.");
         }
-        else {
-            do {
-                if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-                    Console_Printf("  %s", find_data.cFileName);
-                }
-            } while (FindNextFileA(h_find, &find_data) != 0);
-            FindClose(h_find);
-        }
-#else
-        DIR* d = opendir(dir_path);
-        if (!d) {
-            Console_Printf("...Could not open directory.");
-        }
-        else {
-            struct dirent* dir;
-            int count = 0;
-            while ((dir = readdir(d)) != NULL) {
-                const char* ext = strrchr(dir->d_name, '.');
-                if (ext && (_stricmp(ext, ".map") == 0)) {
-                    Console_Printf("  %s", dir->d_name);
-                    count++;
-                }
-            }
-            if (count == 0) {
-                Console_Printf("...No maps found.");
-            }
-            closedir(d);
-        }
+        closedir(d);
+    }
 #endif
+}
+
+void Cmd_Disconnect(int argc, char** argv) {
+    if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
+        Console_Printf("Disconnecting from map...");
+        g_current_mode = MODE_MAINMENU;
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        if (g_is_editor_mode) {
+            Editor_Shutdown();
+        }
+        Scene_Clear(&g_scene, g_engine);
+        MainMenu_SetInGameMenuMode(false, false);
     }
-    else if (_stricmp(cmd, "disconnect") == 0) {
-        if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
-            Console_Printf("Disconnecting from map...");
-            g_current_mode = MODE_MAINMENU;
+    else {
+        Console_Printf("Not currently in a map.");
+    }
+}
 
-            SDL_SetRelativeMouseMode(SDL_FALSE);
-
-            if (g_is_editor_mode) {
-                Editor_Shutdown();
-            }
-
-            Scene_Clear(&g_scene, g_engine);
-            MainMenu_SetInGameMenuMode(false, false);
-
+void Cmd_Download(int argc, char** argv) {
+    if (argc == 2 && strncmp(argv[1], "http", 4) == 0) {
+        const char* url = argv[1];
+        const char* filename_start = strrchr(url, '/');
+        if (filename_start) {
+            filename_start++;
         }
         else {
-            Console_Printf("Not currently in a map.");
+            filename_start = url;
         }
+        _mkdir("downloads");
+        char output_path[256];
+        snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);
+        Console_Printf("Starting download for %s...", url);
+        Network_DownloadFile(url, output_path);
     }
-    else if (_stricmp(cmd, "download") == 0) {
-        if (argc == 2 && strncmp(argv[1], "http", 4) == 0) {
-            const char* url = argv[1];
-            const char* filename_start = strrchr(url, '/');
-            if (filename_start) {
-                filename_start++;
-            }
-            else {
-                filename_start = url;
-            }
+    else {
+        Console_Printf("Usage: download http://... or https://...");
+    }
+}
 
-            _mkdir("downloads");
+void Cmd_Ping(int argc, char** argv) {
+    if (argc == 2) {
+        Console_Printf("Pinging %s...", argv[1]);
+        Network_Ping(argv[1]);
+    }
+    else {
+        Console_Printf("Usage: ping <hostname>");
+    }
+}
 
-            char output_path[256];
-            snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);
-
-            Console_Printf("Starting download for %s...", url);
-            Network_DownloadFile(url, output_path);
-        }
-        else {
-            Console_Printf("Usage: download http://... or https://...");
-        }
-    }
-    else if (_stricmp(cmd, "ping") == 0) {
-        if (argc == 2) {
-            Console_Printf("Pinging %s...", argv[1]);
-            Network_Ping(argv[1]);
-        }
-        else {
-            Console_Printf("Usage: ping <hostname>");
-        }
-    }
-    else if (_stricmp(cmd, "cvarlist") == 0) {
-        Console_Printf("--- CVAR List ---");
-        for (int i = 0; i < num_cvars; i++) {
-            Cvar* c = &cvar_list[i];
-            if (c->flags & CVAR_HIDDEN) {
-                continue;
-            }
-            Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
-        }
-        Console_Printf("-----------------");
-    }
-    else if (_stricmp(cmd, "build_cubemaps") == 0) {
-        BuildCubemaps();
-    }
-    else if (argc >= 2) { if (Cvar_Find(cmd)) Cvar_Set(cmd, argv[1]); else Console_Printf("[error] Unknown cvar: %s", cmd); }
-    else if (argc == 1) {
-        Cvar* c = Cvar_Find(cmd);
-        if (c && !(c->flags & CVAR_HIDDEN)) {
-            Console_Printf("%s = %s // %s", c->name, c->stringValue, c->helpText);
-        }
-        else {
-            Console_Printf("[error] Unknown cvar: %s", cmd);
-        }
-    }
+void Cmd_BuildCubemaps(int argc, char** argv) {
+    BuildCubemaps();
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
@@ -640,11 +624,12 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
+    Commands_Init();
     Sentry_Init();
     Network_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
-    Console_SetCommandHandler(handle_command);
+    Console_SetCommandHandler(Commands_Execute);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
     VideoPlayer_InitSystem();
@@ -2400,6 +2385,7 @@ void cleanup() {
     SoundSystem_Shutdown();
     IO_Shutdown();
     Binds_Shutdown();
+    Commands_Shutdown();
     Cvar_Save("cvars.txt");
     DSP_Reverb_Thread_Shutdown();
     Editor_Shutdown();
