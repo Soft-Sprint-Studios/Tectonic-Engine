@@ -47,6 +47,7 @@ IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const cha
     strncpy(conn->outputName, output, 63);
     conn->targetName[0] = '\0';
     conn->inputName[0] = '\0';
+    conn->parameter[0] = '\0';
     conn->delay = 0.0f;
     conn->fireOnce = false;
     conn->hasFired = false;
@@ -80,7 +81,7 @@ static float rand_float_range(float min, float max) {
     return min + (rand() / (float)RAND_MAX) * (max - min);
 }
 
-void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime) {
+void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter) {
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
         if (conn->active && conn->sourceType == sourceType && conn->sourceIndex == sourceIndex && strcmp(conn->outputName, outputName) == 0) {
@@ -97,6 +98,13 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
             event->active = true;
             strncpy(event->targetName, conn->targetName, 63);
             strncpy(event->inputName, conn->inputName, 63);
+            if (parameter) {
+                strncpy(event->parameter, parameter, 63);
+            }
+            else {
+                strncpy(event->parameter, conn->parameter, 63);
+            }
+            event->parameter[63] = '\0';
             event->executionTime = currentTime + conn->delay;
 
             conn->hasFired = true;
@@ -104,7 +112,28 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
     }
 }
 
-void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, Engine* engine) {
+void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
+    for (int i = 0; i < g_num_pending_events; ++i) {
+        PendingEvent* event = &g_pending_events[i];
+        if (event->active && currentTime >= event->executionTime) {
+            ExecuteInput(event->targetName, event->inputName, event->parameter, scene, engine);
+            event->active = false;
+        }
+    }
+
+    int write_idx = 0;
+    for (int read_idx = 0; read_idx < g_num_pending_events; ++read_idx) {
+        if (g_pending_events[read_idx].active) {
+            if (write_idx != read_idx) {
+                g_pending_events[write_idx] = g_pending_events[read_idx];
+            }
+            write_idx++;
+        }
+    }
+    g_num_pending_events = write_idx;
+}
+
+void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine) {
     for (int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].targetname, targetName) == 0) {
             LogicEntity* ent = &scene->logicEntities[i];
@@ -128,19 +157,31 @@ void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, E
             else if (strcmp(ent->classname, "math_counter") == 0) {
                 int min = atoi(LogicEntity_GetProperty(ent, "min", "0"));
                 int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));
+                int value = (parameter && strlen(parameter) > 0) ? atoi(parameter) : 1;
 
                 if (strcmp(inputName, "Add") == 0) {
-                    ent->runtime_float_a += 1.0f;
+                    ent->runtime_float_a += value;
                 }
                 else if (strcmp(inputName, "Subtract") == 0) {
-                    ent->runtime_float_a -= 1.0f;
+                    ent->runtime_float_a -= value;
+                }
+                else if (strcmp(inputName, "Multiply") == 0) {
+                    ent->runtime_float_a *= value;
+                }
+                else if (strcmp(inputName, "Divide") == 0) {
+                    if (value != 0) {
+                        ent->runtime_float_a /= value;
+                    }
+                    else {
+                        Console_Printf("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
+                    }
                 }
 
                 if (max != 0 && ent->runtime_float_a >= max) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, NULL);
                 }
                 if (min != 0 && ent->runtime_float_a <= min) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0, NULL);
                 }
             }
             else if (strcmp(ent->classname, "logic_random") == 0) {
@@ -233,27 +274,6 @@ void ExecuteInput(const char* targetName, const char* inputName, Scene* scene, E
     }
 }
 
-void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
-    for (int i = 0; i < g_num_pending_events; ++i) {
-        PendingEvent* event = &g_pending_events[i];
-        if (event->active && currentTime >= event->executionTime) {
-            ExecuteInput(event->targetName, event->inputName, scene, engine);
-            event->active = false;
-        }
-    }
-
-    int write_idx = 0;
-    for (int read_idx = 0; read_idx < g_num_pending_events; ++read_idx) {
-        if (g_pending_events[read_idx].active) {
-            if (write_idx != read_idx) {
-                g_pending_events[write_idx] = g_pending_events[read_idx];
-            }
-            write_idx++;
-        }
-    }
-    g_num_pending_events = write_idx;
-}
-
 const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
     for (int i = 0; i < ent->numProperties; ++i) {
         if (strcmp(ent->properties[i].key, key) == 0) {
@@ -270,7 +290,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             if (ent->runtime_active) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0, NULL);
 
                     const char* repeat_val = LogicEntity_GetProperty(ent, "repeat", "1");
                     int repeat = atoi(repeat_val);
@@ -289,7 +309,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             if (ent->runtime_active) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0, NULL);
                     const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
                     const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                     ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));

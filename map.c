@@ -1299,9 +1299,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 IOConnection* conn = &g_io_connections[g_num_io_connections];
                 conn->active = true;
                 conn->hasFired = false;
+                conn->parameter[0] = '\0';
                 int type_int;
                 int fire_once_int;
-                sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int);
+                sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d \"%63[^\"]\"", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int, conn->parameter);
                 conn->sourceType = (EntityType)type_int;
                 conn->fireOnce = (bool)fire_once_int;
                 g_num_io_connections++;
@@ -1499,7 +1500,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
         if (conn->active) {
-            fprintf(file, "io_connection %d %d \"%s\" \"%s\" \"%s\" %.4f %d\n", (int)conn->sourceType, conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, conn->delay, (int)conn->fireOnce);
+            fprintf(file, "io_connection %d %d \"%s\" \"%s\" \"%s\" %.4f %d \"%s\"\n", (int)conn->sourceType, conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, conn->delay, (int)conn->fireOnce, conn->parameter);
         }
     }
     fclose(file);

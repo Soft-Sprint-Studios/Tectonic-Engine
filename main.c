@@ -1071,7 +1071,7 @@ void process_input() {
                             brush_local_min,
                             brush_local_max,
                             &t) && t < 3.0f) {
-                            IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame);
+                            IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, NULL);
                         }
                     }
                 }
@@ -1350,11 +1350,11 @@ void update_state() {
 
         if (is_inside && !b->playerIsTouching) {
             b->playerIsTouching = true;
-            IO_FireOutput(ENTITY_BRUSH, i, "OnTouch", g_engine->lastFrame);
+            IO_FireOutput(ENTITY_BRUSH, i, "OnTouch", g_engine->lastFrame, NULL);
         }
         else if (!is_inside && b->playerIsTouching) {
             b->playerIsTouching = false;
-            IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame);
+            IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, NULL);
         }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };

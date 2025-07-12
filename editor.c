@@ -3660,6 +3660,7 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                         strcpy(target_buf, conn->targetName); strcpy(input_buf, conn->inputName);
                         UI_InputText("Target Name##k", target_buf, 64); strcpy(conn->targetName, target_buf);
                         UI_InputText("Input Name##k", input_buf, 64); strcpy(conn->inputName, input_buf);
+                        UI_InputText("Parameter##k", conn->parameter, 64);
                         UI_DragFloat("Delay##k", &conn->delay, 0.1f, 0.0f, 300.0f);
                         UI_Selectable("Fire Once##k", &conn->fireOnce);
                         char delete_label[32]; sprintf(delete_label, "[X]##conn%d", k);
