@@ -2726,7 +2726,6 @@ int main(int argc, char* argv[]) {
         SDL_GL_SetSwapInterval(0);
     }
     if (!GLEW_ARB_bindless_texture) {
-        Console_Printf(stderr, "FATAL ERROR: GL_ARB_bindless_texture is not supported by your GPU/drivers.\n");
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
         return -1;
     }
