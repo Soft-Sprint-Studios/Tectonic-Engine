@@ -1,18 +1,21 @@
 #version 450 core
 #extension GL_ARB_bindless_texture : require
 
-out vec4 FragColor;
+const float Eta = 0.15;
 
-in TES_OUT {
-    vec3 WorldPos;
-    vec3 Normal;
-    vec2 TexCoords;
-    vec4 FragPosSunLightSpace;
-} fs_in;
+out vec4 fragColor;
 
+in vec3 v_incident;
+in vec3 v_bitangent;
+in vec3 v_normal;
+in vec3 v_tangent;
+in vec2 v_texCoord;
+in vec4 FragPosSunLightSpace;
+in vec3 FragPos_world;
+
+uniform samplerCube reflectionMap;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
-uniform samplerCube reflectionMap;
 uniform sampler2D sunShadowMap;
 
 struct ShaderLight {
@@ -46,7 +49,6 @@ uniform int numActiveLights;
 uniform Sun sun;
 uniform Flashlight flashlight;
 uniform vec3 viewPos;
-uniform vec3 cameraPosition;
 uniform float time;
 uniform float waveStrength = 0.02;
 uniform float normalTiling1 = 2.0;
@@ -85,115 +87,104 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 }
 
 void main() {
-    vec2 normalScroll1 = fs_in.TexCoords * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8);
-    vec3 totalNormalDistortion = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
+    vec2 distortion = (texture(dudvMap, v_texCoord * 4.0 + vec2(time * dudvMoveSpeed, 0)).rg * 2.0 - 1.0) * waveStrength;
+    vec2 normalScroll1 = v_texCoord * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8) + distortion;
+    vec3 normalFromMap = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
+    
+    mat3 TBN = mat3(v_tangent, v_bitangent, v_normal);
+    vec3 N = normalize(TBN * normalFromMap);
 
-    vec3 geoNormal = normalize(fs_in.Normal);
-    vec3 tangent = normalize(cross(vec3(0.0, 0.0, 1.0), geoNormal));
-    if (length(tangent) < 0.1) tangent = normalize(cross(vec3(1.0, 0.0, 0.0), geoNormal));
-    vec3 bitangent = cross(geoNormal, tangent);
-    mat3 TBN = mat3(tangent, bitangent, geoNormal);
-    vec3 N = normalize(TBN * totalNormalDistortion);
-    vec3 V = normalize(viewPos - fs_in.WorldPos);
+    vec3 V = normalize(viewPos - FragPos_world);
+    vec3 worldIncident = -V;
 
-    vec3 baseColor = vec3(0.0, 0.2, 0.3);
+    vec3 refractionVec = refract(worldIncident, N, Eta);
+    vec3 reflectionVec = reflect(worldIncident, N);
 
-    vec3 ambient = 0.1 * baseColor;
+    if (useParallaxCorrection) {
+        reflectionVec = ParallaxCorrect(reflectionVec, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
+    }
+    
+    vec3 refractionColor = texture(reflectionMap, refractionVec).rgb;
+    vec3 reflectionColor = texture(reflectionMap, reflectionVec).rgb;
+    
+    float fresnel = Eta + (1.0 - Eta) * pow(max(0.0, 1.0 - dot(V, N)), 5.0);
+                
+    vec3 baseWaterColor = mix(refractionColor, reflectionColor, fresnel);
 
+    vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-
     float shininess = 32.0;
-    float specularStrength = 0.5;
+    float specularStrength = 0.8;
 
     if (sun.enabled) {
         vec3 L = normalize(-sun.direction);
         float NdotL = max(dot(N, L), 0.0);
-        float shadow = calculateSunShadow(fs_in.FragPosSunLightSpace, N, L);
+        float shadow = calculateSunShadow(FragPosSunLightSpace, N, L);
         diffuse += sun.color * sun.intensity * NdotL * (1.0 - shadow);
         if (NdotL > 0.0) {
             vec3 R = reflect(-L, N);
             float RdotV = max(dot(R, V), 0.0);
-            float spec = pow(RdotV, shininess);
-            specular += sun.color * sun.intensity * specularStrength * spec * (1.0 - shadow);
+            specular += sun.color * sun.intensity * specularStrength * pow(RdotV, shininess) * (1.0 - shadow);
         }
     }
 
     for (int i = 0; i < numActiveLights; ++i) {
         vec3 lightPos = lights[i].position.xyz;
         float lightType = lights[i].position.w;
-        vec3 L = normalize(lightPos - fs_in.WorldPos);
+        vec3 L = normalize(lightPos - FragPos_world);
         float NdotL = max(dot(N, L), 0.0);
-        float distance = length(lightPos - fs_in.WorldPos);
+        float distance = length(lightPos - FragPos_world);
         float attenuation = 0.0;
 
         if (lightType == 0) {
             float radius = lights[i].params1.x;
-            float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
-            attenuation = radiusFalloff / (distance * distance + 1.0);
+            attenuation = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0) / (distance * distance + 1.0);
         } else {
             float lightCutOff = lights[i].params1.y;
             float lightOuterCutOff = lights[i].params1.z;
             vec3 lightDir = lights[i].direction.xyz;
             float theta = dot(L, -lightDir);
             if (theta > lightOuterCutOff) {
-                float cone_intensity = clamp((theta - lightOuterCutOff) / (lightCutOff - lightOuterCutOff), 0.0, 1.0);
+                float epsilon = lightCutOff - lightOuterCutOff;
+                float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
                 float radius = lights[i].params1.x;
-                float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
-                attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
+                attenuation = cone_intensity * pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0) / (distance * distance + 1.0);
             }
         }
 
         if (attenuation > 0.0) {
             vec3 lightColor = lights[i].color.rgb;
             float lightIntensity = lights[i].color.a;
-
             diffuse += lightColor * lightIntensity * NdotL * attenuation;
-
             if (NdotL > 0.0) {
                 vec3 R = reflect(-L, N);
                 float RdotV = max(dot(R, V), 0.0);
-                float spec = pow(RdotV, shininess);
-                specular += lightColor * lightIntensity * specularStrength * spec * attenuation;
+                specular += lightColor * lightIntensity * specularStrength * pow(RdotV, shininess) * attenuation;
             }
         }
     }
-
+    
     if (flashlight.enabled) {
-        vec3 L = normalize(flashlight.position - fs_in.WorldPos);
-        vec3 H = normalize(L + V);
+        vec3 L = normalize(flashlight.position - FragPos_world);
         float NdotL = max(dot(N, L), 0.0);
-        float distance = length(flashlight.position - fs_in.WorldPos);
+        float distance = length(flashlight.position - FragPos_world);
         float attenuation = pow(max(0.0, 1.0 - distance / 35.0), 2.0);
         float theta = dot(L, -flashlight.direction);
         float innerCutOff = cos(radians(12.5));
         float outerCutOff = cos(radians(17.5));
         if (theta > outerCutOff) {
-            float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
-            diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
-            if (NdotL > 0.0) {
-                vec3 R = reflect(-L, N);
-                float RdotV = max(dot(R, V), 0.0);
-                float spec = pow(RdotV, shininess);
-                specular += vec3(1.0) * 3.0 * specularStrength * spec * attenuation * cone_intensity;
-            }
+             float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
+             diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
+             if (NdotL > 0.0) {
+                 vec3 R = reflect(-L, N);
+                 float RdotV = max(dot(R, V), 0.0);
+                 specular += vec3(1.0) * 3.0 * specularStrength * pow(RdotV, shininess) * attenuation * cone_intensity;
+             }
         }
     }
 
-    vec2 dudvScroll = fs_in.TexCoords * 4.0 + vec2(time * dudvMoveSpeed, time * -dudvMoveSpeed);
-    vec2 distortion = (texture(dudvMap, dudvScroll).rg * 2.0 - 1.0) * waveStrength;
-
-    vec3 reflectDir = reflect(-V, N);
-    if (useParallaxCorrection) reflectDir = ParallaxCorrect(reflectDir, fs_in.WorldPos, probeBoxMin, probeBoxMax, probePosition);
-    reflectDir.xy += distortion;
-
-    vec3 reflectionColor = texture(reflectionMap, reflectDir).rgb;
-
-    float fresnelFactor = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
-
-    vec3 litWaterColor = ambient + baseColor * diffuse + specular;
-
-    vec3 finalColor = mix(litWaterColor, reflectionColor, fresnelFactor);
-
-    FragColor = vec4(finalColor, 0.85);
+    float brightness = 0.5;
+    vec3 finalColor = brightness * (baseWaterColor + diffuse / 5.0 + specular / 5.0 + ambient);
+    fragColor = vec4(finalColor, 0.85);
 }

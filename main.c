@@ -679,7 +679,7 @@ void init_renderer() {
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
-    g_renderer.waterShader = createShaderProgramTess("shaders/water.vert", "shaders/water.tcs", "shaders/water.tes", "shaders/water.frag");
+    g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
@@ -1891,9 +1891,8 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
         glBindTexture(GL_TEXTURE_CUBE_MAP, reflectionTex);
 
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-        glPatchParameteri(GL_PATCH_VERTICES, 3);
         glBindVertexArray(b->vao);
-        glDrawArrays(GL_PATCHES, 0, b->totalRenderVertexCount);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }
     glBindVertexArray(0);
 }
