@@ -2535,14 +2535,6 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
 
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    unsigned char* temp_row = (unsigned char*)malloc(width * 4);
-    for (int y = 0; y < height / 2; ++y) {
-        memcpy(temp_row, pixels + y * width * 4, width * 4);
-        memcpy(pixels + y * width * 4, pixels + (height - 1 - y) * width * 4, width * 4);
-        memcpy(pixels + (height - 1 - y) * width * 4, temp_row, width * 4);
-    }
-    free(temp_row);
-
     SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height, 32, width * 4,
         0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
