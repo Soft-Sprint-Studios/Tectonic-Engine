@@ -1960,7 +1960,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
 
             shader_lights[i].params2.x = light->shadowFarPlane;
             shader_lights[i].params2.y = light->shadowBias;
-            shader_lights[i].params2.z = light->volumetricIntensity;
+            shader_lights[i].params2.z = light->volumetricIntensity / 100.0f;
 
             shader_lights[i].shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
             shader_lights[i].shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
@@ -2139,7 +2139,7 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
         glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.direction"), 1, &g_scene.sun.direction.x);
         glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.color"), 1, &g_scene.sun.color.x);
         glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.intensity"), g_scene.sun.intensity);
-        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.volumetricIntensity"), g_scene.sun.volumetricIntensity);
+        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.volumetricIntensity"), g_scene.sun.volumetricIntensity / 100.0f);
     }
 
     glActiveTexture(GL_TEXTURE0);
