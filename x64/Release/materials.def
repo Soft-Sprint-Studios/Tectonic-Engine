@@ -1,3 +1,7 @@
+"nodraw"
+{
+}
+
 "dev01"
 {
     diffuse  = "dev01.png"
