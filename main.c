@@ -1373,6 +1373,14 @@ void update_state() {
 
         g_last_player_pos = g_engine->camera.position;
     }
+    if (g_engine->physicsWorld) {
+        for (int i = 0; i < g_scene.numBrushes; ++i) {
+            Brush* b = &g_scene.brushes[i];
+            if (b->isWater && b->numVertices > 0) {
+                Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
+            }
+        }
+    }
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
     if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);

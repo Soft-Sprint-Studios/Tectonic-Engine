@@ -424,4 +424,49 @@ extern "C" {
             rb->body->applyImpulse(btVector3(impulse.x, impulse.y, impulse.z), btVector3(rel_pos.x, rel_pos.y, rel_pos.z));
         }
     }
+
+    void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const float* vertices, int numVertices, const Mat4* transform) {
+        if (!handle || !vertices || numVertices == 0) return;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+        btDynamicsWorld* dynamicsWorld = world->dynamicsWorld;
+        btVector3 gravity = dynamicsWorld->getGravity();
+
+        btTransform brushTransform;
+        brushTransform.setFromOpenGLMatrix(transform->m);
+
+        btVector3 brush_min(FLT_MAX, FLT_MAX, FLT_MAX);
+        btVector3 brush_max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        for (int v_idx = 0; v_idx < numVertices; ++v_idx) {
+            btVector3 local_v(vertices[v_idx * 7 + 0], vertices[v_idx * 7 + 1], vertices[v_idx * 7 + 2]);
+            btVector3 world_v = brushTransform * local_v;
+            brush_min.setMin(world_v);
+            brush_max.setMax(world_v);
+        }
+
+        for (int i = 0; i < dynamicsWorld->getNumCollisionObjects(); ++i) {
+            btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
+            btRigidBody* body = btRigidBody::upcast(obj);
+
+            if (body && body->getMass() > 0.0f) {
+                btVector3 bodyPos = body->getWorldTransform().getOrigin();
+
+                if (bodyPos.x() > brush_min.x() && bodyPos.x() < brush_max.x() &&
+                    bodyPos.y() > brush_min.y() && bodyPos.y() < brush_max.y() &&
+                    bodyPos.z() > brush_min.z() && bodyPos.z() < brush_max.z())
+                {
+                    float buoyancyMultiplier = 1.5f;
+                    btVector3 buoyancyForce = -gravity * body->getMass() * buoyancyMultiplier;
+                    body->applyCentralForce(buoyancyForce);
+
+                    btVector3 velocity = body->getLinearVelocity();
+                    btVector3 dragForce = -velocity * 0.9f;
+                    body->applyCentralForce(dragForce);
+
+                    btVector3 angularVelocity = body->getAngularVelocity();
+                    btVector3 angularDrag = -angularVelocity * 0.5f;
+                    body->applyTorque(angularDrag);
+                }
+            }
+        }
+    }
 }
