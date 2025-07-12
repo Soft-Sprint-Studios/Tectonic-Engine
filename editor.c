@@ -4923,6 +4923,20 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Separator();
         UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f);
     }
+    if (UI_CollapsingHeader("Color Correction", 1)) {
+        UI_Checkbox("Enabled##ColorCorrection", &scene->colorCorrection.enabled);
+        UI_InputText("LUT Path", scene->colorCorrection.lutPath, sizeof(scene->colorCorrection.lutPath));
+        UI_SameLine();
+        if (UI_Button("Reload")) {
+            if (scene->colorCorrection.lutTexture) {
+                glDeleteTextures(1, &scene->colorCorrection.lutTexture);
+            }
+            scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false);
+        }
+        if (scene->colorCorrection.lutTexture) {
+            UI_Image((void*)(intptr_t)scene->colorCorrection.lutTexture, 256, 16);
+        }
+    }
     UI_Separator();
     UI_Text("Creation Tools");
     UI_Separator();

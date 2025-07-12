@@ -131,6 +131,12 @@ typedef struct {
 } PostProcessSettings;
 
 typedef struct {
+    bool enabled;
+    char lutPath[128];
+    GLuint lutTexture;
+} ColorCorrectionSettings;
+
+typedef struct {
     Vec3 position;
     float yaw, pitch;
     bool isCrouching;
@@ -399,6 +405,7 @@ typedef struct {
     bool use_cubemap_skybox;
     char skybox_path[128];
     GLuint skybox_cubemap;
+    ColorCorrectionSettings colorCorrection;
     bool static_vpls_generated;
 } Scene;
 

@@ -943,6 +943,9 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.sharpenAmount = 0.15f;
     scene->post.bwEnabled = false;
     scene->post.bwStrength = 1.0f;
+    scene->colorCorrection.enabled = false;
+    memset(scene->colorCorrection.lutPath, 0, sizeof(scene->colorCorrection.lutPath));
+    scene->colorCorrection.lutTexture = 0;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -1019,6 +1022,14 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 &scene->sun.windDirection.x, &scene->sun.windDirection.y, &scene->sun.windDirection.z, &scene->sun.windStrength);
             scene->sun.enabled = (bool)enabled_int;
             vec3_normalize(&scene->sun.direction);
+        }
+        else if (strcmp(keyword, "color_correction") == 0) {
+            int enabled_int = 0;
+            sscanf(line, "%*s %d \"%127[^\"]\"", &enabled_int, scene->colorCorrection.lutPath);
+            scene->colorCorrection.enabled = (bool)enabled_int;
+            if (scene->colorCorrection.enabled && strlen(scene->colorCorrection.lutPath) > 0) {
+                scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false);
+            }
         }
         else if (strcmp(keyword, "brush_begin") == 0) {
             if (scene->numBrushes >= MAX_BRUSHES) continue;
@@ -1390,7 +1401,7 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         scene->sun.intensity,
         scene->sun.windDirection.x, scene->sun.windDirection.y, scene->sun.windDirection.z,
         scene->sun.windStrength);
-
+    fprintf(file, "color_correction %d \"%s\"\n\n", (int)scene->colorCorrection.enabled, scene->colorCorrection.lutPath);
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);

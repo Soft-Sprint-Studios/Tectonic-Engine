@@ -602,6 +602,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
     Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
@@ -2218,6 +2219,13 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_underwaterColor"), 1, &g_scene.post.underwaterColor.x);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
+    bool cc_enabled = Cvar_GetInt("r_colorcorrection") && g_scene.colorCorrection.enabled && g_scene.colorCorrection.lutTexture != 0;
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_colorCorrectionEnabled"), cc_enabled);
+    if (cc_enabled) {
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, g_scene.colorCorrection.lutTexture);
+        glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "colorCorrectionLUT"), 6);
+    }
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; float flare_intensity = 0.0;
     if (g_scene.numActiveLights > 0) {
         Vec3 light_world_pos = g_scene.lights[0].position; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); float clip_space_pos[4]; float w = 1.0f;

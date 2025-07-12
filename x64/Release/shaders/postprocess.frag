@@ -10,6 +10,9 @@ uniform sampler2D gPosition;
 uniform sampler2D volumetricTexture;
 uniform sampler2D gIndirectLight;
 
+uniform bool u_colorCorrectionEnabled;
+uniform sampler2D colorCorrectionLUT;
+
 uniform bool u_bloomEnabled;
 uniform bool u_volumetricsEnabled;
 
@@ -179,6 +182,20 @@ vec2 underwater_distort(vec2 uv, float t) {
     return uv + vec2(sin(uv.y * 10.0 + t) * 0.01, cos(uv.x * 8.0 + t * 0.7) * 0.01);
 }
 
+vec3 applyLUT(vec3 color) {
+    float blueSlice = color.b * 15.0;
+    float sliceOffset = floor(blueSlice);
+    float sliceLerp = fract(blueSlice);
+
+    vec2 uv1 = vec2((color.r * 15.0 + sliceOffset) / 16.0, color.g);
+    vec2 uv2 = vec2((color.r * 15.0 + sliceOffset + 1.0) / 16.0, color.g);
+
+    vec3 color1 = texture(colorCorrectionLUT, uv1).rgb;
+    vec3 color2 = texture(colorCorrectionLUT, uv2).rgb;
+
+    return mix(color1, color2, sliceLerp);
+}
+
 void main()
 {
     vec2 uv = TexCoords;
@@ -227,6 +244,10 @@ void main()
     color *= u_exposure;
     color = aces(color);
     color = gammaCorrect(color, 2.2);
+	
+    if (u_colorCorrectionEnabled) {
+        color = applyLUT(color);
+    }
 
     if (u_postEnabled) {
         color = applyScanline(color, TexCoords);
