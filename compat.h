@@ -37,6 +37,8 @@
     #include <sys/stat.h>
     #include <sys/types.h>
     #include <unistd.h>
+    #include <fcntl.h>
+    #include <errno.h>
 #else
     #error "Unsupported platform"
 #endif

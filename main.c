@@ -69,6 +69,12 @@ const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
 
+#ifdef PLATFORM_WINDOWS
+static HANDLE g_hMutex = NULL;
+#else
+static int g_lockFileFd = -1;
+#endif
+
 static void init_renderer(void);
 static void init_scene(void);
 
@@ -2392,6 +2398,17 @@ void cleanup() {
     UI_Shutdown();
     Sentry_Shutdown();
     Discord__Shutdown();
+#ifdef PLATFORM_WINDOWS
+    if (g_hMutex) {
+        ReleaseMutex(g_hMutex);
+        CloseHandle(g_hMutex);
+    }
+#else
+    if (g_lockFileFd != -1) {
+        flock(g_lockFileFd, LOCK_UN);
+        close(g_lockFileFd);
+    }
+#endif
     SDL_GL_DeleteContext(g_engine->context);
     SDL_DestroyWindow(g_engine->window);
     IMG_Quit();
@@ -2655,6 +2672,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 int main(int argc, char* argv[]) {
 #endif
+
 #ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
@@ -2669,6 +2687,29 @@ int main(int argc, char* argv[]) {
 #ifdef DISABLE_DEBUGGER
     if (CheckForDebugger()) {
         return 0;
+    }
+#endif
+#ifdef PLATFORM_WINDOWS
+    const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
+    g_hMutex = CreateMutex(NULL, TRUE, mutexName);
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
+        if (g_hMutex) CloseHandle(g_hMutex);
+        return 1;
+    }
+#else
+    const char* lockFilePath = "/tmp/TectonicEngine.lock";
+    g_lockFileFd = open(lockFilePath, O_CREAT | O_RDWR, 0666);
+    if (g_lockFileFd == -1) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", NULL);
+        return 1;
+    }
+    if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1) {
+        if (errno == EWOULDBLOCK) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
+            close(g_lockFileFd);
+            return 1;
+        }
     }
 #endif
     SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
