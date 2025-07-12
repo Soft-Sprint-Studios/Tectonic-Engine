@@ -457,6 +457,10 @@ void Cmd_Unbind(int argc, char** argv) {
     }
 }
 
+void Cmd_UnbindAll(int argc, char** argv) {
+    Binds_UnbindAll();
+}
+
 void Cmd_Map(int argc, char** argv) {
     if (argc == 2) {
         g_current_mode = MODE_MAINMENU;

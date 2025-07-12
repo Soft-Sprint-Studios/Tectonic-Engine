@@ -113,6 +113,13 @@ void Binds_Unset(const char* keyName) {
     Console_Printf("Key '%s' is not bound.", keyName);
 }
 
+void Binds_UnbindAll(void) {
+    int old_num_binds = g_num_binds;
+    g_num_binds = 0;
+    memset(g_binds, 0, sizeof(g_binds));
+    Console_Printf("Unbound all %d keys.", old_num_binds);
+}
+
 const char* Binds_GetCommand(SDL_Keycode key) {
     for (int i = 0; i < g_num_binds; i++) {
         if (g_binds[i].key == key) {

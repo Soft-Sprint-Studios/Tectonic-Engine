@@ -30,6 +30,7 @@ extern void Cmd_Download(int argc, char** argv);
 extern void Cmd_Ping(int argc, char** argv);
 extern void Cmd_BuildCubemaps(int argc, char** argv);
 extern void Cmd_Help(int argc, char** argv);
+extern void Cmd_UnbindAll(int argc, char** argv);
 
 void Commands_Init(void) {
     g_num_commands = 0;
@@ -43,6 +44,7 @@ void Commands_Init(void) {
     Commands_Register("noclip", Cmd_Noclip, "Toggles player collision and gravity.");
     Commands_Register("bind", Cmd_Bind, "Binds a key to a command.");
     Commands_Register("unbind", Cmd_Unbind, "Removes a key binding.");
+    Commands_Register("unbindall", Cmd_UnbindAll, "Removes all key bindings.");
     Commands_Register("map", Cmd_Map, "Loads the specified map.");
     Commands_Register("maps", Cmd_Maps, "Lists all available .map files in the root directory.");
     Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.");
