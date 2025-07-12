@@ -9,8 +9,11 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
+#include <stdbool.h>
+
 //#define GAME_RELEASE 1
 #define ENABLE_CHECKSUM 1
+//#define DISABLE_DEBUGGER 1
 
 #ifdef __cplusplus
     #include <cctype>
@@ -87,6 +90,30 @@ static const char* _stristr(const char* haystack, const char* needle) {
         }
     }
     return NULL;
+}
+#endif
+
+#ifdef DISABLE_DEBUGGER
+static bool CheckForDebugger(void) {
+#ifdef PLATFORM_WINDOWS
+    return IsDebuggerPresent();
+#else
+    FILE* f = fopen("/proc/self/status", "r");
+    if (!f) {
+        return false;
+    }
+    char line[128];
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "TracerPid:", 10) == 0) {
+            int tracer_pid = 0;
+            sscanf(line + 10, "%d", &tracer_pid);
+            fclose(f);
+            return tracer_pid != 0;
+        }
+    }
+    fclose(f);
+    return false;
+#endif
 }
 #endif
 
