@@ -587,7 +587,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     SoundSystem_Init();
     Cvar_Init();
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
-    Cvar_Register("r_vpl_count", "64", "Number of VPLs to generate per light.", CVAR_NONE);
     Cvar_Register("noclip", "0", "", CVAR_NONE);
     Cvar_Register("gravity", "9.81", "", CVAR_NONE);
     Cvar_Register("engine_running", "1", "", CVAR_HIDDEN);
@@ -602,6 +601,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl_point_count", "64", "Number of VPLs to generate per point light.", CVAR_NONE);
+    Cvar_Register("r_vpl_spot_count", "64", "Number of VPLs to generate per spot light.", CVAR_NONE);
     Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
@@ -1522,8 +1523,10 @@ static void render_vpl_shadows() {
 
 static void render_vpl_pass() {
     g_scene.num_vpls = 0;
-    int vpls_per_light = Cvar_GetInt("r_vpl_count");
-    if (vpls_per_light <= 0) return;
+
+    int vpls_point_count = Cvar_GetInt("r_vpl_point_count");
+    int vpls_spot_count = Cvar_GetInt("r_vpl_spot_count");
+    if (vpls_point_count <= 0 && vpls_spot_count <= 0) return;
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
@@ -1534,8 +1537,12 @@ static void render_vpl_pass() {
         Light* light = &g_scene.lights[i];
         if (light->intensity <= 0.0f || (g_scene.num_vpls >= MAX_VPLS)) continue;
 
+        int vpls_this_light = 0;
+
         if (light->type == LIGHT_POINT) {
-            int vpls_this_light = vpls_per_light;
+            vpls_this_light = vpls_point_count;
+            if (vpls_this_light <= 0) continue;
+
             if (g_scene.num_vpls + vpls_this_light > MAX_VPLS) {
                 vpls_this_light = MAX_VPLS - g_scene.num_vpls;
             }
@@ -1612,7 +1619,10 @@ static void render_vpl_pass() {
             }
         }
         else {
-            if (g_scene.num_vpls + vpls_per_light > MAX_VPLS) continue;
+            vpls_this_light = vpls_spot_count;
+            if (vpls_this_light <= 0) continue;
+
+            if (g_scene.num_vpls + vpls_this_light > MAX_VPLS) continue;
             Mat4 lightView, lightProjection;
             float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
             if (angle_rad < 0.01f) angle_rad = 0.01f;
@@ -1668,14 +1678,14 @@ static void render_vpl_pass() {
             glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
             glUniform1f(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightIntensity"), light->intensity);
 
-            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpls_to_generate"), Cvar_GetInt("r_vpl_count"));
+            glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpls_to_generate"), vpls_this_light);
 
             int workgroup_size = 64;
-            int num_workgroups = (vpls_per_light + workgroup_size - 1) / workgroup_size;
+            int num_workgroups = (vpls_this_light + workgroup_size - 1) / workgroup_size;
             glDispatchCompute(num_workgroups, 1, 1);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-            g_scene.num_vpls += vpls_per_light;
+            g_scene.num_vpls += vpls_this_light;
         }
     }
 
