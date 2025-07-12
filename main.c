@@ -230,7 +230,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
-                float finalHeightScale = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
+                float finalHeightScale = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), finalHeightScale);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
@@ -291,7 +291,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
         int vbo_offset = 0;
         for (int i = 0; i < b->numFaces; ++i) {
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
-            float parallax_enabled = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
+            float parallax_enabled = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
             glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
             glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
             glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
@@ -613,7 +613,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
-    Cvar_Register("r_parallax_mapping", "1", "Enable parallax mapping. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
