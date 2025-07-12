@@ -224,6 +224,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+    glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), obj->swayEnabled);
     if (obj->model) {
         for (int i = 0; i < obj->model->meshCount; ++i) {
             Mesh* mesh = &obj->model->meshes[i];
@@ -256,6 +257,8 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
     if (b->isReflectionProbe || b->isTrigger || b->isWater || b->isGlass) return;
     bool envMapEnabled = false;
+
+    glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
     if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
@@ -1919,6 +1922,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)(WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, g_renderer.prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &g_engine->camera.position.x);
+    glUniform1f(glGetUniformLocation(g_renderer.mainShader, "u_time"), g_engine->lastFrame);
+    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_windDirection"), 1, &g_scene.sun.windDirection.x);
+    glUniform1f(glGetUniformLocation(g_renderer.mainShader, "u_windStrength"), g_scene.sun.windStrength);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sun.enabled"), g_scene.sun.enabled);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "sun.direction"), 1, &g_scene.sun.direction.x);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "sun.color"), 1, &g_scene.sun.color.x);

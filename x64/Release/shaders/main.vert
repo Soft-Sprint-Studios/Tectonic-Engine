@@ -23,9 +23,29 @@ out VS_OUT {
 uniform mat4 model;
 uniform bool isBrush;
 
+uniform bool u_swayEnabled;
+uniform float u_time;
+uniform vec3 u_windDirection;
+uniform float u_windStrength;
+
 void main()
 {
-    vs_out.worldPos = vec3(model * vec4(aPos, 1.0));
+    vec3 finalPos = aPos;
+    if (u_swayEnabled) {
+        float swayFrequency = 0.5;
+        float swayAmplitude = 0.05 * u_windStrength;
+        float windDot = dot(aPos.xz, normalize(u_windDirection.xz));
+        float sway = sin(u_time * swayFrequency + windDot) * swayAmplitude * (aPos.y * 0.5);
+
+        float flutterFrequency = 10.0;
+        float flutterAmplitude = 0.01 * u_windStrength;
+        float flutter = sin(u_time * flutterFrequency + aPos.x + aPos.z) * flutterAmplitude;
+
+        finalPos.x += (sway + flutter) * u_windDirection.x;
+        finalPos.z += (sway + flutter) * u_windDirection.z;
+    }
+
+    vs_out.worldPos = vec3(model * vec4(finalPos, 1.0));
     vs_out.texCoords = aTexCoords;
     vs_out.texCoords2 = aTexCoords2;
     vs_out.texCoords3 = aTexCoords3;

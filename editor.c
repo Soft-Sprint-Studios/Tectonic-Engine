@@ -4458,6 +4458,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
             Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Toggle Model Physics");
         }
+        UI_Separator();
+        UI_Checkbox("Enable Tree Sway", &obj->swayEnabled);
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, g_EditorState.selected_entity_index, "Toggle Model Sway"); }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index < scene->numBrushes) {
         Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
@@ -4872,6 +4876,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat("Intensity##Sun", &scene->sun.intensity, 0.05f, 0.0f, 100.0f);
         UI_DragFloat("Volumetric Intensity##Sun", &scene->sun.volumetricIntensity, 0.05f, 0.0f, 20.0f);
         UI_DragFloat3("Direction##Sun", &scene->sun.direction.x, 0.01f, -1.0f, 1.0f);
+
+        UI_Separator();
+        UI_Text("Wind");
+        UI_DragFloat3("Wind Direction", &scene->sun.windDirection.x, 0.01f, -1.0f, 1.0f);
+        UI_DragFloat("Wind Strength", &scene->sun.windStrength, 0.05f, 0.0f, 10.0f);
     }
     if (UI_CollapsingHeader("Skybox", 1)) {
         UI_Checkbox("Use Cubemap Skybox", &scene->use_cubemap_skybox);

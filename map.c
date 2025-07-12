@@ -1014,8 +1014,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
-            sscanf(line, "%*s %d %f %f %f %f %f %f %f", &enabled_int, &scene->sun.direction.x, &scene->sun.direction.y,
-                &scene->sun.direction.z, &scene->sun.color.x, &scene->sun.color.y, &scene->sun.color.z, &scene->sun.intensity);
+            sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f", &enabled_int, &scene->sun.direction.x, &scene->sun.direction.y,
+                &scene->sun.direction.z, &scene->sun.color.x, &scene->sun.color.y, &scene->sun.color.z, &scene->sun.intensity,
+                &scene->sun.windDirection.x, &scene->sun.windDirection.y, &scene->sun.windDirection.z, &scene->sun.windStrength);
             scene->sun.enabled = (bool)enabled_int;
             vec3_normalize(&scene->sun.direction);
         }
@@ -1153,9 +1154,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
 
             int phys_enabled_int;
-            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z,
+            int sway_enabled_int = 0;
+            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z,
                 &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z,
-                &newObj->mass, &phys_enabled_int);
+                &newObj->mass, &phys_enabled_int, &sway_enabled_int);
+            newObj->swayEnabled = (bool)sway_enabled_int;
             newObj->isPhysicsEnabled = (bool)phys_enabled_int;
 
             SceneObject_UpdateMatrix(newObj);
@@ -1380,11 +1383,13 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         (int)scene->post.bwEnabled, scene->post.bwStrength
     );
     fprintf(file, "skybox %d \"%s\"\n\n", (int)scene->use_cubemap_skybox, scene->skybox_path);
-    fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f\n\n",
+    fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f   %.4f %.4f %.4f %.4f\n\n",
         (int)scene->sun.enabled,
         scene->sun.direction.x, scene->sun.direction.y, scene->sun.direction.z,
         scene->sun.color.x, scene->sun.color.y, scene->sun.color.z,
-        scene->sun.intensity, scene->sun.volumetricIntensity);
+        scene->sun.intensity,
+        scene->sun.windDirection.x, scene->sun.windDirection.y, scene->sun.windDirection.z,
+        scene->sun.windStrength);
 
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -1435,10 +1440,10 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
 
     for (int i = 0; i < scene->numObjects; ++i) {
         SceneObject* obj = &scene->objects[i];
-        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d\n",
+        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d\n",
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
-            obj->mass, (int)obj->isPhysicsEnabled);
+            obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numActiveLights; ++i) {
