@@ -1003,6 +1003,10 @@ void init_scene() {
 void process_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            Cvar_EngineSet("engine_running", "0");
+            return;
+        }
         UI_ProcessEvent(&event);
         if (event.type == SDL_MOUSEWHEEL && g_current_mode == MODE_GAME && !Console_IsVisible()) {
             if (event.wheel.y > 0) {

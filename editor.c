@@ -168,6 +168,9 @@ static Scene* g_CurrentScene;
 static Mat4 g_view_matrix[VIEW_COUNT];
 static Mat4 g_proj_matrix[VIEW_COUNT];
 
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random" };
+static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
+
 static Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
@@ -760,6 +763,32 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     }
     Brush_UpdateMatrix(b);
     Brush_CreateRenderData(b);
+}
+
+static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
+    if (!ent) return;
+
+    ent->numProperties = 0;
+
+    if (strcmp(ent->classname, "logic_timer") == 0) {
+        ent->numProperties = 1;
+        strcpy(ent->properties[0].key, "delay");
+        strcpy(ent->properties[0].value, "1.0");
+    }
+    else if (strcmp(ent->classname, "math_counter") == 0) {
+        ent->numProperties = 2;
+        strcpy(ent->properties[0].key, "min");
+        strcpy(ent->properties[0].value, "0");
+        strcpy(ent->properties[1].key, "max");
+        strcpy(ent->properties[1].value, "10");
+    }
+    else if (strcmp(ent->classname, "logic_random") == 0) {
+        ent->numProperties = 2;
+        strcpy(ent->properties[0].key, "min_time");
+        strcpy(ent->properties[0].value, "1.0");
+        strcpy(ent->properties[1].key, "max_time");
+        strcpy(ent->properties[1].value, "5.0");
+    }
 }
 
 static void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view) {
@@ -4380,6 +4409,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 strcpy(ent->classname, "logic_timer");
                 sprintf(ent->targetname, "timer_%d", scene->numLogicEntities);
                 ent->pos = g_EditorState.editor_camera.position;
+                Editor_SetDefaultLogicProperties(ent);
                 ent->numProperties = 1;
                 strcpy(ent->properties[0].key, "delay");
                 strcpy(ent->properties[0].value, "1.0");
@@ -4777,7 +4807,19 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     else if (g_EditorState.selected_entity_type == ENTITY_LOGIC && g_EditorState.selected_entity_index < scene->numLogicEntities) {
         LogicEntity* ent = &scene->logicEntities[g_EditorState.selected_entity_index];
         UI_Text("Logic Entity Properties");
-        UI_InputText("Classname", ent->classname, sizeof(ent->classname));
+        int current_class_index = -1;
+        for (int i = 0; i < num_logic_entity_classnames; ++i) {
+            if (strcmp(ent->classname, logic_entity_classnames[i]) == 0) {
+                current_class_index = i;
+                break;
+            }
+        }
+        if (UI_Combo("Classname", &current_class_index, logic_entity_classnames, num_logic_entity_classnames, -1)) {
+            Undo_BeginEntityModification(scene, ENTITY_LOGIC, g_EditorState.selected_entity_index);
+            strcpy(ent->classname, logic_entity_classnames[current_class_index]);
+            Editor_SetDefaultLogicProperties(ent);
+            Undo_EndEntityModification(scene, ENTITY_LOGIC, g_EditorState.selected_entity_index, "Change Logic Class");
+        }
         UI_InputText("Targetname", ent->targetname, sizeof(ent->targetname));
         if (UI_DragFloat3("Position", &ent->pos.x, 0.1f, 0, 0)) {}
         if (UI_DragFloat3("Rotation", &ent->rot.x, 1.0f, 0, 0)) {}
