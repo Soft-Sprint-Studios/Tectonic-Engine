@@ -101,8 +101,6 @@ const float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
 static int g_last_vsync_cvar_state = -1;
 
-const char* NODRAW_MATERIAL_NAME = "nodraw";
-
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 float parallaxRoomVertices[] = {
     -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
@@ -232,7 +230,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
-                float finalHeightScale = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
+                float finalHeightScale = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), finalHeightScale);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
@@ -293,12 +291,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
         int vbo_offset = 0;
         for (int i = 0; i < b->numFaces; ++i) {
             Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
-            if (strcmp(material->name, NODRAW_MATERIAL_NAME) == 0) {
-                int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
-                vbo_offset += num_face_verts;
-                continue;
-            }
-            float parallax_enabled = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
+            float parallax_enabled = Cvar_GetInt("r_parallax_mapping") ? material->heightScale : 0.0f;
             glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
             glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
             glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
@@ -620,7 +613,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
-    Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_parallax_mapping", "1", "Enable parallax mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "0", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
@@ -1809,19 +1802,7 @@ void render_shadows() {
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
         for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false, NULL);
-        for (int j = 0; j < g_scene.numBrushes; ++j) {
-            Brush* b = &g_scene.brushes[j];
-            glBindVertexArray(b->vao);
-            glUniformMatrix4fv(glGetUniformLocation(current_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-            int vbo_offset = 0;
-            for (int k = 0; k < b->numFaces; ++k) {
-                int num_face_verts = (b->faces[k].numVertexIndices - 2) * 3;
-                if (strcmp(b->faces[k].material->name, NODRAW_MATERIAL_NAME) != 0) {
-                    glDrawArrays(GL_TRIANGLES, vbo_offset, num_face_verts);
-                }
-                vbo_offset += num_face_verts;
-            }
-        }
+        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false, NULL);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
