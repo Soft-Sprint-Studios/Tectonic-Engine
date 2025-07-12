@@ -20,6 +20,7 @@ in vec2 TexCoords4;
 in mat3 TBN;
 in vec4 FragPosSunLightSpace;
 in vec4 v_Color;
+in float fadeAlpha;
 
 in vec3 indirectLight;
 
@@ -357,6 +358,7 @@ void main()
 
     vec3 albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
     float alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
+    alpha *= fadeAlpha;
 
     if (alpha < 0.1) 
         discard;
