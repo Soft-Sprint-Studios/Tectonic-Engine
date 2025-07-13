@@ -189,6 +189,7 @@ typedef struct {
     Vec3 sprinkle_brush_world_pos;
     ViewportType last_active_2d_view;
     float editor_camera_speed;
+    bool texture_lock_enabled;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -1179,6 +1180,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.sprinkle_brush_hit_surface = false;
     g_EditorState.last_active_2d_view = VIEW_TOP_XZ;
     g_EditorState.editor_camera_speed = 10.0f;
+    g_EditorState.texture_lock_enabled = true;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -2186,6 +2188,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
             b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
 
+            if (g_EditorState.texture_lock_enabled) {
+                for (int i = 0; i < b->numFaces; ++i) {
+                    b->faces[i].uv_offset.x -= delta.x / b->faces[i].uv_scale.x;
+                    b->faces[i].uv_offset.y -= delta.z / b->faces[i].uv_scale.y;
+                }
+                Brush_CreateRenderData(b);
+            }
+
             Brush_UpdateMatrix(b);
             if (b->physicsBody) {
                 Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
@@ -2471,7 +2481,19 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             else {
                 switch (g_EditorState.selected_entity_type) {
                 case ENTITY_MODEL: scene->objects[g_EditorState.selected_entity_index].pos = new_pos; scene->objects[g_EditorState.selected_entity_index].rot = new_rot; scene->objects[g_EditorState.selected_entity_index].scale = new_scale; SceneObject_UpdateMatrix(&scene->objects[g_EditorState.selected_entity_index]); break;
-                case ENTITY_BRUSH: scene->brushes[g_EditorState.selected_entity_index].pos = new_pos; scene->brushes[g_EditorState.selected_entity_index].rot = new_rot; scene->brushes[g_EditorState.selected_entity_index].scale = new_scale; Brush_UpdateMatrix(&scene->brushes[g_EditorState.selected_entity_index]); if (scene->brushes[g_EditorState.selected_entity_index].physicsBody) Physics_SetWorldTransform(scene->brushes[g_EditorState.selected_entity_index].physicsBody, scene->brushes[g_EditorState.selected_entity_index].modelMatrix); break;
+                case ENTITY_BRUSH: {
+                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                    Vec3 pos_delta = vec3_sub(new_pos, b->pos);
+                    scene->brushes[g_EditorState.selected_entity_index].pos = new_pos; scene->brushes[g_EditorState.selected_entity_index].rot = new_rot; scene->brushes[g_EditorState.selected_entity_index].scale = new_scale; 
+                    if (g_EditorState.texture_lock_enabled && g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
+                        for (int i = 0; i < b->numFaces; ++i) {
+                            b->faces[i].uv_offset.x -= pos_delta.x / b->faces[i].uv_scale.x;
+                            b->faces[i].uv_offset.y -= pos_delta.z / b->faces[i].uv_scale.y;
+                        }
+                        Brush_CreateRenderData(b);
+                    }
+                    Brush_UpdateMatrix(&scene->brushes[g_EditorState.selected_entity_index]); if (scene->brushes[g_EditorState.selected_entity_index].physicsBody) Physics_SetWorldTransform(scene->brushes[g_EditorState.selected_entity_index].physicsBody, scene->brushes[g_EditorState.selected_entity_index].modelMatrix); break;
+                }
                 case ENTITY_LIGHT: scene->lights[g_EditorState.selected_entity_index].position = new_pos; scene->lights[g_EditorState.selected_entity_index].rot = new_rot; break;
                 case ENTITY_DECAL: scene->decals[g_EditorState.selected_entity_index].pos = new_pos; scene->decals[g_EditorState.selected_entity_index].rot = new_rot; scene->decals[g_EditorState.selected_entity_index].size = new_scale; Decal_UpdateMatrix(&scene->decals[g_EditorState.selected_entity_index]); break;
                 case ENTITY_SOUND: scene->soundEntities[g_EditorState.selected_entity_index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[g_EditorState.selected_entity_index].sourceID, new_pos); break;
@@ -5866,6 +5888,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Sprinkle Tool...", NULL, false, true)) {
                 g_EditorState.show_sprinkle_tool_window = true;
             }
+            if (UI_Checkbox("Texture Lock", &g_EditorState.texture_lock_enabled)) {
+            }
             UI_EndMenu();
         }
         if (UI_BeginMenu("Help", true)) {
@@ -5920,6 +5944,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderSprinkleToolWindow();
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
+    
     for (int i = 0; i < 4; i++) {
         ViewportType type = (ViewportType)i;
         UI_SetNextWindowPos(p[i].x, p[i].y);
