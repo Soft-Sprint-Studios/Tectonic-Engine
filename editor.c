@@ -2583,7 +2583,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
             else {
                 for (int i = 0; i < VIEW_COUNT; ++i) {
-                    if (g_EditorState.is_viewport_focused[i] && i == VIEW_PERSPECTIVE) {
+                    if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
                         g_EditorState.is_in_z_mode = true;
                         g_EditorState.captured_viewport = (ViewportType)i;
                         SDL_SetRelativeMouseMode(SDL_TRUE);
