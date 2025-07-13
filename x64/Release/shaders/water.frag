@@ -127,8 +127,8 @@ void main() {
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float shininess = 64.0;
-    float specularStrength = 0.8;
+    float shininess = 8.0;
+    float specularStrength = 3.0;
 
     if (sun.enabled) {
         vec3 L = normalize(-sun.direction);
