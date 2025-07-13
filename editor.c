@@ -2655,6 +2655,20 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                     b->vertices[g_EditorState.selected_vertex_index].pos = vec3_add(b->vertices[g_EditorState.selected_vertex_index].pos, local_move_delta);
                     Brush_CreateRenderData(b);
+                    if (b->physicsBody) {
+                        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                        if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                            Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                            for (int i = 0; i < b->numVertices; ++i) {
+                                world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                            }
+                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                            free(world_verts);
+                        }
+                        else {
+                            b->physicsBody = NULL;
+                        }
+                    }
                     Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Nudge Vertex");
                 }
             }
