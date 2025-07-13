@@ -2549,24 +2549,24 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_1) g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
             if (event->key.keysym.sym == SDLK_2) g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE;
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
+            if (event->key.keysym.sym == SDLK_LEFTBRACKET) {
+                g_EditorState.grid_size /= 2.0f;
+                if (g_EditorState.grid_size < 0.125f) g_EditorState.grid_size = 0.125f;
+            }
+            if (event->key.keysym.sym == SDLK_RIGHTBRACKET) {
+                g_EditorState.grid_size *= 2.0f;
+                if (g_EditorState.grid_size > 64.0f) g_EditorState.grid_size = 64.0f;
+            }
             if (event->key.keysym.sym == SDLK_9) {
                 g_EditorState.is_sculpting_mode_enabled = !g_EditorState.is_sculpting_mode_enabled;
                 if (g_EditorState.is_sculpting_mode_enabled) {
                     g_EditorState.is_painting_mode_enabled = false;
-                    Console_Printf("Vertex Sculpt Mode: ON");
-                }
-                else {
-                    Console_Printf("Vertex Sculpt Mode: OFF");
                 }
             }
             if (event->key.keysym.sym == SDLK_0) {
                 g_EditorState.is_painting_mode_enabled = !g_EditorState.is_painting_mode_enabled;
                 if (g_EditorState.is_painting_mode_enabled) {
                     g_EditorState.is_sculpting_mode_enabled = false;
-                    Console_Printf("Vertex Paint Mode: ON");
-                }
-                else {
-                    Console_Printf("Vertex Paint Mode: OFF");
                 }
             }
             if (event->key.keysym.sym == SDLK_DELETE) {
@@ -2652,6 +2652,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (state[SDL_SCANCODE_D]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(right, speed));
         if (state[SDL_SCANCODE_A]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(right, speed));
         if (state[SDL_SCANCODE_SPACE]) g_EditorState.editor_camera.position.y += speed; if (state[SDL_SCANCODE_LCTRL]) g_EditorState.editor_camera.position.y -= speed;
+        if (state[SDL_SCANCODE_E]) g_EditorState.editor_camera.position.y += speed;
+        if (state[SDL_SCANCODE_Q]) g_EditorState.editor_camera.position.y -= speed;
     }
 
     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
