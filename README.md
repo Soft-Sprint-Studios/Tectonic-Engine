@@ -36,7 +36,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Volumetric Lighting: Supports "god rays" and light shafts from the sun and other dynamic lights, rendering visible beams of light through the environment.
 
-- Water Rendering: Features real-time environmental reflections using cubemaps, Fresnel effects for angle-dependent reflectivity, and animated surface normals for a dynamic appearance.
+- Water Rendering: Features environmental reflections using cubemaps, Fresnel effects for angle-dependent reflectivity, and flowmapping for a dynamic appearance.
 
 - Glass & Refraction: Supports translucent glass surfaces that refract the scene behind them, creating a realistic distortion effect.
 
