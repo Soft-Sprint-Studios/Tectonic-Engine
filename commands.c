@@ -31,6 +31,7 @@ extern void Cmd_Ping(int argc, char** argv);
 extern void Cmd_BuildCubemaps(int argc, char** argv);
 extern void Cmd_Help(int argc, char** argv);
 extern void Cmd_UnbindAll(int argc, char** argv);
+extern void Cmd_Screenshot(int argc, char** argv);
 
 void Commands_Init(void) {
     g_num_commands = 0;
@@ -51,6 +52,7 @@ void Commands_Init(void) {
     Commands_Register("download", Cmd_Download, "Downloads a file from a URL.");
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.");
     Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes in the current map.");
+    Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.");
 
     Console_Printf("Command System Initialized. Registered %d commands.", g_num_commands);
 }

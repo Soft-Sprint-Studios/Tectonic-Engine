@@ -68,6 +68,9 @@ static const char* g_light_styles[] = {
 };
 const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 
+static bool g_screenshot_requested = false;
+static char g_screenshot_path[256] = { 0 };
+
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
 
@@ -576,6 +579,22 @@ void Cmd_Ping(int argc, char** argv) {
 
 void Cmd_BuildCubemaps(int argc, char** argv) {
     BuildCubemaps();
+}
+
+void Cmd_Screenshot(int argc, char** argv) {
+    if (g_screenshot_requested) {
+        Console_Printf("Screenshot already queued.");
+        return;
+    }
+    _mkdir("screenshots");
+
+    time_t rawtime;
+    struct tm* timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(g_screenshot_path, sizeof(g_screenshot_path), "screenshots/screenshot_%Y-%m-%d_%H-%M-%S.png", timeinfo);
+    g_screenshot_requested = true;
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
@@ -2588,6 +2607,49 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
     free(pixels);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+static void SaveScreenshotToPNG(const char* filepath) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    unsigned char* pixels = (unsigned char*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
+    if (!pixels) {
+        Console_Printf("[ERROR] Failed to allocate memory for screenshot pixels.");
+        return;
+    }
+
+    glReadPixels(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    int row_size = WINDOW_WIDTH * 4;
+    unsigned char* temp_row = (unsigned char*)malloc(row_size);
+    if (!temp_row) {
+        Console_Printf("[ERROR] Failed to allocate memory for screenshot row buffer.");
+        free(pixels);
+        return;
+    }
+
+    for (int y = 0; y < WINDOW_HEIGHT / 2; ++y) {
+        unsigned char* top = pixels + y * row_size;
+        unsigned char* bottom = pixels + (WINDOW_HEIGHT - 1 - y) * row_size;
+        memcpy(temp_row, top, row_size);
+        memcpy(top, bottom, row_size);
+        memcpy(bottom, temp_row, row_size);
+    }
+    free(temp_row);
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, WINDOW_WIDTH, WINDOW_HEIGHT, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+
+    if (!surface) {
+        Console_Printf("[ERROR] Failed to create SDL surface for screenshot.");
+    }
+    else {
+        if (IMG_SavePNG(surface, filepath) != 0) {
+            Console_Printf("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+        }
+        else {
+            Console_Printf("Screenshot saved to %s", filepath);
+        }
+        SDL_FreeSurface(surface);
+    }
+    free(pixels);
+}
 void BuildCubemaps() {
     Console_Printf("Starting cubemap build...");
     glFinish();
@@ -2936,6 +2998,10 @@ int main(int argc, char* argv[]) {
             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
         }
         Console_Draw(); 
+        if (g_screenshot_requested) {
+            SaveScreenshotToPNG(g_screenshot_path);
+            g_screenshot_requested = false;
+        }
         int vsync_enabled = Cvar_GetInt("r_vsync");
         int fps_max = Cvar_GetInt("fps_max");
 
