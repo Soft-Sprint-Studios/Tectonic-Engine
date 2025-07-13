@@ -144,12 +144,16 @@ void Light_DestroyShadowMap(Light* light) {
 
 void Brush_FreeData(Brush* b) {
     if (!b) return;
-    free(b->vertices);
-    b->vertices = NULL;
+    if (b->vertices) {
+        free(b->vertices);
+        b->vertices = NULL;
+    }
     b->numVertices = 0;
     if (b->faces) {
         for (int i = 0; i < b->numFaces; ++i) {
-            free(b->faces[i].vertexIndices);
+            if (b->faces[i].vertexIndices) {
+                free(b->faces[i].vertexIndices);
+            }
         }
         free(b->faces);
         b->faces = NULL;

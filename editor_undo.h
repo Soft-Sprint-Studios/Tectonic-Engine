@@ -23,6 +23,7 @@ void Undo_BeginEntityModification(Scene* scene, EntityType type, int index);
 void Undo_EndEntityModification(Scene* scene, EntityType type, int index, const char* description);
 void Undo_PushCreateEntity(Scene* scene, EntityType type, int index, const char* description);
 void Undo_PushDeleteEntity(Scene* scene, EntityType type, int index, const char* description);
+void _raw_delete_brush(Scene* scene, Engine* engine, int index);
 
 #ifdef __cplusplus
 }

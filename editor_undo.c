@@ -79,7 +79,7 @@ static void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     else { free(scene->objects); scene->objects = NULL; }
 }
 
-static void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
+void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numBrushes) return;
     Brush_FreeData(&scene->brushes[index]);
     if (scene->brushes[index].physicsBody) { Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody); scene->brushes[index].physicsBody = NULL; }
