@@ -1308,7 +1308,7 @@ void update_state() {
     for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
         ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
     }
-    VideoPlayer_UpdateAll(&g_scene, g_engine->unscaledDeltaTime);
+    VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
     Vec3 playerPos;
     Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
 
