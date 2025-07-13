@@ -4076,6 +4076,51 @@ static void Editor_RenderFaceEditSheet(Scene* scene) {
         if (UI_Button("Bottom")) { face->uv_offset.y = 1.0f - (face->uv_scale.y > 0 ? fmodf(1.0f, face->uv_scale.y) : 0); Brush_CreateRenderData(b); } UI_SameLine();
         if (UI_Button("Center")) { face->uv_offset.x = 0.5f - (face->uv_scale.x / 2.0f); face->uv_offset.y = 0.5f - (face->uv_scale.y / 2.0f); Brush_CreateRenderData(b); }
 
+        UI_SameLine();
+        if (UI_Button("Fit")) {
+            if (face->numVertexIndices >= 3) {
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+                Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
+                Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
+                Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
+
+                Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+                vec3_normalize(&face_normal);
+
+                Vec3 u_axis = vec3_sub(p1, p0);
+                vec3_normalize(&u_axis);
+                Vec3 v_axis = vec3_cross(face_normal, u_axis);
+
+                float min_u = FLT_MAX, max_u = -FLT_MAX;
+                float min_v = FLT_MAX, max_v = -FLT_MAX;
+
+                for (int i = 0; i < face->numVertexIndices; ++i) {
+                    Vec3 vert_pos = b->vertices[face->vertexIndices[i]].pos;
+                    float u = vec3_dot(vert_pos, u_axis);
+                    float v = vec3_dot(vert_pos, v_axis);
+                    if (u < min_u) min_u = u;
+                    if (u > max_u) max_u = u;
+                    if (v < min_v) min_v = v;
+                    if (v > max_v) max_v = v;
+                }
+
+                float u_range = max_u - min_u;
+                float v_range = max_v - min_v;
+
+                if (u_range > 1e-6 && v_range > 1e-6) {
+                    face->uv_scale.x = u_range;
+                    face->uv_scale.y = v_range;
+                    face->uv_offset.x = -min_u / u_range;
+                    face->uv_offset.y = -min_v / v_range;
+                    face->uv_rotation = 0;
+                }
+
+                Brush_CreateRenderData(b);
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Fit Texture to Face");
+            }
+        }
+
         UI_Separator();
         if (UI_CollapsingHeader("UV Transforms", 1)) {
             UI_Text("Base Layer");
