@@ -2624,6 +2624,59 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         else if (!g_EditorState.is_manipulating_gizmo && !g_EditorState.is_vertex_manipulating && !g_EditorState.is_manipulating_vertex_gizmo) {
+            if (event->key.keysym.sym == SDLK_f && g_EditorState.selected_entity_type != ENTITY_NONE) {
+                Vec3 target_pos = { 0 };
+                float target_size = 1.0f;
+
+                switch (g_EditorState.selected_entity_type) {
+                case ENTITY_MODEL: {
+                    SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index];
+                    target_pos = obj->pos;
+                    Vec3 size_vec = vec3_sub(obj->model->aabb_max, obj->model->aabb_min);
+                    target_size = fmaxf(fmaxf(size_vec.x * obj->scale.x, size_vec.y * obj->scale.y), size_vec.z * obj->scale.z);
+                    break;
+                }
+                case ENTITY_BRUSH: {
+                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                    target_pos = b->pos;
+                    if (b->numVertices > 0) {
+                        Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                        Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                        for (int i = 0; i < b->numVertices; ++i) {
+                            local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
+                            local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
+                            local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
+                            local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x);
+                            local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
+                            local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
+                        }
+                        Vec3 size_vec = vec3_sub(local_max, local_min);
+                        target_size = fmaxf(fmaxf(size_vec.x * b->scale.x, size_vec.y * b->scale.y), size_vec.z * b->scale.z);
+                    }
+                    break;
+                }
+                case ENTITY_LIGHT:              target_pos = scene->lights[g_EditorState.selected_entity_index].position; break;
+                case ENTITY_PLAYERSTART:        target_pos = scene->playerStart.position; break;
+                case ENTITY_DECAL:              target_pos = scene->decals[g_EditorState.selected_entity_index].pos; break;
+                case ENTITY_SOUND:              target_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
+                case ENTITY_PARTICLE_EMITTER:   target_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
+                case ENTITY_VIDEO_PLAYER:       target_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
+                case ENTITY_PARALLAX_ROOM:      target_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
+                case ENTITY_LOGIC:              target_pos = scene->logicEntities[g_EditorState.selected_entity_index].pos; break;
+                }
+
+                Vec3 cam_forward = {
+                    cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw),
+                    sinf(g_EditorState.editor_camera.pitch),
+                    -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw)
+                };
+                vec3_normalize(&cam_forward);
+
+                float distance_away = target_size * 2.0f;
+                if (distance_away < 2.0f) distance_away = 2.0f;
+
+                g_EditorState.editor_camera.position = vec3_sub(target_pos, vec3_muls(cam_forward, distance_away));
+            }
             if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_vertex_index != -1) {
                 bool moved = false;
                 Vec3 move_delta = { 0 };
