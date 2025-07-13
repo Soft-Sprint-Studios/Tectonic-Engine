@@ -164,6 +164,11 @@ typedef struct {
     bool paint_brush_hit_surface;
     Vec3 paint_brush_world_pos;
     Vec3 paint_brush_world_normal;
+    bool show_replace_textures_popup;
+#define TEXTURE_TARGET_REPLACE_FIND (10)
+#define TEXTURE_TARGET_REPLACE_WITH (11)
+    int find_material_index;
+    int replace_material_index;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -1134,6 +1139,9 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.preview_sound_buffer = 0;
     g_EditorState.preview_sound_source = 0;
     g_EditorState.paint_brush_hit_surface = false;
+    g_EditorState.show_replace_textures_popup = false;
+    g_EditorState.find_material_index = -1;
+    g_EditorState.replace_material_index = -1;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -4159,6 +4167,14 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                     Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Set Light Cookie");
                     g_EditorState.show_texture_browser = false;
                 }
+                else if (g_EditorState.texture_browser_target == TEXTURE_TARGET_REPLACE_FIND) {
+                    g_EditorState.find_material_index = i;
+                    g_EditorState.show_texture_browser = false;
+                }
+                else if (g_EditorState.texture_browser_target == TEXTURE_TARGET_REPLACE_WITH) {
+                    g_EditorState.replace_material_index = i;
+                    g_EditorState.show_texture_browser = false;
+                }
             }
 
             if (UI_IsItemHovered()) {
@@ -4174,6 +4190,71 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                 UI_SameLine();
             }
             UI_PopID();
+        }
+    }
+    UI_End();
+}
+static void Editor_RenderReplaceTexturesUI(Scene* scene) {
+    if (!g_EditorState.show_replace_textures_popup) {
+        return;
+    }
+
+    UI_SetNextWindowSize(350, 400);
+    if (UI_Begin("Replace Textures", &g_EditorState.show_replace_textures_popup)) {
+        UI_Text("Find Material:");
+        Material* find_mat = (g_EditorState.find_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.find_material_index) : NULL;
+        char find_button_label[128];
+        sprintf(find_button_label, "%s##Find", find_mat ? find_mat->name : "None");
+        if (UI_Button(find_button_label)) {
+            g_EditorState.texture_browser_target = TEXTURE_TARGET_REPLACE_FIND;
+            g_EditorState.show_texture_browser = true;
+        }
+        if (find_mat) {
+            UI_Image((void*)(intptr_t)find_mat->diffuseMap, 64, 64);
+        }
+
+        UI_Separator();
+
+        UI_Text("Replace With:");
+        Material* replace_mat = (g_EditorState.replace_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.replace_material_index) : NULL;
+        char replace_button_label[128];
+        sprintf(replace_button_label, "%s##Replace", replace_mat ? replace_mat->name : "None");
+        if (UI_Button(replace_button_label)) {
+            g_EditorState.texture_browser_target = TEXTURE_TARGET_REPLACE_WITH;
+            g_EditorState.show_texture_browser = true;
+        }
+        if (replace_mat) {
+            UI_Image((void*)(intptr_t)replace_mat->diffuseMap, 64, 64);
+        }
+
+        UI_Separator();
+
+        if (UI_Button("Replace All in Scene")) {
+            if (g_EditorState.find_material_index != -1 && g_EditorState.replace_material_index != -1 && g_EditorState.find_material_index != g_EditorState.replace_material_index) {
+                Material* find_mat_ptr = TextureManager_GetMaterial(g_EditorState.find_material_index);
+                Material* replace_mat_ptr = TextureManager_GetMaterial(g_EditorState.replace_material_index);
+                int replaced_count = 0;
+
+                for (int i = 0; i < scene->numBrushes; ++i) {
+                    Brush* b = &scene->brushes[i];
+                    bool brush_modified = false;
+
+                    for (int j = 0; j < b->numFaces; ++j) {
+                        BrushFace* face = &b->faces[j];
+                        if (face->material == find_mat_ptr) { face->material = replace_mat_ptr; brush_modified = true; replaced_count++; }
+                        if (face->material2 == find_mat_ptr) { face->material2 = replace_mat_ptr; brush_modified = true; replaced_count++; }
+                        if (face->material3 == find_mat_ptr) { face->material3 = replace_mat_ptr; brush_modified = true; replaced_count++; }
+                        if (face->material4 == find_mat_ptr) { face->material4 = replace_mat_ptr; brush_modified = true; replaced_count++; }
+                    }
+
+                    if (brush_modified) {
+                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, i);
+                        Brush_CreateRenderData(b);
+                        Undo_EndEntityModification(scene, ENTITY_BRUSH, i, "Replace Textures");
+                    }
+                }
+                g_EditorState.show_replace_textures_popup = false;
+            }
         }
     }
     UI_End();
@@ -5285,6 +5366,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_EndMenu();
         }
         if (UI_BeginMenu("Edit", true)) { if (UI_MenuItem("Undo", "Ctrl+Z", false, true)) { Undo_PerformUndo(scene, engine); } if (UI_MenuItem("Redo", "Ctrl+Y", false, true)) { Undo_PerformRedo(scene, engine); } UI_EndMenu(); }
+        if (UI_BeginMenu("Tools", true)) {
+            if (UI_MenuItem("Replace Textures...", NULL, false, true)) {
+                g_EditorState.show_replace_textures_popup = true;
+            }
+            UI_EndMenu();
+        }
         UI_EndMainMenuBar();
     }
 
@@ -5324,6 +5411,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderTextureBrowser(scene);
     Editor_RenderModelBrowser(scene, engine);
     Editor_RenderSoundBrowser(scene);
+    Editor_RenderReplaceTexturesUI(scene);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
     for (int i = 0; i < 4; i++) {
