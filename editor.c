@@ -1636,7 +1636,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (g_EditorState.is_hovering_selected_brush_body && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
             g_EditorState.is_dragging_selected_brush_body = true;
             g_EditorState.selected_brush_drag_body_view = active_viewport;
-            g_EditorState.selected_brush_drag_body_start_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+            Vec3 raw_start_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+            if (g_EditorState.snap_to_grid) {
+                raw_start_mouse_world.x = SnapValue(raw_start_mouse_world.x, g_EditorState.grid_size);
+                raw_start_mouse_world.y = SnapValue(raw_start_mouse_world.y, g_EditorState.grid_size);
+                raw_start_mouse_world.z = SnapValue(raw_start_mouse_world.z, g_EditorState.grid_size);
+            }
+            g_EditorState.selected_brush_drag_body_start_mouse_world = raw_start_mouse_world;
             g_EditorState.selected_brush_drag_body_start_brush_pos = scene->brushes[g_EditorState.selected_entity_index].pos;
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
             return;
@@ -2056,10 +2062,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
 
             if (g_EditorState.snap_to_grid) {
-                b->pos.x = SnapValue(b->pos.x, g_EditorState.grid_size);
-                b->pos.y = SnapValue(b->pos.y, g_EditorState.grid_size);
-                b->pos.z = SnapValue(b->pos.z, g_EditorState.grid_size);
+                current_mouse_world.x = SnapValue(current_mouse_world.x, g_EditorState.grid_size);
+                current_mouse_world.y = SnapValue(current_mouse_world.y, g_EditorState.grid_size);
+                current_mouse_world.z = SnapValue(current_mouse_world.z, g_EditorState.grid_size);
             }
+
+            delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
+            b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
 
             Brush_UpdateMatrix(b);
             if (b->physicsBody) {
