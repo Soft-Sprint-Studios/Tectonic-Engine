@@ -14,6 +14,7 @@ in vec4 FragPosSunLightSpace;
 in vec3 FragPos_world;
 
 uniform samplerCube reflectionMap;
+uniform sampler2D flowMap;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
 uniform sampler2D sunShadowMap;
@@ -54,6 +55,8 @@ uniform float waveStrength = 0.02;
 uniform float normalTiling1 = 2.0;
 uniform float normalSpeed1 = 0.02;
 uniform float dudvMoveSpeed = 0.03;
+uniform float flowSpeed = 0.01;
+uniform bool useFlowMap;
 
 uniform bool useParallaxCorrection;
 uniform vec3 probeBoxMin;
@@ -87,8 +90,15 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 }
 
 void main() {
-    vec2 distortion = (texture(dudvMap, v_texCoord * 4.0 + vec2(time * dudvMoveSpeed, 0)).rg * 2.0 - 1.0) * waveStrength;
-    vec2 normalScroll1 = v_texCoord * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8) + distortion;
+    vec2 flowDirection = vec2(0.0);
+    vec2 texCoord = v_texCoord;
+    if (useFlowMap) {
+        flowDirection = (texture(flowMap, v_texCoord).xy * 2.0 - 1.0);
+        texCoord += flowDirection * time * flowSpeed;
+    }
+
+    vec2 distortion = (texture(dudvMap, texCoord * 4.0 + vec2(time * dudvMoveSpeed, 0)).rg * 2.0 - 1.0) * waveStrength;
+    vec2 normalScroll1 = texCoord * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8) + distortion;
     vec3 normalFromMap = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
     
     mat3 TBN = mat3(v_tangent, v_bitangent, v_normal);
@@ -107,14 +117,14 @@ void main() {
     vec3 refractionColor = texture(reflectionMap, refractionVec).rgb;
     vec3 reflectionColor = texture(reflectionMap, reflectionVec).rgb;
     
-    float fresnel = Eta + (1.0 - Eta) * pow(max(0.0, 1.0 - dot(V, N)), 5.0);
+    float fresnel = Eta + (1.0 - Eta) * pow(max(0.0, 1.0 - dot(V, N)), 2.0);
                 
     vec3 baseWaterColor = mix(refractionColor, reflectionColor, fresnel);
 
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float shininess = 32.0;
+    float shininess = 64.0;
     float specularStrength = 0.8;
 
     if (sun.enabled) {

@@ -33,8 +33,11 @@ void WaterManager_Init(void) {
     strcpy(g_default_water_def.name, "default_water");
     strcpy(g_default_water_def.normalPath, "water_normal.png");
     strcpy(g_default_water_def.dudvPath, "dudv.png");
+    strcpy(g_default_water_def.flowmapPath, "");
     g_default_water_def.normalMap = loadTexture("water_normal.png", false);
     g_default_water_def.dudvMap = loadTexture("dudv.png", false);
+    g_default_water_def.flowMap = 0;
+    g_default_water_def.flowSpeed = 0.01f;
 
     Console_Printf("Water Manager Initialized.\n");
 }
@@ -43,9 +46,11 @@ void WaterManager_Shutdown(void) {
     for (int i = 0; i < g_num_water_defs; ++i) {
         if (g_water_defs[i].normalMap) glDeleteTextures(1, &g_water_defs[i].normalMap);
         if (g_water_defs[i].dudvMap) glDeleteTextures(1, &g_water_defs[i].dudvMap);
+        if (g_water_defs[i].flowMap) glDeleteTextures(1, &g_water_defs[i].flowMap);
     }
     if(g_default_water_def.normalMap) glDeleteTextures(1, &g_default_water_def.normalMap);
     if(g_default_water_def.dudvMap) glDeleteTextures(1, &g_default_water_def.dudvMap);
+    if (g_default_water_def.flowMap) glDeleteTextures(1, &g_default_water_def.flowMap);
     Console_Printf("Water Manager Shutdown.\n");
 }
 
@@ -73,6 +78,12 @@ void WaterManager_ParseWaters(const char* filepath) {
             if (current_def) {
                 current_def->normalMap = loadTexture(current_def->normalPath, false);
                 current_def->dudvMap = loadTexture(current_def->dudvPath, false);
+                if (strlen(current_def->flowmapPath) > 0) {
+                    current_def->flowMap = loadTexture(current_def->flowmapPath, false);
+                }
+                else {
+                    current_def->flowMap = 0;
+                }
                 g_num_water_defs++;
                 current_def = NULL;
             }
@@ -81,6 +92,15 @@ void WaterManager_ParseWaters(const char* filepath) {
             if (sscanf(trimmed_line, "%s = \"%127[^\"]\"", key, value) == 2) {
                 if (strcmp(key, "normal") == 0) strcpy(current_def->normalPath, value);
                 else if (strcmp(key, "dudv") == 0) strcpy(current_def->dudvPath, value);
+                else if (strcmp(key, "flowmap") == 0) strcpy(current_def->flowmapPath, value);
+            }
+            else {
+                float float_val;
+                if (sscanf(trimmed_line, "%s = %f", key, &float_val) == 2) {
+                    if (strcmp(key, "flowspeed") == 0) {
+                        current_def->flowSpeed = float_val;
+                    }
+                }
             }
         }
     }

@@ -17,8 +17,11 @@ typedef struct {
     char name[64];
     char normalPath[128];
     char dudvPath[128];
+    char flowmapPath[128];
     GLuint normalMap;
     GLuint dudvMap;
+    GLuint flowMap;
+    float flowSpeed;
 } WaterDef;
 
 void WaterManager_Init(void);

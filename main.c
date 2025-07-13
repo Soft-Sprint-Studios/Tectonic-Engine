@@ -1871,6 +1871,17 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, b->waterDef->dudvMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, b->waterDef->normalMap);
 
+        if (b->waterDef->flowMap != 0) {
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, b->waterDef->flowMap);
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "flowMap"), 3);
+            glUniform1f(glGetUniformLocation(g_renderer.waterShader, "flowSpeed"), b->waterDef->flowSpeed);
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useFlowMap"), 1);
+        }
+        else {
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useFlowMap"), 0);
+        }
+
         int probe_idx = FindReflectionProbeForPoint(b->pos);
         GLuint reflectionTex;
         if (probe_idx != -1) {
