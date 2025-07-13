@@ -154,7 +154,6 @@ typedef struct {
     bool is_sculpting_mode_enabled;
     float sculpt_brush_radius;
     float sculpt_brush_strength;
-    bool show_face_edit_sheet;
     bool show_sound_browser_popup;
     char** sound_file_list;
     int num_sound_files;
@@ -1124,7 +1123,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_sculpting_mode_enabled = false;
     g_EditorState.sculpt_brush_radius = 2.0f;
     g_EditorState.sculpt_brush_strength = 0.5f;
-    g_EditorState.show_face_edit_sheet = false;
     g_EditorState.show_sound_browser_popup = false;
     g_EditorState.sound_file_list = NULL;
     g_EditorState.num_sound_files = 0;
@@ -2414,11 +2412,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
             return;
-        }
-        if (event->key.keysym.sym == SDLK_t) {
-            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_face_index != -1) {
-                g_EditorState.show_face_edit_sheet = !g_EditorState.show_face_edit_sheet;
-            }
         }
         if (event->key.keysym.sym == SDLK_ESCAPE) {
             if (g_EditorState.is_in_z_mode) {
@@ -3985,12 +3978,8 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
     UI_End();
 }
 static void Editor_RenderFaceEditSheet(Scene* scene) {
-    if (!g_EditorState.show_face_edit_sheet) {
-        return;
-    }
-
     UI_SetNextWindowSize(300, 450);
-    if (UI_Begin("Face Edit Sheet", &g_EditorState.show_face_edit_sheet)) {
+    if (UI_Begin("Face Edit Sheet", TRUE)) {
         if (g_EditorState.selected_entity_type != ENTITY_BRUSH || g_EditorState.selected_entity_index == -1 || g_EditorState.selected_face_index == -1) {
             UI_Text("No brush face selected.");
             UI_End();
