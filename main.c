@@ -583,6 +583,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
     memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
+    Compat_CalculateBuildNumber();
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
@@ -653,9 +654,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
-    Console_Printf("Tectonic Engine initialized successfully (%s).\n", ARCH_STRING);
-    Console_Printf("Build date: %s\n", __DATE__);
-    Console_Printf("Build time: %s\n", __TIME__);
+    Console_Printf("Tectonic Engine initialized.\n");
+    Console_Printf("Build: %d (%s, %s) on %s\n", g_build_number, __DATE__, __TIME__, ARCH_STRING);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 

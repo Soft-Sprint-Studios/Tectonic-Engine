@@ -15,7 +15,9 @@ void Sentry_Init(void) {
 
     sentry_options_set_dsn(options, "https://cf008152a413b73d0676c836c674868f@o4505736231124992.ingest.us.sentry.io/4509651269648384");
 
-    sentry_options_set_release(options, "TectonicEngine@D.E.V-" ARCH_STRING);
+    char release_string[128];
+    snprintf(release_string, sizeof(release_string), "TectonicEngine@D.E.V-build%d-%s", g_build_number, ARCH_STRING);
+    sentry_options_set_release(options, release_string);
 
     sentry_options_set_debug(options, 1); 
 

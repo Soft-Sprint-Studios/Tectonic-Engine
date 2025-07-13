@@ -10,6 +10,7 @@
 #define COMPAT_H
 
 #include <stdbool.h>
+#include <stdio.h>
 
 //#define GAME_RELEASE 1
 #define ENABLE_CHECKSUM 1
@@ -118,5 +119,46 @@ static bool CheckForDebugger(void) {
 #endif
 }
 #endif
+
+static int g_build_number = 0;
+
+static int get_month_from_name(const char* month_name) {
+    if (strcmp(month_name, "Jan") == 0) return 1;
+    if (strcmp(month_name, "Feb") == 0) return 2;
+    if (strcmp(month_name, "Mar") == 0) return 3;
+    if (strcmp(month_name, "Apr") == 0) return 4;
+    if (strcmp(month_name, "May") == 0) return 5;
+    if (strcmp(month_name, "Jun") == 0) return 6;
+    if (strcmp(month_name, "Jul") == 0) return 7;
+    if (strcmp(month_name, "Aug") == 0) return 8;
+    if (strcmp(month_name, "Sep") == 0) return 9;
+    if (strcmp(month_name, "Oct") == 0) return 10;
+    if (strcmp(month_name, "Nov") == 0) return 11;
+    if (strcmp(month_name, "Dec") == 0) return 12;
+    return 0;
+}
+
+static int days_from_origin(int year, int month, int day) {
+    if (month < 3) {
+        year--;
+        month += 12;
+    }
+    return 365 * year + year / 4 - year / 100 + year / 400 + (153 * month - 457) / 5 + day - 306;
+}
+
+static void Compat_CalculateBuildNumber() {
+    char month_str[4];
+    int day, year;
+    sscanf(__DATE__, "%s %d %d", month_str, &day, &year);
+    int month = get_month_from_name(month_str);
+
+    int days_current = days_from_origin(year, month, day);
+    int days_ref = days_from_origin(2025, 6, 1);
+
+    g_build_number = days_current - days_ref;
+    if (g_build_number < 0) {
+        g_build_number = 0;
+    }
+}
 
 #endif // COMPAT_H
