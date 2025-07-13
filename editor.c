@@ -188,6 +188,7 @@ typedef struct {
     bool sprinkle_brush_hit_surface;
     Vec3 sprinkle_brush_world_pos;
     ViewportType last_active_2d_view;
+    float editor_camera_speed;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -1177,6 +1178,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.sprinkle_timer = 0.0f;
     g_EditorState.sprinkle_brush_hit_surface = false;
     g_EditorState.last_active_2d_view = VIEW_TOP_XZ;
+    g_EditorState.editor_camera_speed = 10.0f;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -2503,6 +2505,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
     }
     if (event->type == SDL_MOUSEWHEEL) {
+        if (g_EditorState.is_in_z_mode) {
+            if (event->wheel.y > 0) {
+                g_EditorState.editor_camera_speed *= 1.25f;
+            }
+            else if (event->wheel.y < 0) {
+                g_EditorState.editor_camera_speed /= 1.25f;
+            }
+            if (g_EditorState.editor_camera_speed < 0.1f) g_EditorState.editor_camera_speed = 0.1f;
+            if (g_EditorState.editor_camera_speed > 500.0f) g_EditorState.editor_camera_speed = 500.0f;
+            return;
+        }
         bool hovered_any_viewport = false;
         for (int i = 1; i < VIEW_COUNT; i++) {
             if (g_EditorState.is_viewport_hovered[i]) { g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true; }
@@ -2776,7 +2789,7 @@ static float rand_float_range(float min, float max) {
 void Editor_Update(Engine* engine, Scene* scene) {
     bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
     if (can_move) {
-        const Uint8* state = SDL_GetKeyboardState(NULL); float speed = 10.0f * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
+        const Uint8* state = SDL_GetKeyboardState(NULL); float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
         Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
         vec3_normalize(&forward); Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 }); vec3_normalize(&right);
         if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
