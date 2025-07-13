@@ -1,4 +1,4 @@
-name: CMake Build (Linux & Windows)
+name: CMake Build (Linux & Window)
 
 on:
   push:
