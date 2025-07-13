@@ -24,8 +24,6 @@ in float fadeAlpha;
 
 in vec3 indirectLight;
 
-in vec3 TangentViewPos;
-in vec3 TangentFragPos;
 in vec2 Velocity;
 
 uniform mat4 view;
@@ -324,7 +322,8 @@ void main()
     float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
     float blendBase = 1.0 - blendTotal;
 
-	vec3 viewDir_tangent = normalize(TangentViewPos - TangentFragPos);
+	vec3 viewDir_world = normalize(viewPos - FragPos_world);
+    vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
 
     float dist = length(FragPos_world - viewPos);
     float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
