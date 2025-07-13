@@ -31,6 +31,7 @@ extern "C" {
 	void Console_SetCommandHandler(command_callback_t handler);
 
 	bool UI_Begin(const char* name, bool* p_open);
+	bool UI_Begin_NoClose(const char* name);
 	void UI_End();
 	bool UI_BeginMainMenuBar();
 	void UI_EndMainMenuBar();

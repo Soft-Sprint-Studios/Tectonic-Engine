@@ -4180,7 +4180,7 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
 }
 static void Editor_RenderFaceEditSheet(Scene* scene) {
     UI_SetNextWindowSize(300, 450);
-    if (UI_Begin("Face Edit Sheet", 1)) {
+    if (UI_Begin_NoClose("Face Edit Sheet")) {
         if (g_EditorState.selected_entity_type != ENTITY_BRUSH || g_EditorState.selected_entity_index == -1 || g_EditorState.selected_face_index == -1) {
             UI_Text("No brush face selected.");
             UI_End();

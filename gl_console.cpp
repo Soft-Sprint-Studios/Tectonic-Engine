@@ -135,6 +135,7 @@ extern "C" {
         }
     }
     bool UI_Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
+    bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
     void UI_End() { ImGui::End(); }
     bool UI_BeginMainMenuBar() { return ImGui::BeginMainMenuBar(); }
     void UI_EndMainMenuBar() { ImGui::EndMainMenuBar(); }
