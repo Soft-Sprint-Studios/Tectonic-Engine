@@ -599,6 +599,7 @@ void Cmd_Screenshot(int argc, char** argv) {
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
+    g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
     memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
@@ -651,6 +652,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("timescale", "1.0", "Controls the speed of the game. 1.0 is normal speed.", CVAR_NONE);
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
@@ -1306,7 +1308,7 @@ void update_state() {
     for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
         ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
     }
-    VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
+    VideoPlayer_UpdateAll(&g_scene, g_engine->unscaledDeltaTime);
     Vec3 playerPos;
     Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
 
@@ -1878,7 +1880,7 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     }
 
     glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "cameraPosition"), 1, &g_engine->camera.position.x);
-    glUniform1f(glGetUniformLocation(g_renderer.waterShader, "time"), g_engine->lastFrame);
+    glUniform1f(glGetUniformLocation(g_renderer.waterShader, "time"), g_engine->scaledTime);
 
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
@@ -2261,7 +2263,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_renderer.postProcessShader);
     glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->lastFrame);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->scaledTime);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), g_scene.fog.enabled);
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fogColor"), 1, &g_scene.fog.color.x);
@@ -2350,7 +2352,7 @@ void render_skybox(Mat4* view, Mat4* projection) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.cloudTexture);
 
-    glUniform1f(glGetUniformLocation(g_renderer.skyboxShader, "time"), g_engine->lastFrame);
+    glUniform1f(glGetUniformLocation(g_renderer.skyboxShader, "time"), g_engine->scaledTime);
 
     glBindVertexArray(g_renderer.skyboxVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -2856,7 +2858,16 @@ int main(int argc, char* argv[]) {
             }
             g_last_vsync_cvar_state = current_vsync_cvar;
         }
-        float currentFrame = (float)SDL_GetTicks() / 1000.0f; g_engine->deltaTime = currentFrame - g_engine->lastFrame; g_engine->lastFrame = currentFrame;
+        float currentFrame = (float)SDL_GetTicks() / 1000.0f;
+        g_engine->unscaledDeltaTime = currentFrame - g_engine->lastFrame;
+        g_engine->lastFrame = currentFrame;
+
+        float time_scale_val = Cvar_GetFloat("timescale");
+        if (time_scale_val < 0.0f) {
+            time_scale_val = 0.0f;
+        }
+        g_engine->deltaTime = g_engine->unscaledDeltaTime * time_scale_val;
+        g_engine->scaledTime += g_engine->deltaTime;
         g_fps_frame_count++;
         Uint32 currentTicks = SDL_GetTicks();
         if (currentTicks - g_fps_last_update >= 1000) {
@@ -2873,6 +2884,7 @@ int main(int argc, char* argv[]) {
             else {
                 Discord_Update(config->gamename, "Paused");
             }
+            MainMenu_Update(g_engine->unscaledDeltaTime);
             MainMenu_Render();
         }
         else if (g_current_mode == MODE_GAME) {

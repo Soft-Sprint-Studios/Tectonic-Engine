@@ -417,7 +417,7 @@ typedef struct {
     SDL_GLContext context;
     bool running;
     bool flashlight_on;
-    float deltaTime, lastFrame;
+    float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
     Camera camera;
     PhysicsWorldHandle physicsWorld;
 } Engine;
