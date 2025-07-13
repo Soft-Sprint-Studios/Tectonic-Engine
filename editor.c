@@ -187,6 +187,7 @@ typedef struct {
     float sprinkle_timer;
     bool sprinkle_brush_hit_surface;
     Vec3 sprinkle_brush_world_pos;
+    ViewportType last_active_2d_view;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -1175,6 +1176,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_sprinkling = false;
     g_EditorState.sprinkle_timer = 0.0f;
     g_EditorState.sprinkle_brush_hit_surface = false;
+    g_EditorState.last_active_2d_view = VIEW_TOP_XZ;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -2609,6 +2611,53 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         else if (!g_EditorState.is_manipulating_gizmo && !g_EditorState.is_vertex_manipulating && !g_EditorState.is_manipulating_vertex_gizmo) {
+            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_vertex_index != -1) {
+                bool moved = false;
+                Vec3 move_delta = { 0 };
+                float grid_size = g_EditorState.grid_size;
+
+                if (event->key.keysym.sym == SDLK_UP) {
+                    if (g_EditorState.last_active_2d_view == VIEW_TOP_XZ) move_delta.z = -grid_size;
+                    else move_delta.y = grid_size;
+                    moved = true;
+                }
+                else if (event->key.keysym.sym == SDLK_DOWN) {
+                    if (g_EditorState.last_active_2d_view == VIEW_TOP_XZ) move_delta.z = grid_size;
+                    else move_delta.y = -grid_size;
+                    moved = true;
+                }
+                else if (event->key.keysym.sym == SDLK_LEFT) {
+                    if (g_EditorState.last_active_2d_view == VIEW_SIDE_YZ) move_delta.z = -grid_size;
+                    else move_delta.x = -grid_size;
+                    moved = true;
+                }
+                else if (event->key.keysym.sym == SDLK_RIGHT) {
+                    if (g_EditorState.last_active_2d_view == VIEW_SIDE_YZ) move_delta.z = grid_size;
+                    else move_delta.x = grid_size;
+                    moved = true;
+                }
+
+                if (moved) {
+                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+                    Mat4 inv_rot_scale;
+                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (3.14159f / 180.0f));
+                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (3.14159f / 180.0f));
+                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (3.14159f / 180.0f));
+                    Mat4 scale_mat = mat4_scale(b->scale);
+                    mat4_multiply(&inv_rot_scale, &rot_mat_y, &rot_mat_x);
+                    mat4_multiply(&inv_rot_scale, &rot_mat_z, &inv_rot_scale);
+                    mat4_multiply(&inv_rot_scale, &inv_rot_scale, &scale_mat);
+                    mat4_inverse(&inv_rot_scale, &inv_rot_scale);
+
+                    Vec3 local_move_delta = mat4_mul_vec3_dir(&inv_rot_scale, move_delta);
+
+                    b->vertices[g_EditorState.selected_vertex_index].pos = vec3_add(b->vertices[g_EditorState.selected_vertex_index].pos, local_move_delta);
+                    Brush_CreateRenderData(b);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Nudge Vertex");
+                }
+            }
             if (event->key.keysym.sym == SDLK_1) g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
             if (event->key.keysym.sym == SDLK_2) g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE;
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
@@ -2723,6 +2772,12 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (state[SDL_SCANCODE_SPACE]) g_EditorState.editor_camera.position.y += speed; if (state[SDL_SCANCODE_LCTRL]) g_EditorState.editor_camera.position.y -= speed;
         if (state[SDL_SCANCODE_E]) g_EditorState.editor_camera.position.y += speed;
         if (state[SDL_SCANCODE_Q]) g_EditorState.editor_camera.position.y -= speed;
+    }
+
+    for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        if (g_EditorState.is_viewport_focused[i]) {
+            g_EditorState.last_active_2d_view = (ViewportType)i;
+        }
     }
 
     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
