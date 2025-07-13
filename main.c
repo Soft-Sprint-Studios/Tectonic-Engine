@@ -2625,10 +2625,13 @@ void BuildCubemaps() {
 
             glEnable(GL_FRAMEBUFFER_SRGB);
 
+            const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
-            glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
             render_skybox(&view, &projection);
