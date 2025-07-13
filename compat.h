@@ -118,7 +118,7 @@ static bool CheckForDebugger(void) {
 }
 #endif
 
-static int g_build_number = 0;
+static int g_build_number = -1;
 
 static int get_month_from_name(const char* month_name) {
     if (strcmp(month_name, "Jan") == 0) return 1;
@@ -144,19 +144,22 @@ static int days_from_origin(int year, int month, int day) {
     return 365 * year + year / 4 - year / 100 + year / 400 + (153 * month - 457) / 5 + day - 306;
 }
 
-static void Compat_CalculateBuildNumber() {
-    char month_str[4];
-    int day, year;
-    sscanf(__DATE__, "%s %d %d", month_str, &day, &year);
-    int month = get_month_from_name(month_str);
+static int Compat_GetBuildNumber() {
+    if (g_build_number == -1) {
+        char month_str[4];
+        int day, year;
+        sscanf(__DATE__, "%s %d %d", month_str, &day, &year);
+        int month = get_month_from_name(month_str);
 
-    int days_current = days_from_origin(year, month, day);
-    int days_ref = days_from_origin(2025, 6, 1);
+        int days_current = days_from_origin(year, month, day);
+        int days_ref = days_from_origin(2025, 6, 1);
 
-    g_build_number = days_current - days_ref;
-    if (g_build_number < 0) {
-        g_build_number = 0;
+        g_build_number = days_current - days_ref;
+        if (g_build_number < 0) {
+            g_build_number = 0;
+        }
     }
+    return g_build_number;
 }
 
 #endif // COMPAT_H

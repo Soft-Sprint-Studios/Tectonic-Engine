@@ -136,6 +136,9 @@ extern "C" {
     }
     bool UI_Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
     bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
+    void UI_OpenPopup(const char* str_id) { ImGui::OpenPopup(str_id); }
+    bool UI_BeginPopupModal(const char* name, bool* p_open, int flags) { return ImGui::BeginPopupModal(name, p_open, (ImGuiWindowFlags)flags); }
+    void UI_CloseCurrentPopup(void) { ImGui::CloseCurrentPopup(); }
     void UI_End() { ImGui::End(); }
     bool UI_BeginMainMenuBar() { return ImGui::BeginMainMenuBar(); }
     void UI_EndMainMenuBar() { ImGui::EndMainMenuBar(); }
@@ -173,6 +176,7 @@ extern "C" {
     bool UI_BeginChild(const char* str_id, float width, float height, bool border, int flags) { return ImGui::BeginChild(str_id, ImVec2(width, height), border, (ImGuiWindowFlags)flags); }
     void UI_SameLine() { ImGui::SameLine(); }
     bool UI_RadioButton(const char* label, bool active) { return ImGui::RadioButton(label, active); }
+    bool UI_RadioButton_Int(const char* label, int* v, int v_button) { return ImGui::RadioButton(label, v, v_button); }
     bool UI_Combo(const char* label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items) { return ImGui::Combo(label, current_item, items, items_count, popup_max_height_in_items); }
     void UI_SetNextWindowPos(float x, float y) { ImGui::SetNextWindowPos(ImVec2(x, y)); }
     void UI_SetNextWindowSize(float w, float h) { ImGui::SetNextWindowSize(ImVec2(w, h)); }

@@ -7,6 +7,7 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "editor.h"
+#include <stdlib.h>
 #include "gl_console.h"
 #include <GL/glew.h>
 #include <SDL.h>
@@ -167,8 +168,25 @@ typedef struct {
     bool show_replace_textures_popup;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
+#define MODEL_BROWSER_TARGET_SPRINKLE (1)
     int find_material_index;
     int replace_material_index;
+    bool show_vertex_tools_window;
+    bool show_sculpt_noise_popup;
+    bool show_about_window;
+    bool show_sprinkle_tool_window;
+    char sprinkle_model_path[128];
+    float sprinkle_density;
+    float sprinkle_radius;
+    int sprinkle_mode;
+    float sprinkle_scale_min;
+    float sprinkle_scale_max;
+    bool sprinkle_align_to_normal;
+    bool sprinkle_random_yaw;
+    bool is_sprinkling;
+    float sprinkle_timer;
+    bool sprinkle_brush_hit_surface;
+    Vec3 sprinkle_brush_world_pos;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -1142,6 +1160,21 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_replace_textures_popup = false;
     g_EditorState.find_material_index = -1;
     g_EditorState.replace_material_index = -1;
+    g_EditorState.show_vertex_tools_window = false;
+    g_EditorState.show_sculpt_noise_popup = false;
+    g_EditorState.show_about_window = false;
+    g_EditorState.show_sprinkle_tool_window = false;
+    strcpy(g_EditorState.sprinkle_model_path, "");
+    g_EditorState.sprinkle_density = 5.0f;
+    g_EditorState.sprinkle_radius = 5.0f;
+    g_EditorState.sprinkle_mode = 0;
+    g_EditorState.sprinkle_scale_min = 0.8f;
+    g_EditorState.sprinkle_scale_max = 1.2f;
+    g_EditorState.sprinkle_align_to_normal = true;
+    g_EditorState.sprinkle_random_yaw = true;
+    g_EditorState.is_sprinkling = false;
+    g_EditorState.sprinkle_timer = 0.0f;
+    g_EditorState.sprinkle_brush_hit_surface = false;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -1620,6 +1653,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
     }
     if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT) {
+        if (g_EditorState.show_sprinkle_tool_window && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
+            g_EditorState.is_sprinkling = true;
+            g_EditorState.sprinkle_timer = 0.0f;
+            return;
+        }
         if (g_EditorState.is_painting_mode_enabled && g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
             if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
                 g_EditorState.is_painting = true;
@@ -1918,6 +1956,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
     }
     if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) {
+        if (g_EditorState.is_sprinkling) {
+            g_EditorState.is_sprinkling = false;
+        }
         if (g_EditorState.is_painting) {
             g_EditorState.is_painting = false;
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Vertex Paint");
@@ -2584,12 +2625,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (g_EditorState.is_sculpting_mode_enabled) {
                     g_EditorState.is_painting_mode_enabled = false;
                 }
+                g_EditorState.show_vertex_tools_window = g_EditorState.is_sculpting_mode_enabled;
             }
             if (event->key.keysym.sym == SDLK_0) {
                 g_EditorState.is_painting_mode_enabled = !g_EditorState.is_painting_mode_enabled;
                 if (g_EditorState.is_painting_mode_enabled) {
                     g_EditorState.is_sculpting_mode_enabled = false;
                 }
+                g_EditorState.show_vertex_tools_window = g_EditorState.is_painting_mode_enabled;
             }
             if (event->key.keysym.sym == SDLK_DELETE) {
                 switch (g_EditorState.selected_entity_type) {
@@ -2662,6 +2705,10 @@ void Editor_RenderGrid(ViewportType type, float aspect) {
     glEnableVertexAttribArray(0); float color[] = { 0.4f, 0.4f, 0.4f, 1.0f };
     glUniform4fv(glGetUniformLocation(g_EditorState.grid_shader, "grid_color"), 1, color);
     glDrawArrays(GL_LINES, 0, line_count / 3); glBindVertexArray(0);
+}
+static float rand_float_range(float min, float max) {
+    if (min >= max) return min;
+    return min + ((float)rand() / (float)RAND_MAX) * (max - min);
 }
 void Editor_Update(Engine* engine, Scene* scene) {
     bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
@@ -2831,7 +2878,107 @@ void Editor_Update(Engine* engine, Scene* scene) {
             if (dist_z < pick_threshold && dist_z < min_dist) { g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_Z; }
         }
     }
+    g_EditorState.sprinkle_brush_hit_surface = false;
+    if (g_EditorState.show_sprinkle_tool_window && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
+        Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
+        float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+        float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+        Mat4 inv_proj, inv_view;
+        mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+        mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+        Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
+        Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+        ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+        Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+        Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
+        vec3_normalize(&ray_dir);
+        Vec3 ray_origin = g_EditorState.editor_camera.position;
 
+        RaycastHitInfo hit_info;
+        if (Physics_Raycast(engine->physicsWorld, ray_origin, vec3_add(ray_origin, vec3_muls(ray_dir, 1000.0f)), &hit_info)) {
+            g_EditorState.sprinkle_brush_hit_surface = true;
+            g_EditorState.sprinkle_brush_world_pos = hit_info.point;
+        }
+
+        if (g_EditorState.is_sprinkling) {
+            g_EditorState.sprinkle_timer -= engine->unscaledDeltaTime;
+            if (g_EditorState.sprinkle_timer <= 0.0f) {
+                g_EditorState.sprinkle_timer = 1.0f / g_EditorState.sprinkle_density;
+
+                if (g_EditorState.sprinkle_brush_hit_surface) {
+                    if (g_EditorState.sprinkle_mode == 0) {
+                        Vec3 surface_normal = g_EditorState.paint_brush_world_normal;
+
+                        Vec3 tangent = vec3_cross(surface_normal, (Vec3) { 0.0f, 1.0f, 0.0f });
+                        if (vec3_length_sq(tangent) < 0.001f) {
+                            tangent = vec3_cross(surface_normal, (Vec3) { 1.0f, 0.0f, 0.0f });
+                        }
+                        vec3_normalize(&tangent);
+                        Vec3 bitangent = vec3_cross(surface_normal, tangent);
+
+                        float rand_angle = rand_float_range(0, 2.0f * 3.14159f);
+                        float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
+
+                        Vec3 offset_on_plane = vec3_add(vec3_muls(tangent, cosf(rand_angle) * rand_dist), vec3_muls(bitangent, sinf(rand_angle) * rand_dist));
+                        Vec3 final_pos = vec3_add(g_EditorState.sprinkle_brush_world_pos, offset_on_plane);
+
+                        if (scene->numObjects < 8192) {
+                            scene->numObjects++;
+                            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+                            if (!scene->objects) {
+                                Console_Printf("[ERROR] Failed to reallocate memory for scene objects!");
+                                scene->numObjects--;
+                                return;
+                            }
+
+                            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
+                            memset(newObj, 0, sizeof(SceneObject));
+
+                            strncpy(newObj->modelPath, g_EditorState.sprinkle_model_path, sizeof(newObj->modelPath) - 1);
+                            newObj->pos = final_pos;
+                            float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
+                            newObj->scale = (Vec3){ scale, scale, scale };
+                            newObj->rot = (Vec3){ 0,0,0 };
+
+                            if (g_EditorState.sprinkle_align_to_normal) {
+                                Vec3 obj_forward = surface_normal;
+                                Vec3 obj_up = (fabs(obj_forward.y) > 0.99f) ? (Vec3) { 1, 0, 0 } : (Vec3) { 0, 1, 0 };
+                                Vec3 obj_right = vec3_cross(obj_up, obj_forward);
+                                vec3_normalize(&obj_right);
+                                obj_up = vec3_cross(obj_forward, obj_right);
+
+                                Mat4 rot_matrix;
+                                rot_matrix.m[0] = obj_right.x;  rot_matrix.m[4] = obj_up.x;  rot_matrix.m[8] = obj_forward.x;  rot_matrix.m[12] = 0;
+                                rot_matrix.m[1] = obj_right.y;  rot_matrix.m[5] = obj_up.y;  rot_matrix.m[9] = obj_forward.y;  rot_matrix.m[13] = 0;
+                                rot_matrix.m[2] = obj_right.z;  rot_matrix.m[6] = obj_up.z;  rot_matrix.m[10] = obj_forward.z; rot_matrix.m[14] = 0;
+                                rot_matrix.m[3] = 0;            rot_matrix.m[7] = 0;         rot_matrix.m[11] = 0;              rot_matrix.m[15] = 1;
+
+                                mat4_decompose(&rot_matrix, &(Vec3){0}, & newObj->rot, & (Vec3){0});
+                            }
+
+                            if (g_EditorState.sprinkle_random_yaw) {
+                                newObj->rot.y = rand_float_range(0, 360.0f);
+                            }
+
+                            SceneObject_UpdateMatrix(newObj);
+                            newObj->model = Model_Load(newObj->modelPath);
+                            Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Sprinkle Object");
+                        }
+                    }
+                    else {
+                        for (int i = scene->numObjects - 1; i >= 0; --i) {
+                            if (strcmp(scene->objects[i].modelPath, g_EditorState.sprinkle_model_path) == 0) {
+                                float dist_sq = vec3_length_sq(vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
+                                if (dist_sq < g_EditorState.sprinkle_radius * g_EditorState.sprinkle_radius / 10.0) {
+                                    Editor_DeleteModel(scene, i, engine);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if (!g_EditorState.is_dragging_preview_brush_handle) {
         g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
     }
@@ -3700,6 +3847,28 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         }
     }
     glLineWidth(1.0f); glEnable(GL_DEPTH_TEST);
+    if (g_EditorState.sprinkle_brush_hit_surface && g_EditorState.show_sprinkle_tool_window) {
+        glUseProgram(g_EditorState.debug_shader);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+
+        Mat4 model_mat = mat4_translate(g_EditorState.sprinkle_brush_world_pos);
+        Mat4 scale_mat = mat4_scale((Vec3) { g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
+        mat4_multiply(&model_mat, &model_mat, &scale_mat);
+
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
+
+        float color[] = { 1.0f, 0.0f, 1.0f, 0.5f };
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDisable(GL_DEPTH_TEST);
+        glBindVertexArray(g_EditorState.light_gizmo_vao);
+        glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
+        glBindVertexArray(0);
+        glEnable(GL_DEPTH_TEST);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
     if (g_EditorState.paint_brush_hit_surface && (g_EditorState.is_painting_mode_enabled || g_EditorState.is_sculpting_mode_enabled)) {
         glUseProgram(g_EditorState.debug_shader);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
@@ -3978,6 +4147,15 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
         }
 
         if (g_EditorState.selected_model_file_index != -1) {
+            if (UI_Button("Select Model")) {
+                if (g_EditorState.texture_browser_target == MODEL_BROWSER_TARGET_SPRINKLE) {
+                    char full_path[256];
+                    sprintf(full_path, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
+                    strncpy(g_EditorState.sprinkle_model_path, full_path, sizeof(g_EditorState.sprinkle_model_path) - 1);
+                    g_EditorState.show_add_model_popup = false;
+                }
+            }
+            UI_SameLine();
             if (UI_Button("Add to Scene")) {
                 scene->numObjects++;
                 scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
@@ -4416,6 +4594,188 @@ static void Editor_RenderFaceEditSheet(Scene* scene) {
         }
     }
     UI_End();
+}
+
+static void Editor_RenderSculptNoisePopup(Scene* scene) {
+    if (g_EditorState.show_sculpt_noise_popup) {
+        UI_OpenPopup("Apply Noise");
+        g_EditorState.show_sculpt_noise_popup = false;
+    }
+
+    if (UI_BeginPopupModal("Apply Noise", NULL, 0)) {
+        static float min_noise = -0.5f;
+        static float max_noise = 0.5f;
+        static float frequency = 0.2f;
+        static int octaves = 4;
+        static float lacunarity = 2.0f;
+        static float persistence = 0.5f;
+
+        UI_Text("Apply smooth procedural noise to all vertices.");
+        UI_Separator();
+        UI_DragFloat("Min Displacement", &min_noise, 0.05f, -10.0f, 10.0f);
+        UI_DragFloat("Max Displacement", &max_noise, 0.05f, -10.0f, 10.0f);
+        UI_Separator();
+        UI_DragFloat("Frequency", &frequency, 0.01f, 0.01f, 2.0f);
+        UI_DragInt("Octaves", &octaves, 1, 1, 8);
+        UI_DragFloat("Lacunarity", &lacunarity, 0.1f, 1.5f, 4.0f);
+        UI_DragFloat("Persistence", &persistence, 0.05f, 0.1f, 1.0f);
+        UI_Separator();
+
+        if (UI_Button("Apply")) {
+            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
+                Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                if (b->numVertices > 0) {
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+                    for (int i = 0; i < b->numVertices; ++i) {
+                        float total = 0.0f;
+                        float freq = frequency;
+                        float amp = 1.0f;
+                        float maxAmp = 0.0f;
+
+                        for (int j = 0; j < octaves; ++j) {
+                            float n = sin(b->vertices[i].pos.x * freq) * cos(b->vertices[i].pos.z * freq);
+                            total += n * amp;
+                            maxAmp += amp;
+                            amp *= persistence;
+                            freq *= lacunarity;
+                        }
+
+                        if (maxAmp > 0.0) {
+                            total /= maxAmp;
+                        }
+
+                        float noise_val = min_noise + (total * 0.5f + 0.5f) * (max_noise - min_noise);
+                        b->vertices[i].pos.y += noise_val;
+                    }
+
+                    Brush_CreateRenderData(b);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Apply Smooth Noise to Brush");
+                }
+            }
+            UI_CloseCurrentPopup();
+        }
+        UI_SameLine();
+        if (UI_Button("Cancel")) {
+            UI_CloseCurrentPopup();
+        }
+        UI_EndPopup();
+    }
+}
+static void Editor_RenderAboutWindow() {
+    if (!g_EditorState.show_about_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(320, 180);
+    if (UI_Begin("About Tectonic Editor", &g_EditorState.show_about_window)) {
+        UI_Text("Tectonic Editor");
+        UI_Separator();
+        UI_Text("Version: D.E.V. (Build %d)", Compat_GetBuildNumber());
+        UI_Text("Build Date: %s, %s", __DATE__, __TIME__);
+        UI_Text("Architecture: %s", ARCH_STRING);
+        UI_Separator();
+        UI_Text("Copyright (c) 2025 Soft Sprint Studios");
+        UI_Text("All rights reserved.");
+        UI_Separator();
+
+        if (UI_Button("OK")) {
+            g_EditorState.show_about_window = false;
+        }
+    }
+    UI_End();
+}
+static void Editor_RenderSprinkleToolWindow(void) {
+    if (!g_EditorState.show_sprinkle_tool_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(300, 0);
+    if (UI_Begin("Sprinkle Tool", &g_EditorState.show_sprinkle_tool_window)) {
+        UI_Text("Entity to Sprinkle");
+        char model_button_label[256];
+        sprintf(model_button_label, "Model: %s", g_EditorState.sprinkle_model_path);
+        if (UI_Button(model_button_label)) {
+            g_EditorState.texture_browser_target = MODEL_BROWSER_TARGET_SPRINKLE;
+            g_EditorState.show_add_model_popup = true;
+            ScanModelFiles();
+        }
+
+        UI_Separator();
+        UI_Text("Brush Settings");
+        UI_DragFloat("Radius", &g_EditorState.sprinkle_radius, 0.1f, 0.1f, 50.0f);
+        UI_DragFloat("Density (obj/sec)", &g_EditorState.sprinkle_density, 0.1f, 0.1f, 100.0f);
+
+        UI_Separator();
+        UI_Text("Placement Settings");
+        UI_Checkbox("Align to Surface Normal", &g_EditorState.sprinkle_align_to_normal);
+        UI_Checkbox("Randomize Yaw", &g_EditorState.sprinkle_random_yaw);
+        UI_DragFloat("Min Scale", &g_EditorState.sprinkle_scale_min, 0.01f, 0.1f, 10.0f);
+        UI_DragFloat("Max Scale", &g_EditorState.sprinkle_scale_max, 0.01f, 0.1f, 10.0f);
+
+        UI_Separator();
+        UI_Text("Mode");
+        UI_RadioButton_Int("Additive", &g_EditorState.sprinkle_mode, 0);
+        UI_SameLine();
+        UI_RadioButton_Int("Subtractive", &g_EditorState.sprinkle_mode, 1);
+    }
+    UI_End();
+}
+static void Editor_RenderVertexToolsWindow(Scene* scene) {
+    if (!g_EditorState.show_vertex_tools_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(250, 0);
+    if (UI_Begin("Vertex Tools", &g_EditorState.show_vertex_tools_window)) {
+        if (g_EditorState.is_sculpting_mode_enabled) {
+            UI_Text("Sculpting");
+            UI_Separator();
+            UI_DragFloat("Radius##Sculpt", &g_EditorState.sculpt_brush_radius, 0.1f, 0.1f, 50.0f);
+            UI_DragFloat("Strength##Sculpt", &g_EditorState.sculpt_brush_strength, 0.05f, 0.01f, 5.0f);
+
+            if (UI_Button("Apply Noise...")) {
+                g_EditorState.show_sculpt_noise_popup = true;
+            }
+        }
+        else if (g_EditorState.is_painting_mode_enabled) {
+            UI_Text("Vertex Painting");
+            UI_Separator();
+            UI_DragFloat("Radius##Paint", &g_EditorState.paint_brush_radius, 0.1f, 0.1f, 50.0f);
+            UI_DragFloat("Strength##Paint", &g_EditorState.paint_brush_strength, 0.05f, 0.1f, 5.0f);
+
+            UI_Separator();
+            UI_Text("Paint Channel:");
+            if (UI_RadioButton("R (Tex 2)", g_EditorState.paint_channel == 0)) { g_EditorState.paint_channel = 0; }
+            if (UI_RadioButton("G (Tex 3)", g_EditorState.paint_channel == 1)) { g_EditorState.paint_channel = 1; }
+            if (UI_RadioButton("B (Tex 4)", g_EditorState.paint_channel == 2)) { g_EditorState.paint_channel = 2; }
+
+            UI_Separator();
+            if (UI_Button("Erase All Paint")) {
+                if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1) {
+                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                    if (b->numVertices > 0) {
+                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+                        for (int i = 0; i < b->numVertices; ++i) {
+                            b->vertices[i].color.x = 0.0f;
+                            b->vertices[i].color.y = 0.0f;
+                            b->vertices[i].color.z = 0.0f;
+                        }
+
+                        Brush_CreateRenderData(b);
+                        Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Erase All Vertex Paint");
+                    }
+                }
+            }
+        }
+    }
+    UI_End();
+
+    if (!g_EditorState.show_vertex_tools_window) {
+        g_EditorState.is_painting_mode_enabled = false;
+        g_EditorState.is_sculpting_mode_enabled = false;
+    }
 }
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     static bool show_add_particle_popup = false;
@@ -4916,28 +5276,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Brush Mass");
         }
-        UI_Text("Vertex Paint");
-        if (UI_RadioButton("Paint Mode (0)", g_EditorState.is_painting_mode_enabled)) {
-            g_EditorState.is_painting_mode_enabled = true;
-            g_EditorState.is_sculpting_mode_enabled = false;
-        }
-        if (g_EditorState.is_painting_mode_enabled) {
-            UI_DragFloat("Brush Radius", &g_EditorState.paint_brush_radius, 0.1f, 0.1f, 50.0f);
-            UI_DragFloat("Brush Strength", &g_EditorState.paint_brush_strength, 0.05f, 0.1f, 5.0f);
-            UI_Text("Paint Channel:");
-            if (UI_RadioButton("R (Tex 2)", g_EditorState.paint_channel == 0)) { g_EditorState.paint_channel = 0; }
-            if (UI_RadioButton("G (Tex 3)", g_EditorState.paint_channel == 1)) { g_EditorState.paint_channel = 1; }
-            if (UI_RadioButton("B (Tex 4)", g_EditorState.paint_channel == 2)) { g_EditorState.paint_channel = 2; }
-        }
         UI_Separator();
-        UI_Text("Vertex Sculpt");
-        if (UI_RadioButton("Sculpt Mode (9)", g_EditorState.is_sculpting_mode_enabled)) {
-            g_EditorState.is_sculpting_mode_enabled = true;
-            g_EditorState.is_painting_mode_enabled = false;
+        UI_Text("Vertex Tools");
+        if (UI_Checkbox("Sculpt Mode (9)", &g_EditorState.is_sculpting_mode_enabled)) {
+            if (g_EditorState.is_sculpting_mode_enabled) {
+                g_EditorState.is_painting_mode_enabled = false;
+                g_EditorState.show_vertex_tools_window = true;
+            }
+            else {
+                g_EditorState.show_vertex_tools_window = false;
+            }
         }
-        if (g_EditorState.is_sculpting_mode_enabled) {
-            UI_DragFloat("Sculpt Radius", &g_EditorState.sculpt_brush_radius, 0.1f, 0.1f, 50.0f);
-            UI_DragFloat("Sculpt Strength", &g_EditorState.sculpt_brush_strength, 0.05f, 0.01f, 5.0f);
+        UI_SameLine();
+        if (UI_Checkbox("Paint Mode (0)", &g_EditorState.is_painting_mode_enabled)) {
+            if (g_EditorState.is_painting_mode_enabled) {
+                g_EditorState.is_sculpting_mode_enabled = false;
+                g_EditorState.show_vertex_tools_window = true;
+            }
+            else {
+                g_EditorState.show_vertex_tools_window = false;
+            }
         }
         UI_Separator();
         if (b->isReflectionProbe) {
@@ -5370,6 +5728,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Replace Textures...", NULL, false, true)) {
                 g_EditorState.show_replace_textures_popup = true;
             }
+            if (UI_MenuItem("Sprinkle Tool...", NULL, false, true)) {
+                g_EditorState.show_sprinkle_tool_window = true;
+            }
+            UI_EndMenu();
+        }
+        if (UI_BeginMenu("Help", true)) {
+            if (UI_MenuItem("About Tectonic Editor", NULL, false, true)) {
+                g_EditorState.show_about_window = true;
+            }
             UI_EndMenu();
         }
         UI_EndMainMenuBar();
@@ -5412,6 +5779,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderModelBrowser(scene, engine);
     Editor_RenderSoundBrowser(scene);
     Editor_RenderReplaceTexturesUI(scene);
+    Editor_RenderVertexToolsWindow(scene);
+    Editor_RenderSculptNoisePopup(scene);
+    Editor_RenderAboutWindow();
+    Editor_RenderSprinkleToolWindow();
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
     for (int i = 0; i < 4; i++) {

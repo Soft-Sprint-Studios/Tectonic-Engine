@@ -396,6 +396,9 @@ extern "C" {
 
         btCollisionWorld::ClosestRayResultCallback rayCallback(btStart, btEnd);
 
+        rayCallback.m_collisionFilterGroup = COL_ALL;
+        rayCallback.m_collisionFilterMask = COL_ALL & ~COL_PLAYER;
+
         world->dynamicsWorld->rayTest(btStart, btEnd, rayCallback);
 
         if (rayCallback.hasHit()) {
