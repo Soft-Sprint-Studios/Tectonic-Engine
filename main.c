@@ -1867,7 +1867,24 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->waterDef) continue;
+        if (!b->isWater || !b->waterDef) continue;
+
+        Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        if (b->numVertices > 0) {
+            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                world_min.x = fminf(world_min.x, world_v.x);
+                world_min.y = fminf(world_min.y, world_v.y);
+                world_min.z = fminf(world_min.z, world_v.z);
+                world_max.x = fmaxf(world_max.x, world_v.x);
+                world_max.y = fmaxf(world_max.y, world_v.y);
+                world_max.z = fmaxf(world_max.z, world_v.z);
+            }
+            glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "u_waterAabbMin"), 1, &world_min.x);
+            glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "u_waterAabbMax"), 1, &world_max.x);
+        }
+
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, b->waterDef->dudvMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, b->waterDef->normalMap);
 

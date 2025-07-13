@@ -57,6 +57,8 @@ uniform float normalSpeed1 = 0.02;
 uniform float dudvMoveSpeed = 0.03;
 uniform float flowSpeed = 0.01;
 uniform bool useFlowMap;
+uniform vec3 u_waterAabbMin;
+uniform vec3 u_waterAabbMax;
 
 uniform bool useParallaxCorrection;
 uniform vec3 probeBoxMin;
@@ -90,10 +92,11 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 }
 
 void main() {
+    vec2 waterUv = (FragPos_world.xz - u_waterAabbMin.xz) / (u_waterAabbMax.xz - u_waterAabbMin.xz);
     vec2 flowDirection = vec2(0.0);
-    vec2 texCoord = v_texCoord;
+    vec2 texCoord = waterUv;
     if (useFlowMap) {
-        flowDirection = (texture(flowMap, v_texCoord).xy * 2.0 - 1.0);
+        flowDirection = (texture(flowMap, waterUv).xy * 2.0 - 1.0);
         texCoord += flowDirection * time * flowSpeed;
     }
 
