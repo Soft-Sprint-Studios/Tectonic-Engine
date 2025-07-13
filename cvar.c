@@ -86,7 +86,6 @@ Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* help
     c->flags = flags;
     Cvar_UpdateValues(c);
 
-    Console_Printf("Registered Cvar: %s (default: \"%s\")\n", name, defaultValue);
     return c;
 }
 
