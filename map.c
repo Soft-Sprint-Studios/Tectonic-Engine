@@ -17,6 +17,7 @@
 #include "io_system.h"
 #include "video_player.h"
 #include "gl_console.h"
+#include "water_manager.h"
 #include "mikktspace/mikktspace.h"
 
 typedef struct {
@@ -1037,6 +1038,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             memset(b, 0, sizeof(Brush));
             b->mass = 0.0f;
             b->isPhysicsEnabled = true;
+            char water_def_name[64] = "";
+            char glass_normal_name[64] = "NULL";
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
             while (fgets(line, sizeof(line), file) && strncmp(line, "brush_end", 9) != 0) {
                 int dummy_int;
@@ -1096,9 +1099,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " is_water %d", &dummy_int) == 1) {
                     b->isWater = (bool)dummy_int;
                 }
+                else if (sscanf(line, " water_def \"%63[^\"]\"", water_def_name) == 1) {}
                 else if (sscanf(line, " is_glass %d", &dummy_int) == 1) {
                     b->isGlass = (bool)dummy_int;
                 }
+                else if (sscanf(line, " glass_normal_mat \"%63[^\"]\"", glass_normal_name) == 1) {}
                 else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {
                 }
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
@@ -1113,6 +1118,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 const char* face_pointers[6];
                 for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
+            }
+            if (b->isWater) {
+                b->waterDef = WaterManager_FindWaterDef(water_def_name);
+            }
+            if (b->isGlass) {
+                b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name);
             }
             Brush_UpdateMatrix(b);
             Brush_CreateRenderData(b);
@@ -1418,9 +1429,13 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }
         if (b->isWater) fprintf(file, "  is_water 1\n");
+        if (b->isWater && b->waterDef) {
+            fprintf(file, "  water_def \"%s\"\n", b->waterDef->name);
+        }
         if (b->isGlass) {
             fprintf(file, "  is_glass 1\n");
             fprintf(file, "  refraction_strength %.4f\n", b->refractionStrength);
+            fprintf(file, "  glass_normal_mat \"%s\"\n", b->glassNormalMap ? b->glassNormalMap->name : "NULL");
         }
         fprintf(file, "  num_verts %d\n", b->numVertices);
         for (int v = 0; v < b->numVertices; ++v) {

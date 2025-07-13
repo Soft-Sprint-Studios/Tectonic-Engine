@@ -23,6 +23,7 @@
 #include <SDL_image.h>
 #include "sound_system.h"
 #include "texturemanager.h"
+#include "water_manager.h"
 #include "io_system.h"
 #include "video_player.h"
 #include "cvar.h"
@@ -3933,6 +3934,11 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
 
                     g_EditorState.show_texture_browser = false;
                 }
+                else if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && g_EditorState.texture_browser_target == 5) {
+                    Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                    b->glassNormalMap = mat;
+                    g_EditorState.show_texture_browser = false;
+                }
                 else if (g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index != -1) {
                     Decal* d = &scene->decals[g_EditorState.selected_entity_index];
 
@@ -4527,6 +4533,33 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Toggle Brush DSP Zone");
         }
+        if (b->isWater) {
+            UI_Separator();
+            UI_Text("Water Definition");
+            int current_item = -1;
+            if (b->waterDef) {
+                for (int i = 0; i < WaterManager_GetWaterDefCount(); ++i) {
+                    if (b->waterDef == WaterManager_GetWaterDef(i)) {
+                        current_item = i;
+                        break;
+                    }
+                }
+            }
+
+            int waterDefCount = WaterManager_GetWaterDefCount();
+            const char** items = (const char**)malloc(waterDefCount * sizeof(const char*));
+            for (int i = 0; i < waterDefCount; i++) {
+                items[i] = WaterManager_GetWaterDef(i)->name;
+            }
+
+            if (UI_Combo("Type", &current_item, items, waterDefCount, -1)) {
+                if (current_item >= 0 && current_item < waterDefCount) {
+                    b->waterDef = WaterManager_GetWaterDef(current_item);
+                }
+            }
+
+            free(items);
+        }
         if (UI_Checkbox("Is Glass", &b->isGlass)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
             if (b->isGlass) {
@@ -4607,6 +4640,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Separator();
             UI_Text("Glass Settings");
             UI_DragFloat("Refraction Strength", &b->refractionStrength, 0.001f, 0.0f, 0.1f);
+            char mat_label[128];
+            sprintf(mat_label, "Normal Map: %s", b->glassNormalMap ? b->glassNormalMap->name : "None");
+            if (UI_Button(mat_label)) {
+                g_EditorState.texture_browser_target = 5;
+                g_EditorState.show_texture_browser = true;
+            }
             if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
             if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Glass Strength"); }
         }

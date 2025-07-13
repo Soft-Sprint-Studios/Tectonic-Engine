@@ -34,6 +34,7 @@
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "checksum.h"
+#include "water_manager.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
@@ -967,8 +968,8 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "dudvMap"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "normalMap"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
-    g_renderer.dudvMap = loadTexture("dudv.png", false);
-    g_renderer.waterNormalMap = loadTexture("water_normal.png", false);
+    WaterManager_Init();
+    WaterManager_ParseWaters("waters.def");
     g_renderer.cloudTexture = loadTexture("clouds.png", false);
     if (g_renderer.cloudTexture == 0) {
         Console_Printf("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
@@ -1751,12 +1752,19 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
     glUniform1i(glGetUniformLocation(g_renderer.glassShader, "sceneTexture"), 0);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
     glUniform1i(glGetUniformLocation(g_renderer.glassShader, "normalMap"), 1);
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
         if (!b->isGlass) continue;
+
+        glActiveTexture(GL_TEXTURE1);
+        if (b->glassNormalMap) {
+            glBindTexture(GL_TEXTURE_2D, b->glassNormalMap->normalMap);
+        }
+        else {
+            glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
+        }
 
         glUniform1f(glGetUniformLocation(g_renderer.glassShader, "refractionStrength"), b->refractionStrength);
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
@@ -1857,12 +1865,11 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "sunShadowMap"), 11);
 
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.dudvMap);
-    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.waterNormalMap);
-
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isWater) continue;
+        if (!b->waterDef) continue;
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, b->waterDef->dudvMap);
+        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, b->waterDef->normalMap);
 
         int probe_idx = FindReflectionProbeForPoint(b->pos);
         GLuint reflectionTex;
@@ -2397,8 +2404,7 @@ void cleanup() {
     glDeleteFramebuffers(2, g_renderer.volPingpongFBO);
     glDeleteTextures(2, g_renderer.volPingpongTextures);
     glDeleteBuffers(1, &g_renderer.lightSSBO);
-    glDeleteTextures(1, &g_renderer.dudvMap);
-    glDeleteTextures(1, &g_renderer.waterNormalMap);
+    WaterManager_Shutdown();
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     VideoPlayer_ShutdownSystem();

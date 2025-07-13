@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include "math_lib.h"
 #include "texturemanager.h"
+#include "water_manager.h"
 #include "model_loader.h"
 #include "physics_wrapper.h"
 #include "particle_system.h"
@@ -201,8 +202,6 @@ typedef struct {
     GLuint depthAaShader;
     GLuint motionBlurShader;
     GLuint waterShader;
-    GLuint dudvMap;
-    GLuint waterNormalMap;
     GLuint parallaxInteriorShader;
     GLuint glassShader;
     GLuint lightSSBO;
@@ -272,12 +271,14 @@ typedef struct {
     bool isPhysicsEnabled;
     bool isReflectionProbe;
     bool isWater;
+    WaterDef* waterDef;
     GLuint cubemapTexture;
     char name[64];
     bool isDSP;
     ReverbPreset reverbPreset;
     bool isGlass;
     float refractionStrength;
+    Material* glassNormalMap;
 } Brush;
 
 typedef struct {
