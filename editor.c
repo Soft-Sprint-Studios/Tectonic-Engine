@@ -433,9 +433,9 @@ static void ScanMapFiles() {
     if (h_find == INVALID_HANDLE_VALUE) return;
     do {
         if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_model_files + 1) * sizeof(char*));
-            g_EditorState.map_file_list[g_EditorState.num_model_files] = _strdup(find_data.cFileName);
-            g_EditorState.num_model_files++;
+            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_map_files + 1) * sizeof(char*));
+            g_EditorState.map_file_list[g_EditorState.num_map_files] = _strdup(find_data.cFileName);
+            g_EditorState.num_map_files++;
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);
@@ -446,9 +446,9 @@ static void ScanMapFiles() {
     while ((dir = readdir(d)) != NULL) {
         const char* ext = strrchr(dir->d_name, '.');
         if (ext && (_stricmp(ext, ".map") == 0)) {
-            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_model_files + 1) * sizeof(char*));
-            g_EditorState.map_file_list[g_EditorState.num_model_files] = strdup(dir->d_name);
-            g_EditorState.num_model_files++;
+            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_map_files + 1) * sizeof(char*));
+            g_EditorState.map_file_list[g_EditorState.num_map_files] = strdup(dir->d_name);
+            g_EditorState.num_map_files++;
         }
     }
     closedir(d);
@@ -1134,7 +1134,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.initialized = true;
     g_EditorState.is_clipping = false;
     g_EditorState.clip_point_count = 0;
-    strcpy(g_EditorState.currentMapPath, "level1.map");
+    strcpy(g_EditorState.currentMapPath, "untitled.map");
     g_EditorState.show_load_map_popup = false;
     g_EditorState.show_save_map_popup = false;
     strcpy(g_EditorState.save_map_path, "new_map.map");
@@ -2584,54 +2584,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, g_EditorState.selected_entity_index); break;
                 default: Console_Printf("Duplication not implemented for this entity type yet."); break;
                 }
-            }
-            return;
-        }
-        if (event->key.keysym.sym == SDLK_ESCAPE) {
-            if (g_EditorState.is_in_z_mode) {
-                g_EditorState.is_in_z_mode = false;
-                SDL_SetRelativeMouseMode(SDL_FALSE);
-                return;
-            }
-            if (g_EditorState.is_in_brush_creation_mode) {
-                g_EditorState.is_in_brush_creation_mode = false;
-                g_EditorState.is_dragging_for_creation = false;
-                g_EditorState.is_dragging_preview_brush_handle = false;
-                g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
-                g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
-            }
-            if (g_EditorState.is_dragging_preview_brush_body) {
-                g_EditorState.is_dragging_preview_brush_body = false;
-            }
-            else if (g_EditorState.is_clipping) {
-                g_EditorState.is_clipping = false;
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Clip");
-                Undo_PerformUndo(scene, engine);
-            }
-            if (g_EditorState.is_painting) {
-                g_EditorState.is_painting = false;
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Vertex Paint");
-                Undo_PerformUndo(scene, engine);
-            }
-            if (g_EditorState.is_sculpting) {
-                g_EditorState.is_sculpting = false;
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Cancel Vertex Sculpt");
-                Undo_PerformUndo(scene, engine);
-            }
-            if (g_EditorState.is_painting_mode_enabled && g_EditorState.selected_entity_type == ENTITY_BRUSH) {
-                for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
-                    if (g_EditorState.is_viewport_hovered[i]) {
-                        g_EditorState.is_painting = true;
-                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-                        return;
-                    }
-                }
-            }
-            else if (g_EditorState.selected_entity_type != ENTITY_NONE) {
-                g_EditorState.selected_entity_type = ENTITY_NONE;
-                g_EditorState.selected_entity_index = -1;
-                g_EditorState.selected_vertex_index = -1;
-                g_EditorState.selected_face_index = -1;
             }
             return;
         }
