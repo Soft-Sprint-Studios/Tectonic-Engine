@@ -2243,64 +2243,64 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             BrushFace* face = &b->faces[g_EditorState.selected_face_index];
             if (face->numVertexIndices < 3) return;
 
-            Vec3 p0 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[0]].pos);
-            Vec3 p1 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[1]].pos);
-            Vec3 p2 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face->vertexIndices[2]].pos);
-            Vec3 plane_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-            vec3_normalize(&plane_normal);
-            float plane_d = -vec3_dot(plane_normal, p0);
+            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
+            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Mat4 inv_proj, inv_view;
+            mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+            mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
+            Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+            ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+            Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
+            vec3_normalize(&ray_dir);
 
-            Vec3 delta = { 0 };
-            Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view];
+            Vec3 current_intersect_point;
+            if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
+                Vec3 delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
 
-            if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
-                Vec3 current_intersect_point;
-                if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
-                    delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                Vec3 axis_dir = { 0 };
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
+
+                float projection_len = vec3_dot(delta, axis_dir);
+                Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+
+                if (g_EditorState.snap_to_grid) {
+                    projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
+                    projected_delta.y = SnapValue(projected_delta.y, g_EditorState.grid_size);
+                    projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
+                }
+
+                Mat4 inv_rot_scale_matrix;
+                mat4_inverse(&b->modelMatrix, &inv_rot_scale_matrix);
+                inv_rot_scale_matrix.m[12] = 0.0f;
+                inv_rot_scale_matrix.m[13] = 0.0f;
+                inv_rot_scale_matrix.m[14] = 0.0f;
+                Vec3 local_move_delta = mat4_mul_vec3_dir(&inv_rot_scale_matrix, projected_delta);
+
+                for (int i = 0; i < face->numVertexIndices; ++i) {
+                    int vert_idx = face->vertexIndices[i];
+                    b->vertices[vert_idx].pos = vec3_add(b->vertices[vert_idx].pos, local_move_delta);
+                }
+
+                g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
+
+                Brush_CreateRenderData(b);
+                if (b->physicsBody) {
+                    Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                    if (!b->isTrigger && b->numVertices > 0) {
+                        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                        for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                        free(world_verts);
+                    }
+                    else { b->physicsBody = NULL; }
                 }
             }
-            else {
-                Vec3 current_point = ScreenToWorld(screen_pos, g_EditorState.gizmo_drag_view);
-                delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
-            }
 
-            Vec3 axis_dir = { 0 };
-            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
-            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
-            if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            float projection_len = vec3_dot(delta, axis_dir);
-            Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
-
-            if (g_EditorState.snap_to_grid) {
-                projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
-                projected_delta.y = SnapValue(projected_delta.y, g_EditorState.grid_size);
-                projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
-            }
-
-            Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
-            for (int i = 0; i < face->numVertexIndices; ++i) {
-                int vert_idx = face->vertexIndices[i];
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
-                Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
-                b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
-            }
-
-            Brush_CreateRenderData(b);
-            if (b->physicsBody) {
-                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                if (!b->isTrigger && b->numVertices > 0) {
-                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                    for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    free(world_verts);
-                }
-                else { b->physicsBody = NULL; }
-            }
             return;
         }
         else if (g_EditorState.is_vertex_manipulating) {
@@ -2415,6 +2415,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
                         if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
                         Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+                        projected_delta = vec3_muls(projected_delta, 0.01f);
                         new_pos = vec3_add(g_EditorState.gizmo_drag_object_start_pos, projected_delta);
                     }
                     else if (g_EditorState.current_gizmo_operation == GIZMO_OP_SCALE) {
@@ -2720,7 +2721,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 float distance_away = target_size * 2.0f;
                 if (distance_away < 2.0f) distance_away = 2.0f;
 
-                g_EditorState.editor_camera.position = vec3_sub(target_pos, vec3_muls(cam_forward, distance_away));
+                Vec3 new_cam_pos = vec3_sub(target_pos, vec3_muls(cam_forward, distance_away));
+                g_EditorState.editor_camera.position = new_cam_pos;
+
+                Vec3 new_forward = vec3_sub(target_pos, new_cam_pos);
+                vec3_normalize(&new_forward);
+
+                g_EditorState.editor_camera.pitch = asinf(new_forward.y);
+                g_EditorState.editor_camera.yaw = atan2f(new_forward.x, -new_forward.z);
             }
             if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_vertex_index != -1) {
                 bool moved = false;
@@ -2894,7 +2902,6 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (state[SDL_SCANCODE_S]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
         if (state[SDL_SCANCODE_D]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(right, speed));
         if (state[SDL_SCANCODE_A]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(right, speed));
-        if (state[SDL_SCANCODE_SPACE]) g_EditorState.editor_camera.position.y += speed; if (state[SDL_SCANCODE_LCTRL]) g_EditorState.editor_camera.position.y -= speed;
         if (state[SDL_SCANCODE_E]) g_EditorState.editor_camera.position.y += speed;
         if (state[SDL_SCANCODE_Q]) g_EditorState.editor_camera.position.y -= speed;
     }
@@ -4790,6 +4797,38 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
             }
         }
 
+        if (UI_Button("Delete Face")) {
+            if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && g_EditorState.selected_face_index != -1) {
+                Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
+                if (g_EditorState.selected_face_index < b->numFaces) {
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+                    free(b->faces[g_EditorState.selected_face_index].vertexIndices);
+                    for (int i = g_EditorState.selected_face_index; i < b->numFaces - 1; ++i) {
+                        b->faces[i] = b->faces[i + 1];
+                    }
+                    b->numFaces--;
+
+                    Brush_CreateRenderData(b);
+                    if (b->physicsBody) {
+                        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                        if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                            Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                            for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                            free(world_verts);
+                        }
+                        else {
+                            b->physicsBody = NULL;
+                        }
+                    }
+
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Delete Face");
+                    g_EditorState.selected_face_index = -1;
+                    g_EditorState.selected_vertex_index = -1;
+                }
+            }
+        }
+
         static int subdivide_u = 2;
         static int subdivide_v = 2;
         UI_DragInt("Subdivisions U", &subdivide_u, 1, 1, 16);
@@ -6025,25 +6064,62 @@ static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec
         local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
     }
 
+    const float min_brush_dim = 0.1f;
     switch (g_EditorState.selected_brush_active_handle) {
-    case PREVIEW_BRUSH_HANDLE_MIN_X:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) b->vertices[i].pos.x = new_local_pos.x;
+    case PREVIEW_BRUSH_HANDLE_MIN_X: {
+        float clamped_x = (new_local_pos.x > local_max.x - min_brush_dim) ? (local_max.x - min_brush_dim) : new_local_pos.x;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) {
+                b->vertices[i].pos.x = clamped_x;
+            }
+        }
         break;
-    case PREVIEW_BRUSH_HANDLE_MAX_X:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) b->vertices[i].pos.x = new_local_pos.x;
+    }
+    case PREVIEW_BRUSH_HANDLE_MAX_X: {
+        float clamped_x = (new_local_pos.x < local_min.x + min_brush_dim) ? (local_min.x + min_brush_dim) : new_local_pos.x;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) {
+                b->vertices[i].pos.x = clamped_x;
+            }
+        }
         break;
-    case PREVIEW_BRUSH_HANDLE_MIN_Y:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) b->vertices[i].pos.y = new_local_pos.y;
+    }
+    case PREVIEW_BRUSH_HANDLE_MIN_Y: {
+        float clamped_y = (new_local_pos.y > local_max.y - min_brush_dim) ? (local_max.y - min_brush_dim) : new_local_pos.y;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) {
+                b->vertices[i].pos.y = clamped_y;
+            }
+        }
         break;
-    case PREVIEW_BRUSH_HANDLE_MAX_Y:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) b->vertices[i].pos.y = new_local_pos.y;
+    }
+    case PREVIEW_BRUSH_HANDLE_MAX_Y: {
+        float clamped_y = (new_local_pos.y < local_min.y + min_brush_dim) ? (local_min.y + min_brush_dim) : new_local_pos.y;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) {
+                b->vertices[i].pos.y = clamped_y;
+            }
+        }
         break;
-    case PREVIEW_BRUSH_HANDLE_MIN_Z:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) b->vertices[i].pos.z = new_local_pos.z;
+    }
+    case PREVIEW_BRUSH_HANDLE_MIN_Z: {
+        float clamped_z = (new_local_pos.z > local_max.z - min_brush_dim) ? (local_max.z - min_brush_dim) : new_local_pos.z;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) {
+                b->vertices[i].pos.z = clamped_z;
+            }
+        }
         break;
-    case PREVIEW_BRUSH_HANDLE_MAX_Z:
-        for (int i = 0; i < b->numVertices; ++i) if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) b->vertices[i].pos.z = new_local_pos.z;
+    }
+    case PREVIEW_BRUSH_HANDLE_MAX_Z: {
+        float clamped_z = (new_local_pos.z < local_min.z + min_brush_dim) ? (local_min.z + min_brush_dim) : new_local_pos.z;
+        for (int i = 0; i < b->numVertices; ++i) {
+            if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) {
+                b->vertices[i].pos.z = clamped_z;
+            }
+        }
         break;
+    }
     default: break;
     }
 

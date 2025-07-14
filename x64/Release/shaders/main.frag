@@ -535,6 +535,9 @@ void main()
         
         vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular_ibl_contribution = prefilteredColor * (F_for_IBL_specular * envBRDF.x + envBRDF.y);
+		
+		vec3 totalLightIntensity = totalDirectDiffuse + indirectLight;
+		specular_ibl_contribution *= totalLightIntensity;
         
         vec3 kS_ibl = F_for_IBL_specular;
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
