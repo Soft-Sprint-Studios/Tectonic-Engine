@@ -2487,8 +2487,31 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     scene->brushes[g_EditorState.selected_entity_index].pos = new_pos; scene->brushes[g_EditorState.selected_entity_index].rot = new_rot; scene->brushes[g_EditorState.selected_entity_index].scale = new_scale; 
                     if (g_EditorState.texture_lock_enabled && g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
                         for (int i = 0; i < b->numFaces; ++i) {
-                            b->faces[i].uv_offset.x -= pos_delta.x / b->faces[i].uv_scale.x;
-                            b->faces[i].uv_offset.y -= pos_delta.z / b->faces[i].uv_scale.y;
+                            BrushFace* face = &b->faces[i];
+                            if (face->numVertexIndices < 3) continue;
+
+                            Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
+                            Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
+                            Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
+                            Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+
+                            float absX = fabsf(face_normal.x);
+                            float absY = fabsf(face_normal.y);
+                            float absZ = fabsf(face_normal.z);
+                            int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
+
+                            if (dominant_axis == 0) {
+                                face->uv_offset.x -= pos_delta.y / face->uv_scale.x;
+                                face->uv_offset.y -= pos_delta.z / face->uv_scale.y;
+                            }
+                            else if (dominant_axis == 1) {
+                                face->uv_offset.x -= pos_delta.x / face->uv_scale.x;
+                                face->uv_offset.y -= pos_delta.z / face->uv_scale.y;
+                            }
+                            else {
+                                face->uv_offset.x -= pos_delta.x / face->uv_scale.x;
+                                face->uv_offset.y -= pos_delta.y / face->uv_scale.y;
+                            }
                         }
                         Brush_CreateRenderData(b);
                     }
@@ -3540,7 +3563,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
         g_proj_matrix[type] = mat4_perspective(45.0f * (3.14159f / 180.0f), aspect, 0.1f, 10000.0f);
 
-        render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_is_unlit_mode);
+        render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode);
         if (Cvar_GetInt("r_ssao")) {
             render_ssao_pass(&g_proj_matrix[type]);
         }
@@ -4594,7 +4617,7 @@ static void Editor_RenderReplaceTexturesUI(Scene* scene) {
     }
     UI_End();
 }
-static void Editor_RenderFaceEditSheet(Scene* scene) {
+static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
     UI_SetNextWindowSize(300, 450);
     if (UI_Begin_NoClose("Face Edit Sheet")) {
         if (g_EditorState.selected_entity_type != ENTITY_BRUSH || g_EditorState.selected_entity_index == -1 || g_EditorState.selected_face_index == -1) {
@@ -4747,6 +4770,35 @@ static void Editor_RenderFaceEditSheet(Scene* scene) {
                 if (UI_DragFloat("Rotation##4", &face->uv_rotation4, 1.0f, -360.0f, 360.0f)) {}
                 if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
                 if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
+            }
+        }
+
+        if (UI_Button("Flip Face Normal")) {
+            if (g_EditorState.selected_face_index >= 0 && g_EditorState.selected_face_index < b->numFaces) {
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+
+                BrushFace* face_to_flip = &b->faces[g_EditorState.selected_face_index];
+                int num_indices = face_to_flip->numVertexIndices;
+                for (int k = 0; k < num_indices / 2; ++k) {
+                    int temp = face_to_flip->vertexIndices[k];
+                    face_to_flip->vertexIndices[k] = face_to_flip->vertexIndices[num_indices - 1 - k];
+                    face_to_flip->vertexIndices[num_indices - 1 - k] = temp;
+                }
+
+                Brush_CreateRenderData(b);
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Flip Brush Face");
+            }
+        }
+
+        static int subdivide_u = 2;
+        static int subdivide_v = 2;
+        UI_DragInt("Subdivisions U", &subdivide_u, 1, 1, 16);
+        UI_DragInt("Subdivisions V", &subdivide_v, 1, 1, 16);
+
+        if (UI_Button("Subdivide Selected Face")) {
+            if (g_EditorState.selected_face_index != -1) {
+                Editor_SubdivideBrushFace(scene, engine, g_EditorState.selected_entity_index, g_EditorState.selected_face_index, subdivide_u, subdivide_v);
+                g_EditorState.selected_face_index = -1;
             }
         }
     }
@@ -5487,38 +5539,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Glass Strength"); }
         }
         else {
-            UI_Text("Face Properties (Face %d)", g_EditorState.selected_face_index);
-            if (UI_Button("Flip Face Normal")) {
-                if (g_EditorState.selected_face_index >= 0 && g_EditorState.selected_face_index < b->numFaces) {
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
-
-                    BrushFace* face_to_flip = &b->faces[g_EditorState.selected_face_index];
-                    int num_indices = face_to_flip->numVertexIndices;
-                    for (int k = 0; k < num_indices / 2; ++k) {
-                        int temp = face_to_flip->vertexIndices[k];
-                        face_to_flip->vertexIndices[k] = face_to_flip->vertexIndices[num_indices - 1 - k];
-                        face_to_flip->vertexIndices[num_indices - 1 - k] = temp;
-                    }
-
-                    Brush_CreateRenderData(b);
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Flip Brush Face");
-                }
-            }
-            UI_DragInt("Selected Face", &g_EditorState.selected_face_index, 1, 0, b->numFaces - 1);
-            UI_Separator();
-            UI_Text("Face Tools");
-
-            static int subdivide_u = 2;
-            static int subdivide_v = 2;
-            UI_DragInt("Subdivisions U", &subdivide_u, 1, 1, 16);
-            UI_DragInt("Subdivisions V", &subdivide_v, 1, 1, 16);
-
-            if (UI_Button("Subdivide Selected Face")) {
-                if (g_EditorState.selected_face_index != -1) {
-                    Editor_SubdivideBrushFace(scene, engine, g_EditorState.selected_entity_index, g_EditorState.selected_face_index, subdivide_u, subdivide_v);
-                    g_EditorState.selected_face_index = -1;
-                }
-            }
             UI_Separator();
             UI_Text("Vertex Properties"); UI_DragInt("Selected Vertex", &g_EditorState.selected_vertex_index, 1, 0, b->numVertices - 1);
             if (g_EditorState.selected_vertex_index >= 0 && g_EditorState.selected_vertex_index < b->numVertices) {
@@ -5973,7 +5993,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_End();
         UI_PopStyleVar(1);
     }
-    Editor_RenderFaceEditSheet(scene);
+    Editor_RenderFaceEditSheet(scene, engine);
 }
 static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view) {
     if (g_EditorState.selected_brush_active_handle == PREVIEW_BRUSH_HANDLE_NONE) return;

@@ -1952,7 +1952,7 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glBindVertexArray(0);
 }
 
-void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, bool unlit) {
+void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit) {
     Frustum frustum;
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
@@ -1978,7 +1978,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)(WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, g_renderer.prevViewProjection.m);
-    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &g_engine->camera.position.x);
+    glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &cameraPos.x);
     glUniform1f(glGetUniformLocation(g_renderer.mainShader, "u_time"), g_engine->lastFrame);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_windDirection"), 1, &g_scene.sun.windDirection.x);
     glUniform1f(glGetUniformLocation(g_renderer.mainShader, "u_windStrength"), g_scene.sun.windStrength);
@@ -2712,7 +2712,7 @@ void BuildCubemaps() {
             glUseProgram(g_renderer.mainShader);
             glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 1);
 
-            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
+            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
 
             glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 0);
 
@@ -2923,7 +2923,7 @@ int main(int argc, char* argv[]) {
                     render_sun_shadows(&sunLightSpaceMatrix);
                 }
             }
-            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, false);
+            render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
             if (Cvar_GetInt("r_ssao")) {
                 render_ssao_pass(&projection);
             }
