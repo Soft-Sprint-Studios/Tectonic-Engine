@@ -155,6 +155,7 @@ typedef struct {
 
 typedef struct {
     GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
+    GLuint zPrepassShader;
     GLuint lightingCompositeShader;
     GLuint postProcessShader;
     GLuint quadVAO, quadVBO;
@@ -410,6 +411,7 @@ typedef struct {
     GLuint skybox_cubemap;
     ColorCorrectionSettings colorCorrection;
     bool static_vpls_generated;
+    bool static_shadows_generated;
 } Scene;
 
 typedef struct {

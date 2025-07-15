@@ -208,7 +208,7 @@ void main()
     }
 
     vec3 color;
-    if (u_postEnabled && u_chromaticAberrationEnabled) {
+    if (u_chromaticAberrationEnabled) {
         color = applyChromaticAberration(uv, u_chromaticAberrationStrength);
     } else {
         color = texture(sceneTexture, uv).rgb;
@@ -221,12 +221,8 @@ void main()
         color *= occlusion;
     }
 
-    if (u_postEnabled && u_sharpenEnabled) {
+    if (u_sharpenEnabled) {
         color = applySharpen(uv, u_sharpenAmount, color);
-    }
-
-    if (u_bloomEnabled) {
-        color += texture(bloomBlur, uv).rgb;
     }
 
     if (u_volumetricsEnabled) {
@@ -243,6 +239,9 @@ void main()
 
     color *= u_exposure;
     color = aces(color);
+	if (u_bloomEnabled) {
+        color += texture(bloomBlur, uv).rgb;
+    }
     color = gammaCorrect(color, 2.2);
 	
     if (u_colorCorrectionEnabled) {

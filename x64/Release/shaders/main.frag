@@ -319,6 +319,15 @@ void main()
     float blendR = v_Color.r;
     float blendG = v_Color.g;
     float blendB = v_Color.b;
+
+    float totalWeight = max(blendR + blendG + blendB, 0.0001);
+
+    if (totalWeight > 1.0) {
+        blendR /= totalWeight;
+        blendG /= totalWeight;
+        blendB /= totalWeight;
+    }
+
     float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
     float blendBase = 1.0 - blendTotal;
 
@@ -528,7 +537,7 @@ void main()
     if (useEnvironmentMap)
     {
         vec3 irradiance = texture(environmentMap, N).rgb;
-       vec3 diffuse_ibl_contribution = vec3(0.0);
+        vec3 diffuse_ibl_contribution = vec3(0.0);
         
         const float MAX_REFLECTION_LOD = 4.0; 
         vec3 prefilteredColor = textureLod(environmentMap, R_env,  roughness * MAX_REFLECTION_LOD).rgb;

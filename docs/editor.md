@@ -27,7 +27,7 @@ Brushes are the foundation of level geometry in Tectonic. They are convex shapes
 3.  **Define the Third Dimension:**
     *   **With Mouse:** Move to another 2D viewport and click and drag one of the yellow handles to set the brush's height/depth.
     *   **With Gizmo:** Once the preview brush exists, you can use the Move/Scale gizmo to adjust it.
-4.  **Confirm Creation:** Press **Enter** to finalize the brush and add it to the scene. Press **Escape** to cancel.
+4.  **Confirm Creation:** Press **Enter** to finalize the brush and add it to the scene.
 
 ### Manipulating Brushes
 

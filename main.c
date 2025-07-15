@@ -619,8 +619,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_volumetrics", "1", "Enable or disable volumetric lighting.", CVAR_NONE);
     Cvar_Register("r_depth_aa", "1", "Enable Depth/Normal based Anti-Aliasing.", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling for main render pass. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_zprepass", "1", "Enable Z-prepass to reduce overdraw. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_shadows_static", "0", "Generate point/spot light shadows only once on map load. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_point_count", "64", "Number of VPLs to generate per point light.", CVAR_NONE);
     Cvar_Register("r_vpl_spot_count", "64", "Number of VPLs to generate per spot light.", CVAR_NONE);
@@ -629,6 +631,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
     Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur.", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
@@ -645,7 +648,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality setting (1=very low, 2=low, 3=medium, 4=high, 5=very high).", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
-    Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur.", CVAR_NONE);
     Cvar_Register("g_speed", "6.0", "Player walking speed.", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
@@ -680,6 +682,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 }
 
 void init_renderer() {
+    g_renderer.zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");
     g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     g_renderer.debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
@@ -1952,16 +1955,96 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glBindVertexArray(0);
 }
 
+void render_zprepass(const Mat4* view, const Mat4* projection) {
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(g_renderer.zPrepassShader);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "projection"), 1, GL_FALSE, projection->m);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    if (Cvar_GetInt("r_faceculling")) {
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+    }
+    else {
+        glDisable(GL_CULL_FACE);
+    }
+
+    if (Cvar_GetInt("r_wireframe")) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(0.5f, 0.5f);
+
+    for (int i = 0; i < g_scene.numObjects; i++) {
+        SceneObject* obj = &g_scene.objects[i];
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+        if (obj->model) {
+            for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                Mesh* mesh = &obj->model->meshes[meshIdx];
+                glBindVertexArray(mesh->VAO);
+                if (mesh->useEBO) {
+                    glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+                }
+                else {
+                    glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount);
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < g_scene.numBrushes; i++) {
+        Brush* b = &g_scene.brushes[i];
+        if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glBindVertexArray(b->vao);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+    }
+
+    if (Cvar_GetInt("r_wireframe")) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_FALSE);
+    glDepthFunc(GL_LEQUAL);
+}
+
 void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit) {
     Frustum frustum;
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
     extract_frustum_planes(&view_proj, &frustum, true);
+
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glViewport(0, 0, WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    if (Cvar_GetInt("r_zprepass")) {
+        render_zprepass(view, projection);
+    }
+    else {
+        glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
+    }
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    if (!Cvar_GetInt("r_zprepass")) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+    else {
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
     GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
     glDrawBuffers(7, attachments);
+
     if (Cvar_GetInt("r_faceculling")) {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
@@ -1972,7 +2055,8 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     if (Cvar_GetInt("r_wireframe")) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
-    glEnable(GL_DEPTH_TEST); glUseProgram(g_renderer.mainShader);
+
+    glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
@@ -2134,7 +2218,12 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     if (Cvar_GetInt("r_wireframe")) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-    glBindVertexArray(0); glDepthMask(GL_TRUE); glDisable(GL_BLEND);
+    if (Cvar_GetInt("r_zprepass")) {
+        glDepthFunc(GL_LESS);
+    }
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -2398,6 +2487,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.pointDepthShader);
     glDeleteProgram(g_renderer.vplGenerationShader);
     glDeleteProgram(g_renderer.vplComputeShader);
+    glDeleteProgram(g_renderer.zPrepassShader);
     glDeleteProgram(g_renderer.debugBufferShader);
     glDeleteProgram(g_renderer.spotDepthShader);
     glDeleteProgram(g_renderer.skyboxShader);
@@ -2917,7 +3007,18 @@ int main(int argc, char* argv[]) {
             mat4_identity(&sunLightSpaceMatrix);
 
             if (Cvar_GetInt("r_shadows")) {
-                render_shadows();
+                if (Cvar_GetInt("r_shadows_static")) {
+                    if (!g_scene.static_shadows_generated) {
+                        Console_Printf("Generating static shadows for the map...");
+                        render_shadows();
+                        g_scene.static_shadows_generated = true;
+                        Console_Printf("Static shadow generation complete.");
+                    }
+                }
+                else {
+                    render_shadows();
+                }
+
                 if (g_scene.sun.enabled) {
                     Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
                     render_sun_shadows(&sunLightSpaceMatrix);

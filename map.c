@@ -926,6 +926,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 
     memset(scene, 0, sizeof(Scene));
     scene->static_vpls_generated = false;
+    scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
     scene->fog.enabled = false;
     scene->fog.color = (Vec3){ 0.5f, 0.6f, 0.7f };
