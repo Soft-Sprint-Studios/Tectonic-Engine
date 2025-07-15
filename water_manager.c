@@ -16,16 +16,6 @@ static WaterDef g_water_defs[MAX_WATER_DEFS];
 static int g_num_water_defs = 0;
 static WaterDef g_default_water_def;
 
-static char* trim_whitespace_water(char* str) {
-    char* end;
-    while (isspace((unsigned char)*str)) str++;
-    if (*str == 0) return str;
-    end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) end--;
-    end[1] = '\0';
-    return str;
-}
-
 void WaterManager_Init(void) {
     memset(g_water_defs, 0, sizeof(g_water_defs));
     g_num_water_defs = 0;
@@ -65,7 +55,7 @@ void WaterManager_ParseWaters(const char* filepath) {
     WaterDef* current_def = NULL;
 
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed_line = trim_whitespace_water(line);
+        char* trimmed_line = trim(line);
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') continue;
 
         if (trimmed_line[0] == '"') {

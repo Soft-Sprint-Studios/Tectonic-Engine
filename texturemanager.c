@@ -274,16 +274,6 @@ GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID) {
     return loadCubemap(faces);
 }
 
-static char* trim_whitespace(char* str) {
-    char* end;
-    while (isspace((unsigned char)*str)) str++;
-    if (*str == 0) return str;
-    end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) end--;
-    end[1] = '\0';
-    return str;
-}
-
 static char* strip_numeric_suffix(const char* name) {
     const char* dot = strrchr(name, '.');
     if (dot && dot != name) {
@@ -403,7 +393,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
     Material* current_material = NULL;
 
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed_line = trim_whitespace(line);
+        char* trimmed_line = trim(line);
 
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
             continue;

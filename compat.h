@@ -94,6 +94,28 @@ static const char* _stristr(const char* haystack, const char* needle) {
     return NULL;
 }
 
+static char* trim(char* str) {
+    char* end;
+
+    while (isspace((unsigned char)*str)) {
+        str++;
+    }
+
+    if (*str == '\0') {
+        return str;
+    }
+
+    end = str + strlen(str) - 1;
+
+    while (end > str && isspace((unsigned char)*end)) {
+        end--;
+    }
+
+    end[1] = '\0';
+
+    return str;
+}
+
 #ifdef DISABLE_DEBUGGER
 static bool CheckForDebugger(void) {
 #ifdef PLATFORM_WINDOWS
