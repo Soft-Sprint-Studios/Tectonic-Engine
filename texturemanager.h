@@ -9,6 +9,10 @@
 #ifndef TEXTURE_MANAGER_H
 #define TEXTURE_MANAGER_H
 
+//----------------------------------------//
+// Brief: Sounds, this calls dsp_reverb
+//----------------------------------------//
+
 #include <GL/glew.h>
 #include <stdbool.h>
 
