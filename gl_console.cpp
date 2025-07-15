@@ -241,4 +241,12 @@ extern "C" {
     void UI_SetNextItemWidth(float item_width) {
         ImGui::SetNextItemWidth(item_width);
     }
+    void UI_TextColored(Vec4 color, const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextColoredV(ImVec4(color.x, color.y, color.z, color.w), fmt, args); va_end(args); }
+    void UI_TextWrapped(const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextWrappedV(fmt, args); va_end(args); }
+    void UI_BulletText(const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::BulletTextV(fmt, args); va_end(args); }
+    bool UI_BeginTable(const char* str_id, int column, int flags, float outer_width, float inner_width) { return ImGui::BeginTable(str_id, column, (ImGuiTableFlags)flags, ImVec2(outer_width, inner_width)); }
+    void UI_EndTable() { ImGui::EndTable(); }
+    void UI_TableNextRow() { ImGui::TableNextRow(); }
+    void UI_TableNextColumn() { ImGui::TableNextColumn(); }
+    void UI_TableHeadersRow() { ImGui::TableHeadersRow(); }
 }

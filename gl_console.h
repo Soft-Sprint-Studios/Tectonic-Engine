@@ -15,6 +15,7 @@
 
 #include <SDL.h>
 #include <stdbool.h>
+#include "math_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,6 +47,9 @@ extern "C" {
 	void UI_EndMenu();
 	bool UI_MenuItem(const char* label, const char* shortcut, bool selected, bool enabled);
 	void UI_Text(const char* fmt, ...);
+	void UI_TextColored(Vec4 color, const char* fmt, ...);
+	void UI_TextWrapped(const char* fmt, ...);
+	void UI_BulletText(const char* fmt, ...);
 	void UI_Separator();
 	bool UI_CollapsingHeader(const char* label, int flags);
 	bool UI_Selectable(const char* label, bool selected);
@@ -104,6 +108,9 @@ extern "C" {
 	void UI_EndPopup();
 
 	void UI_SetNextItemWidth(float item_width);
+
+	void UI_GetDisplaySize(float* w, float* h);
+	void UI_Spacing();
 
 #ifdef __cplusplus
 }

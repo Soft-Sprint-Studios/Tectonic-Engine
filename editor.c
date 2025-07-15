@@ -190,6 +190,11 @@ typedef struct {
     ViewportType last_active_2d_view;
     float editor_camera_speed;
     bool texture_lock_enabled;
+    bool show_help_window;
+    char** doc_files;
+    int num_doc_files;
+    int selected_doc_index;
+    char* current_doc_content;
 } EditorState;
 
 static EditorState g_EditorState;
@@ -363,7 +368,49 @@ static void ScanModelFiles() {
     closedir(d);
 #endif
 }
+static void FreeDocFileList() {
+    if (g_EditorState.doc_files) {
+        for (int i = 0; i < g_EditorState.num_doc_files; ++i) {
+            free(g_EditorState.doc_files[i]);
+        }
+        free(g_EditorState.doc_files);
+        g_EditorState.doc_files = NULL;
+        g_EditorState.num_doc_files = 0;
+    }
+}
 
+static void ScanDocFiles() {
+    FreeDocFileList();
+    const char* dir_path = "docs/";
+#ifdef PLATFORM_WINDOWS
+    char search_path[256];
+    sprintf(search_path, "%s*.md", dir_path);
+    WIN32_FIND_DATAA find_data;
+    HANDLE h_find = FindFirstFileA(search_path, &find_data);
+    if (h_find == INVALID_HANDLE_VALUE) return;
+    do {
+        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            g_EditorState.doc_files = realloc(g_EditorState.doc_files, (g_EditorState.num_doc_files + 1) * sizeof(char*));
+            g_EditorState.doc_files[g_EditorState.num_doc_files] = _strdup(find_data.cFileName);
+            g_EditorState.num_doc_files++;
+        }
+    } while (FindNextFileA(h_find, &find_data) != 0);
+    FindClose(h_find);
+#else
+    DIR* d = opendir(dir_path);
+    if (!d) return;
+    struct dirent* dir;
+    while ((dir = readdir(d)) != NULL) {
+        const char* ext = strrchr(dir->d_name, '.');
+        if (ext && (_stricmp(ext, ".md") == 0)) {
+            g_EditorState.doc_files = realloc(g_EditorState.doc_files, (g_EditorState.num_doc_files + 1) * sizeof(char*));
+            g_EditorState.doc_files[g_EditorState.num_doc_files] = strdup(dir->d_name);
+            g_EditorState.num_doc_files++;
+        }
+    }
+    closedir(d);
+#endif
+}
 static void FreeSoundFileList() {
     if (g_EditorState.sound_file_list) {
         for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
@@ -1186,6 +1233,11 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.last_active_2d_view = VIEW_TOP_XZ;
     g_EditorState.editor_camera_speed = 10.0f;
     g_EditorState.texture_lock_enabled = true;
+    g_EditorState.show_help_window = false;
+    g_EditorState.doc_files = NULL;
+    g_EditorState.num_doc_files = 0;
+    g_EditorState.selected_doc_index = -1;
+    g_EditorState.current_doc_content = NULL;
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -1215,6 +1267,11 @@ void Editor_Shutdown() {
     glDeleteBuffers(1, &g_EditorState.gizmo_vbo);
     glDeleteVertexArrays(1, &g_EditorState.player_start_gizmo_vao);
     glDeleteBuffers(1, &g_EditorState.player_start_gizmo_vbo);
+    FreeDocFileList();
+    if (g_EditorState.current_doc_content) {
+        free(g_EditorState.current_doc_content);
+        g_EditorState.current_doc_content = NULL;
+    }
     if (g_EditorState.grid_vao != 0) { glDeleteVertexArrays(1, &g_EditorState.grid_vao); glDeleteBuffers(1, &g_EditorState.grid_vbo); }
     g_EditorState.initialized = false;
 }
@@ -4890,6 +4947,183 @@ static void Editor_RenderAboutWindow() {
     }
     UI_End();
 }
+static void render_markdown_line(const char* line) {
+    if (strncmp(line, "## ", 3) == 0) {
+        UI_TextColored((Vec4) { 0.6f, 0.8f, 1.0f, 1.0f }, "%s", line + 3);
+    }
+    else if (strncmp(line, "# ", 2) == 0) {
+        UI_TextColored((Vec4) { 0.8f, 1.0f, 0.8f, 1.0f }, "%s", line + 2);
+    }
+    else if (strcmp(line, "---") == 0) {
+        UI_Separator();
+    }
+    else if (strncmp(line, "|", 1) == 0) {
+        const char* p = line;
+        if (*p == '|') p++;
+
+        const char* cell_start = p;
+        while (*p) {
+            if (*p == '|') {
+                UI_TableNextColumn();
+                char cell_buffer[512];
+                size_t len = p - cell_start;
+                if (len >= sizeof(cell_buffer)) len = sizeof(cell_buffer) - 1;
+                strncpy(cell_buffer, cell_start, len);
+                cell_buffer[len] = '\0';
+                UI_TextWrapped("%s", cell_buffer);
+                cell_start = p + 1;
+            }
+            p++;
+        }
+
+        if (*cell_start) {
+            UI_TableNextColumn();
+            UI_TextWrapped("%s", cell_start);
+        }
+    }
+    else if (strncmp(line, "* ", 2) == 0) {
+        UI_BulletText("%s", line + 2);
+    }
+    else {
+        const char* p = line;
+        while (*p) {
+            const char* bold_start = strstr(p, "**");
+            if (!bold_start) {
+                UI_TextWrapped("%s", p);
+                break;
+            }
+
+            if (bold_start != p) {
+                char buffer[512];
+                size_t len = bold_start - p;
+                strncpy(buffer, p, len);
+                buffer[len] = '\0';
+                UI_TextWrapped("%s", buffer);
+            }
+
+            const char* bold_end = strstr(bold_start + 2, "**");
+            if (!bold_end) {
+                UI_TextWrapped("%s", bold_start);
+                break;
+            }
+
+            char bold_text[512];
+            size_t bold_len = bold_end - (bold_start + 2);
+            strncpy(bold_text, bold_start + 2, bold_len);
+            bold_text[bold_len] = '\0';
+
+            UI_TextColored((Vec4) { 1.0f, 1.0f, 0.5f, 1.0f }, "%s", bold_text);
+
+            p = bold_end + 2;
+        }
+    }
+}
+
+static void Editor_RenderHelpWindow() {
+    if (!g_EditorState.show_help_window) return;
+
+    UI_SetNextWindowSize(800, 600);
+    if (UI_Begin("Help & Documentation", &g_EditorState.show_help_window)) {
+        UI_BeginChild("doc_list_child", 200, 0, true, 0);
+        if (UI_Button("Refresh List")) {
+            ScanDocFiles();
+        }
+        UI_Separator();
+        if (g_EditorState.num_doc_files > 0) {
+            for (int i = 0; i < g_EditorState.num_doc_files; ++i) {
+                if (UI_Selectable(g_EditorState.doc_files[i], g_EditorState.selected_doc_index == i)) {
+                    g_EditorState.selected_doc_index = i;
+                    char path_buffer[256];
+                    sprintf(path_buffer, "docs/%s", g_EditorState.doc_files[i]);
+
+                    FILE* f = fopen(path_buffer, "rb");
+                    if (f) {
+                        fseek(f, 0, SEEK_END);
+                        long length = ftell(f);
+                        fseek(f, 0, SEEK_SET);
+                        if (g_EditorState.current_doc_content) {
+                            free(g_EditorState.current_doc_content);
+                        }
+                        g_EditorState.current_doc_content = malloc(length + 1);
+                        if (g_EditorState.current_doc_content) {
+                            fread(g_EditorState.current_doc_content, 1, length, f);
+                            g_EditorState.current_doc_content[length] = '\0';
+                        }
+                        fclose(f);
+                    }
+                }
+            }
+        }
+        UI_EndChild();
+        UI_SameLine();
+
+        UI_BeginChild("doc_preview_child", 0, 0, true, 0);
+        if (g_EditorState.current_doc_content) {
+            char* content_copy = strdup(g_EditorState.current_doc_content);
+            char* line = strtok(content_copy, "\n");
+            bool in_table = false;
+            bool in_code_block = false;
+
+            while (line) {
+                if (strncmp(line, "```", 3) == 0) {
+                    in_code_block = !in_code_block;
+                    line = strtok(NULL, "\n");
+                    continue;
+                }
+
+                if (in_code_block) {
+                    UI_TextColored((Vec4) { 0.8f, 0.9f, 1.0f, 1.0f }, "%s", line);
+                    line = strtok(NULL, "\n");
+                    continue;
+                }
+                if (strncmp(line, "|", 1) == 0) {
+                    if (!in_table) {
+                        int columns = 0;
+                        for (const char* p = line; *p; p++) if (*p == '|') columns++;
+                        if (columns > 1) {
+                            if (UI_BeginTable("md_table", columns - 1, 1 | (1 << 6), 0, 0)) {
+                                in_table = true;
+                            }
+                        }
+                    }
+
+                    char next_line_peek[1024] = "";
+                    char* next_line_ptr = strtok(NULL, "\n");
+                    if (next_line_ptr) strcpy(next_line_peek, next_line_ptr);
+
+                    if (in_table && strncmp(next_line_peek, "|:---", 5) == 0) {
+                        UI_TableHeadersRow();
+                        render_markdown_line(line);
+                        line = strtok(NULL, "\n");
+                        line = strtok(NULL, "\n");
+                    }
+                    else if (in_table) {
+                        UI_TableNextRow();
+                        render_markdown_line(line);
+                    }
+                    line = next_line_ptr;
+                }
+                else {
+                    if (in_table) {
+                        UI_EndTable();
+                        in_table = false;
+                    }
+                    render_markdown_line(line);
+                    line = strtok(NULL, "\n");
+                }
+            }
+            if (in_table) {
+                UI_EndTable();
+            }
+            free(content_copy);
+        }
+        else {
+            UI_Text("Select a document to view.");
+        }
+        UI_EndChild();
+    }
+    UI_End();
+}
 static void Editor_RenderSprinkleToolWindow(void) {
     if (!g_EditorState.show_sprinkle_tool_window) {
         return;
@@ -5912,6 +6146,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("About Tectonic Editor", NULL, false, true)) {
                 g_EditorState.show_about_window = true;
             }
+            if (UI_MenuItem("Documentation", NULL, false, true)) {
+                g_EditorState.show_help_window = true;
+                ScanDocFiles();
+            }
             UI_EndMenu();
         }
         UI_EndMainMenuBar();
@@ -5957,6 +6195,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderVertexToolsWindow(scene);
     Editor_RenderSculptNoisePopup(scene);
     Editor_RenderAboutWindow();
+    Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
