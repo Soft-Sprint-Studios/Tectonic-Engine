@@ -981,10 +981,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         return false;
     }
 
+    Scene_Clear(scene, engine);
+
     strncpy(scene->mapPath, mapPath, sizeof(scene->mapPath) - 1);
     scene->mapPath[sizeof(scene->mapPath) - 1] = '\0';
-
-    Scene_Clear(scene, engine);
 
     engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
 

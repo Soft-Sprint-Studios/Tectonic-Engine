@@ -1134,7 +1134,12 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.initialized = true;
     g_EditorState.is_clipping = false;
     g_EditorState.clip_point_count = 0;
-    strcpy(g_EditorState.currentMapPath, "untitled.map");
+    if (strlen(scene->mapPath) > 0) {
+        strcpy(g_EditorState.currentMapPath, scene->mapPath);
+    }
+    else {
+        strcpy(g_EditorState.currentMapPath, "untitled.map");
+    }
     g_EditorState.show_load_map_popup = false;
     g_EditorState.show_save_map_popup = false;
     strcpy(g_EditorState.save_map_path, "new_map.map");

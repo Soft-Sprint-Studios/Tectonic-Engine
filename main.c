@@ -98,6 +98,8 @@ static float g_fps_display = 0.0f;
 static GLuint g_vpl_shadow_fbos[MAX_VPLS];
 static GLuint g_vpl_shadow_textures[MAX_VPLS];
 
+static unsigned int g_frame_counter = 0;
+
 static unsigned int g_flashlight_sound_buffer = 0;
 static unsigned int g_footstep_sound_buffer = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
@@ -3016,12 +3018,16 @@ int main(int argc, char* argv[]) {
                     }
                 }
                 else {
-                    render_shadows();
+                    if ((g_frame_counter % 2) == 0) {
+                        render_shadows();
+                    }
                 }
 
                 if (g_scene.sun.enabled) {
                     Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
-                    render_sun_shadows(&sunLightSpaceMatrix);
+                    if ((g_frame_counter % 2) == 0) {
+                        render_sun_shadows(&sunLightSpaceMatrix);
+                    }
                 }
             }
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
@@ -3124,6 +3130,7 @@ int main(int argc, char* argv[]) {
                 SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
             }
         }
+        g_frame_counter++;
         UI_EndFrame(window);
     }
     cleanup(); return 0;
