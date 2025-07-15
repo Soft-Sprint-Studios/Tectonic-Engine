@@ -9,6 +9,10 @@
 #ifndef WEAPONS_H
 #define WEAPONS_H
 
+//----------------------------------------//
+// Brief: Very basic weapons
+//----------------------------------------//
+
 #include "map.h"
 
 #ifdef __cplusplus

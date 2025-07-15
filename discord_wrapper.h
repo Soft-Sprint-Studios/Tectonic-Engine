@@ -9,6 +9,10 @@
 #ifndef DISCORD_WRAPPER_H
 #define DISCORD_WRAPPER_H
 
+//----------------------------------------//
+// Brief: Discord RPC
+//----------------------------------------//
+
 #ifdef __cplusplus
 extern "C" {
 #endif

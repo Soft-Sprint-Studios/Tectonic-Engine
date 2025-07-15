@@ -9,6 +9,10 @@
 #ifndef BINDS_H
 #define BINDS_H
 
+//----------------------------------------//
+// Brief: Handles "binds.txt"
+//----------------------------------------//
+
 #include <SDL_keycode.h>
 
 #ifdef __cplusplus

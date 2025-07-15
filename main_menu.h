@@ -9,6 +9,10 @@
 #ifndef MAIN_MENU_H
 #define MAIN_MENU_H
 
+//----------------------------------------//
+// Brief: The input/output handling
+//----------------------------------------//
+
 #include <SDL.h>
 #include <stdbool.h>
 

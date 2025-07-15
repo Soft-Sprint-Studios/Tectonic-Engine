@@ -9,6 +9,10 @@
 #ifndef GL_MISC_H
 #define GL_MISC_H
 
+//----------------------------------------//
+// Brief: The OpenGL shader compilation
+//----------------------------------------//
+
 #include <SDL.h>
 #include <GL/glew.h>
 #include <SDL_opengl.h>

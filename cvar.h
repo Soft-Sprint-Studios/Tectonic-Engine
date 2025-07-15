@@ -9,6 +9,10 @@
 #ifndef CVAR_H
 #define CVAR_H
 
+//----------------------------------------//
+// Brief: console variables
+//----------------------------------------//
+
 #include <stdbool.h>
 
 #ifdef __cplusplus

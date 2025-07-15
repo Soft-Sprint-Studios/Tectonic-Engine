@@ -9,6 +9,10 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+//----------------------------------------//
+// Brief: Handles the entire level editor
+//----------------------------------------//
+
 #include "map.h"
 #include "editor_undo.h"
 

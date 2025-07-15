@@ -9,6 +9,10 @@
 #ifndef IO_SYSTEM_H
 #define IO_SYSTEM_H
 
+//----------------------------------------//
+// Brief: The input/output handling
+//----------------------------------------//
+
 #include <stdbool.h>
 #include "map.h"
 

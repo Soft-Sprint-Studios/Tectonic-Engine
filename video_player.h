@@ -9,6 +9,10 @@
 #ifndef VIDEO_PLAYER_H
 #define VIDEO_PLAYER_H
 
+//----------------------------------------//
+// Brief: Video player, no sound support yet
+//----------------------------------------//
+
 #include "map.h"
 
 #ifdef __cplusplus

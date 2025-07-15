@@ -9,6 +9,10 @@
 #ifndef MAP_H
 #define MAP_H
 
+//----------------------------------------//
+// Brief: Main map and renderer (will refractor)
+//----------------------------------------//
+
 #include <SDL.h>
 #include <GL/glew.h>
 #include <stdbool.h>

@@ -9,6 +9,10 @@
 #ifndef DSP_REVERB_H
 #define DSP_REVERB_H
 
+//----------------------------------------//
+// Brief: DSP Style reverbs
+//----------------------------------------//
+
 #include <stdbool.h>
 #include <SDL_thread.h>
 #include <SDL_mutex.h>

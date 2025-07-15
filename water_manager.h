@@ -9,6 +9,10 @@
 #ifndef WATER_MANAGER_H
 #define WATER_MANAGER_H
 
+//----------------------------------------//
+// Brief: Handles "Waters.def" file
+//----------------------------------------//
+
 #include "texturemanager.h"
 
 #define MAX_WATER_DEFS 64

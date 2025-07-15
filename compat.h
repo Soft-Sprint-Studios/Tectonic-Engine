@@ -9,6 +9,10 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
+//----------------------------------------//
+// Brief: Compatibility header to properly support linux & some general functions
+//----------------------------------------//
+
 #include <stdbool.h>
 #include <stdio.h>
 

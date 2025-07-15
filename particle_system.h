@@ -9,6 +9,10 @@
 #ifndef PARTICLE_SYSTEM_H
 #define PARTICLE_SYSTEM_H
 
+//----------------------------------------//
+// Brief: Particles rendering and update
+//----------------------------------------//
+
 #include "math_lib.h"
 #include "texturemanager.h"
 #include <GL/glew.h>

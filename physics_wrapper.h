@@ -9,6 +9,10 @@
 #ifndef PHYSICS_WRAPPER_H
 #define PHYSICS_WRAPPER_H
 
+//----------------------------------------//
+// Brief: Physics wrapper written in C++ using bullet
+//----------------------------------------//
+
 #include "math_lib.h"
 #include <stdbool.h>
 

@@ -9,6 +9,10 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+//----------------------------------------//
+// Brief: Networking, for now pining and download files only
+//----------------------------------------//
+
 #include <stdbool.h>
 
 #ifdef __cplusplus

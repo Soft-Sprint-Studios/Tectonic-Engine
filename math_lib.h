@@ -9,6 +9,10 @@
 #ifndef MATH_LIB_H
 #define MATH_LIB_H
 
+//----------------------------------------//
+// Brief: Main math library
+//----------------------------------------//
+
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>

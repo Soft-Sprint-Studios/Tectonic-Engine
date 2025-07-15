@@ -9,6 +9,10 @@
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
+//----------------------------------------//
+// Brief: GLTF Model loader
+//----------------------------------------//
+
 #include <GL/glew.h>
 #include <stdbool.h>
 #include "texturemanager.h" 

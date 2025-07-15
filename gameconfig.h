@@ -9,6 +9,10 @@
 #ifndef GAMECONFIG_H
 #define GAMECONFIG_H
 
+//----------------------------------------//
+// Brief: The "gameconf.txt"
+//----------------------------------------//
+
 #ifdef __cplusplus
 extern "C" {
 #endif

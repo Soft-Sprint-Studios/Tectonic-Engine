@@ -9,6 +9,10 @@
 #ifndef EDITOR_UNDO_H
 #define EDITOR_UNDO_H
 
+//----------------------------------------//
+// Brief: Handles the level editor undos
+//----------------------------------------//
+
 #include "map.h"
 
 #ifdef __cplusplus

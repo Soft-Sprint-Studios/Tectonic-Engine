@@ -9,6 +9,10 @@
 #ifndef GL_CONSOLE_H
 #define GL_CONSOLE_H
 
+//----------------------------------------//
+// Brief: The console handling, crosshair and IMGUI Wrapper
+//----------------------------------------//
+
 #include <SDL.h>
 #include <stdbool.h>
 

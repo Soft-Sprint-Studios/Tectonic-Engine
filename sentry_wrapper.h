@@ -9,6 +9,10 @@
 #ifndef SENTRY_WRAPPER_H
 #define SENTRY_WRAPPER_H
 
+//----------------------------------------//
+// Brief: Wrapper for sentry crash reporting
+//----------------------------------------//
+
 #ifdef __cplusplus
 extern "C" {
 #endif

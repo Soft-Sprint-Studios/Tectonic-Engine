@@ -9,6 +9,10 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
+//----------------------------------------//
+// Brief: Concommands are handled here
+//----------------------------------------//
+
 #ifdef __cplusplus
 extern "C" {
 #endif

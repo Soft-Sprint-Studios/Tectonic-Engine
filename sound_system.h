@@ -9,6 +9,10 @@
 #ifndef SOUND_SYSTEM_H
 #define SOUND_SYSTEM_H
 
+//----------------------------------------//
+// Brief: Sounds, this calls dsp_reverb
+//----------------------------------------//
+
 #include "math_lib.h"
 #include <stdbool.h>
 #include "dsp_reverb.h"
