@@ -20,6 +20,10 @@
 #define ENABLE_CHECKSUM 1
 //#define DISABLE_DEBUGGER 1
 
+#ifndef M_PI
+#define M_PI	3.1415926535897932384626433832795
+#endif
+
 #ifdef __cplusplus
     #include <cctype>
 #else

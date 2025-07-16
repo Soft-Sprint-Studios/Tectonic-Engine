@@ -1084,9 +1084,9 @@ static void Editor_InitGizmo() {
 void Editor_InitDebugRenderer() {
     g_EditorState.debug_shader = createShaderProgram("shaders/debug.vert", "shaders/debug.frag");
     float radius = 0.25f; float sphere_lines[24 * 3 * 2 * 3]; int index = 0;
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * 3.14159f; float a2 = ((i + 1) / 24.0f) * 2.0f * 3.14159f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * 3.14159f; float a2 = ((i + 1) / 24.0f) * 2.0f * 3.14159f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * 3.14159f; float a2 = ((i + 1) / 24.0f) * 2.0f * 3.14159f; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
+    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
+    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
+    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
     g_EditorState.light_gizmo_vertex_count = index / 3; GLuint vbo;
     glGenVertexArrays(1, &g_EditorState.light_gizmo_vao); glGenBuffers(1, &vbo);
     glBindVertexArray(g_EditorState.light_gizmo_vao); glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -1113,8 +1113,8 @@ void Editor_InitDebugRenderer() {
     int segments = 16;
 
     for (int i = 0; i < segments; ++i) {
-        float angle1 = (i / (float)segments) * 2.0f * 3.14159f;
-        float angle2 = ((i + 1) / (float)segments) * 2.0f * 3.14159f;
+        float angle1 = (i / (float)segments) * 2.0f * M_PI;
+        float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
 
         float x1 = p_radius * cosf(angle1);
         float z1 = p_radius * sinf(angle1);
@@ -1135,8 +1135,8 @@ void Editor_InitDebugRenderer() {
 
     int arc_segments = 8;
     for (int i = 0; i < arc_segments; ++i) {
-        float angle1 = (i / (float)arc_segments) * 0.5f * 3.14159f;
-        float angle2 = ((i + 1) / (float)arc_segments) * 0.5f * 3.14159f;
+        float angle1 = (i / (float)arc_segments) * 0.5f * M_PI;
+        float angle2 = ((i + 1) / (float)arc_segments) * 0.5f * M_PI;
 
         p_verts[p_vert_count++] = (Vec3){ top_center.x, top_center.y + p_radius * sinf(angle1), top_center.z + p_radius * cosf(angle1) };
         p_verts[p_vert_count++] = (Vec3){ top_center.x, top_center.y + p_radius * sinf(angle2), top_center.z + p_radius * cosf(angle2) };
@@ -1177,7 +1177,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.captured_viewport = VIEW_COUNT;
     g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
     Editor_InitGizmo();
-    g_EditorState.editor_camera.position = (Vec3){ 0, 5, 15 }; g_EditorState.editor_camera.yaw = -3.14159f / 2.0f; g_EditorState.editor_camera.pitch = -0.4f;
+    g_EditorState.editor_camera.position = (Vec3){ 0, 5, 15 }; g_EditorState.editor_camera.yaw = -M_PI / 2.0f; g_EditorState.editor_camera.pitch = -0.4f;
     for (int i = 0; i < VIEW_COUNT; i++) {
         g_EditorState.viewport_width[i] = 800; g_EditorState.viewport_height[i] = 600;
         glGenFramebuffers(1, &g_EditorState.viewport_fbo[i]); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[i]);
@@ -2545,7 +2545,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         vec3_normalize(&current_vec);
                         float dot = vec3_dot(g_EditorState.gizmo_rotation_start_vec, current_vec);
                         dot = fmaxf(-1.0f, fminf(1.0f, dot));
-                        float angle = acosf(dot) * (180.0f / 3.14159f);
+                        float angle = acosf(dot) * (180.0f / M_PI);
                         Vec3 cross_prod = vec3_cross(g_EditorState.gizmo_rotation_start_vec, current_vec);
                         if (vec3_dot(g_EditorState.gizmo_drag_plane_normal, cross_prod) < 0) { angle = -angle; }
 
@@ -2830,9 +2830,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
 
                     Mat4 inv_rot_scale;
-                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (3.14159f / 180.0f));
-                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (3.14159f / 180.0f));
-                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (3.14159f / 180.0f));
+                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (M_PI / 180.0f));
+                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (M_PI / 180.0f));
+                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (M_PI / 180.0f));
                     Mat4 scale_mat = mat4_scale(b->scale);
                     mat4_multiply(&inv_rot_scale, &rot_mat_y, &rot_mat_x);
                     mat4_multiply(&inv_rot_scale, &rot_mat_z, &inv_rot_scale);
@@ -3173,7 +3173,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                         vec3_normalize(&tangent);
                         Vec3 bitangent = vec3_cross(surface_normal, tangent);
 
-                        float rand_angle = rand_float_range(0, 2.0f * 3.14159f);
+                        float rand_angle = rand_float_range(0, 2.0f * M_PI);
                         float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
 
                         Vec3 offset_on_plane = vec3_add(vec3_muls(tangent, cosf(rand_angle) * rand_dist), vec3_muls(bitangent, sinf(rand_angle) * rand_dist));
@@ -3597,7 +3597,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = (Vec3){ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * 3.14159f;
+            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, (Vec3) { cosf(angle)* radius, 0.0f, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -3608,7 +3608,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = (Vec3){ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * 3.14159f;
+            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, (Vec3) { 0.0f, cosf(angle)* radius, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -3617,7 +3617,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = (Vec3){ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * 3.14159f;
+            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, (Vec3) { cosf(angle)* radius, sinf(angle)* radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -3640,7 +3640,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         vec3_normalize(&f);
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
-        g_proj_matrix[type] = mat4_perspective(45.0f * (3.14159f / 180.0f), aspect, 0.1f, 10000.0f);
+        g_proj_matrix[type] = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 10000.0f);
 
         render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode);
         if (Cvar_GetInt("r_ssao")) {
@@ -3748,8 +3748,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             const int segments = 32;
             Vec3 circle_verts[64];
             for (int i = 0; i < segments; ++i) {
-                float angle1 = (i / (float)segments) * 2.0f * 3.14159f;
-                float angle2 = ((i + 1) / (float)segments) * 2.0f * 3.14159f;
+                float angle1 = (i / (float)segments) * 2.0f * M_PI;
+                float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
                 float x1 = g_EditorState.paint_brush_radius * cosf(angle1);
                 float y1 = g_EditorState.paint_brush_radius * sinf(angle1);
                 float x2 = g_EditorState.paint_brush_radius * cosf(angle2);
@@ -3793,8 +3793,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             const int segments = 32;
             Vec3 circle_verts[64];
             for (int i = 0; i < segments; ++i) {
-                float angle1 = (i / (float)segments) * 2.0f * 3.14159f;
-                float angle2 = ((i + 1) / (float)segments) * 2.0f * 3.14159f;
+                float angle1 = (i / (float)segments) * 2.0f * M_PI;
+                float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
                 float x1 = g_EditorState.sculpt_brush_radius * cosf(angle1);
                 float y1 = g_EditorState.sculpt_brush_radius * sinf(angle1);
                 float x2 = g_EditorState.sculpt_brush_radius * cosf(angle2);
@@ -4062,15 +4062,15 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                 int segments = 16;
                 Vec3 cone_verts[40]; int vert_count = 0;
                 for (int k = 0; k < 4; ++k) {
-                    float theta = (k / 4.0f) * 2.0f * 3.14159f;
+                    float theta = (k / 4.0f) * 2.0f * M_PI;
                     Vec3 p_on_circle = vec3_add(vec3_muls(right, cosf(theta) * radius), vec3_muls(up, sinf(theta) * radius));
                     Vec3 world_p = vec3_add(light->position, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
                     cone_verts[vert_count++] = light->position;
                     cone_verts[vert_count++] = world_p;
                 }
                 for (int k = 0; k < segments; ++k) {
-                    float theta1 = (k / (float)segments) * 2.0f * 3.14159f;
-                    float theta2 = ((k + 1) / (float)segments) * 2.0f * 3.14159f;
+                    float theta1 = (k / (float)segments) * 2.0f * M_PI;
+                    float theta2 = ((k + 1) / (float)segments) * 2.0f * M_PI;
                     Vec3 p1_on_circle = vec3_add(vec3_muls(right, cosf(theta1) * radius), vec3_muls(up, sinf(theta1) * radius));
                     Vec3 p2_on_circle = vec3_add(vec3_muls(right, cosf(theta2) * radius), vec3_muls(up, sinf(theta2) * radius));
                     cone_verts[vert_count++] = vec3_add(light->position, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
@@ -4300,7 +4300,7 @@ static void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         cam_pos.y = g_EditorState.model_preview_cam_dist * cosf(g_EditorState.model_preview_cam_angles.y);
         cam_pos.z = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * sinf(g_EditorState.model_preview_cam_angles.x);
         Mat4 view = mat4_lookAt(cam_pos, (Vec3) { 0, 0, 0 }, (Vec3) { 0, 1, 0 });
-        Mat4 proj = mat4_perspective(45.0f * (3.14159f / 180.0f), aspect, 0.1f, 1000.0f);
+        Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 1000.0f);
         glUseProgram(renderer->mainShader);
         glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 1);
         glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view.m);
@@ -5946,7 +5946,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index < scene->numActiveLights) {
-        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Name"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }
+        Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Name"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * M_PI / 180.0f); light->outerCutOff = cosf(17.5f * M_PI / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }
         UI_Separator();
         const char* preset_names[] = {
             "0: Normal", "1: Flicker 1", "2: Slow Strong Pulse", "3: Candle 1",

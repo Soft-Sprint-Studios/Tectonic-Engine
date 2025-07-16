@@ -1547,7 +1547,7 @@ static void render_vpl_shadows() {
         Vec3 vpl_pos = vpls[i].position;
         glUniform3fv(glGetUniformLocation(g_renderer.pointDepthShader, "lightPos"), 1, &vpl_pos.x);
 
-        Mat4 shadowProj = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 1.0f, far_plane);
+        Mat4 shadowProj = mat4_perspective(90.0f * M_PI / 180.0f, 1.0f, 1.0f, far_plane);
         Mat4 shadowTransforms[6];
         shadowTransforms[0] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
         shadowTransforms[1] = mat4_lookAt(vpl_pos, vec3_add(vpl_pos, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
@@ -1666,7 +1666,7 @@ static void render_vpl_pass() {
             int vpls_per_face = vpls_this_light / 6;
             if (vpls_per_face < 1) vpls_per_face = 1;
 
-            Mat4 lightProjection = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 0.1f, light->radius);
+            Mat4 lightProjection = mat4_perspective(90.0f * M_PI / 180.0f, 1.0f, 0.1f, light->radius);
             Mat4 shadowViews[6];
             shadowViews[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
             shadowViews[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1.0f, 0.0f, 0.0f }), (Vec3) { 0.0f, -1.0f, 0.0f });
@@ -1908,7 +1908,7 @@ void render_shadows() {
         GLuint current_shader;
         if (light->type == LIGHT_POINT) {
             current_shader = g_renderer.pointDepthShader; glUseProgram(current_shader);
-            Mat4 shadowProj = mat4_perspective(90.0f * 3.14159f / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Mat4 shadowProj = mat4_perspective(90.0f * M_PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Mat4 shadowTransforms[6];
             shadowTransforms[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
             shadowTransforms[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
@@ -2923,7 +2923,7 @@ void BuildCubemaps() {
             g_engine->camera.position = b->pos;
             Vec3 target_pos = vec3_add(g_engine->camera.position, targets[face_idx]);
             Mat4 view = mat4_lookAt(g_engine->camera.position, target_pos, ups[face_idx]);
-            Mat4 projection = mat4_perspective(90.0f * (3.14159f / 180.f), 1.0f, 0.1f, 1000.f);
+            Mat4 projection = mat4_perspective(90.0f * (M_PI / 180.f), 1.0f, 0.1f, 1000.f);
 
             render_shadows();
             Mat4 sunLightSpaceMatrix;
@@ -3129,7 +3129,7 @@ int main(int argc, char* argv[]) {
             Vec3 t = vec3_add(g_engine->camera.position, f);
             Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
             float fov_degrees = Cvar_GetFloat("fov_vertical");
-            Mat4 projection = mat4_perspective(fov_degrees * (3.14159f / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
+            Mat4 projection = mat4_perspective(fov_degrees * (M_PI / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);
 

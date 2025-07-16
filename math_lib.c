@@ -164,7 +164,7 @@ void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3*
         y_rad = atan2f(-rot_mat.m[8], sy);
         z_rad = 0;
     }
-    const float rad_to_deg = 180.0f / 3.1415926535f;
+    const float rad_to_deg = 180.0f / M_PI;
     rotation->x = x_rad * rad_to_deg;
     rotation->y = y_rad * rad_to_deg;
     rotation->z = z_rad * rad_to_deg;
@@ -172,9 +172,9 @@ void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3*
 
 Mat4 create_trs_matrix(Vec3 pos, Vec3 rot_deg, Vec3 scale) {
     Mat4 trans_mat = mat4_translate(pos);
-    Mat4 rot_x_mat = mat4_rotate_x(rot_deg.x * (3.14159f / 180.0f));
-    Mat4 rot_y_mat = mat4_rotate_y(rot_deg.y * (3.14159f / 180.0f));
-    Mat4 rot_z_mat = mat4_rotate_z(rot_deg.z * (3.14159f / 180.0f));
+    Mat4 rot_x_mat = mat4_rotate_x(rot_deg.x * (M_PI / 180.0f));
+    Mat4 rot_y_mat = mat4_rotate_y(rot_deg.y * (M_PI / 180.0f));
+    Mat4 rot_z_mat = mat4_rotate_z(rot_deg.z * (M_PI / 180.0f));
     Mat4 scale_mat = mat4_scale(scale);
     Mat4 rot_mat;
     mat4_multiply(&rot_mat, &rot_y_mat, &rot_x_mat);

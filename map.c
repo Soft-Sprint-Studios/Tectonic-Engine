@@ -274,7 +274,7 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
     b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
 
     for (int i = 0; i < num_sides; ++i) {
-        float angle = (float)i / (float)num_sides * 2.0f * 3.14159f;
+        float angle = (float)i / (float)num_sides * 2.0f * M_PI;
         float x = cosf(angle) * radius_x;
         float z = sinf(angle) * radius_z;
 
@@ -360,7 +360,7 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides) {
     b->vertices[0].pos = (Vec3){ 0, height / 2.0f, 0 };
 
     for (int i = 0; i < num_sides; ++i) {
-        float angle = (float)i / (float)num_sides * 2.0f * 3.14159f;
+        float angle = (float)i / (float)num_sides * 2.0f * M_PI;
         float x = cosf(angle) * radius_x;
         float z = sinf(angle) * radius_z;
         b->vertices[i + 1].pos = (Vec3){ x, -height / 2.0f, z };
@@ -705,7 +705,7 @@ static void getTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[], c
     else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
     else { u = pos.x; v = pos.y; }
 
-    float rad = face->uv_rotation * (3.14159f / 180.0f);
+    float rad = face->uv_rotation * (M_PI / 180.0f);
     float cos_r = cosf(rad); float sin_r = sinf(rad);
     fvTexcOut[0] = ((u * cos_r - v * sin_r) / face->uv_scale.x) + face->uv_offset.x;
     fvTexcOut[1] = ((u * sin_r + v * cos_r) / face->uv_scale.y) + face->uv_offset.y;
@@ -822,11 +822,11 @@ void Brush_CreateRenderData(Brush* b) {
             if (dominant_axis == 0) { u = vert.pos.y; v = vert.pos.z; }
             else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
             else { u = vert.pos.x; v = vert.pos.y; }
-            float rad2 = face->uv_rotation2 * (3.14159f / 180.0f); float cos_r2 = cosf(rad2); float sin_r2 = sinf(rad2);
+            float rad2 = face->uv_rotation2 * (M_PI / 180.0f); float cos_r2 = cosf(rad2); float sin_r2 = sinf(rad2);
             uv2[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
-            float rad3 = face->uv_rotation3 * (3.14159f / 180.0f); float cos_r3 = cosf(rad3); float sin_r3 = sinf(rad3);
+            float rad3 = face->uv_rotation3 * (M_PI / 180.0f); float cos_r3 = cosf(rad3); float sin_r3 = sinf(rad3);
             uv3[0] = ((u * cos_r3 - v * sin_r3) / face->uv_scale3.x) + face->uv_offset3.x; uv3[1] = ((u * sin_r3 + v * cos_r3) / face->uv_scale3.y) + face->uv_offset3.y;
-            float rad4 = face->uv_rotation4 * (3.14159f / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
+            float rad4 = face->uv_rotation4 * (M_PI / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
             uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
             final_vbo_data[vbo_idx + 0] = vert.pos.x;
