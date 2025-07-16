@@ -7,7 +7,6 @@ layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
 layout (location = 5) out vec2 out_Velocity;
-layout (location = 6) out vec3 out_IndirectLight;
 
 in vec3 FragPos_view;
 in vec3 Normal_view;
@@ -82,6 +81,7 @@ uniform Sun sun;
 uniform Flashlight flashlight;
 uniform vec3 viewPos;
 uniform bool is_unlit;
+uniform bool is_debug_vpl;
 uniform samplerCube environmentMap;
 uniform bool useEnvironmentMap;
 uniform sampler2D brdfLUT;
@@ -570,17 +570,21 @@ void main()
             finalIndirectLight = vec3(0.0);
         }
     }
-	vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
     kD_indirect *= (1.0 - metallic);
-    out_IndirectLight = finalIndirectLight * kD_indirect * albedo;
-    if (is_unlit) {
+    vec3 indirectLightingContribution = finalIndirectLight * kD_indirect * albedo;
+
+    if (is_debug_vpl) {
+        out_LitColor = vec4(indirectLightingContribution, 1.0);
+    }
+    else if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
     }
     else if (isBuildingCubemaps) {
         out_LitColor = vec4(indirectLight * kD_indirect * albedo, 1.0);
     }
     else {
-        out_LitColor = vec4(ambient + Lo, alpha);
+        out_LitColor = vec4(ambient + Lo + indirectLightingContribution, alpha);
     }
     out_Position = FragPos_view; 
     out_Normal = normalize(Normal_view);

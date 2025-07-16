@@ -166,9 +166,7 @@ typedef struct {
     GLuint quadVAO, quadVBO;
     GLuint skyboxVAO, skyboxVBO;
     GLuint gBufferFBO;
-    GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
-    GLuint gVelocity;
-    GLuint gIndirectLight;
+    GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams, gVelocity;
     GLuint spriteShader;
     GLuint spriteVAO, spriteVBO;
     GLuint cloudTexture;

@@ -8,7 +8,6 @@ uniform sampler2D sceneTexture;
 uniform sampler2D bloomBlur;
 uniform sampler2D gPosition;
 uniform sampler2D volumetricTexture;
-uniform sampler2D gIndirectLight;
 
 uniform bool u_colorCorrectionEnabled;
 uniform sampler2D colorCorrectionLUT;
@@ -213,8 +212,6 @@ void main()
     } else {
         color = texture(sceneTexture, uv).rgb;
     }
-
-    color += texture(gIndirectLight, uv).rgb;
 
     if (u_ssaoEnabled) {
         float occlusion = texture(ssao, uv).r;
