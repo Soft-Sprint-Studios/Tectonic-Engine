@@ -1627,9 +1627,9 @@ static void bake_vpl_grid() {
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
 
-    GLuint group_size_x = (g_scene.vplGridResolution.x + 3) / 4;
-    GLuint group_size_y = (g_scene.vplGridResolution.y + 3) / 4;
-    GLuint group_size_z = (g_scene.vplGridResolution.z + 3) / 4;
+    GLuint group_size_x = (g_scene.vplGridResolution.x + 7) / 8;
+    GLuint group_size_y = (g_scene.vplGridResolution.y + 7) / 8;
+    GLuint group_size_z = g_scene.vplGridResolution.z;
 
     glDispatchCompute(group_size_x, group_size_y, group_size_z);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
