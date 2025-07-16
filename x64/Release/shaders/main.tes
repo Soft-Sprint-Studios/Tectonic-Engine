@@ -38,41 +38,6 @@ uniform mat4 model;
 uniform float u_fadeStartDist;
 uniform float u_fadeEndDist;
 
-struct VPL {
-    vec3  position;
-    uint  packedColor;
-    uint  packedNormal;
-    uvec2 shadowMapHandle;
-};
-
-layout(std430, binding = 4) readonly buffer VPLBlock {
-    VPL vpls[];
-};
-uniform int num_vpls;
-const float PI = 3.14159265359;
-
-float calculateVPLShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos)
-{
-    if (shadowMapHandleUvec2.x == 0u && shadowMapHandleUvec2.y == 0u) {
-        return 1.0; 
-    }
-    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
-    
-    vec3 fragToLight = fragPos - lightPos;
-    float currentDepth = length(fragToLight);
-
-    float farPlane = 25.0;
-    if(currentDepth > farPlane) {
-        return 0.0;
-    }
-
-    float closestDepth = texture(shadowSampler, fragToLight).r;
-    closestDepth *= farPlane; 
-    
-    float bias = 0.05;
-    return currentDepth > closestDepth + bias ? 0.0 : 1.0;
-}
-
 void main()
 {
     vec3 p0_ws = gl_TessCoord.x * tes_in[0].worldPos;
