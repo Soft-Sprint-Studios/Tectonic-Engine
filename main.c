@@ -2073,7 +2073,7 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
     }
 
     glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(0.5f, 0.5f);
+    glPolygonOffset(1.0f, 1.0f);
 
     for (int i = 0; i < g_scene.numObjects; i++) {
         SceneObject* obj = &g_scene.objects[i];
