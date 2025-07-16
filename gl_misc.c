@@ -31,7 +31,7 @@ char* load_shader_source(const char* path) {
     return buffer;
 }
 
-GLuint compileShader(GLenum type, const char* src) {
+GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, NULL);
     glCompileShader(shader);
@@ -40,7 +40,14 @@ GLuint compileShader(GLenum type, const char* src) {
     if (!success) {
         GLchar infoLog[1024];
         glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-        Console_Printf("SHADER COMPILE ERROR: %s\n", infoLog);
+        const char* typeStr =
+            type == GL_VERTEX_SHADER ? "VERTEX" :
+            type == GL_FRAGMENT_SHADER ? "FRAGMENT" :
+            type == GL_GEOMETRY_SHADER ? "GEOMETRY" :
+            type == GL_TESS_CONTROL_SHADER ? "TESS CONTROL" :
+            type == GL_TESS_EVALUATION_SHADER ? "TESS EVALUATION" :
+            type == GL_COMPUTE_SHADER ? "COMPUTE" : "UNKNOWN";
+        Console_Printf("SHADER COMPILE ERROR [%s] in %s:\n%s\n", typeStr, pathHint ? pathHint : "Unknown Path", infoLog);
     }
     return shader;
 }
@@ -53,8 +60,8 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
         free(fragSrc);
         return 0;
     }
-    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc);
-    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc);
+    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
+    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
     free(vertSrc);
     free(fragSrc);
     GLuint program = glCreateProgram();
@@ -64,9 +71,9 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar infoLog[512];
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
+        GLchar infoLog[1024];
+        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        Console_Printf("SHADER LINK ERROR (VERTEX + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(frag);
@@ -83,25 +90,23 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
         free(fragSrc);
         return 0;
     }
-    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc);
-    GLuint geom = compileShader(GL_GEOMETRY_SHADER, geomSrc);
-    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc);
+    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
+    GLuint geom = compileShader(GL_GEOMETRY_SHADER, geomSrc, geomPath);
+    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
     free(vertSrc);
     free(geomSrc);
     free(fragSrc);
-
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, geom);
     glAttachShader(program, frag);
     glLinkProgram(program);
-
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR (VERTEX + GEOMETRY + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(geom);
@@ -115,34 +120,32 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     char* tesSrc = load_shader_source(tesPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !tcsSrc || !tesSrc || !fragSrc) {
-        free(vertSrc); 
-        free(tcsSrc); 
-        free(tesSrc); 
+        free(vertSrc);
+        free(tcsSrc);
+        free(tesSrc);
         free(fragSrc);
         return 0;
     }
-    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc);
-    GLuint tcs = compileShader(GL_TESS_CONTROL_SHADER, tcsSrc);
-    GLuint tes = compileShader(GL_TESS_EVALUATION_SHADER, tesSrc);
-    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc);
-    free(vertSrc); 
-    free(tcsSrc); 
-    free(tesSrc); 
+    GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
+    GLuint tcs = compileShader(GL_TESS_CONTROL_SHADER, tcsSrc, tcsPath);
+    GLuint tes = compileShader(GL_TESS_EVALUATION_SHADER, tesSrc, tesPath);
+    GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
+    free(vertSrc);
+    free(tcsSrc);
+    free(tesSrc);
     free(fragSrc);
-
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, tcs);
     glAttachShader(program, tes);
     glAttachShader(program, frag);
     glLinkProgram(program);
-
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR (VERTEX + TESS + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
     glDeleteShader(tcs);
@@ -157,22 +160,18 @@ GLuint createShaderProgramCompute(const char* computePath) {
         free(computeSrc);
         return 0;
     }
-
-    GLuint compute = compileShader(GL_COMPUTE_SHADER, computeSrc);
+    GLuint compute = compileShader(GL_COMPUTE_SHADER, computeSrc, computePath);
     free(computeSrc);
-
     GLuint program = glCreateProgram();
     glAttachShader(program, compute);
     glLinkProgram(program);
-
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, NULL, infoLog);
-        Console_Printf("SHADER LINK ERROR: %s\n", infoLog);
+        Console_Printf("SHADER LINK ERROR (COMPUTE):\n%s\n", infoLog);
     }
-
     glDeleteShader(compute);
     return program;
 }
