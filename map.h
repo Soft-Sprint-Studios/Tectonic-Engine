@@ -173,6 +173,8 @@ typedef struct {
     GLuint vplPosTex, vplNormalTex, vplAlbedoTex;
     GLuint vplGenerationShader;
     GLuint vplComputeShader;
+    GLuint vplGridShader;
+    GLuint vplGridTexture;
     GLuint vplSSBO;
     GLuint brdfLUTTexture;
     GLuint decalVAO, decalVBO;
@@ -416,6 +418,10 @@ typedef struct {
     ColorCorrectionSettings colorCorrection;
     bool static_vpls_generated;
     bool static_shadows_generated;
+    bool static_vpl_grid_generated;
+    Vec3 vplGridMin;
+    Vec3 vplGridMax;
+    ivec3s vplGridResolution;
 } Scene;
 
 typedef struct {

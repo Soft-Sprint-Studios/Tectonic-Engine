@@ -142,45 +142,6 @@ void main()
     }
     
     indirectLight = vec3(0.0);
-    for (int i = 0; i < num_vpls; ++i)
-    {
-        vec3 vpl_pos = vpls[i].position;
-        if (vpls[i].packedColor == 0u) continue;
-
-        float shadow = calculateVPLShadow(vpls[i].shadowMapHandle, FragPos_world, vpl_pos);
-        if (shadow > 0.0) 
-        {
-            vec3 vplToFrag = FragPos_world - vpl_pos;
-            float distance = length(vplToFrag);
-            if (distance < 0.001) distance = 0.001; 
-
-            vec3 L = -normalize(vplToFrag);
-            float NdotL = max(dot(worldNormal, L), 0.0);
-
-            if (NdotL > 0.0) 
-            {
-                vec4 vpl_color_unpacked = unpackUnorm4x8(vpls[i].packedColor);
-                vec3 vpl_color_rgb = vpl_color_unpacked.rgb;
-                vec3 vpl_normal = unpackSnorm4x8(vpls[i].packedNormal).xyz;
-
-                float attenuation = 1.0 / (distance * distance + 1.0);
-                
-                float backface_attenuation_factor;
-                float gi_brightness_multiplier;
-
-                if (tes_in[0].isBrush == 1) {
-                    backface_attenuation_factor = 1.0; 
-                    gi_brightness_multiplier = 1.0; 
-                } else {
-                    float dot_normals = dot(worldNormal, vpl_normal);
-                    backface_attenuation_factor = clamp(1.0 + dot_normals, 0.0, 1.0); 
-                    gi_brightness_multiplier = 0.4;
-                }
-
-                indirectLight += vpl_color_rgb * NdotL * attenuation * backface_attenuation_factor * gi_brightness_multiplier * shadow;
-            }
-        }
-    }
 
     FragPos_view = vec3(view * vec4(FragPos_world, 1.0));
     Normal_view = mat3(transpose(inverse(view * model))) * worldNormal;

@@ -49,22 +49,8 @@ void main()
     tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
     tcs_out[gl_InvocationID].isBrush = tcs_in[gl_InvocationID].isBrush;
 
-    if (isBrush)
-    {
-        float d0 = distance(viewPos, tcs_in[0].worldPos);
-        float d1 = distance(viewPos, tcs_in[1].worldPos);
-        float d2 = distance(viewPos, tcs_in[2].worldPos);
-
-        gl_TessLevelOuter[0] = get_tess_level((d1 + d2) / 2.0);
-        gl_TessLevelOuter[1] = get_tess_level((d0 + d2) / 2.0);
-        gl_TessLevelOuter[2] = get_tess_level((d0 + d1) / 2.0);
-        gl_TessLevelInner[0] = get_tess_level((d0 + d1 + d2) / 3.0);
-    }
-    else
-    {
-        gl_TessLevelOuter[0] = 1.0;
-        gl_TessLevelOuter[1] = 1.0;
-        gl_TessLevelOuter[2] = 1.0;
-        gl_TessLevelInner[0] = 1.0;
-    }
+    gl_TessLevelOuter[0] = 1.0;
+    gl_TessLevelOuter[1] = 1.0;
+    gl_TessLevelOuter[2] = 1.0;
+    gl_TessLevelInner[0] = 1.0;
 }

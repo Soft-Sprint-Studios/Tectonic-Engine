@@ -105,6 +105,11 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
+uniform sampler3D u_StaticVPLGrid;
+uniform bool u_useStaticVPLGrid;
+uniform vec3 u_gridMin;
+uniform vec3 u_gridMax;
+
 const float PI = 3.14159265359;
 
 mat4 perspective(float fov, float aspect, float near, float far) {
@@ -556,9 +561,18 @@ void main()
     }
 	
     out_Velocity = Velocity;
-    vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
+	vec3 finalIndirectLight = indirectLight;
+    if (u_useStaticVPLGrid) {
+        vec3 gridCoord = (FragPos_world - u_gridMin) / (u_gridMax - u_gridMin);
+        if (all(greaterThanEqual(gridCoord, vec3(0.0))) && all(lessThanEqual(gridCoord, vec3(1.0)))) {
+            finalIndirectLight = texture(u_StaticVPLGrid, gridCoord).rgb * 0.25;
+        } else {
+            finalIndirectLight = vec3(0.0);
+        }
+    }
+	vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
     kD_indirect *= (1.0 - metallic);
-	out_IndirectLight = indirectLight * kD_indirect * albedo;
+    out_IndirectLight = finalIndirectLight * kD_indirect * albedo;
     if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
     }

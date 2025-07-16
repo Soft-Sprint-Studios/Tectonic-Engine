@@ -628,7 +628,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_point_count", "64", "Number of VPLs to generate per point light.", CVAR_NONE);
     Cvar_Register("r_vpl_spot_count", "64", "Number of VPLs to generate per spot light.", CVAR_NONE);
-    Cvar_Register("r_vpl_static", "0", "Generate VPLs only once on map load for static GI. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl_shadow_map_size", "512", "Resolution for VPL shadow maps (e.g., 256, 512).", CVAR_NONE);
+    Cvar_Register("r_vpl_grid_resolution", "128", "VPL static grid resolution (e.g., 32, 64, 128). Higher values are better quality but have longer bake times.", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
@@ -690,6 +691,7 @@ void init_renderer() {
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
     g_renderer.vplGenerationShader = createShaderProgram("shaders/vpl_gen.vert", "shaders/vpl_gen.frag");
     g_renderer.vplComputeShader = createShaderProgramCompute("shaders/vpl_compute.comp");
+    g_renderer.vplGridShader = createShaderProgramCompute("shaders/vpl_grid_baker.comp");
     g_renderer.spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
     g_renderer.skyboxShader = createShaderProgram("shaders/skybox.vert", "shaders/skybox.frag");
     g_renderer.postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
@@ -780,6 +782,15 @@ void init_renderer() {
     glGenBuffers(1, &g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_DRAW);
+    glGenTextures(1, &g_renderer.vplGridTexture);
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
@@ -858,8 +869,10 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    {
+        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    }
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.sunShadowMap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
@@ -1484,7 +1497,10 @@ static void render_vpl_shadows() {
     glEnable(GL_DEPTH_TEST);
     glCullFace(GL_FRONT);
 
-    int shadow_map_size = 256;
+    int shadow_map_size = Cvar_GetInt("r_vpl_shadow_map_size");
+    if (shadow_map_size <= 0) {
+        shadow_map_size = 256;
+    }
     glViewport(0, 0, shadow_map_size, shadow_map_size);
 
     glUseProgram(g_renderer.pointDepthShader);
@@ -1545,6 +1561,66 @@ static void render_vpl_shadows() {
     glCullFace(GL_BACK);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void bake_vpl_grid() {
+    if (g_scene.num_vpls == 0) {
+        Console_Printf("No VPLs to bake into grid.");
+        return;
+    }
+
+    Console_Printf("Baking static VPLs into 3D light grid...");
+
+    g_scene.vplGridMin = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+    g_scene.vplGridMax = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (b->numVertices == 0) continue;
+        for (int j = 0; j < b->numVertices; ++j) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+            g_scene.vplGridMin.x = fminf(g_scene.vplGridMin.x, world_v.x);
+            g_scene.vplGridMin.y = fminf(g_scene.vplGridMin.y, world_v.y);
+            g_scene.vplGridMin.z = fminf(g_scene.vplGridMin.z, world_v.z);
+            g_scene.vplGridMax.x = fmaxf(g_scene.vplGridMax.x, world_v.x);
+            g_scene.vplGridMax.y = fmaxf(g_scene.vplGridMax.y, world_v.y);
+            g_scene.vplGridMax.z = fmaxf(g_scene.vplGridMax.z, world_v.z);
+        }
+    }
+    g_scene.vplGridMin = vec3_sub(g_scene.vplGridMin, (Vec3) { 1, 1, 1 });
+    g_scene.vplGridMax = vec3_add(g_scene.vplGridMax, (Vec3) { 1, 1, 1 });
+
+    int grid_res = Cvar_GetInt("r_vpl_grid_resolution");
+    if (grid_res <= 0) {
+        grid_res = 64;
+    }
+
+    grid_res = (int)pow(2, round(log(grid_res) / log(2)));
+    grid_res = max(16, min(256, grid_res));
+
+    g_scene.vplGridResolution = (ivec3s){ grid_res, grid_res, grid_res };
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z, 0, GL_RGBA, GL_FLOAT, NULL);
+
+    glUseProgram(g_renderer.vplGridShader);
+    glBindImageTexture(0, g_renderer.vplGridTexture, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+    glUniform3fv(glGetUniformLocation(g_renderer.vplGridShader, "u_gridMin"), 1, &g_scene.vplGridMin.x);
+    glUniform3fv(glGetUniformLocation(g_renderer.vplGridShader, "u_gridMax"), 1, &g_scene.vplGridMax.x);
+    glUniform3i(glGetUniformLocation(g_renderer.vplGridShader, "u_gridResolution"), g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z);
+    glUniform1i(glGetUniformLocation(g_renderer.vplGridShader, "num_vpls"), g_scene.num_vpls);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
+
+    GLuint group_size_x = (g_scene.vplGridResolution.x + 3) / 4;
+    GLuint group_size_y = (g_scene.vplGridResolution.y + 3) / 4;
+    GLuint group_size_z = (g_scene.vplGridResolution.z + 3) / 4;
+
+    glDispatchCompute(group_size_x, group_size_y, group_size_z);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    g_scene.static_vpl_grid_generated = true;
+    Console_Printf("Finished baking VPL grid (%dx%dx%d).", g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z);
 }
 
 static void render_vpl_pass() {
@@ -2077,6 +2153,15 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
+    bool useStaticGrid = Cvar_GetInt("r_vpl") && g_scene.static_vpl_grid_generated;
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_useStaticVPLGrid"), useStaticGrid);
+    if (useStaticGrid) {
+        glActiveTexture(GL_TEXTURE25);
+        glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_StaticVPLGrid"), 25);
+        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_gridMin"), 1, &g_scene.vplGridMin.x);
+        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_gridMax"), 1, &g_scene.vplGridMax.x);
+    }
     glActiveTexture(GL_TEXTURE16);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "num_vpls"), g_scene.num_vpls);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
@@ -2981,22 +3066,15 @@ int main(int argc, char* argv[]) {
         else if (g_current_mode == MODE_GAME) {
             char details_str[128];
             if (Cvar_GetInt("r_vpl")) {
-                if (Cvar_GetInt("r_vpl_static")) {
-                    if (!g_scene.static_vpls_generated) {
-                        Console_Printf("Generating static VPLs for the map...");
-                        render_vpl_pass();
-                        render_vpl_shadows();
-                        g_scene.static_vpls_generated = true;
-                        Console_Printf("Static VPL generation complete. %d VPLs generated.", g_scene.num_vpls);
-                    }
-                }
-                else {
+                if (!g_scene.static_vpl_grid_generated) {
                     render_vpl_pass();
                     render_vpl_shadows();
+                    bake_vpl_grid();
                 }
             }
             else {
                 g_scene.num_vpls = 0;
+                g_scene.static_vpl_grid_generated = false;
             }
             sprintf(details_str, "Map: %s", g_scene.mapPath);
             Discord_Update("Playing", details_str);
