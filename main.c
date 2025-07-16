@@ -713,6 +713,7 @@ void init_renderer() {
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
+    g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
     const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
@@ -921,6 +922,22 @@ void init_renderer() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+    glBindVertexArray(0);
+    float sprite_vertices[] = {
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,
+    };
+    glGenVertexArrays(1, &g_renderer.spriteVAO);
+    glGenBuffers(1, &g_renderer.spriteVBO);
+    glBindVertexArray(g_renderer.spriteVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g_renderer.spriteVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sprite_vertices), sprite_vertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
     g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
     if (g_renderer.brdfLUTTexture == 0) {
@@ -2099,6 +2116,36 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
     glDepthFunc(GL_LEQUAL);
 }
 
+void render_sprites(Mat4* view, Mat4* projection) {
+    glUseProgram(g_renderer.spriteShader);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spriteShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spriteShader, "projection"), 1, GL_FALSE, projection->m);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+
+    glBindVertexArray(g_renderer.spriteVAO);
+
+    for (int i = 0; i < g_scene.numSprites; ++i) {
+        Sprite* s = &g_scene.sprites[i];
+        if (!s->visible) continue;
+
+        glUniform3fv(glGetUniformLocation(g_renderer.spriteShader, "spritePos"), 1, &s->pos.x);
+        glUniform1f(glGetUniformLocation(g_renderer.spriteShader, "spriteScale"), s->scale);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, s->material->diffuseMap);
+        glUniform1i(glGetUniformLocation(g_renderer.spriteShader, "spriteTexture"), 0);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    glBindVertexArray(0);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+
 void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit) {
     Frustum frustum;
     Mat4 view_proj;
@@ -2622,6 +2669,9 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.quadVBO);
     glDeleteVertexArrays(1, &g_renderer.skyboxVAO);
     glDeleteBuffers(1, &g_renderer.skyboxVBO);
+    glDeleteProgram(g_renderer.spriteShader);
+    glDeleteVertexArrays(1, &g_renderer.spriteVAO);
+    glDeleteBuffers(1, &g_renderer.spriteVBO);
     glDeleteFramebuffers(1, &g_renderer.sunShadowFBO);
     glDeleteTextures(1, &g_renderer.sunShadowMap);
     glDeleteVertexArrays(1, &g_renderer.decalVAO); glDeleteBuffers(1, &g_renderer.decalVBO);
@@ -3141,6 +3191,7 @@ int main(int argc, char* argv[]) {
             for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
                 ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
             }
+            render_sprites(&view, &projection);
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
             GLuint source_fbo = g_renderer.finalRenderFBO;

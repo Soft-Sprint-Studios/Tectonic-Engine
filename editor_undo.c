@@ -30,6 +30,7 @@ typedef struct {
         Decal decal;
         SoundEntity soundEntity;
         ParticleEmitter particleEmitter;
+        Sprite sprite;
         VideoPlayer videoPlayer;
         ParallaxRoom parallaxRoom;
         LogicEntity logicEntity;
@@ -115,6 +116,14 @@ static void _raw_delete_particle_emitter(Scene* scene, int index) {
     scene->numParticleEmitters--;
 }
 
+static void _raw_delete_sprite(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numSprites) return;
+    for (int i = index; i < scene->numSprites - 1; ++i) {
+        scene->sprites[i] = scene->sprites[i + 1];
+    }
+    scene->numSprites--;
+}
+
 static void _raw_delete_logic_entity(Scene* scene, int index) {
     if (index < 0 || index >= scene->numLogicEntities) return;
     for (int i = index; i < scene->numLogicEntities - 1; ++i) scene->logicEntities[i] = scene->logicEntities[i + 1];
@@ -149,6 +158,9 @@ static void capture_state(EntityState* state, Scene* scene, EntityType type, int
         memcpy(&state->data.particleEmitter, &scene->particleEmitters[index], offsetof(ParticleEmitter, particles));
         strcpy(state->parFile, scene->particleEmitters[index].parFile);
         break;
+    case ENTITY_SPRITE:
+        state->data.sprite = scene->sprites[index];
+        break;
     case ENTITY_VIDEO_PLAYER:
         state->data.videoPlayer = scene->videoPlayers[index];
         break;
@@ -170,6 +182,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         else if (state->type == ENTITY_DECAL) _raw_delete_decal(scene, state->index);
         else if (state->type == ENTITY_SOUND) _raw_delete_sound_entity(scene, state->index);
         else if (state->type == ENTITY_PARTICLE_EMITTER) _raw_delete_particle_emitter(scene, state->index);
+        else if (state->type == ENTITY_SPRITE) _raw_delete_sprite(scene, state->index);
         else if (state->type == ENTITY_LOGIC) _raw_delete_logic_entity(scene, state->index);
         return;
     }
@@ -229,6 +242,11 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
             ParticleSystem* ps = ParticleSystem_Load(state->parFile);
             if (ps) ParticleEmitter_Init(&scene->particleEmitters[state->index], ps, state->data.particleEmitter.pos);
             break;
+        case ENTITY_SPRITE:
+            scene->numSprites++;
+            memmove(&scene->sprites[state->index + 1], &scene->sprites[state->index], (scene->numSprites - 1 - state->index) * sizeof(Sprite));
+            scene->sprites[state->index] = state->data.sprite;
+            break;
         case ENTITY_VIDEO_PLAYER:
             scene->numVideoPlayers++;
             memmove(&scene->videoPlayers[state->index + 1], &scene->videoPlayers[state->index], (scene->numVideoPlayers - 1 - state->index) * sizeof(VideoPlayer));
@@ -284,6 +302,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
     case ENTITY_DECAL: scene->decals[state->index] = state->data.decal; Decal_UpdateMatrix(&scene->decals[state->index]); break;
     case ENTITY_SOUND: scene->soundEntities[state->index] = state->data.soundEntity; break;
     case ENTITY_PARTICLE_EMITTER: memcpy(&scene->particleEmitters[state->index], &state->data.particleEmitter, offsetof(ParticleEmitter, particles)); break;
+    case ENTITY_SPRITE: scene->sprites[state->index] = state->data.sprite; break;
     case ENTITY_PLAYERSTART: scene->playerStart = state->data.playerStart; break;
     case ENTITY_LOGIC: scene->logicEntities[state->index] = state->data.logicEntity; break;
     }

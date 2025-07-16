@@ -39,6 +39,7 @@ extern "C" {
 #define MAX_DECALS 8192
 #define MAX_SOUNDS 2048
 #define MAX_PARTICLE_EMITTERS 2048
+#define MAX_SPRITES 8192
 #define MAX_VIDEO_PLAYERS 32
 #define MAX_PARALLAX_ROOMS 128
 #define MAX_BRUSH_VERTS 32768
@@ -54,7 +55,7 @@ extern "C" {
 #define PLAYER_HEIGHT_CROUCH 1.37f
 
 typedef enum {
-    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC
+    ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC, ENTITY_SPRITE
 } EntityType;
 
 typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
@@ -168,6 +169,8 @@ typedef struct {
     GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
     GLuint gVelocity;
     GLuint gIndirectLight;
+    GLuint spriteShader;
+    GLuint spriteVAO, spriteVBO;
     GLuint cloudTexture;
     GLuint vplGenerationFBO;
     GLuint vplPosTex, vplNormalTex, vplAlbedoTex;
@@ -368,6 +371,14 @@ typedef struct ParticleEmitter {
 } ParticleEmitter;
 
 typedef struct {
+    char targetname[64];
+    Vec3 pos;
+    float scale;
+    Material* material;
+    bool visible;
+} Sprite;
+
+typedef struct {
     char key[64];
     char value[128];
 } KeyValue;
@@ -403,6 +414,8 @@ typedef struct {
     int numSoundEntities;
     ParticleEmitter particleEmitters[MAX_PARTICLE_EMITTERS];
     int numParticleEmitters;
+    Sprite sprites[MAX_SPRITES];
+    int numSprites;
     LogicEntity logicEntities[MAX_LOGIC_ENTITIES];
     int numLogicEntities;
     VideoPlayer videoPlayers[MAX_VIDEO_PLAYERS];

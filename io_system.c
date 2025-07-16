@@ -272,6 +272,20 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
+    for (int i = 0; i < scene->numSprites; ++i) {
+        if (strcmp(scene->sprites[i].targetname, targetName) == 0) {
+            if (strcmp(inputName, "TurnOn") == 0) {
+                scene->sprites[i].visible = true;
+            }
+            else if (strcmp(inputName, "TurnOff") == 0) {
+                scene->sprites[i].visible = false;
+            }
+            else if (strcmp(inputName, "Toggle") == 0) {
+                scene->sprites[i].visible = !scene->sprites[i].visible;
+            }
+            return;
+        }
+    }
 }
 
 const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {

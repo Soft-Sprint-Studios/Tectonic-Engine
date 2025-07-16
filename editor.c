@@ -633,6 +633,23 @@ void Editor_DeleteLogicEntity(Scene* scene, int index) {
         else if (g_EditorState.selected_entity_index > index) { g_EditorState.selected_entity_index--; }
     }
 }
+void Editor_DeleteSprite(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numSprites) return;
+    Undo_PushDeleteEntity(scene, ENTITY_SPRITE, index, "Delete Sprite");
+    for (int i = index; i < scene->numSprites - 1; ++i) {
+        scene->sprites[i] = scene->sprites[i + 1];
+    }
+    scene->numSprites--;
+    if (g_EditorState.selected_entity_type == ENTITY_SPRITE) {
+        if (g_EditorState.selected_entity_index == index) {
+            g_EditorState.selected_entity_type = ENTITY_NONE;
+            g_EditorState.selected_entity_index = -1;
+        }
+        else if (g_EditorState.selected_entity_index > index) {
+            g_EditorState.selected_entity_index--;
+        }
+    }
+}
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
     SceneObject* src_obj = &scene->objects[index];
@@ -798,6 +815,18 @@ void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index) {
     g_EditorState.selected_entity_type = ENTITY_LOGIC;
     g_EditorState.selected_entity_index = scene->numLogicEntities - 1;
     Undo_PushCreateEntity(scene, ENTITY_LOGIC, g_EditorState.selected_entity_index, "Duplicate Logic Entity");
+}
+void Editor_DuplicateSprite(Scene* scene, int index) {
+    if (index < 0 || index >= scene->numSprites || scene->numSprites >= MAX_DECALS) return;
+    Sprite* src_sprite = &scene->sprites[index];
+    Sprite* new_sprite = &scene->sprites[scene->numSprites];
+    memcpy(new_sprite, src_sprite, sizeof(Sprite));
+    sprintf(new_sprite->targetname, "Sprite_%d", scene->numSprites);
+    new_sprite->pos.x += 1.0f;
+    scene->numSprites++;
+    g_EditorState.selected_entity_type = ENTITY_SPRITE;
+    g_EditorState.selected_entity_index = scene->numSprites - 1;
+    Undo_PushCreateEntity(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index, "Duplicate Sprite");
 }
 static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     Brush* b = &g_EditorState.preview_brush;
@@ -1446,6 +1475,22 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         }
     }
 
+    for (int i = 0; i < g_CurrentScene->numSprites; ++i) {
+        Sprite* s = &g_CurrentScene->sprites[i];
+        float sprite_gizmo_radius = s->scale * 0.5f;
+        Vec3 P = vec3_sub(s->pos, ray_origin_world);
+        float b_dot = vec3_dot(P, ray_dir_world);
+        float det = b_dot * b_dot - vec3_dot(P, P) + sprite_gizmo_radius * sprite_gizmo_radius;
+        if (det < 0) continue;
+        float t_sprite = b_dot - sqrtf(det);
+        if (t_sprite > 0 && t_sprite < closest_t) {
+            closest_t = t_sprite;
+            selected_type = ENTITY_SPRITE;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
     g_EditorState.selected_entity_type = selected_type;
     g_EditorState.selected_entity_index = selected_index;
 
@@ -1572,6 +1617,7 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
         case ENTITY_DECAL: object_pos = scene->decals[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_SOUND: object_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PARTICLE_EMITTER: object_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_SPRITE: object_pos = scene->sprites[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PLAYERSTART: object_pos = scene->playerStart.position; break;
         case ENTITY_VIDEO_PLAYER: object_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PARALLAX_ROOM: object_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
@@ -1911,6 +1957,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_object_start_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos;
                     g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
                     g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_SPRITE:
+                    g_EditorState.gizmo_drag_object_start_pos = scene->sprites[g_EditorState.selected_entity_index].pos;
+                    g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->sprites[g_EditorState.selected_entity_index].scale, 1, 1 };
                     break;
                 case ENTITY_PLAYERSTART:
                     g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.position;
@@ -2584,6 +2635,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_DECAL: scene->decals[g_EditorState.selected_entity_index].pos = new_pos; scene->decals[g_EditorState.selected_entity_index].rot = new_rot; scene->decals[g_EditorState.selected_entity_index].size = new_scale; Decal_UpdateMatrix(&scene->decals[g_EditorState.selected_entity_index]); break;
                 case ENTITY_SOUND: scene->soundEntities[g_EditorState.selected_entity_index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[g_EditorState.selected_entity_index].sourceID, new_pos); break;
                 case ENTITY_PARTICLE_EMITTER: scene->particleEmitters[g_EditorState.selected_entity_index].pos = new_pos; break;
+                case ENTITY_SPRITE:
+                    scene->sprites[g_EditorState.selected_entity_index].pos = new_pos;
+                    scene->sprites[g_EditorState.selected_entity_index].scale = new_scale.x;
+                    break;
                 case ENTITY_PLAYERSTART: scene->playerStart.position = new_pos; break;
                 case ENTITY_VIDEO_PLAYER:
                     scene->videoPlayers[g_EditorState.selected_entity_index].pos = new_pos;
@@ -2838,6 +2893,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_DECAL: if (g_EditorState.selected_entity_index != -1) Editor_DeleteDecal(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_SOUND: if (g_EditorState.selected_entity_index != -1) Editor_DeleteSoundEntity(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARTICLE_EMITTER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParticleEmitter(scene, g_EditorState.selected_entity_index); break;
+                case ENTITY_SPRITE: if (g_EditorState.selected_entity_index != -1) Editor_DeleteSprite(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_VIDEO_PLAYER: if (g_EditorState.selected_entity_index != -1) Editor_DeleteVideoPlayer(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_PARALLAX_ROOM: if (g_EditorState.selected_entity_index != -1) Editor_DeleteParallaxRoom(scene, g_EditorState.selected_entity_index); break;
                 case ENTITY_LOGIC: if (g_EditorState.selected_entity_index != -1) Editor_DeleteLogicEntity(scene, g_EditorState.selected_entity_index); break;
@@ -3396,6 +3452,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             case ENTITY_DECAL: gizmo_target_pos = scene->decals[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_SOUND: gizmo_target_pos = scene->soundEntities[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PARTICLE_EMITTER: gizmo_target_pos = scene->particleEmitters[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
+            case ENTITY_SPRITE: gizmo_target_pos = scene->sprites[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PLAYERSTART: gizmo_target_pos = scene->playerStart.position; use_gizmo = true; break;
             case ENTITY_VIDEO_PLAYER: gizmo_target_pos = scene->videoPlayers[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
             case ENTITY_PARALLAX_ROOM: gizmo_target_pos = scene->parallaxRooms[g_EditorState.selected_entity_index].pos; use_gizmo = true; break;
@@ -3480,6 +3537,7 @@ static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         case ENTITY_DECAL: object_pos = g_CurrentScene->decals[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_SOUND: object_pos = g_CurrentScene->soundEntities[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PARTICLE_EMITTER: object_pos = g_CurrentScene->particleEmitters[g_EditorState.selected_entity_index].pos; break;
+        case ENTITY_SPRITE: object_pos = g_CurrentScene->sprites[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PLAYERSTART: object_pos = g_CurrentScene->playerStart.position; break;
         case ENTITY_VIDEO_PLAYER: object_pos = g_CurrentScene->videoPlayers[g_EditorState.selected_entity_index].pos; break;
         case ENTITY_PARALLAX_ROOM: object_pos = g_CurrentScene->parallaxRooms[g_EditorState.selected_entity_index].pos; break;
@@ -3657,6 +3715,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             ParticleEmitter_Render(&scene->particleEmitters[i], g_view_matrix[type], g_proj_matrix[type]);
         }
 
+        render_sprites(&g_view_matrix[type], &g_proj_matrix[type]);
+
         glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
@@ -3803,6 +3863,21 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glLineWidth(is_selected ? 2.0f : 1.0f);
         glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
         glLineWidth(1.0f);
+    }
+    for (int i = 0; i < scene->numSprites; ++i) {
+        Sprite* s = &scene->sprites[i];
+        bool is_selected = (g_EditorState.selected_entity_type == ENTITY_SPRITE && g_EditorState.selected_entity_index == i);
+        if (!s->visible && !is_selected) continue;
+
+        glUseProgram(g_EditorState.debug_shader);
+        Mat4 modelMatrix = mat4_translate(s->pos);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
+        float color[] = { 0.8f, 0.2f, 1.0f, 1.0f };
+        if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; }
+        else if (!s->visible) { color[3] = 0.3f; }
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glBindVertexArray(g_EditorState.light_gizmo_vao);
+        glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
     }
     glDisable(GL_DEPTH_TEST); glLineWidth(2.0f);
     if (g_EditorState.is_in_brush_creation_mode || g_EditorState.is_dragging_for_creation) {
@@ -4546,6 +4621,12 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                     Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Set Light Cookie");
                     g_EditorState.show_texture_browser = false;
                 }
+                else if (g_EditorState.selected_entity_type == ENTITY_SPRITE && g_EditorState.selected_entity_index != -1 && g_EditorState.texture_browser_target == 6) {
+                    Undo_BeginEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index);
+                    scene->sprites[g_EditorState.selected_entity_index].material = mat;
+                    Undo_EndEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index, "Change Sprite Material");
+                    g_EditorState.show_texture_browser = false;
+                }
                 else if (g_EditorState.texture_browser_target == TEXTURE_TARGET_REPLACE_FIND) {
                     g_EditorState.find_material_index = i;
                     g_EditorState.show_texture_browser = false;
@@ -5220,6 +5301,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     static bool show_add_particle_popup = false;
     static char add_particle_path[128] = "particles/fire.par";
     int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
+    int sprite_to_delete = -1;
     float right_panel_width = 300.0f; float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w - right_panel_width, 22); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
@@ -5434,6 +5516,41 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
     }
     if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
+    if (UI_CollapsingHeader("Sprites", 1)) {
+        for (int i = 0; i < scene->numSprites; ++i) {
+            char label[128];
+            sprintf(label, "%s##sprite%d", scene->sprites[i].targetname, i);
+            if (UI_Selectable(label, g_EditorState.selected_entity_type == ENTITY_SPRITE && g_EditorState.selected_entity_index == i)) {
+                g_EditorState.selected_entity_type = ENTITY_SPRITE;
+                g_EditorState.selected_entity_index = i;
+            }
+            char popup_id[64];
+            sprintf(popup_id, "SpriteContext_%d", i);
+            if (UI_BeginPopupContextItem(popup_id)) {
+                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateSprite(scene, i); }
+                if (UI_MenuItem("Delete", NULL, false, true)) { sprite_to_delete = i; }
+                UI_EndPopup();
+            }
+            UI_SameLine(0, 20.0f);
+            char del_label[32];
+            sprintf(del_label, "[X]##sprite%d", i);
+            if (UI_Button(del_label)) { sprite_to_delete = i; }
+        }
+        if (UI_Button("Add Sprite")) {
+            if (scene->numSprites < MAX_SPRITES) {
+                Sprite* s = &scene->sprites[scene->numSprites];
+                memset(s, 0, sizeof(Sprite));
+                sprintf(s->targetname, "Sprite_%d", scene->numSprites);
+                s->pos = g_EditorState.editor_camera.position;
+                s->scale = 1.0f;
+                s->material = &g_MissingMaterial;
+                s->visible = true;
+                scene->numSprites++;
+                Undo_PushCreateEntity(scene, ENTITY_SPRITE, scene->numSprites - 1, "Create Sprite");
+            }
+        }
+    }
+    if (sprite_to_delete != -1) { Editor_DeleteSprite(scene, sprite_to_delete); }
     if (UI_CollapsingHeader("Video Players", 1)) {
         for (int i = 0; i < scene->numVideoPlayers; ++i) {
             char label[128];
@@ -5804,6 +5921,29 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PLAYERSTART) {
         UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.position.x = SnapValue(scene->playerStart.position.x, g_EditorState.grid_size); scene->playerStart.position.y = SnapValue(scene->playerStart.position.y, g_EditorState.grid_size); scene->playerStart.position.z = SnapValue(scene->playerStart.position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
+    }
+    else if (g_EditorState.selected_entity_type == ENTITY_SPRITE && g_EditorState.selected_entity_index < scene->numSprites) {
+        Sprite* s = &scene->sprites[g_EditorState.selected_entity_index];
+        UI_Text("Sprite Properties");
+        UI_Separator();
+        UI_InputText("Name", s->targetname, sizeof(s->targetname));
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index, "Edit Sprite Name"); }
+
+        UI_DragFloat3("Position", &s->pos.x, 0.1f, 0, 0);
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index, "Move Sprite"); }
+
+        UI_DragFloat("Scale", &s->scale, 0.05f, 0.01f, 100.0f);
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SPRITE, g_EditorState.selected_entity_index, "Scale Sprite"); }
+
+        char mat_button_label[128];
+        sprintf(mat_button_label, "Material: %s", s->material ? s->material->name : "None");
+        if (UI_Button(mat_button_label)) {
+            g_EditorState.texture_browser_target = 6;
+            g_EditorState.show_texture_browser = true;
+        }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_LIGHT && g_EditorState.selected_entity_index < scene->numActiveLights) {
         Light* light = &scene->lights[g_EditorState.selected_entity_index]; UI_InputText("Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Name"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * 3.14159f / 180.0f); light->outerCutOff = cosf(17.5f * 3.14159f / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Volumetric Intensity"); }

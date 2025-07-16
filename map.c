@@ -924,6 +924,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
         engine->physicsWorld = NULL;
     }
 
+    scene->numSprites = 0;
     memset(scene, 0, sizeof(Scene));
     scene->static_vpls_generated = false;
     scene->static_shadows_generated = false;
@@ -1338,6 +1339,18 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 g_num_io_connections++;
             }
         }
+        else if (strcmp(keyword, "sprite") == 0) {
+            if (scene->numSprites < MAX_SPRITES) {
+                Sprite* s = &scene->sprites[scene->numSprites];
+                memset(s, 0, sizeof(Sprite));
+                char mat_name[64];
+                sscanf(line, "%*s \"%63[^\"]\" %f %f %f %f \"%63[^\"]\"",
+                    s->targetname, &s->pos.x, &s->pos.y, &s->pos.z, &s->scale, mat_name);
+                s->material = TextureManager_FindMaterial(mat_name);
+                s->visible = true;
+                scene->numSprites++;
+            }
+        }
         else if (strcmp(keyword, "logic_entity_begin") == 0) {
             if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) continue;
             LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
@@ -1518,6 +1531,12 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
             p->size.x, p->size.y,
             p->roomDepth);
     }
+    for (int i = 0; i < scene->numSprites; ++i) {
+        Sprite* s = &scene->sprites[i];
+        fprintf(file, "sprite \"%s\" %.4f %.4f %.4f %.4f \"%s\"\n",
+            s->targetname, s->pos.x, s->pos.y, s->pos.z, s->scale, s->material ? s->material->name : "___MISSING___");
+    }
+    fprintf(file, "\n");
     for (int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         fprintf(file, "logic_entity_begin\n");
