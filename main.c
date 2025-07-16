@@ -599,16 +599,7 @@ void Cmd_Screenshot(int argc, char** argv) {
     g_screenshot_requested = true;
 }
 
-void init_engine(SDL_Window* window, SDL_GLContext context) {
-    g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
-    g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
-    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
-    memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
-    memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
-    GameConfig_Init();
-    UI_Init(window, context);
-    SoundSystem_Init();
-    Cvar_Init();
+void init_cvars() {
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("noclip", "0", "", CVAR_NONE);
     Cvar_Register("gravity", "9.81", "", CVAR_NONE);
@@ -657,6 +648,19 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
     Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Controls the speed of the game. 1.0 is normal speed.", CVAR_NONE);
+}
+
+void init_engine(SDL_Window* window, SDL_GLContext context) {
+    g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
+    g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
+    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
+    memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
+    memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
+    GameConfig_Init();
+    UI_Init(window, context);
+    SoundSystem_Init();
+    Cvar_Init();
+    init_cvars();
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();

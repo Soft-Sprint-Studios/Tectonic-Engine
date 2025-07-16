@@ -127,7 +127,7 @@ void main() {
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float shininess = 8.0;
+    float shininess = 32.0;
     float specularStrength = 3.0;
 
     if (sun.enabled) {
@@ -197,9 +197,7 @@ void main() {
         }
     }
 
-    vec3 blueTint = vec3(0.0, 0.05, 0.1);
-    vec3 finalColor = baseWaterColor / 0.9 + diffuse / 4.0 + specular / 4.0 + ambient;
-    finalColor = mix(finalColor, finalColor + blueTint, 0.25); 
+    vec3 finalColor = baseWaterColor + diffuse + specular + ambient;
 
     fragColor = vec4(finalColor, 0.85);
 }
