@@ -141,7 +141,6 @@ static char* trim(char* str) {
     return str;
 }
 
-#ifdef DISABLE_DEBUGGER
 static bool CheckForDebugger(void) {
 #ifdef PLATFORM_WINDOWS
     return IsDebuggerPresent();
@@ -163,7 +162,6 @@ static bool CheckForDebugger(void) {
     return false;
 #endif
 }
-#endif
 
 static int g_build_number = -1;
 
