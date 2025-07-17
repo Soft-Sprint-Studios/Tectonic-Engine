@@ -3646,9 +3646,11 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         if (Cvar_GetInt("r_ssao")) {
             render_ssao_pass(&g_proj_matrix[type]);
         }
+        /*
         if (Cvar_GetInt("r_volumetrics")) {
             render_volumetric_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix);
         }
+        */
         if (Cvar_GetInt("r_bloom")) {
             render_bloom_pass();
         }
