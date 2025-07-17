@@ -2836,7 +2836,7 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
         0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
-        Console_Printf("[ERROR] Failed to create SDL surface for screenshot.");
+        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
     }
     else {
         if (IMG_SavePNG(surface, filepath) != 0) {
@@ -2919,7 +2919,7 @@ void BuildCubemaps() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, CUBEMAP_RES, CUBEMAP_RES);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cubemap_rbo);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Console_Printf("[ERROR] Cubemap face FBO not complete!");
+        Console_Printf_Error("[ERROR] Cubemap face FBO not complete!");
         glDeleteFramebuffers(1, &cubemap_fbo);
         glDeleteTextures(1, &cubemap_texture);
         glDeleteRenderbuffers(1, &cubemap_rbo);

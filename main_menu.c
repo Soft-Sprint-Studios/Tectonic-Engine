@@ -48,13 +48,13 @@ static GLuint create_text_texture(TTF_Font* font, const char* text, SDL_Color co
     if (!font || !text) return 0;
     SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
     if (!surface) {
-        Console_Printf("MainMenu ERROR: TTF_RenderText_Blended failed: %s", TTF_GetError());
+        Console_Printf_Error("MainMenu ERROR: TTF_RenderText_Blended failed: %s", TTF_GetError());
         return 0;
     }
     SDL_Surface* formatted_surface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(surface);
     if (!formatted_surface) {
-        Console_Printf("MainMenu ERROR: SDL_ConvertSurfaceFormat failed: %s", SDL_GetError());
+        Console_Printf_Error("MainMenu ERROR: SDL_ConvertSurfaceFormat failed: %s", SDL_GetError());
         return 0;
     }
     GLuint texture_id;
@@ -97,12 +97,12 @@ bool MainMenu_Init(int screen_width, int screen_height) {
     g_screen_width = screen_width;
     g_screen_height = screen_height;
     if (TTF_Init() == -1) {
-        Console_Printf("MainMenu ERROR: TTF_Init failed: %s", TTF_GetError());
+        Console_Printf_Error("MainMenu ERROR: TTF_Init failed: %s", TTF_GetError());
         return false;
     }
     g_menu_font = TTF_OpenFont("fonts/Roboto-Regular.ttf", 64);
     if (!g_menu_font) {
-        Console_Printf("MainMenu ERROR: Failed to load font: %s", TTF_GetError());
+        Console_Printf_Error("MainMenu ERROR: Failed to load font: %s", TTF_GetError());
         return false;
     }
     SDL_Color white = { 255, 255, 255, 255 };
@@ -114,7 +114,7 @@ bool MainMenu_Init(int screen_width, int screen_height) {
     g_text_texture_quit = create_text_texture(g_menu_font, "QUIT", white, &g_text_width_quit, &g_text_height_quit);
     g_text_texture_start = create_text_texture(g_menu_font, "START GAME", white, &g_text_width_start, &g_text_height_start);
     if (!g_text_texture_game_title || !g_text_texture_options || !g_text_texture_quit || !g_text_texture_start) {
-        Console_Printf("MainMenu ERROR: Failed to create one or more text textures.");
+        Console_Printf_Error("MainMenu ERROR: Failed to create one or more text textures.");
         MainMenu_Shutdown();
         return false;
     }
@@ -193,7 +193,7 @@ void MainMenu_SetInGameMenuMode(bool is_in_game, bool is_map_loaded_state) {
         g_text_texture_start = create_text_texture(g_menu_font, "START GAME", white, &g_text_width_start, &g_text_height_start);
     }
     if (!g_text_texture_start) {
-        Console_Printf("MainMenu ERROR: Failed to update start/continue texture.");
+        Console_Printf_Error("MainMenu ERROR: Failed to update start/continue texture.");
     }
     g_selected_button_index = 0;
 }

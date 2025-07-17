@@ -75,7 +75,7 @@ Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* help
     }
 
     if (num_cvars >= MAX_CVARS) {
-        Console_Printf("ERROR: Max CVars reached!\n");
+        Console_Printf_Error("ERROR: Max CVars reached!\n");
         return NULL;
     }
 

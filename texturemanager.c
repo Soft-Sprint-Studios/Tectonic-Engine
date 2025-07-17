@@ -36,7 +36,7 @@ static char* prependTexturePath(const char* filename) {
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
     char* fullPath = (char*)malloc(len);
     if (!fullPath) {
-        Console_Printf("TextureManager ERROR: Memory allocation failed for texture path.\n");
+        Console_Printf_Error("TextureManager ERROR: Memory allocation failed for texture path.\n");
         return NULL;
     }
     strcpy(fullPath, baseFolder);
@@ -94,13 +94,13 @@ static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigne
 GLuint loadTexture(const char* path, bool isSrgb) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
-        Console_Printf("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
+        Console_Printf_Warning("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", fullPath);
+        Console_Printf_Warning("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -131,7 +131,7 @@ GLuint loadTexture(const char* path, bool isSrgb) {
                 surf = scaled_surf;
             }
             else {
-                Console_Printf("TextureManager WARNING: Failed to create scaled surface for '%s' (quality). Using original resolution.\n", fullPath);
+                Console_Printf_Warning("TextureManager WARNING: Failed to create scaled surface for '%s' (quality). Using original resolution.\n", fullPath);
             }
         }
     }
@@ -151,7 +151,7 @@ GLuint loadTexture(const char* path, bool isSrgb) {
                 surf = scaled_surf;
             }
             else {
-                Console_Printf("TextureManager ERROR: Failed to create scaled surface for '%s' (editor). Using full-res.\n", fullPath);
+                Console_Printf_Error("TextureManager ERROR: Failed to create scaled surface for '%s' (editor). Using full-res.\n", fullPath);
             }
         }
     }
@@ -160,7 +160,7 @@ GLuint loadTexture(const char* path, bool isSrgb) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf("TextureManager ERROR: Failed to convert surface for '%s'\n", fullPath);
+        Console_Printf_Error("TextureManager ERROR: Failed to convert surface for '%s'\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -218,7 +218,7 @@ GLuint loadCubemap(const char* faces[6]) {
             }
         }
         else {
-            Console_Printf("Cubemap texture failed to load at path: %s\n", faces[i]);
+            Console_Printf_Warning("Cubemap texture failed to load at path: %s\n", faces[i]);
         }
     }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -237,7 +237,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf("TextureManager WARNING: Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Warning("TextureManager WARNING: Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -246,7 +246,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf("TextureManager ERROR: Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Warning("TextureManager ERROR: Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -385,7 +385,7 @@ int TextureManager_GetMaterialCount() {
 bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf("TextureManager ERROR: Could not open material file '%s'\n", filepath);
+        Console_Printf_Error("TextureManager ERROR: Could not open material file '%s'\n", filepath);
         return false;
     }
 
@@ -401,7 +401,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
 
         if (trimmed_line[0] == '"') {
             if (num_materials >= MAX_MATERIALS) {
-                Console_Printf("TextureManager ERROR: Max materials reached. Cannot parse more.\n");
+                Console_Printf_Error("TextureManager ERROR: Max materials reached. Cannot parse more.\n");
                 break;
             }
             current_material = &materials[num_materials];
