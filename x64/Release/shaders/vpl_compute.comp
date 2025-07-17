@@ -64,7 +64,7 @@ void main() {
     vec3 albedo = texelFetch(u_albedoTex, random_coords, 0).rgb;
 
     float dist_sq = dot(u_lightPos - vpl_pos, u_lightPos - vpl_pos);
-    float attenuation = 1.0 / (dist_sq + 1.0);
+    float attenuation = 1.0 / max(dist_sq, 0.001);
 
     vec3 vpl_energy = u_lightColor * u_lightIntensity * albedo / PI;
 
