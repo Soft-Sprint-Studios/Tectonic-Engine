@@ -99,7 +99,7 @@ extern "C" {
     void UI_Init(SDL_Window* window, SDL_GLContext context) {
         IMGUI_CHECKVERSION(); ImGui::CreateContext(); ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui::StyleColorsDark(); ImGui_ImplSDL2_InitForOpenGL(window, context);
-        ImGui_ImplOpenGL3_Init("#version 460");
+        ImGui_ImplOpenGL3_Init("#version 450");
         Console_Printf("Console Initialized.");
     }
     void UI_Shutdown() { ImGui_ImplOpenGL3_Shutdown(); ImGui_ImplSDL2_Shutdown(); ImGui::DestroyContext(); }
