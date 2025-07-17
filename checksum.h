@@ -28,12 +28,12 @@ extern "C" {
 #ifdef PLATFORM_LINUX
     __attribute__((used))
         __attribute__((section(".checksum_section")))
-        extern const EmbeddedChecksum g_EmbeddedChecksum;
+        extern EmbeddedChecksum g_EmbeddedChecksum;
 
 #else
 #pragma section(".checksum_section", read, write)
     __declspec(allocate(".checksum_section"))
-        extern const EmbeddedChecksum g_EmbeddedChecksum;
+        extern EmbeddedChecksum g_EmbeddedChecksum;
 #endif
 
     bool Checksum_Verify(const char* exePath);

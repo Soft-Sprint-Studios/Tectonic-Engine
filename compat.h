@@ -17,7 +17,7 @@
 #include <stdio.h>
 
 //#define GAME_RELEASE 1
-//#define ENABLE_CHECKSUM 1
+#define ENABLE_CHECKSUM 1
 //#define DISABLE_DEBUGGER 1
 
 #ifndef M_PI

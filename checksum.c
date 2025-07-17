@@ -41,10 +41,10 @@ static uint32_t crc32_calculate(const void* data, size_t size) {
 #ifdef PLATFORM_LINUX
 __attribute__((used))
 __attribute__((section(".checksum_section")))
-const EmbeddedChecksum g_EmbeddedChecksum = { 0xBADF00D5, 0 };
+EmbeddedChecksum g_EmbeddedChecksum = { 0xBADF00D5, 0 };
 #else
 __declspec(allocate(".checksum_section"))
-const EmbeddedChecksum g_EmbeddedChecksum = { 0xBADF00D5, 0 };
+EmbeddedChecksum g_EmbeddedChecksum = { 0xBADF00D5, 0 };
 #endif
 
 bool Checksum_Verify(const char* exePath) {
