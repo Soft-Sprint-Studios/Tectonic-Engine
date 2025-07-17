@@ -93,7 +93,7 @@ void Commands_Execute(int argc, char** argv) {
         return;
     }
 
-    Console_Printf("[error] Unknown command or cvar: %s", cmd_name);
+    Console_Printf_Error("[error] Unknown command or cvar: %s", cmd_name);
 }
 
 void Cmd_Help(int argc, char** argv) {

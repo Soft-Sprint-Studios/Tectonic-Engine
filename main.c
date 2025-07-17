@@ -482,7 +482,7 @@ void Cmd_Map(int argc, char** argv) {
             SDL_SetRelativeMouseMode(SDL_TRUE);
         }
         else {
-            Console_Printf("[error] Failed to load map: %s", map_path);
+            Console_Printf_Error("[error] Failed to load map: %s", map_path);
         }
     }
     else {
@@ -680,7 +680,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Weapons_Init();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
-        Console_Printf("[ERROR] Failed to initialize Main Menu.");
+        Console_Printf_Error("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
     Console_Printf("Tectonic Engine initialized.\n");
@@ -935,7 +935,7 @@ void init_renderer() {
     glBindVertexArray(0);
     g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
     if (g_renderer.brdfLUTTexture == 0) {
-        Console_Printf("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
+        Console_Printf_Error("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
     }
     glUseProgram(g_renderer.mainShader);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap"), 1);
@@ -1025,7 +1025,7 @@ void init_renderer() {
     WaterManager_ParseWaters("waters.def");
     g_renderer.cloudTexture = loadTexture("clouds.png", false);
     if (g_renderer.cloudTexture == 0) {
-        Console_Printf("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
+        Console_Printf_Error("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
     }
     glGenBuffers(1, &g_renderer.lightSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
@@ -1504,7 +1504,7 @@ static void render_vpl_shadows() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
     VPL* vpls = (VPL*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
     if (!vpls) {
-        Console_Printf("[error] Failed to map VPL SSBO for shadow map generation.");
+        Console_Printf_Error("[error] Failed to map VPL SSBO for shadow map generation.");
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         return;
     }
@@ -2825,7 +2825,7 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
     if (!pixels) {
-        Console_Printf("[ERROR] Failed to allocate memory for screenshot pixels.");
+        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return;
     }
@@ -2840,7 +2840,7 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
     }
     else {
         if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
         }
         else {
             Console_Printf("Saved cubemap face to %s", filepath);
@@ -2855,7 +2855,7 @@ static void SaveScreenshotToPNG(const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     unsigned char* pixels = (unsigned char*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
     if (!pixels) {
-        Console_Printf("[ERROR] Failed to allocate memory for screenshot pixels.");
+        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
         return;
     }
 
@@ -2864,7 +2864,7 @@ static void SaveScreenshotToPNG(const char* filepath) {
     int row_size = WINDOW_WIDTH * 4;
     unsigned char* temp_row = (unsigned char*)malloc(row_size);
     if (!temp_row) {
-        Console_Printf("[ERROR] Failed to allocate memory for screenshot row buffer.");
+        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot row buffer.");
         free(pixels);
         return;
     }
@@ -2881,11 +2881,11 @@ static void SaveScreenshotToPNG(const char* filepath) {
     SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, WINDOW_WIDTH, WINDOW_HEIGHT, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
-        Console_Printf("[ERROR] Failed to create SDL surface for screenshot.");
+        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
     }
     else {
         if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
         }
         else {
             Console_Printf("Screenshot saved to %s", filepath);
@@ -2932,7 +2932,7 @@ void BuildCubemaps() {
         Brush* b = &g_scene.brushes[i];
         if (!b->isReflectionProbe) continue;
         if (strlen(b->name) == 0) {
-            Console_Printf("[WARNING] Skipping unnamed reflection probe at index %d.", i);
+            Console_Printf_Warning("[WARNING] Skipping unnamed reflection probe at index %d.", i);
             continue;
         }
 
@@ -3096,7 +3096,7 @@ int main(int argc, char* argv[]) {
                 Console_Printf("V-Sync set to %s.", current_vsync_cvar ? "ON" : "OFF");
             }
             else {
-                Console_Printf("[warning] Could not set V-Sync: %s", SDL_GetError());
+                Console_Printf_Warning("[warning] Could not set V-Sync: %s", SDL_GetError());
             }
             g_last_vsync_cvar_state = current_vsync_cvar;
         }

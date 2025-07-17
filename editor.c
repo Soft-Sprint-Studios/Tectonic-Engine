@@ -219,7 +219,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
 
     BrushFace* old_face = &b->faces[face_index];
     if (old_face->numVertexIndices != 4) {
-        Console_Printf("[error] Can only subdivide 4-sided faces for now.");
+        Console_Printf_Error("[error] Can only subdivide 4-sided faces for now.");
         return;
     }
 
@@ -1681,7 +1681,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         if (g_EditorState.is_clipping) {
             if (g_EditorState.selected_entity_type == ENTITY_BRUSH && g_EditorState.selected_entity_index != -1 && g_EditorState.clip_point_count >= 2) {
                 if (scene->numBrushes >= MAX_BRUSHES - 1) {
-                    Console_Printf("[error] Cannot clip brush, MAX_BRUSHES limit reached.");
+                    Console_Printf_Error("[error] Cannot clip brush, MAX_BRUSHES limit reached.");
                     g_EditorState.is_clipping = false;
                     return;
                 }
@@ -2228,7 +2228,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
             Mat4 inv_model;
             if (!mat4_inverse(&b->modelMatrix, &inv_model)) {
-                Console_Printf("[error] Failed to invert brush model matrix for sculpting.");
+                Console_Printf_Error("[error] Failed to invert brush model matrix for sculpting.");
                 return;
             }
 
@@ -3183,7 +3183,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                             scene->numObjects++;
                             scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
                             if (!scene->objects) {
-                                Console_Printf("[ERROR] Failed to reallocate memory for scene objects!");
+                                Console_Printf_Error("[ERROR] Failed to reallocate memory for scene objects!");
                                 scene->numObjects--;
                                 return;
                             }
@@ -4457,7 +4457,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
                     newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
                 }
                 else if (!newObj->model) {
-                    Console_Printf("[error] Failed to load model for scene object: %s", newObj->modelPath);
+                    Console_Printf_Error("[error] Failed to load model for scene object: %s", newObj->modelPath);
                 }
                 Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
                 g_EditorState.show_add_model_popup = false;
@@ -4518,7 +4518,7 @@ static void Editor_RenderSoundBrowser(Scene* scene) {
                     g_EditorState.show_sound_browser_popup = false;
                 }
                 else {
-                    Console_Printf("[error] Max sound entities reached.");
+                    Console_Printf_Error("[error] Max sound entities reached.");
                 }
             }
             UI_SameLine();
@@ -5673,7 +5673,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
     if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
     if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
-    if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
+    if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Inspector & Settings", NULL); UI_Text("Inspector"); UI_Separator();
@@ -6036,7 +6036,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (g_EditorState.selected_entity_type == ENTITY_PARTICLE_EMITTER && g_EditorState.selected_entity_index < scene->numParticleEmitters) {
         ParticleEmitter* emitter = &scene->particleEmitters[g_EditorState.selected_entity_index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Move Emitter"); }
-        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
+        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, g_EditorState.selected_entity_index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf_Error("[error] Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
     }
     else if (g_EditorState.selected_entity_type == ENTITY_VIDEO_PLAYER && g_EditorState.selected_entity_index < scene->numVideoPlayers) {
         VideoPlayer* vp = &scene->videoPlayers[g_EditorState.selected_entity_index];

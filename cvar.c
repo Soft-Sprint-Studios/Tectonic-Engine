@@ -51,7 +51,7 @@ void Cvar_Load(const char* filename) {
 void Cvar_Save(const char* filename) {
     FILE* file = fopen(filename, "w");
     if (!file) {
-        Console_Printf("[error] Could not save cvars to %s", filename);
+        Console_Printf_Error("[error] Could not save cvars to %s", filename);
         return;
     }
 

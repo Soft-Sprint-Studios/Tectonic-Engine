@@ -21,6 +21,12 @@
 extern "C" {
 #endif
 
+	typedef enum {
+		CONSOLE_COLOR_WHITE,
+		CONSOLE_COLOR_RED,
+		CONSOLE_COLOR_YELLOW
+	} ConsoleTextColor;
+
 	void UI_Init(SDL_Window* window, SDL_GLContext context);
 	void UI_Shutdown();
 	void UI_ProcessEvent(SDL_Event* event);
@@ -30,6 +36,8 @@ extern "C" {
 	void Console_Toggle();
 	void Console_Draw();
 	void Console_Printf(const char* fmt, ...);
+	void Console_Printf_Error(const char* fmt, ...);
+	void Console_Printf_Warning(const char* fmt, ...);
 	bool Console_IsVisible();
 	void UI_RenderGameHUD(float fps, float px, float py, float pz);
 	typedef void (*command_callback_t)(int argc, char** argv);

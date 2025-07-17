@@ -18,24 +18,36 @@
 #include <stdint.h>
 
 #include "gl_console.h"
-
 #include "cvar.h"
 
 static bool show_console = false;
 static command_callback_t command_handler = nullptr;
 
+struct ConsoleItem {
+    char* text;
+    ConsoleTextColor color;
+};
+
 struct Console {
     char                  InputBuf[256];
-    std::vector<char*>    Items;
+    std::vector<ConsoleItem> Items;
     bool                  ScrollToBottom;
     Console() { ClearLog(); memset(InputBuf, 0, sizeof(InputBuf)); ScrollToBottom = true; }
     ~Console() { ClearLog(); }
-    void ClearLog() { for (int i = 0; i < Items.size(); i++) free(Items[i]); Items.clear(); }
-    void AddLog(const char* fmt, ...) IM_FMTARGS(2) {
-        char buf[1024]; va_list args; va_start(args, fmt);
-        vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args); buf[IM_ARRAYSIZE(buf) - 1] = 0;
-        va_end(args); Items.push_back(_strdup(buf)); ScrollToBottom = true;
+    void ClearLog() { for (int i = 0; i < Items.size(); i++) free(Items[i].text); Items.clear(); }
+
+    void AddLog(ConsoleTextColor color, const char* fmt, va_list args) {
+        char buf[1024];
+        vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
+        buf[IM_ARRAYSIZE(buf) - 1] = 0;
+
+        ConsoleItem item;
+        item.text = _strdup(buf);
+        item.color = color;
+        Items.push_back(item);
+        ScrollToBottom = true;
     }
+
     void Draw() {
         if (!show_console) return;
         ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
@@ -43,13 +55,26 @@ struct Console {
         const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar);
         for (int i = 0; i < Items.size(); i++) {
-            const char* item = Items[i]; ImVec4 color; bool has_color = false;
-            if (strncmp(item, "[error]", 7) == 0) { color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); has_color = true; }
+            const ConsoleItem& item = Items[i];
+            ImVec4 color;
+            bool has_color = false;
+            if (item.color == CONSOLE_COLOR_RED) {
+                color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
+                has_color = true;
+            }
+            else if (item.color == CONSOLE_COLOR_YELLOW) {
+                color = ImVec4(1.0f, 1.0f, 0.4f, 1.0f);
+                has_color = true;
+            }
+
             if (has_color) ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::TextUnformatted(item); if (has_color) ImGui::PopStyleColor();
+            ImGui::TextUnformatted(item.text);
+            if (has_color) ImGui::PopStyleColor();
         }
         if (ScrollToBottom) ImGui::SetScrollY(ImGui::GetScrollMaxY());
-        ScrollToBottom = false; ImGui::EndChild(); ImGui::Separator();
+        ScrollToBottom = false;
+        ImGui::EndChild();
+        ImGui::Separator();
         bool reclaim_focus = false;
         if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue)) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
         ImGui::SameLine();
@@ -57,7 +82,7 @@ struct Console {
         ImGui::SetItemDefaultFocus(); if (reclaim_focus) ImGui::SetKeyboardFocusHere(-1); ImGui::End();
     }
     void ExecCommand(const char* command_line) {
-        AddLog("# %s", command_line);
+        Console_Printf("# %s", command_line);
         if (command_handler) {
             char* cmd_copy = _strdup(command_line); const int MAX_ARGS = 16; int argc = 0; char* argv[MAX_ARGS];
             char* p = strtok(cmd_copy, " ");
@@ -74,7 +99,8 @@ extern "C" {
     void UI_Init(SDL_Window* window, SDL_GLContext context) {
         IMGUI_CHECKVERSION(); ImGui::CreateContext(); ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui::StyleColorsDark(); ImGui_ImplSDL2_InitForOpenGL(window, context);
-        ImGui_ImplOpenGL3_Init("#version 460"); console_instance.AddLog("Console Initialized.");
+        ImGui_ImplOpenGL3_Init("#version 460");
+        Console_Printf("Console Initialized.");
     }
     void UI_Shutdown() { ImGui_ImplOpenGL3_Shutdown(); ImGui_ImplSDL2_Shutdown(); ImGui::DestroyContext(); }
     void UI_ProcessEvent(SDL_Event* event) { ImGui_ImplSDL2_ProcessEvent(event); }
@@ -84,7 +110,28 @@ extern "C" {
     bool Console_IsVisible() { return show_console; }
     void Console_Draw() { console_instance.Draw(); }
     void Console_SetCommandHandler(command_callback_t handler) { command_handler = handler; }
-    void Console_Printf(const char* fmt, ...) { char buf[1024]; va_list args; va_start(args, fmt); vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args); buf[IM_ARRAYSIZE(buf) - 1] = 0; va_end(args); console_instance.AddLog("%s", buf); }
+
+    void Console_Printf(const char* fmt, ...) {
+        va_list args;
+        va_start(args, fmt);
+        console_instance.AddLog(CONSOLE_COLOR_WHITE, fmt, args);
+        va_end(args);
+    }
+
+    void Console_Printf_Error(const char* fmt, ...) {
+        va_list args;
+        va_start(args, fmt);
+        console_instance.AddLog(CONSOLE_COLOR_RED, fmt, args);
+        va_end(args);
+    }
+
+    void Console_Printf_Warning(const char* fmt, ...) {
+        va_list args;
+        va_start(args, fmt);
+        console_instance.AddLog(CONSOLE_COLOR_YELLOW, fmt, args);
+        va_end(args);
+    }
+
     void UI_RenderGameHUD(float fps, float px, float py, float pz) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");

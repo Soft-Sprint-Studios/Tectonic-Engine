@@ -971,13 +971,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     int map_file_version = 0;
     if (fgets(version_line, sizeof(version_line), file) && sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
         if (map_file_version != MAP_VERSION) {
-            Console_Printf("[error] Map version mismatch! Map is v%d, Engine expects v%d.", map_file_version, MAP_VERSION);
+            Console_Printf_Error("[error] Map version mismatch! Map is v%d, Engine expects v%d.", map_file_version, MAP_VERSION);
             fclose(file);
             return false;
         }
     }
     else {
-        Console_Printf("[error] Invalid or missing map version. Could be an old map format.");
+        Console_Printf_Error("[error] Invalid or missing map version. Could be an old map format.");
         fclose(file);
         return false;
     }

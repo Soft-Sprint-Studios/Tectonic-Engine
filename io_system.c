@@ -173,7 +173,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         ent->runtime_float_a /= value;
                     }
                     else {
-                        Console_Printf("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
+                        Console_Printf_Error("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
                     }
                 }
 
