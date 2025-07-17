@@ -625,7 +625,8 @@ void init_cvars() {
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
     Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
-    Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur.", CVAR_NONE);
+    Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
@@ -638,7 +639,7 @@ void init_cvars() {
     Cvar_Register("r_debug_velocity", "0", "Show motion vector velocity buffer.", CVAR_NONE);
     Cvar_Register("r_debug_volumetric", "0", "Show volumetric lighting buffer.", CVAR_NONE);
     Cvar_Register("r_debug_bloom", "0", "Show the bloom brightness mask texture.", CVAR_NONE);
-    Cvar_Register("r_debug_vpl", "0", "Show G-Buffer indirect illumination.", CVAR_NONE);
+    Cvar_Register("r_debug_vpl", "0", "Show indirect global illumination.", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "The orthographic size (radius) for the sun's shadow map frustum. Lower values = sharper shadows closer to the camera.", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality setting (1=very low, 2=low, 3=medium, 4=high, 5=very high).", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "The vertical field of view in degrees.", CVAR_NONE);
@@ -3192,7 +3193,9 @@ int main(int argc, char* argv[]) {
             const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
             const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-            render_skybox(&view, &projection);
+            if(Cvar_GetInt("r_skybox")) {
+               render_skybox(&view, &projection);
+            }
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             render_refractive_glass(&view, &projection);
             for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
