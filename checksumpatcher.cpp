@@ -45,23 +45,29 @@ typedef struct {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
+        std::cerr << "[Patcher] FATAL: No executable path provided." << std::endl;
         std::cerr << "Usage: " << argv[0] << " <path_to_executable>" << std::endl;
         return 1;
     }
     std::string filePath = argv[1];
-    std::cout << "Patching file: " << filePath << std::endl;
+    std::cout << "[Patcher] Attempting to patch: " << filePath << std::endl;
 
     std::ifstream file(filePath, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open file " << filePath << std::endl;
+        std::cerr << "[Patcher] FATAL: Could not open file for reading: " << filePath << std::endl;
         return 1;
     }
 
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
     std::vector<unsigned char> buffer(size);
-    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        std::cerr << "[Patcher] FATAL: Failed to read the entire file into buffer." << std::endl;
+        file.close();
+        return 1;
+    }
     file.close();
+    std::cout << "[Patcher] File size: " << size << " bytes." << std::endl;
 
     long checksumStructOffset = -1;
     for (long i = 0; i <= size - (long)sizeof(EmbeddedChecksum); ++i) {
@@ -74,30 +80,36 @@ int main(int argc, char* argv[]) {
     }
 
     if (checksumStructOffset == -1) {
-        std::cerr << "Error: Checksum signature not found in the binary." << std::endl;
+        std::cerr << "[Patcher] FATAL: Signature 0xBADF00D5 not found in binary." << std::endl;
         return 1;
     }
-    
+    std::cout << "[Patcher] Found signature at file offset: " << checksumStructOffset << std::endl;
+
     long checksumValueOffset = checksumStructOffset + offsetof(EmbeddedChecksum, checksum);
-    
+
     *(reinterpret_cast<uint32_t*>(&buffer[checksumValueOffset])) = 0;
 
     crc32_init_table();
     uint32_t checksum = crc32_calculate(buffer.data(), buffer.size());
 
-    std::cout << "Calculated checksum: 0x" << std::hex << checksum << std::endl;
-    
+    std::cout << "[Patcher] Calculated checksum of zeroed file: 0x" << std::hex << checksum << std::dec << std::endl;
+
     std::fstream outFile(filePath, std::ios::binary | std::ios::in | std::ios::out);
     if (!outFile.is_open()) {
-        std::cerr << "Error: Could not open file for writing " << filePath << std::endl;
+        std::cerr << "[Patcher] FATAL: Could not open file for writing: " << filePath << std::endl;
         return 1;
     }
 
     outFile.seekp(checksumValueOffset);
     outFile.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+    if (outFile.fail()) {
+        std::cerr << "[Patcher] FATAL: Failed to write new checksum to file." << std::endl;
+        outFile.close();
+        return 1;
+    }
     outFile.close();
 
-    std::cout << "Successfully patched executable with new checksum." << std::endl;
+    std::cout << "[Patcher] Successfully patched executable with new checksum." << std::endl;
 
     return 0;
 }
