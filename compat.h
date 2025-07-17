@@ -24,6 +24,23 @@
 #define M_PI	3.1415926535897932384626433832795
 #endif
 
+#ifndef MIN_MAX_MACROS
+#define MIN_MAX_MACROS
+
+#ifndef _MSC_VER
+
+#ifndef min
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+#endif
+
+#endif
+
 #ifdef __cplusplus
     #include <cctype>
 #else
