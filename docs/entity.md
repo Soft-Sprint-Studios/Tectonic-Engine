@@ -73,6 +73,15 @@ These are entities that are typically represented by a gizmo in the editor and h
 | `TurnOff` | None | Stops spawning new particles. |
 | `Toggle` | None | Toggles the emitter's state (on/off). |
 
+### Sprite
+*   **Description:** A billboard entity that displays a 2D image always facing the camera.
+*   **Inputs:**
+| Input Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `TurnOn` | None | Makes the sprite visible. |
+| `TurnOff` | None | Makes the sprite invisible. |
+| `Toggle` | None | Toggles the sprite's visibility on or off. |
+
 ### Video Player
 *   **Description:** A plane in the world that can play video files.
 *   **Inputs:**
