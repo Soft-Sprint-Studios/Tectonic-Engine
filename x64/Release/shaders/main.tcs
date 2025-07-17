@@ -28,15 +28,6 @@ out TCS_OUT {
 uniform vec3 viewPos;
 uniform bool isBrush;
 
-float get_tess_level(float distance) {
-    float maxDist = 50.0;
-    float minDist = 1.0;
-    float maxLevel = 8.0;
-    float minLevel = 1.0;
-    float tess = maxLevel - (maxLevel - minLevel) * smoothstep(minDist, maxDist, distance);
-    return clamp(tess, minLevel, maxLevel);
-}
-
 void main()
 {
     tcs_out[gl_InvocationID].worldPos = tcs_in[gl_InvocationID].worldPos;

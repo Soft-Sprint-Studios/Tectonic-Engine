@@ -1,5 +1,4 @@
 #version 450 core
-#extension GL_ARB_bindless_texture : enable
 layout(triangles, equal_spacing, ccw) in;
 
 in TCS_OUT {
