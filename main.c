@@ -1581,8 +1581,6 @@ static void render_vpl_shadows() {
 static void cleanup_vpl_shadows() {
     if (g_scene.num_vpls == 0) return;
 
-    Console_Printf("Cleaning up VPL shadow map resources...");
-
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
     VPL* vpls = (VPL*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
     if (vpls) {
@@ -1600,8 +1598,6 @@ static void cleanup_vpl_shadows() {
 
     memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
     memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
-
-    Console_Printf("VPL shadow resources freed.");
 }
 
 static void bake_vpl_grid() {
@@ -1609,8 +1605,6 @@ static void bake_vpl_grid() {
         Console_Printf("No VPLs to bake into grid.");
         return;
     }
-
-    Console_Printf("Baking static VPLs into 3D light grid...");
 
     g_scene.vplGridMin = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
     g_scene.vplGridMax = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -1661,7 +1655,6 @@ static void bake_vpl_grid() {
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     g_scene.static_vpl_grid_generated = true;
-    Console_Printf("Finished baking VPL grid (%dx%dx%d).", g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z);
 }
 
 static void render_vpl_pass() {
