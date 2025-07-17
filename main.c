@@ -624,6 +624,14 @@ void init_cvars() {
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
+    Cvar_Register("r_vignette", "1", "Master switch for the vignette effect. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_chromaticabberation", "1", "Master switch for chromatic aberration. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_dof", "1", "Master switch for depth of field. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_scanline", "1", "Master switch for the scanline effect. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_filmgrain", "1", "Master switch for film grain. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_lensflare", "1", "Master switch for lens flare. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_black_white", "1", "Master switch for black and white effect. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_sharpening", "1", "Master switch for sharpening effect. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on).", CVAR_NONE);
@@ -2512,17 +2520,26 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnd"), g_scene.fog.end);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_postEnabled"), g_scene.post.enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_crtCurvature"), g_scene.post.crtCurvature);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteStrength"), g_scene.post.vignetteStrength);
+
+    float vignette_strength = Cvar_GetInt("r_vignette") ? g_scene.post.vignetteStrength : 0.0f;
+    float scanline_strength = Cvar_GetInt("r_scanline") ? g_scene.post.scanlineStrength : 0.0f;
+    float grain_intensity = Cvar_GetInt("r_filmgrain") ? g_scene.post.grainIntensity : 0.0f;
+    bool lensflare_enabled = Cvar_GetInt("r_lensflare") && g_scene.post.lensFlareEnabled;
+    bool ca_enabled = Cvar_GetInt("r_chromaticabberation") && g_scene.post.chromaticAberrationEnabled;
+    bool bw_enabled = Cvar_GetInt("r_black_white") && g_scene.post.bwEnabled;
+    bool sharpen_enabled = Cvar_GetInt("r_sharpening") && g_scene.post.sharpenEnabled;
+
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteStrength"), vignette_strength);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteRadius"), g_scene.post.vignetteRadius);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareEnabled"), g_scene.post.lensFlareEnabled);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareEnabled"), lensflare_enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_lensFlareStrength"), g_scene.post.lensFlareStrength);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_scanlineStrength"), g_scene.post.scanlineStrength);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_grainIntensity"), g_scene.post.grainIntensity);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationEnabled"), g_scene.post.chromaticAberrationEnabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_scanlineStrength"), scanline_strength);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_grainIntensity"), grain_intensity);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationEnabled"), ca_enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_chromaticAberrationStrength"), g_scene.post.chromaticAberrationStrength);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenEnabled"), g_scene.post.sharpenEnabled);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenEnabled"), sharpen_enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bwEnabled"), g_scene.post.bwEnabled);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bwEnabled"), bw_enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_bwStrength"), g_scene.post.bwStrength);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_isUnderwater"), g_scene.post.isUnderwater);
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_underwaterColor"), 1, &g_scene.post.underwaterColor.x);
@@ -3028,7 +3045,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 int main(int argc, char* argv[]) {
 #endif
-
 #ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
@@ -3212,7 +3228,7 @@ int main(int argc, char* argv[]) {
             glDisable(GL_BLEND);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
-            if (g_scene.post.dofEnabled) {
+            if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
                 render_dof_pass(source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
                 source_fbo = g_renderer.postProcessFBO;
                 source_tex = g_renderer.postProcessTexture;
