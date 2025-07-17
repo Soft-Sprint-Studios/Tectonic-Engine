@@ -565,7 +565,7 @@ void main()
     if (u_useStaticVPLGrid) {
         vec3 gridCoord = (FragPos_world - u_gridMin) / (u_gridMax - u_gridMin);
         if (all(greaterThanEqual(gridCoord, vec3(0.0))) && all(lessThanEqual(gridCoord, vec3(1.0)))) {
-            finalIndirectLight = texture(u_StaticVPLGrid, gridCoord).rgb * 0.25;
+            finalIndirectLight = texture(u_StaticVPLGrid, gridCoord).rgb;
         } else {
             finalIndirectLight = vec3(0.0);
         }

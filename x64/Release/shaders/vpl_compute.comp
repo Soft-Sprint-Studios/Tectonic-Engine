@@ -72,7 +72,7 @@ void main() {
 
     uint packed_normal = packSnorm4x8(vec4(normal, 0.0));
 
-    vpls[total_index].position = vpl_pos + normal * 0.001;
+    vpls[total_index].position = vpl_pos + normal * 0.02;
     vpls[total_index].packedColor = packed_color;
     vpls[total_index].packedNormal = packed_normal;
 }

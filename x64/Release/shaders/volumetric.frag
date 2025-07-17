@@ -162,7 +162,7 @@ void main()
         float depthOfGeometry = texture(gPosition, currentScreenUV).z;
 
         if (currentViewPos.z < depthOfGeometry) {
-             break;
+            break;
         }
 		
 		if (sun.enabled && sun.volumetricIntensity > 0.0) {

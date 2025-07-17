@@ -621,6 +621,7 @@ void init_cvars() {
     Cvar_Register("r_vpl_spot_count", "64", "Number of VPLs to generate per spot light.", CVAR_NONE);
     Cvar_Register("r_vpl_shadow_map_size", "512", "Resolution for VPL shadow maps (e.g., 256, 512).", CVAR_NONE);
     Cvar_Register("r_vpl_grid_resolution", "128", "VPL static grid resolution (e.g., 32, 64, 128). Higher values are better quality but have longer bake times.", CVAR_NONE);
+    Cvar_Register("r_vpl_shadow_bias", "0.2", "VPL shadow constant bias to prevent self-shadowing acne.", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Resolution for point/spot light shadow maps (e.g., 512, 1024, 2048).", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable or disable color correction.", CVAR_NONE);
@@ -1647,6 +1648,7 @@ static void bake_vpl_grid() {
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z, 0, GL_RGBA, GL_FLOAT, NULL);
 
     glUseProgram(g_renderer.vplGridShader);
+    glUniform1f(glGetUniformLocation(g_renderer.vplGridShader, "u_bias"), Cvar_GetFloat("r_vpl_shadow_bias"));
     glBindImageTexture(0, g_renderer.vplGridTexture, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
     glUniform3fv(glGetUniformLocation(g_renderer.vplGridShader, "u_gridMin"), 1, &g_scene.vplGridMin.x);
