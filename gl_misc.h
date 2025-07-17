@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char* load_shader_source(const char* path);
-GLuint compileShader(GLenum type, const char* src);
+GLuint compileShader(GLenum type, const char* src, const char* pathHint);
 GLuint createShaderProgram(const char* vertPath, const char* fragPath);
 GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const char* fragPath);
 GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const char* tesPath, const char* fragPath);
