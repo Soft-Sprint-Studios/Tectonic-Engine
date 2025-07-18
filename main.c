@@ -3094,6 +3094,7 @@ int main(int argc, char* argv[]) {
 #endif
 #ifdef DISABLE_DEBUGGER
     if (CheckForDebugger()) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Security Alert", "Debugger detected! The program will close.", NULL);
         return 1;
     }
 #endif
