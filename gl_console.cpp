@@ -137,10 +137,6 @@ extern "C" {
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
 
-        if (!show_fps && !show_pos) {
-            return;
-        }
-
         const float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE);
         ImVec2 window_pos_pivot = ImVec2(0.0f, 0.0f);
@@ -149,16 +145,18 @@ extern "C" {
 
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
-        if (ImGui::Begin("GameHUD", NULL, window_flags))
-        {
-            if (show_fps) {
-                ImGui::Text("FPS: %.1f", fps);
+        if (show_fps || show_pos) {
+            if (ImGui::Begin("GameHUD", NULL, window_flags)) {
+                if (show_fps) {
+                    ImGui::Text("FPS: %.1f", fps);
+                }
+                if (show_pos) {
+                    ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
+                }
             }
-            if (show_pos) {
-                ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
-            }
+            ImGui::End();
         }
-        ImGui::End();
+
         if (show_crosshair) {
             float screen_width = ImGui::GetIO().DisplaySize.x;
             float screen_height = ImGui::GetIO().DisplaySize.y;
@@ -173,11 +171,8 @@ extern "C" {
             ImU32 color = IM_COL32(255, 255, 255, 200);
 
             draw_list->AddLine(ImVec2(center_x, center_y - gap_size - line_length), ImVec2(center_x, center_y - gap_size), color, thickness);
-
             draw_list->AddLine(ImVec2(center_x, center_y + gap_size), ImVec2(center_x, center_y + gap_size + line_length), color, thickness);
-
             draw_list->AddLine(ImVec2(center_x - gap_size - line_length, center_y), ImVec2(center_x - gap_size, center_y), color, thickness);
-
             draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
         }
     }
