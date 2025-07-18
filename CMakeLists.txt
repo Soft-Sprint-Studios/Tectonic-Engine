@@ -196,10 +196,12 @@ endif()
 add_executable(Patcher checksumpatcher.cpp)
 set_target_properties(Patcher PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
-add_custom_command(
-    TARGET TectonicEngine
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:Patcher> $<TARGET_FILE:TectonicEngine>
-    COMMENT "Patching executable with checksum..."
-    VERBATIM
-)
+if(WIN32)
+    add_custom_command(
+        TARGET TectonicEngine
+        POST_BUILD
+        COMMAND $<TARGET_FILE:Patcher> $<TARGET_FILE:TectonicEngine>
+        COMMENT "Patching executable with checksum..."
+        VERBATIM
+    )
+endif()
