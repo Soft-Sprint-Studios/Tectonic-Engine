@@ -298,33 +298,54 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
 
     glBindVertexArray(b->vao);
     if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
+        int face_idx = 0;
         int vbo_offset = 0;
-        for (int i = 0; i < b->numFaces; ++i) {
-            Material* material = TextureManager_FindMaterial(b->faces[i].material->name);
-            float parallax_enabled = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
-            glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
-            glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
-            glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
-            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
-            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
-            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
-            glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
-            glUniform1f(glGetUniformLocation(shader, "detailScale"), material->detailScale);
-            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
+        while (face_idx < b->numFaces) {
+            BrushFace* first_face_in_batch = &b->faces[face_idx];
+            Material* batch_material = first_face_in_batch->material;
+            Material* batch_material2 = first_face_in_batch->material2;
+            Material* batch_material3 = first_face_in_batch->material3;
+            Material* batch_material4 = first_face_in_batch->material4;
 
-            Material* material2 = b->faces[i].material2 ? TextureManager_FindMaterial(b->faces[i].material2->name) : NULL;
-            if (material2) {
+            int batch_start_vbo_offset = vbo_offset;
+            int batch_vertex_count = 0;
+
+            int current_face_in_batch_idx = face_idx;
+            while (current_face_in_batch_idx < b->numFaces &&
+                b->faces[current_face_in_batch_idx].material == batch_material &&
+                b->faces[current_face_in_batch_idx].material2 == batch_material2 &&
+                b->faces[current_face_in_batch_idx].material3 == batch_material3 &&
+                b->faces[current_face_in_batch_idx].material4 == batch_material4) {
+
+                int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
+                batch_vertex_count += num_face_verts;
+                vbo_offset += num_face_verts;
+                current_face_in_batch_idx++;
+            }
+
+            float parallax_enabled = Cvar_GetInt("r_relief_mapping") ? batch_material->heightScale : 0.0f;
+            glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
+            glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), batch_material->roughness);
+            glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), batch_material->metalness);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, batch_material->diffuseMap);
+            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material->normalMap);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material->rmaMap);
+            glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material->heightMap);
+            glUniform1f(glGetUniformLocation(shader, "detailScale"), batch_material->detailScale);
+            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, batch_material->detailDiffuseMap);
+
+            if (batch_material2) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap2"), 12);
                 glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallax_enabled ? material2->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), material2->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), material2->metalness);
-                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, material2->diffuseMap);
-                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, material2->normalMap);
-                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, material2->rmaMap);
-                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, material2->heightMap);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallax_enabled ? batch_material2->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), batch_material2->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), batch_material2->metalness);
+                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, batch_material2->diffuseMap);
+                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, batch_material2->normalMap);
+                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, batch_material2->rmaMap);
+                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, batch_material2->heightMap);
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale2"), 0.0f);
@@ -336,19 +357,18 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
-            Material* material3 = b->faces[i].material3 ? TextureManager_FindMaterial(b->faces[i].material3->name) : NULL;
-            if (material3) {
+            if (batch_material3) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap3"), 17);
                 glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
                 glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallax_enabled ? material3->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), material3->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), material3->metalness);
-                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, material3->diffuseMap);
-                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, material3->normalMap);
-                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, material3->rmaMap);
-                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, material3->heightMap);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallax_enabled ? batch_material3->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), batch_material3->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), batch_material3->metalness);
+                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, batch_material3->diffuseMap);
+                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, batch_material3->normalMap);
+                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, batch_material3->rmaMap);
+                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, batch_material3->heightMap);
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale3"), 0.0f);
@@ -360,19 +380,18 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
-            Material* material4 = b->faces[i].material4 ? TextureManager_FindMaterial(b->faces[i].material4->name) : NULL;
-            if (material4) {
+            if (batch_material4) {
                 glUniform1i(glGetUniformLocation(shader, "diffuseMap4"), 21);
                 glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
                 glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallax_enabled ? material4->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), material4->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), material4->metalness);
-                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, material4->diffuseMap);
-                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, material4->normalMap);
-                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, material4->rmaMap);
-                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, material4->heightMap);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallax_enabled ? batch_material4->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), batch_material4->roughness);
+                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), batch_material4->metalness);
+                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, batch_material4->diffuseMap);
+                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, batch_material4->normalMap);
+                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, batch_material4->rmaMap);
+                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, batch_material4->heightMap);
             }
             else {
                 glUniform1f(glGetUniformLocation(shader, "heightScale4"), 0.0f);
@@ -384,14 +403,15 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, 0);
             }
 
-            int num_face_verts = (b->faces[i].numVertexIndices - 2) * 3;
-            if (shader == g_renderer.mainShader) {
-                glDrawArrays(GL_PATCHES, vbo_offset, num_face_verts);
+            if (batch_vertex_count > 0) {
+                if (shader == g_renderer.mainShader) {
+                    glDrawArrays(GL_PATCHES, batch_start_vbo_offset, batch_vertex_count);
+                }
+                else {
+                    glDrawArrays(GL_TRIANGLES, batch_start_vbo_offset, batch_vertex_count);
+                }
             }
-            else {
-                glDrawArrays(GL_TRIANGLES, vbo_offset, num_face_verts);
-            }
-            vbo_offset += num_face_verts;
+            face_idx = current_face_in_batch_idx;
         }
     }
     else {
