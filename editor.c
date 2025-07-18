@@ -4317,6 +4317,12 @@ static void Editor_RenderModelPreviewerScene(Renderer* renderer) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene) {
+    glBindFramebuffer(GL_FRAMEBUFFER, renderer->volumetricFBO);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[0]);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     render_shadows();
 
     Mat4 sunLightSpaceMatrix;
