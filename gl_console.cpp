@@ -16,12 +16,14 @@
 #include <string>
 #include <cstdarg>
 #include <stdint.h>
+#include <time.h>
 
 #include "gl_console.h"
 #include "cvar.h"
 
 static bool show_console = false;
 static command_callback_t command_handler = nullptr;
+static FILE* g_log_file = NULL;
 
 struct ConsoleItem {
     char* text;
@@ -40,6 +42,11 @@ struct Console {
         char buf[1024];
         vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
         buf[IM_ARRAYSIZE(buf) - 1] = 0;
+
+        if (g_log_file) {
+            fprintf(g_log_file, "%s\n", buf);
+            fflush(g_log_file);
+        }
 
         ConsoleItem item;
         item.text = _strdup(buf);
@@ -110,6 +117,29 @@ extern "C" {
     bool Console_IsVisible() { return show_console; }
     void Console_Draw() { console_instance.Draw(); }
     void Console_SetCommandHandler(command_callback_t handler) { command_handler = handler; }
+
+    void Log_Init(const char* filename) {
+        if (g_log_file) {
+            fclose(g_log_file);
+        }
+        g_log_file = fopen(filename, "w");
+        if (!g_log_file) {
+            fprintf(stderr, "[ERROR] Failed to open log file: %s\n", filename);
+        }
+        else {
+            time_t now = time(NULL);
+            fprintf(g_log_file, "Log started at %s\n", ctime(&now));
+            fflush(g_log_file);
+        }
+    }
+
+    void Log_Shutdown(void) {
+        if (g_log_file) {
+            fprintf(g_log_file, "\nLog ended.\n");
+            fclose(g_log_file);
+            g_log_file = NULL;
+        }
+    }
 
     void Console_Printf(const char* fmt, ...) {
         va_list args;

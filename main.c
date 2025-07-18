@@ -675,12 +675,11 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
-    memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
-    memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
     Cvar_Init();
+    Log_Init("logs.txt");
     init_cvars();
     Cvar_Load("cvars.txt");
     IO_Init();
@@ -736,6 +735,8 @@ void init_renderer() {
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    memset(g_vpl_shadow_fbos, 0, sizeof(g_vpl_shadow_fbos));
+    memset(g_vpl_shadow_textures, 0, sizeof(g_vpl_shadow_textures));
     const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
     const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
@@ -2772,6 +2773,7 @@ void cleanup() {
     UI_Shutdown();
     Sentry_Shutdown();
     Discord__Shutdown();
+    Log_Shutdown();
 #ifdef PLATFORM_WINDOWS
     if (g_hMutex) {
         ReleaseMutex(g_hMutex);

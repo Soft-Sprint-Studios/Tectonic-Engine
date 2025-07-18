@@ -43,6 +43,9 @@ extern "C" {
 	typedef void (*command_callback_t)(int argc, char** argv);
 	void Console_SetCommandHandler(command_callback_t handler);
 
+	void Log_Init(const char* filename);
+	void Log_Shutdown(void);
+
 	bool UI_Begin(const char* name, bool* p_open);
 	bool UI_Begin_NoClose(const char* name);
 	void UI_OpenPopup(const char* str_id);

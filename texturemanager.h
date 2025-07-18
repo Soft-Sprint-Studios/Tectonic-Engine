@@ -10,7 +10,7 @@
 #define TEXTURE_MANAGER_H
 
 //----------------------------------------//
-// Brief: Sounds, this calls dsp_reverb
+// Brief: Texture manager, this handles missing textures and the "materials.def"
 //----------------------------------------//
 
 #include <GL/glew.h>
