@@ -1441,6 +1441,68 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
         }
     }
 
+    for (int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) {
+        ParticleEmitter* emitter = &g_CurrentScene->particleEmitters[i];
+        float emitter_gizmo_radius = 0.5f;
+        Vec3 P = vec3_sub(emitter->pos, ray_origin_world);
+        float b_dot = vec3_dot(P, ray_dir_world);
+        float det = b_dot * b_dot - vec3_dot(P, P) + emitter_gizmo_radius * emitter_gizmo_radius;
+        if (det < 0) continue;
+        float t_emitter = b_dot - sqrtf(det);
+        if (t_emitter > 0 && t_emitter < closest_t) {
+            closest_t = t_emitter;
+            selected_type = ENTITY_PARTICLE_EMITTER;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
+    for (int i = 0; i < g_CurrentScene->numSoundEntities; ++i) {
+        SoundEntity* sound = &g_CurrentScene->soundEntities[i];
+        float sound_gizmo_radius = 0.5f;
+        Vec3 P = vec3_sub(sound->pos, ray_origin_world);
+        float b_dot = vec3_dot(P, ray_dir_world);
+        float det = b_dot * b_dot - vec3_dot(P, P) + sound_gizmo_radius * sound_gizmo_radius;
+        if (det < 0) continue;
+        float t_sound = b_dot - sqrtf(det);
+        if (t_sound > 0 && t_sound < closest_t) {
+            closest_t = t_sound;
+            selected_type = ENTITY_SOUND;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
+    for (int i = 0; i < g_CurrentScene->numLogicEntities; ++i) {
+        LogicEntity* ent = &g_CurrentScene->logicEntities[i];
+        float logic_gizmo_radius = 0.5f;
+        Vec3 P = vec3_sub(ent->pos, ray_origin_world);
+        float b_dot = vec3_dot(P, ray_dir_world);
+        float det = b_dot * b_dot - vec3_dot(P, P) + logic_gizmo_radius * logic_gizmo_radius;
+        if (det < 0) continue;
+        float t_logic = b_dot - sqrtf(det);
+        if (t_logic > 0 && t_logic < closest_t) {
+            closest_t = t_logic;
+            selected_type = ENTITY_LOGIC;
+            selected_index = i;
+            hit_face_index = -1;
+        }
+    }
+
+    float player_start_radius = 1.0f;
+    Vec3 P = vec3_sub(g_CurrentScene->playerStart.position, ray_origin_world);
+    float b_dot = vec3_dot(P, ray_dir_world);
+    float det = b_dot * b_dot - vec3_dot(P, P) + player_start_radius * player_start_radius;
+    if (det >= 0) {
+        float t_player = b_dot - sqrtf(det);
+        if (t_player > 0 && t_player < closest_t) {
+            closest_t = t_player;
+            selected_type = ENTITY_PLAYERSTART;
+            selected_index = 0;
+            hit_face_index = -1;
+        }
+    }
+
     for (int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) {
         VideoPlayer* vp = &g_CurrentScene->videoPlayers[i];
 
@@ -2687,6 +2749,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     if (event->type == SDL_KEYDOWN && !event->key.repeat) {
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_z) { Undo_PerformUndo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_y) { Undo_PerformRedo(scene, engine); return; }
+        if (event->key.keysym.sym == SDLK_ESCAPE) {
+            g_EditorState.selected_entity_type = ENTITY_NONE;
+            g_EditorState.selected_entity_index = -1;
+            g_EditorState.selected_face_index = -1;
+            g_EditorState.selected_vertex_index = -1;
+
+            g_EditorState.is_in_brush_creation_mode = false;
+            g_EditorState.is_clipping = false;
+            return;
+        }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_d) {
             if (g_EditorState.selected_entity_type != ENTITY_NONE && g_EditorState.selected_entity_index != -1) {
                 switch (g_EditorState.selected_entity_type) {
