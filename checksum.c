@@ -90,6 +90,9 @@ bool Checksum_Verify(const char* exePath) {
     crc32_init_table();
     uint32_t calculatedChecksum = crc32_calculate(buffer, fileSize);
 
+    printf("[Verifier] Read file size: %ld bytes.\n", fileSize);
+    printf("[Verifier] Stored: 0x%x, Calculated: 0x%x\n", storedChecksum, calculatedChecksum);
+
     free(buffer);
 
     if (storedChecksum != calculatedChecksum) {

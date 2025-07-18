@@ -15,7 +15,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
       - run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build-linux-x64-release --config Release
+      - run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
       - uses: actions/upload-artifact@v4
         with:
           name: TectonicEngine-linux-x64-release
@@ -29,7 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
       - run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo
+      - run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
       - run: |
           cp build-linux-x64-relwithdebinfo/TectonicEngine build-linux-x64-relwithdebinfo/TectonicEngine.debug
           objcopy --only-keep-debug build-linux-x64-relwithdebinfo/TectonicEngine.debug build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols
