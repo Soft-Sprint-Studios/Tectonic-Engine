@@ -105,8 +105,10 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
-uniform sampler3D u_StaticVPLGrid;
+uniform sampler3D u_StaticVPLGrid_Albedo;
+uniform sampler3D u_StaticVPLGrid_Direction;
 uniform bool u_useStaticVPLGrid;
+uniform bool u_vplDirectional;
 uniform vec3 u_gridMin;
 uniform vec3 u_gridMax;
 
@@ -562,10 +564,23 @@ void main()
 	
     out_Velocity = Velocity;
 	vec3 finalIndirectLight = indirectLight;
-    if (u_useStaticVPLGrid) {
+     if (u_useStaticVPLGrid) {
         vec3 gridCoord = (FragPos_world - u_gridMin) / (u_gridMax - u_gridMin);
         if (all(greaterThanEqual(gridCoord, vec3(0.0))) && all(lessThanEqual(gridCoord, vec3(1.0)))) {
-            finalIndirectLight = texture(u_StaticVPLGrid, gridCoord).rgb;
+            vec3 gi_radiance = texture(u_StaticVPLGrid_Albedo, gridCoord).rgb;
+            
+            if (u_vplDirectional) {
+                vec3 gi_direction = texture(u_StaticVPLGrid_Direction, gridCoord).rgb;
+                
+                if (dot(gi_direction, gi_direction) > 0.0001) {
+                    float gi_diffuse = max(dot(N, -normalize(gi_direction)), 0.0);
+                    finalIndirectLight = gi_radiance * gi_diffuse;
+                } else {
+                    finalIndirectLight = gi_radiance;
+                }
+            } else {
+                finalIndirectLight = gi_radiance;
+            }
         } else {
             finalIndirectLight = vec3(0.0);
         }

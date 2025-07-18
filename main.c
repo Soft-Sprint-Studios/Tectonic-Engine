@@ -616,6 +616,7 @@ void init_cvars() {
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows_static", "0", "Generate point/spot light shadows only once on map load. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl_directional", "1", "Enables directional lighting for VPL global illumination.", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_point_count", "64", "Number of VPLs to generate per point light.", CVAR_NONE);
     Cvar_Register("r_vpl_spot_count", "64", "Number of VPLs to generate per spot light.", CVAR_NONE);
@@ -791,8 +792,8 @@ void init_renderer() {
     glGenBuffers(1, &g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_DRAW);
-    glGenTextures(1, &g_renderer.vplGridTexture);
-    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
+    glGenTextures(1, &g_renderer.vplGridTexture_Albedo);
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Albedo);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
@@ -800,9 +801,17 @@ void init_renderer() {
     glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenTextures(1, &g_renderer.vplGridTexture_Direction);
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Direction);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
+     const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
     const int bloom_height = WINDOW_HEIGHT / BLOOM_DOWNSAMPLE;
     glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
     glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
@@ -1644,12 +1653,15 @@ static void bake_vpl_grid() {
     grid_res = max(16, min(256, grid_res));
 
     g_scene.vplGridResolution = (ivec3s){ grid_res, grid_res, grid_res };
-    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Albedo);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Direction);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, g_scene.vplGridResolution.x, g_scene.vplGridResolution.y, g_scene.vplGridResolution.z, 0, GL_RGBA, GL_FLOAT, NULL);
 
     glUseProgram(g_renderer.vplGridShader);
     glUniform1f(glGetUniformLocation(g_renderer.vplGridShader, "u_bias"), Cvar_GetFloat("r_vpl_shadow_bias"));
-    glBindImageTexture(0, g_renderer.vplGridTexture, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+    glBindImageTexture(0, g_renderer.vplGridTexture_Albedo, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+    glBindImageTexture(1, g_renderer.vplGridTexture_Direction, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
     glUniform3fv(glGetUniformLocation(g_renderer.vplGridShader, "u_gridMin"), 1, &g_scene.vplGridMin.x);
     glUniform3fv(glGetUniformLocation(g_renderer.vplGridShader, "u_gridMax"), 1, &g_scene.vplGridMax.x);
@@ -2229,12 +2241,18 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_debug_vpl"), Cvar_GetInt("r_debug_vpl"));
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_vplDirectional"), Cvar_GetInt("r_vpl_directional"));
     bool useStaticGrid = Cvar_GetInt("r_vpl") && g_scene.static_vpl_grid_generated;
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_useStaticVPLGrid"), useStaticGrid);
     if (useStaticGrid) {
         glActiveTexture(GL_TEXTURE25);
-        glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture);
-        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_StaticVPLGrid"), 25);
+        glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Albedo);
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_StaticVPLGrid_Albedo"), 25);
+
+        glActiveTexture(GL_TEXTURE26);
+        glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Direction);
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_StaticVPLGrid_Direction"), 26);
+
         glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_gridMin"), 1, &g_scene.vplGridMin.x);
         glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "u_gridMax"), 1, &g_scene.vplGridMax.x);
     }
