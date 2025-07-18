@@ -3088,12 +3088,13 @@ int main(int argc, char* argv[]) {
     readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
 #endif
     if (!Checksum_Verify(exePath)) {
-        return 0;
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", NULL);
+        return 1;
     }
 #endif
 #ifdef DISABLE_DEBUGGER
     if (CheckForDebugger()) {
-        return 0;
+        return 1;
     }
 #endif
 #ifdef PLATFORM_WINDOWS
