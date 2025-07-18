@@ -580,7 +580,17 @@ void Cmd_Ping(int argc, char** argv) {
 }
 
 void Cmd_BuildCubemaps(int argc, char** argv) {
-    BuildCubemaps();
+    int resolution = 256;
+    if (argc > 1) {
+        int res_arg = atoi(argv[1]);
+        if (res_arg > 0 && (res_arg & (res_arg - 1)) == 0) {
+            resolution = res_arg;
+        }
+        else {
+            Console_Printf_Warning("[WARNING] Invalid cubemap resolution '%s'. Must be a power of two. Using default 256.", argv[1]);
+        }
+    }
+    BuildCubemaps(resolution);
 }
 
 void Cmd_Screenshot(int argc, char** argv) {
@@ -2941,8 +2951,8 @@ static void SaveScreenshotToPNG(const char* filepath) {
     }
     free(pixels);
 }
-void BuildCubemaps() {
-    Console_Printf("Starting cubemap build...");
+static void BuildCubemaps(int resolution) {
+    Console_Printf("Starting cubemap build with %dx%d resolution...", resolution, resolution);
     glFinish();
 
     Camera original_camera = g_engine->camera;
@@ -2951,19 +2961,18 @@ void BuildCubemaps() {
     Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
     const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
 
-    const int CUBEMAP_RES = 256;
     GLuint cubemap_fbo, cubemap_texture, cubemap_rbo;
     glGenFramebuffers(1, &cubemap_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
     glGenTextures(1, &cubemap_texture);
     glBindTexture(GL_TEXTURE_2D, cubemap_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, CUBEMAP_RES, CUBEMAP_RES, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, resolution, resolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cubemap_texture, 0);
     glGenRenderbuffers(1, &cubemap_rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, cubemap_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, CUBEMAP_RES, CUBEMAP_RES);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution, resolution);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cubemap_rbo);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         Console_Printf_Error("[ERROR] Cubemap face FBO not complete!");
@@ -2999,15 +3008,10 @@ void BuildCubemaps() {
                 render_sun_shadows(&sunLightSpaceMatrix);
             }
 
-            glUseProgram(g_renderer.mainShader);
-            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 1);
-
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
 
-            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBuildingCubemaps"), 0);
-
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
-            glViewport(0, 0, CUBEMAP_RES, CUBEMAP_RES);
+            glViewport(0, 0, resolution, resolution);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glEnable(GL_FRAMEBUFFER_SRGB);
@@ -3017,8 +3021,8 @@ void BuildCubemaps() {
 
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, CUBEMAP_RES, CUBEMAP_RES, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, resolution, resolution, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, resolution, resolution, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
             render_skybox(&view, &projection);
@@ -3027,7 +3031,7 @@ void BuildCubemaps() {
 
             char filepath[256];
             sprintf(filepath, "cubemaps/%s_%s.png", b->name, suffixes[face_idx]);
-            SaveFramebufferToPNG(cubemap_fbo, CUBEMAP_RES, CUBEMAP_RES, filepath);
+            SaveFramebufferToPNG(cubemap_fbo, resolution, resolution, filepath);
         }
 
         const char* face_paths[6];

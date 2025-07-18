@@ -51,7 +51,7 @@ void Commands_Init(void) {
     Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.");
     Commands_Register("download", Cmd_Download, "Downloads a file from a URL.");
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.");
-    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes in the current map.");
+    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]");
     Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.");
 
     Console_Printf("Command System Initialized. Registered %d commands.", g_num_commands);

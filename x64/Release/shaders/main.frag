@@ -100,7 +100,6 @@ uniform float u_roughness_override4;
 uniform float u_metalness_override4;
 
 uniform bool useParallaxCorrection;
-uniform bool isBuildingCubemaps;
 uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
@@ -594,9 +593,6 @@ void main()
     }
     else if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
-    }
-    else if (isBuildingCubemaps) {
-        out_LitColor = vec4(indirectLight * kD_indirect * albedo, 1.0);
     }
     else {
         out_LitColor = vec4(ambient + Lo + indirectLightingContribution, alpha);
