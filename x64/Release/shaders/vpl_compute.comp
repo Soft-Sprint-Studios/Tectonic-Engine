@@ -15,6 +15,7 @@ layout(std430, binding = 4) buffer VPLBlock {
 uniform sampler2D u_posTex;
 uniform sampler2D u_normalTex;
 uniform sampler2D u_albedoTex;
+uniform sampler2D u_pbrParamsTex;
 
 uniform int u_vpl_offset;
 uniform int u_vpls_to_generate;
@@ -62,11 +63,17 @@ void main() {
 
     vec3 normal = normalize(texelFetch(u_normalTex, random_coords, 0).xyz);
     vec3 albedo = texelFetch(u_albedoTex, random_coords, 0).rgb;
+    vec2 pbrParams = texelFetch(u_pbrParamsTex, random_coords, 0).rg;
+    float roughness = pbrParams.r;
+    float metallic = pbrParams.g;
+
+    vec3 diffuseColor = albedo * (1.0 - metallic);
 
     float dist_sq = dot(u_lightPos - vpl_pos, u_lightPos - vpl_pos);
     float attenuation = 1.0 / (1.0 + dist_sq);
 
-    vec3 vpl_energy = u_lightColor * u_lightIntensity * albedo / PI;
+    vec3 vpl_energy = u_lightColor * u_lightIntensity * diffuseColor / PI;
+    vpl_energy *= (1.0 - roughness * 0.5);
 
     uint packed_color = packUnorm4x8(vec4(vpl_energy * attenuation, 1.0));
 

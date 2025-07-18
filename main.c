@@ -783,8 +783,14 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.vplAlbedoTex, 0);
-    GLuint vpl_attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, vpl_attachments);
+    glGenTextures(1, &g_renderer.vplPbrParamsTex);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.vplPbrParamsTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, g_renderer.vplPbrParamsTex, 0);
+    GLuint vpl_attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+    glDrawBuffers(4, vpl_attachments);
     GLuint vpl_rboDepth; glGenRenderbuffers(1, &vpl_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, vpl_rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, VPL_GEN_TEXTURE_SIZE, VPL_GEN_TEXTURE_SIZE);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, vpl_rboDepth);
@@ -1759,9 +1765,11 @@ static void render_vpl_pass() {
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPosTex);
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_renderer.vplNormalTex);
                 glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, g_renderer.vplAlbedoTex);
+                glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, g_renderer.vplPbrParamsTex);
                 glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_posTex"), 0);
                 glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_normalTex"), 1);
                 glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_albedoTex"), 2);
+                glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_pbrParamsTex"), 3);
                 glUniform1i(glGetUniformLocation(g_renderer.vplComputeShader, "u_vpl_offset"), g_scene.num_vpls);
                 glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightPos"), 1, &light->position.x);
                 glUniform3fv(glGetUniformLocation(g_renderer.vplComputeShader, "u_lightColor"), 1, &light->color.x);
@@ -2705,6 +2713,7 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.vplPosTex);
     glDeleteTextures(1, &g_renderer.vplNormalTex);
     glDeleteTextures(1, &g_renderer.vplAlbedoTex);
+    glDeleteTextures(1, &g_renderer.vplPbrParamsTex);
     glDeleteBuffers(1, &g_renderer.vplSSBO);
     glDeleteFramebuffers(1, &g_renderer.ssaoFBO);
     glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);

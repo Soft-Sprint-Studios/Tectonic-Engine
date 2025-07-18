@@ -171,7 +171,7 @@ typedef struct {
     GLuint spriteVAO, spriteVBO;
     GLuint cloudTexture;
     GLuint vplGenerationFBO;
-    GLuint vplPosTex, vplNormalTex, vplAlbedoTex;
+    GLuint vplPosTex, vplNormalTex, vplAlbedoTex, vplPbrParamsTex;
     GLuint vplGenerationShader;
     GLuint vplComputeShader;
     GLuint vplGridShader;
