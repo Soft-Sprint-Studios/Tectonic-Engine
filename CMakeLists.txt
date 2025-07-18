@@ -199,7 +199,7 @@ set_target_properties(Patcher PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED O
 add_custom_command(
     TARGET TectonicEngine
     POST_BUILD
-    COMMAND $<$<CONFIG:RELEASE>:${CMAKE_COMMAND}> -E env $<TARGET_FILE:Patcher> $<TARGET_FILE:TectonicEngine>
+    COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:Patcher> $<TARGET_FILE:TectonicEngine>
     COMMENT "Patching executable with checksum..."
     VERBATIM
 )
