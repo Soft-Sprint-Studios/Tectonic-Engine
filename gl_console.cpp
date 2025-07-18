@@ -135,7 +135,8 @@ extern "C" {
 
     void Log_Shutdown(void) {
         if (g_log_file) {
-            fprintf(g_log_file, "\nLog ended.\n");
+            time_t now = time(NULL);
+            fprintf(g_log_file, "\nLog ended at %s\n", ctime(&now));
             fclose(g_log_file);
             g_log_file = NULL;
         }
