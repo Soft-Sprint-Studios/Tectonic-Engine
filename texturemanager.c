@@ -26,6 +26,7 @@ GLuint missingTextureID;
 GLuint defaultNormalMapID;
 GLuint defaultRmaMapID;
 Material g_MissingMaterial;
+Material g_NodrawMaterial;
 
 bool g_is_editor_mode = false;
 bool g_is_unlit_mode = false;
@@ -317,6 +318,12 @@ void TextureManager_Init() {
     g_MissingMaterial.normalMap = defaultNormalMapID;
     g_MissingMaterial.rmaMap = defaultRmaMapID;
 
+    strncpy(g_NodrawMaterial.name, "nodraw", 63);
+    g_NodrawMaterial.isLoaded = true;
+    g_NodrawMaterial.diffuseMap = missingTextureID;
+    g_NodrawMaterial.normalMap = defaultNormalMapID;
+    g_NodrawMaterial.rmaMap = defaultRmaMapID;
+
     Console_Printf("Texture Manager Initialized.\n");
 }
 
@@ -337,6 +344,9 @@ void TextureManager_Shutdown() {
 }
 
 Material* TextureManager_FindMaterial(const char* name) {
+    if (strcmp(name, "nodraw") == 0) {
+        return &g_NodrawMaterial;
+    }
     for (int i = 0; i < num_materials; ++i) {
         if (strcmp(materials[i].name, name) == 0)
         {

@@ -303,6 +303,12 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
         while (face_idx < b->numFaces) {
             BrushFace* first_face_in_batch = &b->faces[face_idx];
             Material* batch_material = first_face_in_batch->material;
+            if (batch_material == &g_NodrawMaterial) {
+                int verts_to_skip = (first_face_in_batch->numVertexIndices - 2) * 3;
+                vbo_offset += verts_to_skip;
+                face_idx++;
+                continue;
+            }
             Material* batch_material2 = first_face_in_batch->material2;
             Material* batch_material3 = first_face_in_batch->material3;
             Material* batch_material4 = first_face_in_batch->material4;

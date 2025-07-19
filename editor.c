@@ -4848,6 +4848,13 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
             if (face->material4) { UI_SameLine(); if (UI_Button("[X]##mat4")) { face->material4 = NULL; } }
         }
 
+        if (UI_Button("Apply Nodraw")) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            face->material = &g_NodrawMaterial;
+            Brush_CreateRenderData(b);
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Apply Nodraw");
+        }
+
         UI_Separator();
         UI_Text("Justify");
         if (UI_Button("Left")) { face->uv_offset.x = 0; Brush_CreateRenderData(b); } UI_SameLine();

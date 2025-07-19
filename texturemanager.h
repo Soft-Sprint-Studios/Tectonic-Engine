@@ -44,6 +44,7 @@ typedef struct {
 } Material;
 
 extern Material g_MissingMaterial;
+extern Material g_NodrawMaterial;
 extern bool g_is_editor_mode;
 extern bool g_is_unlit_mode;
 

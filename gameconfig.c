@@ -16,6 +16,7 @@
 static GameConfig g_GameConfig;
 
 void GameConfig_Init(void) {
+    memset(&g_GameConfig, 0, sizeof(g_GameConfig));
     FILE* file = fopen("gameconf.txt", "r");
     if (!file) {
         Console_Printf("gameconf.txt not found.\n");
