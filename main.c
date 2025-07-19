@@ -1575,7 +1575,7 @@ static void render_vpl_shadows() {
     glViewport(0, 0, shadow_map_size, shadow_map_size);
 
     glUseProgram(g_renderer.pointDepthShader);
-    float far_plane = 25.0f;
+    float far_plane = 100.0f;
     glUniform1f(glGetUniformLocation(g_renderer.pointDepthShader, "far_plane"), far_plane);
 
     for (int i = 0; i < g_scene.num_vpls; ++i) {

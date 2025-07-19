@@ -34,7 +34,7 @@ float calculateVPLShadow(uvec2 shadowMapHandleUvec2, vec3 worldPos, VPL vpl)
     
     vec3 fragToLight = worldPos - vpl.position;
     float currentDepth = length(fragToLight);
-    float farPlane = 25.0;
+    float farPlane = 100.0;
     
     if(currentDepth > farPlane) {
         return 0.0;
