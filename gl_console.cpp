@@ -163,10 +163,11 @@ extern "C" {
         va_end(args);
     }
 
-    void UI_RenderGameHUD(float fps, float px, float py, float pz) {
+    void UI_RenderGameHUD(float fps, float px, float py, float pz, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
+        bool show_graph = Cvar_GetInt("r_showgraph");
 
         const float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE);
@@ -184,6 +185,16 @@ extern "C" {
                 if (show_pos) {
                     ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
                 }
+            }
+            if (show_graph && history_size > 0) {
+                float max_fps = 0.0f;
+                for (int i = 0; i < history_size; ++i) {
+                    if (fps_history[i] > max_fps) {
+                        max_fps = fps_history[i];
+                    }
+                }
+                char overlay[32];
+                ImGui::PlotLines("##FPSGraph", fps_history, history_size, 0, overlay, 0.0f, max_fps * 1.2f, ImVec2(ImGui::GetContentRegionAvail().x, 80));
             }
             ImGui::End();
         }

@@ -102,6 +102,9 @@ static unsigned int g_frame_counter = 0;
 
 static unsigned int g_flashlight_sound_buffer = 0;
 static unsigned int g_footstep_sound_buffer = 0;
+#define FPS_GRAPH_SAMPLES 200
+static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
+static int g_fps_history_index = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
 static float g_distance_walked = 0.0f;
 const float FOOTSTEP_DISTANCE = 2.0f;
@@ -675,6 +678,7 @@ void init_cvars() {
     Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
+    Cvar_Register("r_showgraph", "0", "Show a graph of the framerate.", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show G-Buffer albedo.", CVAR_NONE);
     Cvar_Register("r_debug_normals", "0", "Show G-Buffer view-space normals.", CVAR_NONE);
@@ -3185,6 +3189,11 @@ int main(int argc, char* argv[]) {
         g_engine->unscaledDeltaTime = currentFrame - g_engine->lastFrame;
         g_engine->lastFrame = currentFrame;
 
+        if (g_engine->unscaledDeltaTime > 0.0f) {
+            g_fps_history[g_fps_history_index] = 1.0f / g_engine->unscaledDeltaTime;
+            g_fps_history_index = (g_fps_history_index + 1) % FPS_GRAPH_SAMPLES;
+        }
+
         float time_scale_val = Cvar_GetFloat("timescale");
         if (time_scale_val < 0.0f) {
             time_scale_val = 0.0f;
@@ -3341,7 +3350,7 @@ int main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_fps_history, FPS_GRAPH_SAMPLES);
         }
         Console_Draw(); 
         if (g_screenshot_requested) {

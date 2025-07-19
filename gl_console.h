@@ -39,7 +39,7 @@ extern "C" {
 	void Console_Printf_Error(const char* fmt, ...);
 	void Console_Printf_Warning(const char* fmt, ...);
 	bool Console_IsVisible();
-	void UI_RenderGameHUD(float fps, float px, float py, float pz);
+	void UI_RenderGameHUD(float fps, float px, float py, float pz, const float* fps_history, int history_size);
 	typedef void (*command_callback_t)(int argc, char** argv);
 	void Console_SetCommandHandler(command_callback_t handler);
 
