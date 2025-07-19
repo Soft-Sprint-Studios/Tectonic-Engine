@@ -147,3 +147,14 @@ const char* Cvar_GetString(const char* name) {
     Cvar* c = Cvar_Find(name);
     return c ? c->stringValue : "";
 }
+
+int Cvar_GetCount() {
+    return num_cvars;
+}
+
+const Cvar* Cvar_GetCvar(int index) {
+    if (index >= 0 && index < num_cvars) {
+        return &cvar_list[index];
+    }
+    return NULL;
+}

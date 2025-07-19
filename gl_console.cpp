@@ -20,10 +20,48 @@
 
 #include "gl_console.h"
 #include "cvar.h"
+#include "commands.h"
 
 static bool show_console = false;
 static command_callback_t command_handler = nullptr;
 static FILE* g_log_file = NULL;
+
+static int TextEditCallback(ImGuiInputTextCallbackData* data) {
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
+        const char* word_start = data->Buf;
+        const char* word_end = data->Buf + data->CursorPos;
+
+        std::vector<const char*> candidates;
+        for (int i = 0; i < Commands_GetCount(); i++) {
+            const Command* cmd = Commands_GetCommand(i);
+            if (_strnicmp(cmd->name, word_start, (int)(word_end - word_start)) == 0) {
+                candidates.push_back(cmd->name);
+            }
+        }
+        for (int i = 0; i < Cvar_GetCount(); i++) {
+            const Cvar* cvar = Cvar_GetCvar(i);
+            if (_strnicmp(cvar->name, word_start, (int)(word_end - word_start)) == 0) {
+                candidates.push_back(cvar->name);
+            }
+        }
+
+        if (candidates.size() == 1) {
+            data->DeleteChars(0, data->BufTextLen);
+            data->InsertChars(0, candidates[0]);
+            data->InsertChars(data->CursorPos, " ");
+        }
+        else if (candidates.size() > 1) {
+            static int match_index = -1;
+            match_index++;
+            if (match_index >= candidates.size()) {
+                match_index = 0;
+            }
+            data->DeleteChars(0, data->BufTextLen);
+            data->InsertChars(0, candidates[match_index]);
+        }
+    }
+    return 0;
+}
 
 struct ConsoleItem {
     char* text;
@@ -83,7 +121,7 @@ struct Console {
         ImGui::EndChild();
         ImGui::Separator();
         bool reclaim_focus = false;
-        if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue)) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
+        if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion, &TextEditCallback)) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
         ImGui::SameLine();
         if (ImGui::Button("Submit")) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
         ImGui::SetItemDefaultFocus(); if (reclaim_focus) ImGui::SetKeyboardFocusHere(-1); ImGui::End();

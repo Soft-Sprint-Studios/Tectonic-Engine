@@ -47,6 +47,8 @@ void Cvar_EngineSet(const char* name, const char* value);
 float Cvar_GetFloat(const char* name);
 int Cvar_GetInt(const char* name);
 const char* Cvar_GetString(const char* name);
+int Cvar_GetCount();
+const Cvar* Cvar_GetCvar(int index);
 
 #ifdef __cplusplus
 }

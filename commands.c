@@ -100,6 +100,17 @@ void Commands_Execute(int argc, char** argv) {
     Console_Printf_Error("[error] Unknown command or cvar: %s", cmd_name);
 }
 
+int Commands_GetCount() {
+    return g_num_commands;
+}
+
+const Command* Commands_GetCommand(int index) {
+    if (index >= 0 && index < g_num_commands) {
+        return &g_commands[index];
+    }
+    return NULL;
+}
+
 void Cmd_Help(int argc, char** argv) {
     Console_Printf("--- Command List ---");
     for (int i = 0; i < g_num_commands; ++i) {

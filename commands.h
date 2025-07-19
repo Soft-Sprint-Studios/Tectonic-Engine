@@ -29,6 +29,8 @@ void Commands_Init(void);
 void Commands_Shutdown(void);
 void Commands_Register(const char* name, command_func_t func, const char* description);
 void Commands_Execute(int argc, char** argv);
+int Commands_GetCount();
+const Command* Commands_GetCommand(int index);
 
 #ifdef __cplusplus
 }
