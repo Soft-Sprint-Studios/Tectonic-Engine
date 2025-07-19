@@ -202,6 +202,9 @@ static Scene* g_CurrentScene;
 static Mat4 g_view_matrix[VIEW_COUNT];
 static Mat4 g_proj_matrix[VIEW_COUNT];
 
+static BrushFace g_copiedFaceProperties;
+static bool g_hasCopiedFace = false;
+
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
@@ -4875,6 +4878,39 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
         }
 
         UI_Separator();
+        if (UI_Button("Copy Face Properties")) {
+            memcpy(&g_copiedFaceProperties, face, sizeof(BrushFace));
+            g_copiedFaceProperties.vertexIndices = NULL;
+            g_copiedFaceProperties.numVertexIndices = 0;
+            g_hasCopiedFace = true;
+        }
+        UI_SameLine();
+        if (!g_hasCopiedFace) {
+
+        }
+        if (UI_Button("Paste Face Properties") && g_hasCopiedFace) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            face->material = g_copiedFaceProperties.material;
+            face->material2 = g_copiedFaceProperties.material2;
+            face->material3 = g_copiedFaceProperties.material3;
+            face->material4 = g_copiedFaceProperties.material4;
+            face->uv_offset = g_copiedFaceProperties.uv_offset;
+            face->uv_scale = g_copiedFaceProperties.uv_scale;
+            face->uv_rotation = g_copiedFaceProperties.uv_rotation;
+            face->uv_offset2 = g_copiedFaceProperties.uv_offset2;
+            face->uv_scale2 = g_copiedFaceProperties.uv_scale2;
+            face->uv_rotation2 = g_copiedFaceProperties.uv_rotation2;
+            face->uv_offset3 = g_copiedFaceProperties.uv_offset3;
+            face->uv_scale3 = g_copiedFaceProperties.uv_scale3;
+            face->uv_rotation3 = g_copiedFaceProperties.uv_rotation3;
+            face->uv_offset4 = g_copiedFaceProperties.uv_offset4;
+            face->uv_scale4 = g_copiedFaceProperties.uv_scale4;
+            face->uv_rotation4 = g_copiedFaceProperties.uv_rotation4;
+            Brush_CreateRenderData(b);
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Paste Face Properties");
+        }
+
+        UI_Separator();
         UI_Text("Justify");
         if (UI_Button("Left")) { face->uv_offset.x = 0; Brush_CreateRenderData(b); } UI_SameLine();
         if (UI_Button("Right")) { face->uv_offset.x = 1.0f - (face->uv_scale.x > 0 ? fmodf(1.0f, face->uv_scale.x) : 0); Brush_CreateRenderData(b); } UI_SameLine();
@@ -5790,7 +5826,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
-    UI_Begin("Inspector & Settings", NULL); UI_Text("Inspector"); UI_Separator();
+    UI_Begin("Inspector & Settings", NULL); 
+    if (UI_Button("Translate (1)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE; }
+    UI_SameLine();
+    if (UI_Button("Rotate (2)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE; }
+    UI_SameLine();
+    if (UI_Button("Scale (3)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE; }
+    UI_Separator();
+    UI_Text("Inspector"); UI_Separator();
     if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) {
         SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index]; UI_Text(obj->modelPath); UI_Separator();
         UI_InputText("Name", obj->targetname, sizeof(obj->targetname));
