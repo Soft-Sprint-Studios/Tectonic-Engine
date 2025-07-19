@@ -127,7 +127,7 @@ void main() {
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float shininess = 32.0;
+    float shininess = 128.0;
     float specularStrength = 3.0;
 
     if (sun.enabled) {
@@ -136,9 +136,9 @@ void main() {
         float shadow = calculateSunShadow(FragPosSunLightSpace, N, L);
         diffuse += sun.color * sun.intensity * NdotL * (1.0 - shadow);
         if (NdotL > 0.0) {
-            vec3 R = reflect(-L, N);
-            float RdotV = max(dot(R, V), 0.0);
-            specular += sun.color * sun.intensity * specularStrength * pow(RdotV, shininess) * (1.0 - shadow);
+            vec3 H = normalize(L + V);
+            float NdotH = max(dot(N, H), 0.0);
+            specular += sun.color * sun.intensity * specularStrength * pow(NdotH, shininess) * (1.0 - shadow);
         }
     }
 
@@ -171,9 +171,9 @@ void main() {
             float lightIntensity = lights[i].color.a;
             diffuse += lightColor * lightIntensity * NdotL * attenuation;
             if (NdotL > 0.0) {
-                vec3 R = reflect(-L, N);
-                float RdotV = max(dot(R, V), 0.0);
-                specular += lightColor * lightIntensity * specularStrength * pow(RdotV, shininess) * attenuation;
+                vec3 H = normalize(L + V);
+                float NdotH = max(dot(N, H), 0.0);
+                specular += lightColor * lightIntensity * specularStrength * pow(NdotH, shininess) * attenuation;
             }
         }
     }
@@ -190,9 +190,9 @@ void main() {
              float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
              diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
              if (NdotL > 0.0) {
-                 vec3 R = reflect(-L, N);
-                 float RdotV = max(dot(R, V), 0.0);
-                 specular += vec3(1.0) * 3.0 * specularStrength * pow(RdotV, shininess) * attenuation * cone_intensity;
+                 vec3 H = normalize(L + V);
+                 float NdotH = max(dot(N, H), 0.0);
+                 specular += vec3(1.0) * 3.0 * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
              }
         }
     }
