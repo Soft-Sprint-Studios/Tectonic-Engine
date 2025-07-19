@@ -449,6 +449,10 @@ void Cmd_Quit(int argc, char** argv) {
 }
 
 void Cmd_SetPos(int argc, char** argv) {
+    if (Cvar_GetInt("g_cheats") == 0) {
+        Console_Printf_Error("You must enable cheats to use this command.");
+        return;
+    }
     if (argc == 4) {
         float x = atof(argv[1]);
         float y = atof(argv[2]);
@@ -466,6 +470,10 @@ void Cmd_SetPos(int argc, char** argv) {
 }
 
 void Cmd_Noclip(int argc, char** argv) {
+    if (Cvar_GetInt("g_cheats") == 0) {
+        Console_Printf_Error("You must enable cheats to use this command.");
+        return;
+    }
     Cvar* c = Cvar_Find("noclip");
     if (c) {
         bool currently_noclip = c->intValue;
@@ -638,6 +646,22 @@ void Cmd_Screenshot(int argc, char** argv) {
     g_screenshot_requested = true;
 }
 
+void Cmd_Echo(int argc, char** argv) {
+    if (argc < 2) {
+        Console_Printf("Usage: echo <message>");
+        return;
+    }
+
+    char message[1024] = { 0 };
+    for (int i = 1; i < argc; i++) {
+        strcat(message, argv[i]);
+        if (i < argc - 1) {
+            strcat(message, " ");
+        }
+    }
+    Console_Printf("%s", message);
+}
+
 void init_cvars() {
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("noclip", "0", "", CVAR_NONE);
@@ -697,6 +721,11 @@ void init_cvars() {
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
+#ifdef GAME_RELEASE
+    Cvar_Register("g_cheats", "0", "Enables cheat-protected commands.", CVAR_NONE);
+#else
+    Cvar_Register("g_cheats", "1", "Enables cheat-protected commands.", CVAR_NONE);
+#endif
     Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Controls the speed of the game. 1.0 is normal speed.", CVAR_NONE);
 }

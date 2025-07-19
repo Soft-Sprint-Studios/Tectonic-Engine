@@ -32,6 +32,8 @@ extern void Cmd_BuildCubemaps(int argc, char** argv);
 extern void Cmd_Help(int argc, char** argv);
 extern void Cmd_UnbindAll(int argc, char** argv);
 extern void Cmd_Screenshot(int argc, char** argv);
+extern void Cmd_Exec(int argc, char** argv);
+extern void Cmd_Echo(int argc, char** argv);
 
 void Commands_Init(void) {
     g_num_commands = 0;
@@ -53,6 +55,8 @@ void Commands_Init(void) {
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.");
     Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]");
     Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.");
+    Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.");
+    Commands_Register("echo", Cmd_Echo, "Prints a message to the console.");
 
     Console_Printf("Command System Initialized. Registered %d commands.", g_num_commands);
 }
@@ -111,4 +115,46 @@ void Cmd_Help(int argc, char** argv) {
         Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
     }
     Console_Printf("--------------------");
+}
+
+void Cmd_Exec(int argc, char** argv) {
+    if (argc != 2) {
+        Console_Printf("Usage: exec <filename>");
+        return;
+    }
+
+    const char* filename = argv[1];
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        Console_Printf_Error("[error] Could not open script file: %s", filename);
+        return;
+    }
+
+    Console_Printf("Executing script: %s", filename);
+    char line[512];
+    while (fgets(line, sizeof(line), file)) {
+        char* trimmed_line = trim(line);
+        if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
+            continue;
+        }
+
+        char* cmd_copy = _strdup(trimmed_line);
+#define MAX_ARGS 32
+        int exec_argc = 0;
+        char* exec_argv[MAX_ARGS];
+
+        char* p = strtok(cmd_copy, " ");
+        while (p != NULL && exec_argc < MAX_ARGS) {
+            exec_argv[exec_argc++] = p;
+            p = strtok(NULL, " ");
+        }
+
+        if (exec_argc > 0) {
+            Commands_Execute(exec_argc, exec_argv);
+        }
+        free(cmd_copy);
+    }
+
+    fclose(file);
+    Console_Printf("Finished executing script: %s", filename);
 }
