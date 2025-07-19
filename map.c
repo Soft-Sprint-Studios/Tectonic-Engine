@@ -1150,6 +1150,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             scene->numBrushes++;
         }
         else if (strcmp(keyword, "gltf_model") == 0) {
+            if (scene->numObjects >= MAX_MODELS) {
+                continue;
+            }
             scene->numObjects++;
             scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
             SceneObject* newObj = &scene->objects[scene->numObjects - 1];

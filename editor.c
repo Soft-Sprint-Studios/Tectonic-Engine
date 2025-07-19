@@ -652,6 +652,9 @@ void Editor_DeleteSprite(Scene* scene, int index) {
 }
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
+    if (scene->numObjects >= MAX_MODELS) {
+        return;
+    }
     SceneObject* src_obj = &scene->objects[index];
     scene->numObjects++;
     scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
@@ -4513,34 +4516,39 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
             }
             UI_SameLine();
             if (UI_Button("Add to Scene")) {
-                scene->numObjects++;
-                scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
-                SceneObject* newObj = &scene->objects[scene->numObjects - 1];
-                memset(newObj, 0, sizeof(SceneObject));
+                if (scene->numObjects < MAX_MODELS) {
+                    scene->numObjects++;
+                    scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+                    SceneObject* newObj = &scene->objects[scene->numObjects - 1];
+                    memset(newObj, 0, sizeof(SceneObject));
 
-                char full_model_path_for_scene_object[256];
-                sprintf(full_model_path_for_scene_object, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
+                    char full_model_path_for_scene_object[256];
+                    sprintf(full_model_path_for_scene_object, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
 
-                strncpy(newObj->modelPath, full_model_path_for_scene_object, sizeof(newObj->modelPath) - 1);
-                newObj->modelPath[sizeof(newObj->modelPath) - 1] = '\0';
+                    strncpy(newObj->modelPath, full_model_path_for_scene_object, sizeof(newObj->modelPath) - 1);
+                    newObj->modelPath[sizeof(newObj->modelPath) - 1] = '\0';
 
-                Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-                vec3_normalize(&forward);
-                newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
-                newObj->scale = (Vec3){ 1,1,1 };
-                SceneObject_UpdateMatrix(newObj);
+                    Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
+                    vec3_normalize(&forward);
+                    newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
+                    newObj->scale = (Vec3){ 1,1,1 };
+                    SceneObject_UpdateMatrix(newObj);
 
-                newObj->model = Model_Load(newObj->modelPath);
+                    newObj->model = Model_Load(newObj->modelPath);
 
-                if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                    Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
-                    newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                    if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
+                        Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
+                        newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                    }
+                    else if (!newObj->model) {
+                        Console_Printf_Error("[error] Failed to load model for scene object: %s", newObj->modelPath);
+                    }
+                    Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
+                    g_EditorState.show_add_model_popup = false;
                 }
-                else if (!newObj->model) {
-                    Console_Printf_Error("[error] Failed to load model for scene object: %s", newObj->modelPath);
+                else {
+                    Console_Printf_Error("[error] Cannot add model, MAX_MODELS limit (%d) reached.", MAX_MODELS);
                 }
-                Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
-                g_EditorState.show_add_model_popup = false;
             }
         }
         UI_EndChild();

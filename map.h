@@ -36,6 +36,7 @@ extern "C" {
 
 #define MAX_LIGHTS 256
 #define MAX_BRUSHES 8192
+#define MAX_MODELS 8192
 #define MAX_DECALS 8192
 #define MAX_SOUNDS 2048
 #define MAX_PARTICLE_EMITTERS 2048
@@ -49,7 +50,7 @@ extern "C" {
 #define MAX_VPLS 4096
 #define VPL_GEN_TEXTURE_SIZE 1024
 
-#define MAP_VERSION 7
+#define MAP_VERSION 8
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
