@@ -5827,11 +5827,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Inspector & Settings", NULL); 
-    if (UI_Button("Translate (1)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE; }
+    UI_RadioButton_Int("Translate (1)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_TRANSLATE);
     UI_SameLine();
-    if (UI_Button("Rotate (2)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE; }
+    UI_RadioButton_Int("Rotate (2)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_ROTATE);
     UI_SameLine();
-    if (UI_Button("Scale (3)")) { g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE; }
+    UI_RadioButton_Int("Scale (3)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_SCALE);
     UI_Separator();
     UI_Text("Inspector"); UI_Separator();
     if (g_EditorState.selected_entity_type == ENTITY_MODEL && g_EditorState.selected_entity_index < scene->numObjects) {
