@@ -4864,6 +4864,16 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Apply Nodraw");
         }
 
+        UI_SameLine();
+        if (UI_Button("Apply to All Faces")) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index);
+            for (int i = 0; i < b->numFaces; ++i) {
+                b->faces[i].material = face->material;
+            }
+            Brush_CreateRenderData(b);
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Apply to All Faces");
+        }
+
         UI_Separator();
         UI_Text("Justify");
         if (UI_Button("Left")) { face->uv_offset.x = 0; Brush_CreateRenderData(b); } UI_SameLine();
