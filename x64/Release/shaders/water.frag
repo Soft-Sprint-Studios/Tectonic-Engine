@@ -53,7 +53,13 @@ uniform vec3 viewPos;
 uniform float time;
 uniform float waveStrength = 0.02;
 uniform float normalTiling1 = 2.0;
+uniform float normalTiling2 = 3.0;
+uniform float normalTiling3 = 4.0;
+uniform float normalTiling4 = 5.0;
 uniform float normalSpeed1 = 0.02;
+uniform float normalSpeed2 = 0.015;
+uniform float normalSpeed3 = 0.01;
+uniform float normalSpeed4 = 0.008;
 uniform float dudvMoveSpeed = 0.03;
 uniform float flowSpeed = 0.01;
 uniform bool useFlowMap;
@@ -102,10 +108,19 @@ void main() {
 
     vec2 distortion = (texture(dudvMap, texCoord * 4.0 + vec2(time * dudvMoveSpeed, 0)).rg * 2.0 - 1.0) * waveStrength;
     vec2 normalScroll1 = texCoord * normalTiling1 + vec2(time * normalSpeed1, time * normalSpeed1 * 0.8) + distortion;
-    vec3 normalFromMap = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
-    
+    vec2 normalScroll2 = texCoord * normalTiling2 + vec2(-time * normalSpeed2, time * normalSpeed2 * 0.6) + distortion;
+    vec2 normalScroll3 = texCoord * normalTiling3 + vec2(time * normalSpeed3 * 0.6, -time * normalSpeed3) + distortion;
+    vec2 normalScroll4 = texCoord * normalTiling4 + vec2(-time * normalSpeed4 * 0.9, -time * normalSpeed4 * 0.4) + distortion;
+
+    vec3 normalMap1 = texture(normalMap, normalScroll1).rgb * 2.0 - 1.0;
+    vec3 normalMap2 = texture(normalMap, normalScroll2).rgb * 2.0 - 1.0;
+    vec3 normalMap3 = texture(normalMap, normalScroll3).rgb * 2.0 - 1.0;
+    vec3 normalMap4 = texture(normalMap, normalScroll4).rgb * 2.0 - 1.0;
+
+    vec3 blendedNormal = normalize(normalMap1 + normalMap2 + normalMap3 + normalMap4);
+
     mat3 TBN = mat3(v_tangent, v_bitangent, v_normal);
-    vec3 N = normalize(TBN * normalFromMap);
+    vec3 N = normalize(TBN * blendedNormal);
 
     vec3 V = normalize(viewPos - FragPos_world);
     vec3 worldIncident = -V;
@@ -116,12 +131,10 @@ void main() {
     if (useParallaxCorrection) {
         reflectionVec = ParallaxCorrect(reflectionVec, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
     }
-    
+
     vec3 refractionColor = texture(reflectionMap, refractionVec).rgb;
     vec3 reflectionColor = texture(reflectionMap, reflectionVec).rgb;
-    
     float fresnel = Eta + (1.0 - Eta) * pow(max(0.0, 1.0 - dot(V, N)), 2.0);
-                
     vec3 baseWaterColor = mix(refractionColor, reflectionColor, fresnel);
 
     vec3 ambient = 0.05 * baseWaterColor;
@@ -149,7 +162,6 @@ void main() {
         float NdotL = max(dot(N, L), 0.0);
         float distance = length(lightPos - FragPos_world);
         float attenuation = 0.0;
-
         if (lightType == 0) {
             float radius = lights[i].params1.x;
             attenuation = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0) / (distance * distance + 1.0);
@@ -177,7 +189,7 @@ void main() {
             }
         }
     }
-    
+
     if (flashlight.enabled) {
         vec3 L = normalize(flashlight.position - FragPos_world);
         float NdotL = max(dot(N, L), 0.0);
@@ -187,17 +199,16 @@ void main() {
         float innerCutOff = cos(radians(12.5));
         float outerCutOff = cos(radians(17.5));
         if (theta > outerCutOff) {
-             float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
-             diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
-             if (NdotL > 0.0) {
-                 vec3 H = normalize(L + V);
-                 float NdotH = max(dot(N, H), 0.0);
-                 specular += vec3(1.0) * 3.0 * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
-             }
+            float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
+            diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
+            if (NdotL > 0.0) {
+                vec3 H = normalize(L + V);
+                float NdotH = max(dot(N, H), 0.0);
+                specular += vec3(1.0) * 3.0 * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
+            }
         }
     }
 
     vec3 finalColor = baseWaterColor + diffuse + specular + ambient;
-
     fragColor = vec4(finalColor, 0.85);
 }
