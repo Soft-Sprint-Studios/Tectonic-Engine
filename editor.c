@@ -2752,6 +2752,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     if (event->type == SDL_KEYDOWN && !event->key.repeat) {
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_z) { Undo_PerformUndo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_y) { Undo_PerformRedo(scene, engine); return; }
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_s) {
+            if (strcmp(g_EditorState.currentMapPath, "untitled.map") == 0) {
+                g_EditorState.show_save_map_popup = true;
+            }
+            else {
+                Scene_SaveMap(scene, g_EditorState.currentMapPath);
+            }
+            return;
+        }
         if (event->key.keysym.sym == SDLK_ESCAPE) {
             g_EditorState.selected_entity_type = ENTITY_NONE;
             g_EditorState.selected_entity_index = -1;
