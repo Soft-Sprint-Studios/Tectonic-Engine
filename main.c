@@ -101,6 +101,7 @@ static unsigned int g_frame_counter = 0;
 
 static unsigned int g_flashlight_sound_buffer = 0;
 static unsigned int g_footstep_sound_buffer = 0;
+static unsigned int g_jump_sound_buffer = 0;
 #define FPS_GRAPH_SAMPLES 14400
 static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
 static int g_fps_history_index = 0;
@@ -748,6 +749,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Network_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
+    g_jump_sound_buffer = SoundSystem_LoadSound("sounds/jump.wav");
     Console_SetCommandHandler(Commands_Execute);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
@@ -1379,6 +1381,7 @@ void process_input() {
             if (state[SDL_SCANCODE_SPACE]) {
                 if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
                     Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, Cvar_GetFloat("g_jump_force"), 0 });
+                    SoundSystem_PlaySound(g_jump_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
                 }
             }
         }
@@ -2818,6 +2821,7 @@ void cleanup() {
     VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
+    SoundSystem_DeleteBuffer(g_jump_sound_buffer);
     ModelLoader_Shutdown();
     TextureManager_Shutdown();
     SoundSystem_Shutdown();
