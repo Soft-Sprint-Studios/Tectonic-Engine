@@ -46,7 +46,6 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 #endif
 
 #define SUN_SHADOW_MAP_SIZE 4096
-#define PLAYER_JUMP_FORCE 350.0f
 
 #define BLOOM_DOWNSAMPLE 8
 #define SSAO_DOWNSAMPLE 2
@@ -721,6 +720,7 @@ void init_cvars() {
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed.", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration.", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction.", CVAR_NONE);
+    Cvar_Register("g_jump_force", "350.0", "The amount of upward force applied when the player jumps.", CVAR_NONE);
 #ifdef GAME_RELEASE
     Cvar_Register("g_cheats", "0", "Enables cheat-protected commands.", CVAR_NONE);
 #else
@@ -1378,7 +1378,7 @@ void process_input() {
 
             if (state[SDL_SCANCODE_SPACE]) {
                 if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
-                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, PLAYER_JUMP_FORCE, 0 });
+                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, Cvar_GetFloat("g_jump_force"), 0 });
                 }
             }
         }
