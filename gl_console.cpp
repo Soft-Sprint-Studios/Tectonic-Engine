@@ -231,8 +231,7 @@ extern "C" {
                         max_fps = fps_history[i];
                     }
                 }
-                char overlay[32];
-                ImGui::PlotLines("##FPSGraph", fps_history, history_size, 0, overlay, 0.0f, max_fps * 1.2f, ImVec2(ImGui::GetContentRegionAvail().x, 80));
+                ImGui::PlotLines("##FPSGraph", fps_history, history_size, 0, nullptr, 0.0f, max_fps * 1.2f, ImVec2(ImGui::GetContentRegionAvail().x, 80));
             }
             ImGui::End();
         }
