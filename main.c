@@ -102,7 +102,7 @@ static unsigned int g_frame_counter = 0;
 
 static unsigned int g_flashlight_sound_buffer = 0;
 static unsigned int g_footstep_sound_buffer = 0;
-#define FPS_GRAPH_SAMPLES 200
+#define FPS_GRAPH_SAMPLES 14400
 static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
 static int g_fps_history_index = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
