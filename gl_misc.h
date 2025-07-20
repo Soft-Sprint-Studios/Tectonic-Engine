@@ -28,6 +28,7 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath);
 GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const char* fragPath);
 GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const char* tesPath, const char* fragPath);
 GLuint createShaderProgramCompute(const char* computePath);
+void GL_InitDebugOutput(void);
 
 #ifdef __cplusplus
 }

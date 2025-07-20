@@ -175,3 +175,63 @@ GLuint createShaderProgramCompute(const char* computePath) {
     glDeleteShader(compute);
     return program;
 }
+
+void GLAPIENTRY
+GL_MessageCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+
+    const char* type_str = "Unknown";
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:               type_str = "Error"; break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_str = "Deprecated Behavior"; break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  type_str = "Undefined Behavior"; break;
+    case GL_DEBUG_TYPE_PORTABILITY:         type_str = "Portability"; break;
+    case GL_DEBUG_TYPE_PERFORMANCE:         type_str = "Performance"; break;
+    case GL_DEBUG_TYPE_MARKER:              type_str = "Marker"; break;
+    case GL_DEBUG_TYPE_OTHER:               type_str = "Other"; break;
+    }
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        Console_Printf_Error("[GL ERROR] type: %s, message: %s", type_str, message);
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        Console_Printf_Error("[GL WARNING] type: %s, message: %s", type_str, message);
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        Console_Printf_Warning("[GL INFO] type: %s, message: %s", type_str, message);
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        Console_Printf("[GL NOTIFICATION] type: %s, message: %s", type_str, message);
+        break;
+    }
+}
+
+void GL_InitDebugOutput(void) {
+#ifndef GAME_RELEASE
+    GLint flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(GL_MessageCallback, 0);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+        Console_Printf("OpenGL Debug Callback Initialized.");
+    }
+    else
+    {
+        Console_Printf_Warning("OpenGL Debug Context not available.");
+    }
+#else
+    Console_Printf("OpenGL Debug is disabled on release builds.");
+#endif
+}
