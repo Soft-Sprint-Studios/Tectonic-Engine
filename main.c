@@ -900,7 +900,7 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-     const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
+    const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
     const int bloom_height = WINDOW_HEIGHT / BLOOM_DOWNSAMPLE;
     glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
     glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
