@@ -34,6 +34,7 @@ extern void Cmd_UnbindAll(int argc, char** argv);
 extern void Cmd_Screenshot(int argc, char** argv);
 extern void Cmd_Exec(int argc, char** argv);
 extern void Cmd_Echo(int argc, char** argv);
+extern void Cmd_Clear(int argc, char** argv);
 
 void Commands_Init(void) {
     g_num_commands = 0;
@@ -57,6 +58,7 @@ void Commands_Init(void) {
     Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.");
     Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.");
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.");
+    Commands_Register("clear", Cmd_Clear, "Clears the console text.");
 
     Console_Printf("Command System Initialized. Registered %d commands.", g_num_commands);
 }
@@ -109,6 +111,10 @@ const Command* Commands_GetCommand(int index) {
         return &g_commands[index];
     }
     return NULL;
+}
+
+void Cmd_Clear(int argc, char** argv) {
+    Console_ClearLog();
 }
 
 void Cmd_Help(int argc, char** argv) {

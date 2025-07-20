@@ -201,6 +201,10 @@ extern "C" {
         va_end(args);
     }
 
+    void Console_ClearLog() {
+        console_instance.ClearLog();
+    }
+
     void UI_RenderGameHUD(float fps, float px, float py, float pz, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
