@@ -707,6 +707,7 @@ void init_cvars() {
     Cvar_Register("r_sharpening", "1", "Enable sharpening (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "1", "Enable vertical sync (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable motion blur (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_fxaa", "1", "Enable depth-based anti-aliasing (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles", "1", "Enable particles (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
@@ -2698,6 +2699,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
     }
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fxaa_enabled"), Cvar_GetInt("r_fxaa"));
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "sceneTexture"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gPosition"), 2);
