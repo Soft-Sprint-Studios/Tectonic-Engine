@@ -742,6 +742,7 @@ void init_cvars() {
 #endif
     Cvar_Register("crosshair", "1", "Enable crosshair (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Game speed scale", CVAR_NONE);
+    Cvar_Register("sensitivity", "1.0", "Mouse sensitivity.", CVAR_NONE);
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
@@ -1304,8 +1305,9 @@ void process_input() {
                 bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible());
 
                 if (can_look_in_game || can_look_in_editor) {
-                    g_engine->camera.yaw += event.motion.xrel * 0.005f;
-                    g_engine->camera.pitch -= event.motion.yrel * 0.005f;
+                    float sensitivity = Cvar_GetFloat("sensitivity");
+                    g_engine->camera.yaw += event.motion.xrel * 0.005f * sensitivity;
+                    g_engine->camera.pitch -= event.motion.yrel * 0.005f * sensitivity;
                     if (g_engine->camera.pitch > 1.55f) g_engine->camera.pitch = 1.55f;
                     if (g_engine->camera.pitch < -1.55f) g_engine->camera.pitch = -1.55f;
                 }
