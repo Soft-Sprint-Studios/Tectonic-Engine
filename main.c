@@ -709,6 +709,9 @@ void init_cvars() {
     Cvar_Register("r_vsync", "1", "Enable or disable vertical sync (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable camera and object motion blur (0=off, 1=on).", CVAR_NONE);
     Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("r_particles", "1", "Enable particle rendering and simulation. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_water", "1", "Enable water rendering. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_particles_cull_dist", "75.0", "Distance at which particle systems are no longer updated.", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Maximum frames per second. 0 for unlimited. VSync overrides this.", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter in the top-left corner.", CVAR_NONE);
     Cvar_Register("r_showgraph", "0", "Show a graph of the framerate.", CVAR_NONE);
@@ -736,7 +739,6 @@ void init_cvars() {
 #else
     Cvar_Register("g_cheats", "1", "Enables cheat-protected commands.", CVAR_NONE);
 #endif
-    Cvar_Register("cl_particle_cull_dist", "75.0", "Distance at which particle systems are no longer updated.", CVAR_NONE);
     Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Controls the speed of the game. 1.0 is normal speed.", CVAR_NONE);
 }
@@ -1445,11 +1447,13 @@ void update_state() {
         return;
     }
     if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
-    float particle_cull_dist = Cvar_GetFloat("cl_particle_cull_dist");
-    float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
-    for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
-        if (vec3_length_sq(vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
-            ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
+    if (Cvar_GetInt("r_particles")) {
+        float particle_cull_dist = Cvar_GetFloat("r_particles_cull_dist");
+        float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
+        for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
+            if (vec3_length_sq(vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
+                ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
+            }
         }
     }
     VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
@@ -3346,9 +3350,13 @@ int main(int argc, char* argv[]) {
             }
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
-            render_water(&view, &projection, &sunLightSpaceMatrix);
-            for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
-                ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
+            if (Cvar_GetInt("r_water")) {
+                render_water(&view, &projection, &sunLightSpaceMatrix);
+            }
+            if (Cvar_GetInt("r_particles")) {
+                for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
+                    ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
+                }
             }
             render_sprites(&view, &projection);
             glDepthMask(GL_TRUE);
