@@ -14,6 +14,7 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 #include "minimp3/minimp3.h"
+#include "minivorbis.h"
 
 #define MAX_WET_CACHE_ENTRIES 256
 #define MAX_PLAYING_SOUNDS 512
@@ -269,6 +270,92 @@ static unsigned int internal_LoadMP3(const char* path) {
     return bufferID;
 }
 
+static unsigned int internal_LoadOGG(const char* path) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        Console_Printf_Error("ERROR: Could not open OGG file %s", path);
+        return 0;
+    }
+
+    OggVorbis_File vorbis;
+    if (ov_open_callbacks(file, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) {
+        Console_Printf_Error("ERROR: Invalid Ogg Vorbis file: %s", path);
+        fclose(file);
+        return 0;
+    }
+
+    vorbis_info* info = ov_info(&vorbis, -1);
+
+    size_t data_capacity = 4096 * 16;
+    unsigned char* pcm_data = malloc(data_capacity);
+    if (!pcm_data) {
+        ov_clear(&vorbis);
+        return 0;
+    }
+
+    long bytes_read = 0;
+    size_t total_bytes = 0;
+    int bitstream;
+
+    while ((bytes_read = ov_read(&vorbis, (char*)pcm_data + total_bytes, data_capacity - total_bytes, 0, 2, 1, &bitstream)) > 0) {
+        total_bytes += bytes_read;
+        if (data_capacity - total_bytes < 4096) {
+            data_capacity *= 2;
+            unsigned char* new_pcm_data = realloc(pcm_data, data_capacity);
+            if (!new_pcm_data) {
+                free(pcm_data);
+                ov_clear(&vorbis);
+                return 0;
+            }
+            pcm_data = new_pcm_data;
+        }
+    }
+
+    ALenum format = (info->channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+
+    if (info->channels == 2) {
+        size_t mono_samples = total_bytes / 4;
+        short* mono_buffer = malloc(mono_samples * sizeof(short));
+        if (mono_buffer) {
+            short* stereo_buffer = (short*)pcm_data;
+            for (size_t i = 0; i < mono_samples; i++) {
+                mono_buffer[i] = (short)(((int)stereo_buffer[i * 2] + (int)stereo_buffer[i * 2 + 1]) / 2);
+            }
+            free(pcm_data);
+            pcm_data = (unsigned char*)mono_buffer;
+            total_bytes = mono_samples * sizeof(short);
+            format = AL_FORMAT_MONO16;
+        }
+    }
+
+    ALuint bufferID;
+    alGenBuffers(1, &bufferID);
+    alBufferData(bufferID, format, pcm_data, total_bytes, info->rate);
+    ov_clear(&vorbis);
+
+    if (alGetError() != AL_NO_ERROR) {
+        free(pcm_data);
+        alDeleteBuffers(1, &bufferID);
+        return 0;
+    }
+
+    if (g_buffer_count < MAX_BUFFERS) {
+        g_buffers[g_buffer_count].bufferID = bufferID;
+        g_buffers[g_buffer_count].pcmData = pcm_data;
+        g_buffers[g_buffer_count].dataSize = total_bytes;
+        g_buffers[g_buffer_count].format = format;
+        g_buffers[g_buffer_count].freq = info->rate;
+        g_buffer_count++;
+    }
+    else {
+        free(pcm_data);
+        alDeleteBuffers(1, &bufferID);
+        return 0;
+    }
+
+    return bufferID;
+}
+
 static unsigned int internal_LoadWAV(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) return 0;
@@ -370,6 +457,9 @@ unsigned int SoundSystem_LoadSound(const char* path) {
     }
     else if (_stricmp(ext, ".mp3") == 0) {
         return internal_LoadMP3(path);
+    }
+    else if (_stricmp(ext, ".ogg") == 0) {
+        return internal_LoadOGG(path);
     }
 
     Console_Printf_Error("ERROR: Unsupported sound format for %s\n", path);

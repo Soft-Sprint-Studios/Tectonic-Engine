@@ -64,6 +64,8 @@ target_compile_definitions(TectonicEngine PRIVATE
     PL_MPEG_IMPLEMENTATION
     CGLTF_IMPLEMENTATION
     MINIMP3_IMPLEMENTATION
+    OGG_IMPL
+    VORBIS_IMPL
 )
 
 target_include_directories(TectonicEngine PRIVATE
@@ -77,6 +79,7 @@ target_include_directories(TectonicEngine PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master"
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
     "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include"
 )
 
