@@ -681,7 +681,6 @@ void init_cvars() {
     Cvar_Register("r_ssao", "1", "Enable SSAO (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable bloom (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_depth_aa", "1", "Enable depth-based AA (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_zprepass", "1", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render in wireframe mode (0=off, 1=on)", CVAR_NONE);
@@ -800,7 +799,6 @@ void init_renderer() {
     g_renderer.dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
     g_renderer.volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
     g_renderer.volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
-    g_renderer.depthAaShader = createShaderProgram("shaders/depth_aa.vert", "shaders/depth_aa.frag");
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
@@ -2793,7 +2791,6 @@ void cleanup() {
     glDeleteProgram(g_renderer.volumetricBlurShader);
     glDeleteProgram(g_renderer.histogramShader);
     glDeleteProgram(g_renderer.exposureShader);
-    glDeleteProgram(g_renderer.depthAaShader);
     glDeleteProgram(g_renderer.motionBlurShader);
     glDeleteProgram(g_renderer.waterShader);
     glDeleteProgram(g_renderer.glassShader);
@@ -2915,31 +2912,6 @@ void render_dof_pass(GLuint sourceTexture, GLuint sourceDepthTexture, GLuint des
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, sourceDepthTexture);
     glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void render_depth_aa_pass(GLuint sourceTexture, GLuint destFBO) {
-    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(g_renderer.depthAaShader);
-    glUniform2f(glGetUniformLocation(g_renderer.depthAaShader, "screenSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "finalImage"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "gPosition"), 1);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
-    glUniform1i(glGetUniformLocation(g_renderer.depthAaShader, "gNormal"), 2);
-
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -3377,12 +3349,6 @@ int main(int argc, char* argv[]) {
                 render_motion_blur_pass(source_tex, target_fbo);
                 source_fbo = target_fbo;
                 source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
-            }
-
-            if (Cvar_GetInt("r_depth_aa")) {
-                GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
-                render_depth_aa_pass(source_tex, target_fbo);
-                source_fbo = target_fbo;
             }
 
             bool debug_view_active = false;

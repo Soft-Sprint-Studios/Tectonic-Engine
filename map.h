@@ -209,7 +209,6 @@ typedef struct {
     GLuint exposureShader;
     GLuint histogramSSBO;
     GLuint exposureSSBO;
-    GLuint depthAaShader;
     GLuint motionBlurShader;
     GLuint waterShader;
     GLuint parallaxInteriorShader;
