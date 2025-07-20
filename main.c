@@ -457,10 +457,6 @@ void Cmd_Quit(int argc, char** argv) {
 }
 
 void Cmd_SetPos(int argc, char** argv) {
-    if (Cvar_GetInt("g_cheats") == 0) {
-        Console_Printf_Error("You must enable cheats to use this command.");
-        return;
-    }
     if (argc == 4) {
         float x = atof(argv[1]);
         float y = atof(argv[2]);
@@ -478,10 +474,6 @@ void Cmd_SetPos(int argc, char** argv) {
 }
 
 void Cmd_Noclip(int argc, char** argv) {
-    if (Cvar_GetInt("g_cheats") == 0) {
-        Console_Printf_Error("You must enable cheats to use this command.");
-        return;
-    }
     Cvar* c = Cvar_Find("noclip");
     if (c) {
         bool currently_noclip = c->intValue;
@@ -671,7 +663,7 @@ void Cmd_Echo(int argc, char** argv) {
 }
 
 void init_cvars() {
-    Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);

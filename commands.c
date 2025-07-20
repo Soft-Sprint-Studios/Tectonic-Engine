@@ -39,26 +39,26 @@ extern void Cmd_Clear(int argc, char** argv);
 void Commands_Init(void) {
     g_num_commands = 0;
 
-    Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.");
-    Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.");
-    Commands_Register("edit", Cmd_Edit, "Toggles editor mode.");
-    Commands_Register("quit", Cmd_Quit, "Exits the engine.");
-    Commands_Register("exit", Cmd_Quit, "Alias for the 'quit' command.");
-    Commands_Register("setpos", Cmd_SetPos, "Teleports the player to a specified XYZ coordinate.");
-    Commands_Register("noclip", Cmd_Noclip, "Toggles player collision and gravity.");
-    Commands_Register("bind", Cmd_Bind, "Binds a key to a command.");
-    Commands_Register("unbind", Cmd_Unbind, "Removes a key binding.");
-    Commands_Register("unbindall", Cmd_UnbindAll, "Removes all key bindings.");
-    Commands_Register("map", Cmd_Map, "Loads the specified map.");
-    Commands_Register("maps", Cmd_Maps, "Lists all available .map files in the root directory.");
-    Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.");
-    Commands_Register("download", Cmd_Download, "Downloads a file from a URL.");
-    Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.");
-    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]");
-    Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.");
-    Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.");
-    Commands_Register("echo", Cmd_Echo, "Prints a message to the console.");
-    Commands_Register("clear", Cmd_Clear, "Clears the console text.");
+    Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.", CMD_NONE);
+    Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
+    Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
+    Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
+    Commands_Register("exit", Cmd_Quit, "Alias for the 'quit' command.", CMD_NONE);
+    Commands_Register("setpos", Cmd_SetPos, "Teleports the player to a specified XYZ coordinate.", CMD_CHEAT);
+    Commands_Register("noclip", Cmd_Noclip, "Toggles player collision and gravity.", CMD_CHEAT);
+    Commands_Register("bind", Cmd_Bind, "Binds a key to a command.", CMD_NONE);
+    Commands_Register("unbind", Cmd_Unbind, "Removes a key binding.", CMD_NONE);
+    Commands_Register("unbindall", Cmd_UnbindAll, "Removes all key bindings.", CMD_NONE);
+    Commands_Register("map", Cmd_Map, "Loads the specified map.", CMD_NONE);
+    Commands_Register("maps", Cmd_Maps, "Lists all available .map files in the root directory.", CMD_NONE);
+    Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.", CMD_NONE);
+    Commands_Register("download", Cmd_Download, "Downloads a file from a URL.", CMD_NONE);
+    Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.", CMD_NONE);
+    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
+    Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.", CMD_NONE);
+    Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.", CMD_NONE);
+    Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
+    Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
 
     Console_Printf("Command System Initialized. Registered %d commands.", g_num_commands);
 }
@@ -66,7 +66,7 @@ void Commands_Init(void) {
 void Commands_Shutdown(void) {
 }
 
-void Commands_Register(const char* name, command_func_t func, const char* description) {
+void Commands_Register(const char* name, command_func_t func, const char* description, int flags) {
     if (g_num_commands >= MAX_COMMANDS) {
         Console_Printf_Error("ERROR: Command registration failed, max commands reached.");
         return;
@@ -74,6 +74,7 @@ void Commands_Register(const char* name, command_func_t func, const char* descri
     g_commands[g_num_commands].name = name;
     g_commands[g_num_commands].function = func;
     g_commands[g_num_commands].description = description;
+    g_commands[g_num_commands].flags = flags;
     g_num_commands++;
 }
 
@@ -83,6 +84,10 @@ void Commands_Execute(int argc, char** argv) {
 
     for (int i = 0; i < g_num_commands; ++i) {
         if (_stricmp(cmd_name, g_commands[i].name) == 0) {
+            if ((g_commands[i].flags & CMD_CHEAT) && Cvar_GetInt("g_cheats") == 0) {
+                Console_Printf_Error("Command '%s' is cheat protected.", cmd_name);
+                return;
+            }
             g_commands[i].function(argc, argv);
             return;
         }
