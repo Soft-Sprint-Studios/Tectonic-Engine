@@ -728,6 +728,8 @@ void init_cvars() {
     Cvar_Register("g_accel", "15.0", "Player acceleration", CVAR_NONE);
     Cvar_Register("g_friction", "5.0", "Player friction", CVAR_NONE);
     Cvar_Register("g_jump_force", "350.0", "Player jump force", CVAR_NONE);
+    Cvar_Register("g_bob", "0.01", "The amount of view bobbing.", CVAR_NONE);
+    Cvar_Register("g_bobcycle", "0.8", "The speed of the view bobbing.", CVAR_NONE);
 #ifdef GAME_RELEASE
     Cvar_Register("g_cheats", "0", "Enable cheats (0=off, 1=on)", CVAR_NONE);
 #else
@@ -3276,6 +3278,19 @@ int main(int argc, char* argv[]) {
             Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
             Vec3 t = vec3_add(g_engine->camera.position, f);
             Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
+            Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+            float speed = sqrtf(vel.x * vel.x + vel.z * vel.z);
+            if (speed > 0.1f) {
+                float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
+                float bob_amt = Cvar_GetFloat("g_bob");
+
+                Mat4 bob_matrix;
+                mat4_identity(&bob_matrix);
+                bob_matrix.m[13] = -fabs(sin(bob_cycle)) * bob_amt;
+                bob_matrix.m[12] = cos(bob_cycle * 2.0f) * bob_amt * 0.5f;
+
+                mat4_multiply(&view, &view, &bob_matrix);
+            }
             float fov_degrees = Cvar_GetFloat("fov_vertical");
             Mat4 projection = mat4_perspective(fov_degrees * (M_PI / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
             Mat4 sunLightSpaceMatrix;
