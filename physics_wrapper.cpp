@@ -141,6 +141,7 @@ extern "C" {
 
         body->setFriction(0.8f);
         body->setRestitution(0.2f);
+        body->setDamping(0.2f, 0.5f);
 
         if (mass > 0.0f) {
             world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
@@ -170,6 +171,7 @@ extern "C" {
 
         body->setFriction(0.7f);
         body->setRestitution(0.1f);
+        body->setDamping(0.2f, 0.5f);
 
         world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
 
