@@ -69,6 +69,7 @@ const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 
 static bool g_screenshot_requested = false;
 static char g_screenshot_path[256] = { 0 };
+static int g_last_deactivation_cvar_state = -1;
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 static void BuildCubemaps();
@@ -738,6 +739,7 @@ void init_cvars() {
     Cvar_Register("crosshair", "1", "Enable crosshair (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Game speed scale", CVAR_CHEAT);
     Cvar_Register("sensitivity", "1.0", "Mouse sensitivity.", CVAR_NONE);
+    Cvar_Register("p_disable_deactivation", "0", "Disables physics objects sleeping (0=off, 1=on).", CVAR_NONE);
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
@@ -1408,6 +1410,13 @@ void process_input() {
 }
 
 void update_state() {
+    int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
+    if (deactivation_cvar != g_last_deactivation_cvar_state) {
+        if (g_engine->physicsWorld) {
+            Physics_SetDeactivationEnabled(g_engine->physicsWorld, deactivation_cvar == 0);
+        }
+        g_last_deactivation_cvar_state = deactivation_cvar;
+    }
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);

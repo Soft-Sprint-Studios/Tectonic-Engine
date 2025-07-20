@@ -13,6 +13,8 @@
 
 #include "physics_wrapper.h"
 
+static bool g_physics_deactivation_enabled = true;
+
 struct PhysicsWorld {
     btDiscreteDynamicsWorld* dynamicsWorld;
     btDefaultCollisionConfiguration* collisionConfiguration;
@@ -106,7 +108,9 @@ extern "C" {
         btRigidBody* body = new btRigidBody(rbInfo);
 
         body->setAngularFactor(btVector3(0, 1, 0));
-        body->setActivationState(DISABLE_DEACTIVATION);
+        if (!g_physics_deactivation_enabled) {
+            body->setActivationState(DISABLE_DEACTIVATION);
+        }
         body->setFriction(0.2f);
 
         world->dynamicsWorld->addRigidBody(body, COL_PLAYER, COL_STATIC | COL_DYNAMIC);
@@ -207,7 +211,9 @@ extern "C" {
         btRigidBody* body = new btRigidBody(rbInfo);
 
         body->setFriction(1.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
+        if (!g_physics_deactivation_enabled) {
+            body->setActivationState(DISABLE_DEACTIVATION);
+        }
         world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
         world->meshInterfaces[body] = meshInterface;
 
@@ -468,6 +474,27 @@ extern "C" {
                     btVector3 angularVelocity = body->getAngularVelocity();
                     btVector3 angularDrag = -angularVelocity * 0.5f;
                     body->applyTorque(angularDrag);
+                }
+            }
+        }
+    }
+
+    void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, bool enabled) {
+        if (!handle) return;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+        g_physics_deactivation_enabled = enabled;
+
+        for (int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
+            btCollisionObject* obj = world->dynamicsWorld->getCollisionObjectArray()[i];
+            btRigidBody* body = btRigidBody::upcast(obj);
+
+            if (body && body->getInvMass() > 0.0f) {
+                if (enabled) {
+                    body->forceActivationState(ACTIVE_TAG);
+                    body->activate(true);
+                }
+                else {
+                    body->setActivationState(DISABLE_DEACTIVATION);
                 }
             }
         }
