@@ -24,6 +24,7 @@ extern "C" {
 
 #define CVAR_NONE   (0)
 #define CVAR_HIDDEN (1 << 0)
+#define CVAR_CHEAT  (1 << 1)
 
 typedef struct {
     char name[64];

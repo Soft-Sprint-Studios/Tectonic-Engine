@@ -105,11 +105,9 @@ void Cvar_Set(const char* name, const char* value) {
             Console_Printf("Cvar '%s' is protected and cannot be modified from the console.", name);
             return;
         }
-        if (_stricmp(name, "timescale") == 0 && strcmp(value, "1.0") != 0) {
-            if (Cvar_GetInt("g_cheats") == 0) {
-                Console_Printf_Error("You must enable cheats to use this cvar.");
-                return;
-            }
+        if (c->flags & CVAR_CHEAT) {
+            Console_Printf_Error("Cvar '%s' is cheat protected.", name);
+            return;
         }
         strncpy(c->stringValue, value, MAX_COMMAND_LENGTH - 1);
         c->stringValue[MAX_COMMAND_LENGTH - 1] = '\0';
@@ -117,7 +115,7 @@ void Cvar_Set(const char* name, const char* value) {
         Console_Printf("Cvar '%s' set to '%s'", name, value);
     }
     else {
-        Console_Printf("Cvar '%s' not found.", name);
+        Console_Printf_Error("Cvar '%s' not found.", name);
     }
 }
 

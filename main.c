@@ -742,7 +742,7 @@ void init_cvars() {
     Cvar_Register("g_cheats", "1", "Enable cheats (0=off, 1=on)", CVAR_NONE);
 #endif
     Cvar_Register("crosshair", "1", "Enable crosshair (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("timescale", "1.0", "Game speed scale", CVAR_NONE);
+    Cvar_Register("timescale", "1.0", "Game speed scale", CVAR_CHEAT);
     Cvar_Register("sensitivity", "1.0", "Mouse sensitivity.", CVAR_NONE);
 }
 
