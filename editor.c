@@ -195,7 +195,11 @@ typedef struct {
     int num_doc_files;
     int selected_doc_index;
     char* current_doc_content;
+    char** recent_map_files;
+    int num_recent_map_files;
 } EditorState;
+
+#define MAX_RECENT_FILES 10
 
 static EditorState g_EditorState;
 static Scene* g_CurrentScene;
@@ -327,6 +331,58 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
 
     Undo_EndEntityModification(scene, ENTITY_BRUSH, brush_index, "Subdivide Face");
     Console_Printf("Subdivided face %d of brush %d.", face_index, brush_index);
+}
+
+static void Editor_SaveRecentFiles() {
+    FILE* file = fopen("editor_prefs.cfg", "w");
+    if (!file) return;
+    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+        fprintf(file, "%s\n", g_EditorState.recent_map_files[i]);
+    }
+    fclose(file);
+}
+
+static void Editor_LoadRecentFiles() {
+    FILE* file = fopen("editor_prefs.cfg", "r");
+    if (!file) return;
+
+    char line[256];
+    while (fgets(line, sizeof(line), file) && g_EditorState.num_recent_map_files < MAX_RECENT_FILES) {
+        line[strcspn(line, "\r\n")] = 0;
+        if (strlen(line) > 0) {
+            g_EditorState.recent_map_files = realloc(g_EditorState.recent_map_files, (g_EditorState.num_recent_map_files + 1) * sizeof(char*));
+            g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = _strdup(line);
+            g_EditorState.num_recent_map_files++;
+        }
+    }
+    fclose(file);
+}
+
+static void Editor_AddRecentFile(const char* path) {
+    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+        if (strcmp(g_EditorState.recent_map_files[i], path) == 0) {
+            free(g_EditorState.recent_map_files[i]);
+            for (int j = i; j < g_EditorState.num_recent_map_files - 1; ++j) {
+                g_EditorState.recent_map_files[j] = g_EditorState.recent_map_files[j + 1];
+            }
+            g_EditorState.num_recent_map_files--;
+            break;
+        }
+    }
+
+    if (g_EditorState.num_recent_map_files >= MAX_RECENT_FILES) {
+        free(g_EditorState.recent_map_files[MAX_RECENT_FILES - 1]);
+        g_EditorState.num_recent_map_files = MAX_RECENT_FILES - 1;
+    }
+    g_EditorState.recent_map_files = realloc(g_EditorState.recent_map_files, (g_EditorState.num_recent_map_files + 1) * sizeof(char*));
+    for (int i = g_EditorState.num_recent_map_files; i > 0; --i) {
+        g_EditorState.recent_map_files[i] = g_EditorState.recent_map_files[i - 1];
+    }
+
+    g_EditorState.recent_map_files[0] = _strdup(path);
+    g_EditorState.num_recent_map_files++;
+
+    Editor_SaveRecentFiles();
 }
 
 static void FreeModelFileList() {
@@ -1273,6 +1329,9 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.num_doc_files = 0;
     g_EditorState.selected_doc_index = -1;
     g_EditorState.current_doc_content = NULL;
+    g_EditorState.recent_map_files = NULL;
+    g_EditorState.num_recent_map_files = 0;
+    Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
@@ -1302,6 +1361,12 @@ void Editor_Shutdown() {
     glDeleteBuffers(1, &g_EditorState.gizmo_vbo);
     glDeleteVertexArrays(1, &g_EditorState.player_start_gizmo_vao);
     glDeleteBuffers(1, &g_EditorState.player_start_gizmo_vbo);
+    if (g_EditorState.recent_map_files) {
+        for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+            free(g_EditorState.recent_map_files[i]);
+        }
+        free(g_EditorState.recent_map_files);
+    }
     FreeDocFileList();
     if (g_EditorState.current_doc_content) {
         free(g_EditorState.current_doc_content);
@@ -6421,12 +6486,32 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
                 else {
                     Scene_SaveMap(scene, g_EditorState.currentMapPath);
-                    Console_Printf("Map saved to %s", g_EditorState.currentMapPath);
+                    Editor_AddRecentFile(g_EditorState.currentMapPath);
                 }
             }
             if (UI_MenuItem("Save Map As...", NULL, false, true)) {
                 g_EditorState.show_save_map_popup = true;
             }
+            UI_Separator();
+            if (UI_BeginMenu("Recent Files", g_EditorState.num_recent_map_files > 0)) {
+                for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+                    if (UI_MenuItem(g_EditorState.recent_map_files[i], NULL, false, true)) {
+                        const char* path_to_load = g_EditorState.recent_map_files[i];
+
+                        Scene_Clear(scene, engine);
+                        if (Scene_LoadMap(scene, renderer, path_to_load, engine)) {
+                            strcpy(g_EditorState.currentMapPath, path_to_load);
+                            Editor_AddRecentFile(path_to_load);
+                            Undo_Init();
+                        }
+                        else {
+                            Console_Printf_Error("Failed to load recent map: %s", path_to_load);
+                        }
+                    }
+                }
+                UI_EndMenu();
+            }
+            UI_Separator();
             if (UI_MenuItem("Exit Editor", "F5", false, true)) { char* args[] = { "edit" }; handle_command(1, args); }
             UI_EndMenu();
         }
@@ -6461,6 +6546,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Save")) {
             Scene_SaveMap(scene, g_EditorState.save_map_path);
             strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
+            Editor_AddRecentFile(g_EditorState.currentMapPath);
             Console_Printf("Map saved to %s", g_EditorState.currentMapPath);
             g_EditorState.show_save_map_popup = false;
         }
