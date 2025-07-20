@@ -14,6 +14,8 @@
 #include <string.h>
 #include <ctype.h>
 
+static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
+
 static float rand_float(float min, float max) {
     if (min > max) { float temp = min; min = max; max = temp; }
     return min + (rand() / (float)RAND_MAX) * (max - min);
@@ -138,7 +140,6 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
     }
 
     emitter->activeParticles = 0;
-    ParticleVertex* vboData = (ParticleVertex*)malloc(ps->maxParticles * sizeof(ParticleVertex));
     for (int i = 0; i < ps->maxParticles; ++i) {
         Particle* p = &emitter->particles[i];
         if (p->life > 0.0f) {
@@ -169,7 +170,6 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
         glBufferSubData(GL_ARRAY_BUFFER, 0, emitter->activeParticles * sizeof(ParticleVertex), vboData);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
-    free(vboData);
 }
 
 void ParticleEmitter_Render(ParticleEmitter* emitter, Mat4 view, Mat4 projection) {
