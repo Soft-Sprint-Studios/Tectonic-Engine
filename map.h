@@ -340,6 +340,7 @@ typedef struct {
     GLuint textureID;
     ALuint audioSource;
     ALuint audioBuffers[4];
+    uint8_t* rgb_buffer;
     double time;
     double nextFrameTime;
 } VideoPlayer;

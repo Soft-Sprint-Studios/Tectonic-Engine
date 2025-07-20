@@ -64,6 +64,10 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     plm_set_audio_enabled(vp->plm, false);
     plm_set_loop(vp->plm, vp->loop);
 
+    int width = plm_get_width(vp->plm);
+    int height = plm_get_height(vp->plm);
+    vp->rgb_buffer = (uint8_t*)malloc(width * height * 3);
+
     vp->time = 0;
     vp->nextFrameTime = 0;
 
@@ -86,6 +90,10 @@ void VideoPlayer_Free(VideoPlayer* vp) {
     if (vp->plm) {
         plm_destroy(vp->plm);
         vp->plm = NULL;
+    }
+    if (vp->rgb_buffer) {
+        free(vp->rgb_buffer);
+        vp->rgb_buffer = NULL;
     }
     if (vp->textureID) {
         glDeleteTextures(1, &vp->textureID);
@@ -122,45 +130,6 @@ void VideoPlayer_Restart(VideoPlayer* vp) {
     VideoPlayer_Play(vp);
 }
 
-uint8_t* ConvertFrameToRGB(plm_frame_t* frame) {
-    int width = frame->width;
-    int height = frame->height;
-    uint8_t* rgb = (uint8_t*)malloc(width * height * 3);
-    if (!rgb) return NULL;
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int y_index = y * width + x;
-            int cbcr_x = x / 2;
-            int cbcr_y = y / 2;
-            int cbcr_index = cbcr_y * (width / 2) + cbcr_x;
-
-            uint8_t Y = frame->y.data[y_index];
-            uint8_t Cb = frame->cb.data[cbcr_index];
-            uint8_t Cr = frame->cr.data[cbcr_index];
-
-            float fY = (float)Y;
-            float fCb = (float)Cb - 128.0f;
-            float fCr = (float)Cr - 128.0f;
-
-            float R = fY + 1.402f * fCr;
-            float G = fY - 0.344136f * fCb - 0.714136f * fCr;
-            float B = fY + 1.772f * fCb;
-
-            uint8_t r = (uint8_t)fmaxf(0.0f, fminf(255.0f, R));
-            uint8_t g = (uint8_t)fmaxf(0.0f, fminf(255.0f, G));
-            uint8_t b = (uint8_t)fmaxf(0.0f, fminf(255.0f, B));
-
-            int out_index = (y * width + x) * 3;
-            rgb[out_index + 0] = r;
-            rgb[out_index + 1] = g;
-            rgb[out_index + 2] = b;
-        }
-    }
-
-    return rgb;
-}
-
 void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
     if (!vp->plm || vp->state != VP_PLAYING) return;
 
@@ -169,18 +138,15 @@ void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
     if (vp->time >= vp->nextFrameTime) {
         plm_frame_t* vframe = plm_decode_video(vp->plm);
         if (vframe) {
-            uint8_t* rgb = ConvertFrameToRGB(vframe);
-            if (rgb) {
-                glBindTexture(GL_TEXTURE_2D, vp->textureID);
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width, vframe->height,
-                    GL_RGB, GL_UNSIGNED_BYTE, rgb);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                free(rgb);
-            }
+            plm_frame_to_rgb(vframe, vp->rgb_buffer, vframe->width * 3);
+
+            glBindTexture(GL_TEXTURE_2D, vp->textureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width, vframe->height,
+                GL_RGB, GL_UNSIGNED_BYTE, vp->rgb_buffer);
+            glBindTexture(GL_TEXTURE_2D, 0);
 
             double frameDuration = 1.0 / plm_get_framerate(vp->plm);
             vp->nextFrameTime += frameDuration;
-
         }
         else {
             if (vp->loop) {
