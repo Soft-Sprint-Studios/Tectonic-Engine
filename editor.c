@@ -493,7 +493,7 @@ static void ScanSoundFiles() {
     do {
         if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
             const char* ext = strrchr(find_data.cFileName, '.');
-            if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0)) {
+            if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0 || _stricmp(ext, ".ogg") == 0)) {
                 g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
                 g_EditorState.sound_file_list[g_EditorState.num_sound_files] = _strdup(find_data.cFileName);
                 g_EditorState.num_sound_files++;
@@ -507,7 +507,7 @@ static void ScanSoundFiles() {
     struct dirent* dir;
     while ((dir = readdir(d)) != NULL) {
         const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0)) {
+        if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0 || _stricmp(ext, ".ogg") == 0)) {
             g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
             g_EditorState.sound_file_list[g_EditorState.num_sound_files] = strdup(dir->d_name);
             g_EditorState.num_sound_files++;
