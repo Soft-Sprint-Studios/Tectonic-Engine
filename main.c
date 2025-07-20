@@ -702,7 +702,7 @@ void init_cvars() {
     Cvar_Register("r_vsync", "1", "Enable vertical sync (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable motion blur (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_fxaa", "1", "Enable depth-based anti-aliasing (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_skybox", "0", "Enable skybox (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_skybox", "1", "Enable skybox (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles", "1", "Enable particles (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
     Cvar_Register("r_sprites", "1", "Enable sprites (0=off, 1=on)", CVAR_NONE);
