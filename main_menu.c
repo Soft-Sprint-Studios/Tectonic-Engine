@@ -149,7 +149,6 @@ static void MainMenu_RenderOptionsMenu() {
                 if (UI_Checkbox("Depth of Field", &dof)) {
                     Cvar_Set("r_dof", dof ? "1" : "0");
                 }
-                // --- End of Fix ---
                 UI_EndTabItem();
             }
 
