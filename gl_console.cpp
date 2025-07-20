@@ -259,6 +259,37 @@ extern "C" {
             draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
         }
     }
+    void UI_RenderDeveloperOverlay(void) {
+        if (Cvar_GetInt("developer") == 0) {
+            return;
+        }
+
+        const float DISTANCE = 10.0f;
+        ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE + 80);
+        ImVec2 window_pos_pivot = ImVec2(0.0f, 0.0f);
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        ImGui::SetNextWindowBgAlpha(0.0f);
+
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+
+        if (ImGui::Begin("DeveloperOverlay", NULL, window_flags)) {
+            int start_index = console_instance.Items.size() - 10;
+            if (start_index < 0) start_index = 0;
+
+            for (int i = start_index; i < console_instance.Items.size(); i++) {
+                const ConsoleItem& item = console_instance.Items[i];
+                ImVec4 color;
+                bool has_color = false;
+                if (item.color == CONSOLE_COLOR_RED) { color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); has_color = true; }
+                else if (item.color == CONSOLE_COLOR_YELLOW) { color = ImVec4(1.0f, 1.0f, 0.4f, 1.0f); has_color = true; }
+
+                if (has_color) ImGui::PushStyleColor(ImGuiCol_Text, color);
+                ImGui::TextUnformatted(item.text);
+                if (has_color) ImGui::PopStyleColor();
+            }
+        }
+        ImGui::End();
+    }
     bool UI_Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
     bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
     void UI_OpenPopup(const char* str_id) { ImGui::OpenPopup(str_id); }

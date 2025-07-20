@@ -41,6 +41,7 @@ extern "C" {
 	bool Console_IsVisible();
 	void Console_ClearLog();
 	void UI_RenderGameHUD(float fps, float px, float py, float pz, const float* fps_history, int history_size);
+	void UI_RenderDeveloperOverlay(void);
 	typedef void (*command_callback_t)(int argc, char** argv);
 	void Console_SetCommandHandler(command_callback_t handler);
 

@@ -671,6 +671,7 @@ void Cmd_Echo(int argc, char** argv) {
 }
 
 void init_cvars() {
+    Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
@@ -3395,6 +3396,7 @@ int main(int argc, char* argv[]) {
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_fps_history, FPS_GRAPH_SAMPLES);
+            UI_RenderDeveloperOverlay();
         }
         Console_Draw(); 
         if (g_screenshot_requested) {
