@@ -687,6 +687,7 @@ void init_cvars() {
     Cvar_Register("r_wireframe", "0", "Render geometry in wireframe mode. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Master switch for all dynamic shadows. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows_static", "0", "Generate point/spot light shadows only once on map load. (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_shadow_distance_max", "100.0", "Maximum distance from camera at which point/spot lights will cast shadows.", CVAR_NONE);
     Cvar_Register("r_vpl_directional", "1", "Enables directional lighting for VPL global illumination.", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Master switch for Virtual Point Light Global Illumination. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_point_count", "64", "Number of VPLs to generate per point light.", CVAR_NONE);
@@ -2030,10 +2031,13 @@ void render_shadows() {
     if (shadow_map_size <= 0) {
         shadow_map_size = 1024;
     }
+    float max_shadow_dist = Cvar_GetFloat("r_shadow_distance_max");
+    float max_shadow_dist_sq = max_shadow_dist * max_shadow_dist;
     glViewport(0, 0, shadow_map_size, shadow_map_size);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
         if (light->intensity <= 0.0f) continue;
+        if (vec3_length_sq(vec3_sub(light->position, g_engine->camera.position)) > max_shadow_dist_sq) continue;
         glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO); 
         glClear(GL_DEPTH_BUFFER_BIT);
         GLuint current_shader;
