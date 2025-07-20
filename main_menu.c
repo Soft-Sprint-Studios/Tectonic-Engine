@@ -48,12 +48,39 @@ static float g_button_hover_offset = 0.0f;
 static bool g_is_in_game_menu = false;
 static bool g_is_map_loaded = false;
 
+static int find_int_in_array(int value, const int* arr, int arr_size) {
+    for (int i = 0; i < arr_size; ++i) {
+        if (arr[i] == value) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static void MainMenu_RenderOptionsMenu() {
     UI_SetNextWindowSize(500, 400);
     if (UI_Begin("Options", &g_show_options_menu)) {
 
         if (UI_BeginTabBar("OptionsTabs", 0)) {
+            if (UI_BeginTabItem("Gameplay")) {
+                float fov = Cvar_GetFloat("fov_vertical");
+                if (UI_DragFloat("Field of View", &fov, 1.0f, 55.0f, 110.0f)) {
+                    char value_str[16];
+                    sprintf(value_str, "%.0f", fov);
+                    Cvar_Set("fov_vertical", value_str);
+                }
+
+                bool crosshair = Cvar_GetInt("crosshair");
+                if (UI_Checkbox("Show Crosshair", &crosshair)) {
+                    Cvar_Set("crosshair", crosshair ? "1" : "0");
+                }
+                UI_EndTabItem();
+            }
+
             if (UI_BeginTabItem("Graphics")) {
+                UI_Text("Display");
+                UI_Separator();
+
                 const char* quality_levels[] = { "Very Low", "Low", "Medium", "High", "Very High" };
                 int current_quality = Cvar_GetInt("r_texture_quality") - 1;
                 if (UI_Combo("Texture Quality", &current_quality, quality_levels, 5, -1)) {
@@ -62,10 +89,26 @@ static void MainMenu_RenderOptionsMenu() {
                     Cvar_Set("r_texture_quality", value_str);
                 }
 
+                const char* fps_options[] = { "30", "60", "120", "144", "240", "Unlimited" };
+                const int fps_values[] = { 30, 60, 120, 144, 240, 0 };
+                int current_fps_limit = Cvar_GetInt("fps_max");
+                int selection = find_int_in_array(current_fps_limit, fps_values, 6);
+                if (selection == -1) selection = 5;
+
+                if (UI_Combo("Max FPS", &selection, fps_options, 6, -1)) {
+                    char value_str[8];
+                    sprintf(value_str, "%d", fps_values[selection]);
+                    Cvar_Set("fps_max", value_str);
+                }
+
                 bool vsync = Cvar_GetInt("r_vsync");
                 if (UI_Checkbox("V-Sync", &vsync)) {
                     Cvar_Set("r_vsync", vsync ? "1" : "0");
                 }
+
+                UI_Spacing();
+                UI_Text("Effects");
+                UI_Separator();
 
                 bool fxaa = Cvar_GetInt("r_fxaa");
                 if (UI_Checkbox("FXAA", &fxaa)) {
@@ -81,6 +124,32 @@ static void MainMenu_RenderOptionsMenu() {
                 if (UI_Checkbox("SSAO", &ssao)) {
                     Cvar_Set("r_ssao", ssao ? "1" : "0");
                 }
+
+                bool shadows = Cvar_GetInt("r_shadows_static");
+                if (UI_Checkbox("Dynamic Shadows", &shadows)) {
+                    Cvar_Set("r_shadows_static", shadows ? "0" : "1");
+                }
+
+                bool volumetrics = Cvar_GetInt("r_volumetrics");
+                if (UI_Checkbox("Volumetric Lighting", &volumetrics)) {
+                    Cvar_Set("r_volumetrics", volumetrics ? "1" : "0");
+                }
+
+                bool relief = Cvar_GetInt("r_relief_mapping");
+                if (UI_Checkbox("Relief Mapping", &relief)) {
+                    Cvar_Set("r_relief_mapping", relief ? "1" : "0");
+                }
+
+                bool motionblur = Cvar_GetInt("r_motionblur");
+                if (UI_Checkbox("Motion Blur", &motionblur)) {
+                    Cvar_Set("r_motionblur", motionblur ? "1" : "0");
+                }
+
+                bool dof = Cvar_GetInt("r_dof");
+                if (UI_Checkbox("Depth of Field", &dof)) {
+                    Cvar_Set("r_dof", dof ? "1" : "0");
+                }
+                // --- End of Fix ---
                 UI_EndTabItem();
             }
 
