@@ -374,4 +374,12 @@ extern "C" {
     void UI_TableNextRow() { ImGui::TableNextRow(); }
     void UI_TableNextColumn() { ImGui::TableNextColumn(); }
     void UI_TableHeadersRow() { ImGui::TableHeadersRow(); }
+    bool UI_BeginTabBar(const char* str_id, int flags) { return ImGui::BeginTabBar(str_id, (ImGuiTabBarFlags)flags); }
+    void UI_EndTabBar() { ImGui::EndTabBar(); }
+    bool UI_BeginTabItem(const char* label) { return ImGui::BeginTabItem(label); }
+    void UI_EndTabItem() { ImGui::EndTabItem(); }
+    void UI_SetCursorPosX(float x) { ImGui::SetCursorPosX(x); }
+    float UI_GetWindowWidth() { return ImGui::GetWindowSize().x; }
+    bool UI_WantCaptureMouse() { return ImGui::GetIO().WantCaptureMouse; }
+    bool UI_WantCaptureKeyboard() { return ImGui::GetIO().WantCaptureKeyboard; }
 }

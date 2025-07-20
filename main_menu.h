@@ -20,6 +20,8 @@
 extern "C" {
 #endif
 
+extern bool g_show_options_menu;
+
 typedef enum {
     MAINMENU_ACTION_NONE,
     MAINMENU_ACTION_START_GAME,

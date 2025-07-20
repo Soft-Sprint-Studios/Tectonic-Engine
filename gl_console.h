@@ -124,6 +124,16 @@ extern "C" {
 	void UI_GetDisplaySize(float* w, float* h);
 	void UI_Spacing();
 
+	bool UI_BeginTabBar(const char* str_id, int flags);
+	void UI_EndTabBar();
+	bool UI_BeginTabItem(const char* label);
+	void UI_EndTabItem();
+	void UI_SetCursorPosX(float x);
+	float UI_GetWindowWidth();
+
+	bool UI_WantCaptureMouse();
+	bool UI_WantCaptureKeyboard();
+
 #ifdef __cplusplus
 }
 #endif

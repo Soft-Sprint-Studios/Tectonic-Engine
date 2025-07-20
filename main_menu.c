@@ -15,6 +15,9 @@
 #include "gl_console.h"
 #include "math_lib.h"
 #include "gl_misc.h"
+#include "cvar.h"
+
+bool g_show_options_menu = false;
 
 static TTF_Font* g_menu_font = NULL;
 static GLuint g_text_texture_start = 0;
@@ -44,6 +47,75 @@ static float g_button_hover_offset = 0.0f;
 
 static bool g_is_in_game_menu = false;
 static bool g_is_map_loaded = false;
+
+static void MainMenu_RenderOptionsMenu() {
+    UI_SetNextWindowSize(500, 400);
+    if (UI_Begin("Options", &g_show_options_menu)) {
+
+        if (UI_BeginTabBar("OptionsTabs", 0)) {
+            if (UI_BeginTabItem("Graphics")) {
+                const char* quality_levels[] = { "Very Low", "Low", "Medium", "High", "Very High" };
+                int current_quality = Cvar_GetInt("r_texture_quality") - 1;
+                if (UI_Combo("Texture Quality", &current_quality, quality_levels, 5, -1)) {
+                    char value_str[4];
+                    sprintf(value_str, "%d", current_quality + 1);
+                    Cvar_Set("r_texture_quality", value_str);
+                }
+
+                bool vsync = Cvar_GetInt("r_vsync");
+                if (UI_Checkbox("V-Sync", &vsync)) {
+                    Cvar_Set("r_vsync", vsync ? "1" : "0");
+                }
+
+                bool fxaa = Cvar_GetInt("r_fxaa");
+                if (UI_Checkbox("FXAA", &fxaa)) {
+                    Cvar_Set("r_fxaa", fxaa ? "1" : "0");
+                }
+
+                bool bloom = Cvar_GetInt("r_bloom");
+                if (UI_Checkbox("Bloom", &bloom)) {
+                    Cvar_Set("r_bloom", bloom ? "1" : "0");
+                }
+
+                bool ssao = Cvar_GetInt("r_ssao");
+                if (UI_Checkbox("SSAO", &ssao)) {
+                    Cvar_Set("r_ssao", ssao ? "1" : "0");
+                }
+                UI_EndTabItem();
+            }
+
+            if (UI_BeginTabItem("Audio")) {
+                float volume = Cvar_GetFloat("volume");
+                if (UI_DragFloat("Master Volume", &volume, 0.01f, 0.0f, 4.0f)) {
+                    char value_str[16];
+                    sprintf(value_str, "%.2f", volume);
+                    Cvar_Set("volume", value_str);
+                }
+                UI_EndTabItem();
+            }
+
+            if (UI_BeginTabItem("Controls")) {
+                float sensitivity = Cvar_GetFloat("sensitivity");
+                if (UI_DragFloat("Mouse Sensitivity", &sensitivity, 0.01f, 0.1f, 10.0f)) {
+                    char value_str[16];
+                    sprintf(value_str, "%.2f", sensitivity);
+                    Cvar_Set("sensitivity", value_str);
+                }
+                UI_EndTabItem();
+            }
+            UI_EndTabBar();
+        }
+
+        UI_Separator();
+        float button_width = 80.0f;
+        float window_width = UI_GetWindowWidth();
+        UI_SetCursorPosX(window_width - button_width - 15.0f);
+        if (UI_Button("Close")) {
+            g_show_options_menu = false;
+        }
+    }
+    UI_End();
+}
 
 static GLuint create_text_texture(TTF_Font* font, const char* text, SDL_Color color, int* width_out, int* height_out) {
     if (!font || !text) return 0;
@@ -177,11 +249,14 @@ void MainMenu_SetInGameMenuMode(bool is_in_game, bool is_map_loaded_state) {
 }
 
 MainMenuAction MainMenu_HandleEvent(SDL_Event* event) {
+    if (g_show_options_menu && (UI_WantCaptureMouse() || UI_WantCaptureKeyboard())) {
+        return MAINMENU_ACTION_NONE;
+    }
     if (event->type == SDL_MOUSEMOTION) {
         int mouseX = event->motion.x;
         int mouseY = event->motion.y;
         float button_spacing = 60.0f;
-        float button_y_start = g_screen_height / 2.0f - 20.0f;
+        float button_y_start = g_screen_height / 2.0f - (g_is_in_game_menu ? 80.0f : 20.0f);
         float start_x = (g_screen_width - g_text_width_start) / 2.0f;
         float start_y = button_y_start;
         if (mouseX >= start_x && mouseX <= start_x + g_text_width_start &&
@@ -207,7 +282,10 @@ MainMenuAction MainMenu_HandleEvent(SDL_Event* event) {
                 if (g_is_in_game_menu && g_is_map_loaded) return MAINMENU_ACTION_CONTINUE_GAME;
                 else return MAINMENU_ACTION_START_GAME;
             }
-            if (g_selected_button_index == 1) return MAINMENU_ACTION_OPTIONS;
+            if (g_selected_button_index == 1) {
+                g_show_options_menu = true;
+                return MAINMENU_ACTION_NONE;
+            }
             if (g_selected_button_index == 2) return MAINMENU_ACTION_QUIT;
         }
     }
@@ -223,7 +301,10 @@ MainMenuAction MainMenu_HandleEvent(SDL_Event* event) {
                 if (g_is_in_game_menu && g_is_map_loaded) return MAINMENU_ACTION_CONTINUE_GAME;
                 else return MAINMENU_ACTION_START_GAME;
             }
-            if (g_selected_button_index == 1) return MAINMENU_ACTION_OPTIONS;
+            if (g_selected_button_index == 1) {
+                g_show_options_menu = true;
+                return MAINMENU_ACTION_NONE;
+            }
             if (g_selected_button_index == 2) return MAINMENU_ACTION_QUIT;
         }
     }
@@ -242,8 +323,9 @@ void MainMenu_Render() {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    Mat4 projection_matrix;
-    projection_matrix = mat4_ortho(0.0f, (float)g_screen_width, (float)g_screen_height, 0.0f, -1.0f, 1.0f);
+
+    Mat4 projection_matrix = mat4_ortho(0.0f, (float)g_screen_width, (float)g_screen_height, 0.0f, -1.0f, 1.0f);
+
     glUseProgram(g_menu_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_menu_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
 
@@ -262,23 +344,31 @@ void MainMenu_Render() {
 
     SDL_Color normal_color = { 255, 255, 255, 255 };
     SDL_Color hover_color = { 255, 255, 0, 255 };
+
     float current_button_offset_x = (g_selected_button_index == 0) ? g_button_hover_offset : 0.0f;
     SDL_Color current_button_color = (g_selected_button_index == 0) ? hover_color : normal_color;
     render_textured_quad(g_text_texture_start, (g_screen_width - g_text_width_start) / 2.0f,
         button_y_start, g_text_width_start, g_text_height_start,
         current_button_color, current_button_offset_x);
+
     current_button_offset_x = (g_selected_button_index == 1) ? g_button_hover_offset : 0.0f;
     current_button_color = (g_selected_button_index == 1) ? hover_color : normal_color;
     render_textured_quad(g_text_texture_options, (g_screen_width - g_text_width_options) / 2.0f,
         button_y_start + g_text_height_start + button_spacing,
         g_text_width_options, g_text_height_options,
         current_button_color, current_button_offset_x);
+
     current_button_offset_x = (g_selected_button_index == 2) ? g_button_hover_offset : 0.0f;
     current_button_color = (g_selected_button_index == 2) ? hover_color : normal_color;
     render_textured_quad(g_text_texture_quit, (g_screen_width - g_text_width_quit) / 2.0f,
         button_y_start + g_text_height_start * 2 + button_spacing * 2,
         g_text_width_quit, g_text_height_quit,
         current_button_color, current_button_offset_x);
+
+    if (g_show_options_menu) {
+        MainMenu_RenderOptionsMenu();
+    }
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 }

@@ -3242,6 +3242,7 @@ int main(int argc, char* argv[]) {
             g_fps_last_update = currentTicks;
             g_fps_frame_count = 0;
         }
+        UI_BeginFrame();
         process_input(); update_state();
         if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
             const GameConfig* config = GameConfig_Get();
@@ -3380,7 +3381,6 @@ int main(int argc, char* argv[]) {
             Editor_RenderAllViewports(g_engine, &g_renderer, &g_scene);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
-        UI_BeginFrame();
         if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
