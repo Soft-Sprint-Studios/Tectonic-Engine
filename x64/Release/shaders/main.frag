@@ -89,6 +89,7 @@ uniform float heightScale;
 uniform float heightScale2;
 uniform float heightScale3;
 uniform float heightScale4;
+uniform bool u_isParallaxEnabled;
 
 uniform float u_roughness_override;
 uniform float u_metalness_override;
@@ -337,16 +338,23 @@ void main()
     float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
     float blendBase = 1.0 - blendTotal;
 
-	vec3 viewDir_world = normalize(viewPos - FragPos_world);
-    vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
+	vec2 finalTexCoords1 = TexCoords;
+    vec2 finalTexCoords2 = TexCoords2;
+    vec2 finalTexCoords3 = TexCoords3;
+    vec2 finalTexCoords4 = TexCoords4;
 
-    float dist = length(FragPos_world - viewPos);
-    float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
+    if (u_isParallaxEnabled) {
+        vec3 viewDir_world = normalize(viewPos - FragPos_world);
+        vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
+
+        float dist = length(FragPos_world - viewPos);
+        float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
     
-    vec2 finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
-    vec2 finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
+        finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
+        finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
+        finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
+        finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
+    }
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
     vec3 normalTex1 = texture(normalMap, finalTexCoords1).rgb;

@@ -243,8 +243,9 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
-                float finalHeightScale = Cvar_GetInt("r_relief_mapping") ? material->heightScale : 0.0f;
-                glUniform1f(glGetUniformLocation(shader, "heightScale"), finalHeightScale);
+                bool parallaxEnabledForThisMesh = Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
+                glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), parallaxEnabledForThisMesh);
+                glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), material->metalness);
                 glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, material->diffuseMap);
@@ -332,8 +333,15 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 current_face_in_batch_idx++;
             }
 
-            float parallax_enabled = Cvar_GetInt("r_relief_mapping") ? batch_material->heightScale : 0.0f;
-            glUniform1f(glGetUniformLocation(shader, "heightScale"), parallax_enabled);
+            bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
+            bool isParallaxEnabledForBatch = parallaxEnabled && (
+                (batch_material && batch_material->heightScale > 0.0f) ||
+                (batch_material2 && batch_material2->heightScale > 0.0f) ||
+                (batch_material3 && batch_material3->heightScale > 0.0f) ||
+                (batch_material4 && batch_material4->heightScale > 0.0f)
+                );
+            glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), isParallaxEnabledForBatch);
+            glUniform1f(glGetUniformLocation(shader, "heightScale"), batch_material->heightScale);
             glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), batch_material->roughness);
             glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), batch_material->metalness);
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, batch_material->diffuseMap);
@@ -348,7 +356,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
                 glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallax_enabled ? batch_material2->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallaxEnabled ? batch_material2->heightScale : 0.0f);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), batch_material2->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), batch_material2->metalness);
                 glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, batch_material2->diffuseMap);
@@ -371,7 +379,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
                 glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallax_enabled ? batch_material3->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallaxEnabled ? batch_material3->heightScale : 0.0f);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), batch_material3->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), batch_material3->metalness);
                 glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, batch_material3->diffuseMap);
@@ -394,7 +402,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
                 glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
                 glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallax_enabled ? batch_material4->heightScale : 0.0f);
+                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallaxEnabled ? batch_material4->heightScale : 0.0f);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), batch_material4->roughness);
                 glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), batch_material4->metalness);
                 glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, batch_material4->diffuseMap);
