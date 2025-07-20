@@ -185,8 +185,6 @@ GL_MessageCallback(GLenum source,
     const GLchar* message,
     const void* userParam)
 {
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
-
     const char* type_str = "Unknown";
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:               type_str = "Error"; break;
