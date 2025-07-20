@@ -869,7 +869,7 @@ void init_renderer() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("VPL Generation Framebuffer not complete!\n");
     glGenBuffers(1, &g_renderer.vplSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.vplSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_VPLS * sizeof(VPL), NULL, GL_DYNAMIC_READ);
     glGenTextures(1, &g_renderer.vplGridTexture_Albedo);
     glBindTexture(GL_TEXTURE_3D, g_renderer.vplGridTexture_Albedo);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
