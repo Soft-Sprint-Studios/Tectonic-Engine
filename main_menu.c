@@ -14,6 +14,7 @@
 #include "gameconfig.h"
 #include "gl_console.h"
 #include "math_lib.h"
+#include "gl_misc.h"
 
 static TTF_Font* g_menu_font = NULL;
 static GLuint g_text_texture_start = 0;
@@ -77,15 +78,17 @@ static void render_textured_quad(GLuint texture, float x, float y, float w, floa
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(glGetUniformLocation(g_menu_shader, "u_texture"), 0);
     glUniform4f(glGetUniformLocation(g_menu_shader, "u_color_tint"), (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
-    float vertices[] = {
-        x + current_offset_x, y + h,  1.0f, 0.0f,
-        x + current_offset_x, y,      1.0f, 1.0f,
-        x + w + current_offset_x, y,      0.0f, 1.0f,
 
-        x + current_offset_x, y + h,  1.0f, 0.0f,
-        x + w + current_offset_x, y,      0.0f, 1.0f,
-        x + w + current_offset_x, y + h,  0.0f, 0.0f
+    float vertices[] = {
+        x + current_offset_x, y + h,  0.0f, 1.0f,
+        x + current_offset_x, y,      0.0f, 0.0f,
+        x + w + current_offset_x, y,  1.0f, 0.0f,
+
+        x + current_offset_x, y + h,  0.0f, 1.0f,
+        x + w + current_offset_x, y,  1.0f, 0.0f,
+        x + w + current_offset_x, y + h,  1.0f, 1.0f
     };
+
     glBindVertexArray(g_quad_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_quad_vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
@@ -118,38 +121,13 @@ bool MainMenu_Init(int screen_width, int screen_height) {
         MainMenu_Shutdown();
         return false;
     }
-    const char* vert_shader_source =
-        "#version 460 core\n"
-        "layout (location = 0) in vec2 aPos;\n"
-        "layout (location = 1) in vec2 aTexCoords;\n"
-        "out vec2 TexCoords;\n"
-        "uniform mat4 projection;\n"
-        "void main() {\n"
-        "    TexCoords = aTexCoords;\n"
-        "    gl_Position = projection * vec4(aPos, 0.0, 1.0);\n"
-        "}\n";
-    const char* frag_shader_source =
-        "#version 460 core\n"
-        "out vec4 FragColor;\n"
-        "in vec2 TexCoords;\n"
-        "uniform sampler2D u_texture;\n"
-        "uniform vec4 u_color_tint;\n"
-        "void main() {\n"
-        "    vec2 flippedTexCoords = vec2(1.0 - TexCoords.x, 1.0 - TexCoords.y);\n"
-        "    FragColor = texture(u_texture, flippedTexCoords) * u_color_tint;\n"
-        "}\n";
-    GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_shader, 1, &vert_shader_source, NULL);
-    glCompileShader(vert_shader);
-    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_shader, 1, &frag_shader_source, NULL);
-    glCompileShader(frag_shader);
-    g_menu_shader = glCreateProgram();
-    glAttachShader(g_menu_shader, vert_shader);
-    glAttachShader(g_menu_shader, frag_shader);
-    glLinkProgram(g_menu_shader);
-    glDeleteShader(vert_shader);
-    glDeleteShader(frag_shader);
+
+    g_menu_shader = createShaderProgram("shaders/menu.vert", "shaders/menu.frag");
+    if (g_menu_shader == 0) {
+        Console_Printf_Error("MainMenu ERROR: Failed to create menu shader program.");
+        return false;
+    }
+
     glGenVertexArrays(1, &g_quad_vao);
     glGenBuffers(1, &g_quad_vbo);
     glBindVertexArray(g_quad_vao);
@@ -271,7 +249,7 @@ void MainMenu_Render() {
 
     if (!g_is_in_game_menu) {
         float title_x = (g_screen_width - g_text_width_game_title) / 2.0f;
-        g_title_y_offset_base = g_screen_height / 2.0f - g_text_height_game_title * 2.0f;
+        g_title_y_offset_base = g_screen_height / 2.0f - g_text_height_game_title * 2.5f;
         render_textured_quad(g_text_texture_game_title, title_x, g_title_current_y_offset,
             g_text_width_game_title, g_text_height_game_title,
             (SDL_Color) {
