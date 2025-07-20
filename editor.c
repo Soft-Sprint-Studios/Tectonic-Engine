@@ -5448,6 +5448,9 @@ static void Editor_RenderVertexToolsWindow(Scene* scene) {
     }
 }
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
+    char window_title[512];
+    sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
+    SDL_SetWindowTitle(engine->window, window_title);
     static bool show_add_particle_popup = false;
     static char add_particle_path[128] = "particles/fire.par";
     int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
