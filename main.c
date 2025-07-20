@@ -736,6 +736,7 @@ void init_cvars() {
 #else
     Cvar_Register("g_cheats", "1", "Enables cheat-protected commands.", CVAR_NONE);
 #endif
+    Cvar_Register("cl_particle_cull_dist", "75.0", "Distance at which particle systems are no longer updated.", CVAR_NONE);
     Cvar_Register("crosshair", "1", "Show a crosshair in the center of the screen. (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Controls the speed of the game. 1.0 is normal speed.", CVAR_NONE);
 }
@@ -1444,8 +1445,12 @@ void update_state() {
         return;
     }
     if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
+    float particle_cull_dist = Cvar_GetFloat("cl_particle_cull_dist");
+    float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
     for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
-        ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
+        if (vec3_length_sq(vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
+            ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
+        }
     }
     VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
     Vec3 playerPos;
