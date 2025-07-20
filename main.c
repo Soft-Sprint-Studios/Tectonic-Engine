@@ -760,6 +760,15 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Binds_Init();
     Commands_Init();
     Sentry_Init();
+    FILE* autoexec_file = fopen("autoexec.cfg", "r");
+    if (autoexec_file) {
+        fclose(autoexec_file);
+        char* autoexec_argv[] = { "exec", "autoexec.cfg" };
+        Commands_Execute(2, autoexec_argv);
+    }
+    else {
+        Console_Printf_Warning("autoexec.cfg not found, skipping.");
+    }
     Network_Init();
     g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
