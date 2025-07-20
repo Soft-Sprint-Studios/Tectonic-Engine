@@ -162,6 +162,10 @@ typedef struct {
 typedef struct {
     GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
     GLuint zPrepassShader;
+    GLuint lightCullShader;
+    GLuint lightGridSSBO;
+    GLuint lightIndexListSSBO;
+    GLuint globalLightCountSSBO;
     GLuint lightingCompositeShader;
     GLuint postProcessShader;
     GLuint quadVAO, quadVBO;

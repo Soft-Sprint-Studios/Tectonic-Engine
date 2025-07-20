@@ -1,7 +1,7 @@
 #version 450 core
 #extension GL_ARB_bindless_texture : require
 
-const float Eta = 0.15;
+const float Eta = 0.25;
 
 out vec4 fragColor;
 
