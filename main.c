@@ -743,6 +743,48 @@ void init_cvars() {
     Cvar_Register("p_disable_deactivation", "0", "Disables physics objects sleeping (0=off, 1=on).", CVAR_NONE);
 }
 
+void PrintCPUInfo() {
+    unsigned int eax, ebx, ecx, edx;
+
+    cpuid_ex(0, 0, &eax, &ebx, &ecx, &edx);
+    char vendor[13];
+    ((unsigned int*)vendor)[0] = ebx;
+    ((unsigned int*)vendor)[1] = edx;
+    ((unsigned int*)vendor)[2] = ecx;
+    vendor[12] = '\0';
+
+    char brand[49] = { 0 };
+    for (int i = 0; i < 3; ++i) {
+        cpuid_ex(0x80000002 + i, 0, &eax, &ebx, &ecx, &edx);
+        memcpy(brand + i * 16 + 0, &eax, 4);
+        memcpy(brand + i * 16 + 4, &ebx, 4);
+        memcpy(brand + i * 16 + 8, &ecx, 4);
+        memcpy(brand + i * 16 + 12, &edx, 4);
+    }
+
+    Console_Printf("CPU Vendor: %s\n", vendor);
+    Console_Printf("CPU Brand:  %s\n", brand);
+
+    cpuid_ex(1, 0, &eax, &ebx, &ecx, &edx);
+
+    Console_Printf("Supported Features:\n");
+    if (edx & (1 << 25)) Console_Printf("  SSE\n");
+    if (edx & (1 << 26)) Console_Printf("  SSE2\n");
+    if (ecx & (1 << 0))  Console_Printf("  SSE3\n");
+    if (ecx & (1 << 9))  Console_Printf("  SSSE3\n");
+    if (ecx & (1 << 19)) Console_Printf("  SSE4.1\n");
+    if (ecx & (1 << 20)) Console_Printf("  SSE4.2\n");
+    if (ecx & (1 << 28)) Console_Printf("  AVX\n");
+    if (ecx & (1 << 29)) Console_Printf("  F16C\n");
+
+    cpuid_ex(7, 0, &eax, &ebx, &ecx, &edx);
+    if (ebx & (1 << 5))  Console_Printf("  AVX2\n");
+    if (ebx & (1 << 16)) Console_Printf("  AVX512F\n");
+    if (ebx & (1 << 3))  Console_Printf("  BMI1\n");
+    if (ebx & (1 << 8))  Console_Printf("  BMI2\n");
+    if (ecx & (1 << 1))  Console_Printf("  AVX512_VBMI\n");
+}
+
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
@@ -785,6 +827,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf_Error("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
+    PrintCPUInfo();
     Console_Printf("Tectonic Engine initialized.\n");
     Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
     SDL_SetRelativeMouseMode(SDL_FALSE);

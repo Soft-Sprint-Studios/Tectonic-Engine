@@ -208,4 +208,44 @@ static int Compat_GetBuildNumber() {
     return g_build_number;
 }
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    static inline void cpuid_ex(unsigned int function_id, unsigned int subfunction_id,
+        unsigned int* eax, unsigned int* ebx,
+        unsigned int* ecx, unsigned int* edx)
+    {
+#if defined(_MSC_VER)
+        int regs[4];
+        __cpuidex(regs, function_id, subfunction_id);
+        *eax = regs[0];
+        *ebx = regs[1];
+        *ecx = regs[2];
+        *edx = regs[3];
+#elif defined(__GNUC__) || defined(__clang__)
+        unsigned int _eax, _ebx, _ecx, _edx;
+        __asm__ volatile (
+            "cpuid"
+            : "=a" (_eax), "=b" (_ebx), "=c" (_ecx), "=d" (_edx)
+            : "a" (function_id), "c" (subfunction_id)
+            );
+        *eax = _eax;
+        *ebx = _ebx;
+        *ecx = _ecx;
+        *edx = _edx;
+#else
+    #error "Unsupported compiler for cpuid_ex"
+#endif
+    }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+
 #endif // COMPAT_H
