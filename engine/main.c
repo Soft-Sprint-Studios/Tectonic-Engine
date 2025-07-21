@@ -36,12 +36,10 @@
 #include "sentry_wrapper.h"
 #include "checksum.h"
 #include "water_manager.h"
-#include "video_player.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
 #include <dlfcn.h>
-#include <sys/file.h>
 #endif
 
 #ifdef PLATFORM_WINDOWS
