@@ -49,7 +49,7 @@ set(ENGINE_HEADERS
 add_library(TectonicEngine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 if(WIN32)
-    set_target_properties(TectonicEngine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
+    target_compile_definitions(TectonicEngine PRIVATE TECTONIC_ENGINE_EXPORTS)
 endif()
 
 target_compile_definitions(TectonicEngine PRIVATE
