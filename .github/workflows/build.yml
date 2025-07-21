@@ -20,9 +20,11 @@ jobs:
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
       - run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
+      - run: build-linux-x64-release/Patcher build-linux-x64-release/libTectonicEngine.so
       - run: |
           mkdir -p commit/linux-x64-release
-          cp build-linux-x64-release/TectonicEngine commit/linux-x64-release/
+          cp build-linux-x64-release/Launcher commit/linux-x64-release/
+          cp build-linux-x64-release/libTectonicEngine.so commit/linux-x64-release/
 
   build-linux-x64-relwithdebinfo:
     runs-on: [self-hosted, linux]
@@ -34,14 +36,15 @@ jobs:
       - run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
       - run: |
-          cp build-linux-x64-relwithdebinfo/TectonicEngine build-linux-x64-relwithdebinfo/TectonicEngine.debug
-          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/TectonicEngine.debug build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols build-linux-x64-relwithdebinfo/TectonicEngine
-      - run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/TectonicEngine
+          cp build-linux-x64-relwithdebinfo/libTectonicEngine.so build-linux-x64-relwithdebinfo/libTectonicEngine.so.debug
+          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/libTectonicEngine.so.debug build-linux-x64-relwithdebinfo/libTectonicEngine.so.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/libTectonicEngine.so.debugsymbols build-linux-x64-relwithdebinfo/libTectonicEngine.so
+      - run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libTectonicEngine.so
       - run: |
           mkdir -p commit/linux-x64-relwithdebinfo
-          cp build-linux-x64-relwithdebinfo/TectonicEngine commit/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/Launcher commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libTectonicEngine.so commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libTectonicEngine.so.debugsymbols commit/linux-x64-relwithdebinfo/
 
   build-windows-x64-release:
     runs-on: [self-hosted, windows]
@@ -51,7 +54,8 @@ jobs:
       - run: cmake --build build-windows-x64-release --config Release
       - run: |
           mkdir commit\windows-x64-release
-          copy build-windows-x64-release\Release\TectonicEngine.exe commit\windows-x64-release\
+          copy build-windows-x64-release\Release\Launcher.exe commit\windows-x64-release\
+          copy build-windows-x64-release\Release\TectonicEngine.dll commit\windows-x64-release\
 
   build-windows-x64-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -61,7 +65,8 @@ jobs:
       - run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
       - run: |
           mkdir commit\windows-x64-relwithdebinfo
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicEngine.exe commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\Launcher.exe commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicEngine.dll commit\windows-x64-relwithdebinfo\
           copy build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicEngine.pdb commit\windows-x64-relwithdebinfo\
 
   build-windows-x86-release:
@@ -72,7 +77,8 @@ jobs:
       - run: cmake --build build-windows-x86-release --config Release
       - run: |
           mkdir commit\windows-x86-release
-          copy build-windows-x86-release\Release\TectonicEngine.exe commit\windows-x86-release\
+          copy build-windows-x86-release\Release\Launcher.exe commit\windows-x86-release\
+          copy build-windows-x86-release\Release\TectonicEngine.dll commit\windows-x86-release\
 
   build-windows-x86-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -82,5 +88,6 @@ jobs:
       - run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
       - run: |
           mkdir commit\windows-x86-relwithdebinfo
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicEngine.exe commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\Launcher.exe commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicEngine.dll commit\windows-x86-relwithdebinfo\
           copy build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicEngine.pdb commit\windows-x86-relwithdebinfo\
