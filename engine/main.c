@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
-#include "engine_api.h"
 #include "cvar.h"
 #include "commands.h"
 #include "gl_console.h"
@@ -39,12 +38,17 @@
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
-#include <dlfcn.h>
 #endif
 
 #ifdef PLATFORM_WINDOWS
 __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+#endif
+
+#if defined(PLATFORM_WINDOWS)
+    #define ENGINE_API __declspec(dllexport)
+#else
+    #define ENGINE_API __attribute__((visibility("default")))
 #endif
 
 #define SUN_SHADOW_MAP_SIZE 4096
@@ -3196,7 +3200,11 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
     glBindVertexArray(0);
 }
 
+#ifdef PLATFORM_WINDOWS
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
+#else
+ENGINE_API int Engine_Main(int argc, char* argv[]) {
+#endif
 #ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
