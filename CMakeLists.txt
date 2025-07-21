@@ -160,7 +160,6 @@ elseif(UNIX AND NOT APPLE)
         ${SDL2_IMAGE_LIBRARY}
         ${SDL2_TTF_LIBRARY}
         ${GLEW_LIBRARIES}
-        ${BULLET_LIBS}
         ${OPENAL_LIB}
         ${OPENGL_LIBRARIES}
         ${SENTRY_LIBRARY}
@@ -176,6 +175,7 @@ endif()
 add_executable(Launcher launcher/launcher.c)
 
 target_link_libraries(Launcher PRIVATE TectonicEngine)  
+target_link_libraries(Launcher PRIVATE ${BULLET_LIBS})
 
 if(WIN32)
     target_link_options(Launcher PRIVATE /subsystem:windows)
