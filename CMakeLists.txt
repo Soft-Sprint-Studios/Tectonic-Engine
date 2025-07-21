@@ -84,7 +84,6 @@ target_compile_options(TectonicEngine PRIVATE
 )
 
 if(WIN32)
-    message(STATUS "Configuring for Windows")
     target_compile_definitions(TectonicEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
     set_target_properties(TectonicEngine PROPERTIES
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
@@ -118,8 +117,6 @@ if(WIN32)
         sentry
     )
 elseif(UNIX AND NOT APPLE)
-    message(STATUS "Configuring for Linux")
-    target_compile_definitions(TectonicEngine PRIVATE _GNU_SOURCE)
     find_package(SDL2 REQUIRED)
     find_package(GLEW REQUIRED)
     find_package(OpenGL REQUIRED)
