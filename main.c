@@ -45,12 +45,6 @@ __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
 #endif
 
-#if defined(PLATFORM_WINDOWS)
-    #define ENGINE_API __declspec(dllexport)
-#else
-    #define ENGINE_API __attribute__((visibility("default")))
-#endif
-
 #define SUN_SHADOW_MAP_SIZE 4096
 
 #define BLOOM_DOWNSAMPLE 8
@@ -3201,29 +3195,16 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
 }
 
 #ifdef PLATFORM_WINDOWS
-ENGINE_API int Engine_Main(int argc, char* argv[]) {
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 #else
-ENGINE_API int Engine_Main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 #endif
 #ifdef ENABLE_CHECKSUM
     char exePath[1024];
 #ifdef PLATFORM_WINDOWS
-    HMODULE hModule = NULL;
-    GetModuleHandleExA(
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCSTR)&Engine_Main,
-        &hModule
-    );
-    GetModuleFileNameA(hModule, exePath, sizeof(exePath));
+    GetModuleFileNameA(NULL, exePath, sizeof(exePath));
 #else
-    Dl_info info;
-    if (dladdr((void*)Engine_Main, &info)) {
-        strncpy(exePath, info.dli_fname, sizeof(exePath) - 1);
-        exePath[sizeof(exePath) - 1] = '\0';
-    }
-    else {
-        exePath[0] = '\0';
-    }
+    readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
 #endif
     if (!Checksum_Verify(exePath)) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", NULL);
