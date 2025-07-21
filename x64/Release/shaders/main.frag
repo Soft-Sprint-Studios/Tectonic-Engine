@@ -109,6 +109,7 @@ uniform sampler3D u_StaticVPLGrid_Albedo;
 uniform sampler3D u_StaticVPLGrid_Direction;
 uniform bool u_useStaticVPLGrid;
 uniform bool u_vplDirectional;
+uniform bool u_vplSpecular;
 uniform vec3 u_gridMin;
 uniform vec3 u_gridMax;
 
@@ -309,6 +310,16 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     float intersection_t = t_far;
     vec3 intersectPos = fragPos + R * intersection_t;
     return normalize(intersectPos - probePos);
+}
+
+vec3 decodeDirection(vec2 f)
+{
+    f = f * 2.0 - 1.0;
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = clamp(-n.z, 0.0, 1.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
 }
 
 void main()
@@ -560,8 +571,10 @@ void main()
     }
 	
     out_Velocity = Velocity;
-	vec3 finalIndirectLight = indirectLight;
-     if (u_useStaticVPLGrid) {
+    vec3 finalIndirectDiffuse = indirectLight;
+    vec3 vplSpecularContribution = vec3(0.0);
+
+    if (u_useStaticVPLGrid) {
         vec3 gridCoord = (FragPos_world - u_gridMin) / (u_gridMax - u_gridMin);
         if (all(greaterThanEqual(gridCoord, vec3(0.0))) && all(lessThanEqual(gridCoord, vec3(1.0)))) {
             vec3 gi_radiance = texture(u_StaticVPLGrid_Albedo, gridCoord).rgb;
@@ -570,21 +583,43 @@ void main()
                 vec3 gi_direction = texture(u_StaticVPLGrid_Direction, gridCoord).rgb;
                 
                 if (dot(gi_direction, gi_direction) > 0.0001) {
-                    float gi_diffuse = max(dot(N, -normalize(gi_direction)), 0.0);
-                    finalIndirectLight = gi_radiance * gi_diffuse;
+                    float gi_diffuse_factor = max(dot(N, -normalize(gi_direction)), 0.0);
+                    finalIndirectDiffuse = gi_radiance * gi_diffuse_factor;
+
+                    vec3 L_indirect = -normalize(gi_direction);
+                    vec3 H_indirect = normalize(V + L_indirect);
+                    float NdotL_indirect = max(dot(N, L_indirect), 0.0);
+
+                    float NDF_indirect = DistributionGGX(N, H_indirect, roughness);
+                    float G_indirect = GeometrySmith(N, V, L_indirect, roughness);
+                    vec3 F_indirect = fresnelSchlick(max(dot(H_indirect, V), 0.0), F0);
+
+                    vec3 numerator_indirect = NDF_indirect * G_indirect * F_indirect;
+                    float denominator_indirect = 4.0 * max(dot(N, V), 0.0) * NdotL_indirect + 0.001;
+                    vec3 specular_indirect_pbr = numerator_indirect / denominator_indirect;
+
+                    if (u_vplSpecular) {
+                        vplSpecularContribution = specular_indirect_pbr * gi_radiance * NdotL_indirect;
+                    } else {
+                        vplSpecularContribution = vec3(0.0);
+                    }
                 } else {
-                    finalIndirectLight = gi_radiance;
+                    finalIndirectDiffuse = gi_radiance;
+                    vplSpecularContribution = vec3(0.0);
                 }
             } else {
-                finalIndirectLight = gi_radiance;
+                finalIndirectDiffuse = gi_radiance;
+                vplSpecularContribution = vec3(0.0);
             }
         } else {
-            finalIndirectLight = vec3(0.0);
+            finalIndirectDiffuse = vec3(0.0);
+            vplSpecularContribution = vec3(0.0);
         }
     }
+    
     vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
     kD_indirect *= (1.0 - metallic);
-    vec3 indirectLightingContribution = finalIndirectLight * kD_indirect * albedo;
+    vec3 indirectLightingContribution = finalIndirectDiffuse * kD_indirect * albedo + vplSpecularContribution;
 
     if (is_debug_vpl) {
         out_LitColor = vec4(indirectLightingContribution, 1.0);

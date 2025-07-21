@@ -682,6 +682,7 @@ void init_cvars() {
     Cvar_Register("r_shadows_static", "0", "Static light shadows only (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_distance_max", "100.0", "Max shadow casting distance", CVAR_NONE);
     Cvar_Register("r_vpl_directional", "1", "Enable directional VPL lighting (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_vpl_specular", "0", "Enable specularity VPL lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl", "1", "Enable VPL GI (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vpl_point_count", "64", "VPLs per point light", CVAR_NONE);
     Cvar_Register("r_vpl_spot_count", "64", "VPLs per spot light", CVAR_NONE);
@@ -2359,6 +2360,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_debug_vpl"), Cvar_GetInt("r_debug_vpl"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_vplDirectional"), Cvar_GetInt("r_vpl_directional"));
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_vplSpecular"), Cvar_GetInt("r_vpl_specular"));
     bool useStaticGrid = Cvar_GetInt("r_vpl") && g_scene.static_vpl_grid_generated;
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_useStaticVPLGrid"), useStaticGrid);
     if (useStaticGrid) {
