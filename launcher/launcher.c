@@ -12,6 +12,11 @@
 #include "../engine/compat.h"
 
 #ifdef PLATFORM_WINDOWS
+__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+#endif
+
+#ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #include <shellapi.h>
 
