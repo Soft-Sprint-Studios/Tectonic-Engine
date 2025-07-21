@@ -433,76 +433,77 @@ void main()
         Lo += (diffuseContrib + specular * radiance * NdotL * (1.0 - shadow));
     }
 
-    for (int i = 0; i < numActiveLights; ++i)
-    {
-        vec3 lightPos = lights[i].position.xyz;
-        float lightType = lights[i].position.w;
+    for (int i = 0; i < numActiveLights; ++i) {
+        ShaderLight light = lights[i];
+        vec3 lightPos = light.position.xyz;
+        float lightType = light.position.w;
 
         vec3 L = normalize(lightPos - FragPos_world);
-        vec3 H = normalize(V + L);
         float distance = length(lightPos - FragPos_world);
+        float radius = light.params1.x;
         float NdotL = max(dot(N, L), 0.0);
-        vec3 radiance = lights[i].color.rgb * lights[i].color.a;
-        float attenuation = 0.0;
-        float shadow = 0.0;
-        if (lightType == 0)
-        {
-            float radius = lights[i].params1.x;
-            float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
-            attenuation = radiusFalloff / (distance * distance + 1.0);
-            if(attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0) ) shadow = calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y);
-        }
-        else
-        {
-            float lightCutOff = lights[i].params1.y;
-            float lightOuterCutOff = lights[i].params1.z;
-            vec3 lightDir = lights[i].direction.xyz;
 
+        float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
+        float baseAttenuation = radiusFalloff / (distance * distance + 1.0);
+
+        float spotFactor = 1.0;
+        vec3 lightDir = light.direction.xyz;
+        if (lightType > 0.5) {
             float theta = dot(L, -lightDir);
-            if (theta > lightOuterCutOff) {
-               float epsilon = lightCutOff - lightOuterCutOff;
-               float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
-               float radius = lights[i].params1.x;
-               float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
-               attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
-               float cookie_attenuation = 1.0;
-               if (attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0)) {
-                   float angle_rad = acos(clamp(lightCutOff, -1.0, 1.0));
-                   if (angle_rad < 0.01) angle_rad = 0.01;
-                   mat4 lightProjection = perspective(angle_rad * 2.0, 1.0, 1.0, lights[i].params2.x);
-                   vec3 up_vector = vec3(0,1,0);
-                   if (abs(dot(lightDir, up_vector)) > 0.99) up_vector = vec3(1,0,0);
-                   mat4 lightView = lookAt(lightPos, lightPos + lightDir, up_vector);
-                   mat4 lightSpaceMatrix = lightProjection * lightView;
-                   vec4 fragPosLightSpace = lightSpaceMatrix * vec4(FragPos_world, 1.0);
-                    if (lights[i].cookieMapHandle[0] > 0u || lights[i].cookieMapHandle[1] > 0u) {
-                       vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-                       projCoords = projCoords * 0.5 + 0.5;
-                       if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0) {
-                           sampler2D cookieSampler = sampler2D(lights[i].cookieMapHandle);
-                           cookie_attenuation = texture(cookieSampler, projCoords.xy).r;
-                       } else {
-                           cookie_attenuation = 0.0;
-                       }
-                   }
-                   shadow = calculateSpotShadow(lights[i].shadowMapHandle, fragPosLightSpace, N, L, lights[i].params2.y);
-               }
-               attenuation *= cookie_attenuation;
+            float outerCutOff = light.params1.z;
+            spotFactor = smoothstep(outerCutOff, light.params1.y, theta);
+        }
+
+        float attenuation = baseAttenuation * spotFactor;
+
+        float shadow = 0.0;
+        bool hasShadow = (light.shadowMapHandle.x > 0u) || (light.shadowMapHandle.y > 0u);
+
+        if (hasShadow) {
+            if (lightType < 0.5) {
+                shadow = calculatePointShadow(
+                    light.shadowMapHandle,
+                    FragPos_world,
+                    lightPos,
+                    light.params2.x,
+                    light.params2.y
+                );
+            } else {
+                float angle_rad = acos(clamp(light.params1.y, -1.0, 1.0));
+                angle_rad = max(angle_rad, 0.01);
+                mat4 lightProj = perspective(angle_rad * 2.0, 1.0, 1.0, light.params2.x);
+                float nearVertical = step(0.99, abs(dot(lightDir, vec3(0.0, 1.0, 0.0))));
+                vec3 spotLightUp = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), nearVertical);
+                mat4 lightView = lookAt(lightPos, lightPos + lightDir, spotLightUp);
+                mat4 lightSpaceMatrix = lightProj * lightView;
+
+                shadow = calculateSpotShadow(
+                    light.shadowMapHandle,
+                    lightSpaceMatrix * vec4(FragPos_world, 1.0),
+                    N,
+                    L,
+                    light.params2.y
+                );
             }
         }
-        if(attenuation > 0.0) {
+
+        if (attenuation > 0.0 && NdotL > 0.0) {
+            vec3 H = normalize(V + L);
+            vec3 radiance = light.color.rgb * light.color.a * attenuation * (1.0 - shadow);
+
             float NDF = DistributionGGX(N, H, roughness);
-            float G   = GeometrySmith(N, V, L, roughness);
-            vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+            float G = GeometrySmith(N, V, L, roughness);
+            vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
             vec3 kS = F;
-            vec3 kD = vec3(1.0) - kS;
-            kD *= 1.0 - metallic;
-            vec3 numerator    = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
-            vec3 specular     = numerator / denominator;
-            vec3 diffuseContrib = (kD * albedo / PI) * radiance * NdotL * attenuation * (1.0 - shadow);
-            totalDirectDiffuse += diffuseContrib;
-            Lo += (diffuseContrib + specular * radiance * NdotL * attenuation * (1.0 - shadow));
+            vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+            vec3 numerator = NDF * G * F;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.0001;
+            vec3 specular = numerator / denominator;
+
+            vec3 diffuse = kD * albedo / PI;
+            Lo += (diffuse + specular) * radiance * NdotL;
+            totalDirectDiffuse += diffuse * radiance * NdotL;
         }
     }
 	
