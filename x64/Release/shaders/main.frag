@@ -596,8 +596,7 @@ void main()
         out_LitColor = vec4(ambient + Lo + indirectLightingContribution, alpha);
     }
     out_Position = FragPos_view; 
-    vec3 tangentNormal = vec3(0.5, 0.5, 1.0);
-    out_Normal = normalize(TBN * tangentNormal);
+    out_Normal = normalize(TBN * vec3(0.5, 0.5, 1.0));
     out_AlbedoSpec = vec4(albedo, 1.0);
     out_PBRParams = vec4(metallic, roughness, ao, alpha);
 }
