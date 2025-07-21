@@ -9,7 +9,7 @@
 #ifndef ENGINE_API_H
 #define ENGINE_API_H
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     #ifdef TECTONIC_ENGINE_EXPORTS
         #define ENGINE_API __declspec(dllexport)
     #else
