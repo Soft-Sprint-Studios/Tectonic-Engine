@@ -47,7 +47,7 @@ extern "C" {
 #define MAX_BRUSH_FACES 16384
 #define MAX_LOGIC_ENTITIES 8192
 #define MAX_ENTITY_PROPERTIES 32
-#define MAX_VPLS 4096
+#define MAX_VPLS 1
 #define VPL_GEN_TEXTURE_SIZE 1024
 
 #define MAP_VERSION 8
@@ -162,10 +162,6 @@ typedef struct {
 typedef struct {
     GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
     GLuint zPrepassShader;
-    GLuint lightCullShader;
-    GLuint lightGridSSBO;
-    GLuint lightIndexListSSBO;
-    GLuint globalLightCountSSBO;
     GLuint lightingCompositeShader;
     GLuint postProcessShader;
     GLuint quadVAO, quadVBO;

@@ -51,9 +51,6 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 #define SSAO_DOWNSAMPLE 2
 #define VOLUMETRIC_DOWNSAMPLE 4
 
-#define MAX_LIGHTS_PER_TILE 1024
-#define TILE_SIZE 16
-
 static const char* g_light_styles[] = {
     "m",
     "mmnmmommommnonmmonqnmmo",
@@ -815,7 +812,6 @@ void init_renderer() {
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
-    g_renderer.lightCullShader = createShaderProgramCompute("shaders/light_culling.comp");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -1125,24 +1121,6 @@ void init_renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         Console_Printf("SSAO Blur Framebuffer not complete!\n");
-    glGenBuffers(1, &g_renderer.globalLightCountSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.globalLightCountSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, g_renderer.globalLightCountSSBO);
-
-    unsigned int num_tiles_x = (WINDOW_WIDTH + TILE_SIZE - 1) / TILE_SIZE;
-    unsigned int num_tiles_y = (WINDOW_HEIGHT + TILE_SIZE - 1) / TILE_SIZE;
-    unsigned int total_tiles = num_tiles_x * num_tiles_y;
-
-    glGenBuffers(1, &g_renderer.lightGridSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightGridSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, total_tiles * sizeof(GLuint) * 2, NULL, GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, g_renderer.lightGridSSBO);
-
-    glGenBuffers(1, &g_renderer.lightIndexListSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightIndexListSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, total_tiles* MAX_LIGHTS_PER_TILE * sizeof(GLuint), NULL, GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, g_renderer.lightIndexListSSBO);
     glUseProgram(g_renderer.ssaoShader);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gNormal"), 1);
@@ -2327,34 +2305,6 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     mat4_multiply(&view_proj, projection, view);
     extract_frustum_planes(&view_proj, &frustum, true);
 
-    glUseProgram(g_renderer.lightCullShader);
-
-    Mat4 invProj;
-    mat4_inverse(projection, &invProj);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.lightCullShader, "invProjection"), 1, GL_FALSE, invProj.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.lightCullShader, "view"), 1, GL_FALSE, view->m);
-    glUniform2f(glGetUniformLocation(g_renderer.lightCullShader, "screenSize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
-    glUniform1i(glGetUniformLocation(g_renderer.lightCullShader, "numActiveLights"), g_scene.numActiveLights);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-    glUniform1i(glGetUniformLocation(g_renderer.lightCullShader, "gPosition"), 0);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.globalLightCountSSBO);
-    GLuint zero = 0;
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
-
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, g_renderer.lightSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, g_renderer.lightGridSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, g_renderer.lightIndexListSSBO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, g_renderer.globalLightCountSSBO);
-
-    unsigned int num_groups_x = (WINDOW_WIDTH + TILE_SIZE - 1) / TILE_SIZE;
-    unsigned int num_groups_y = (WINDOW_HEIGHT + TILE_SIZE - 1) / TILE_SIZE;
-    glDispatchCompute(num_groups_x, num_groups_y, 1);
-
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glViewport(0, 0, WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
 
@@ -2390,8 +2340,6 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
 
     glUseProgram(g_renderer.mainShader);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
-    unsigned int num_tiles_x = (WINDOW_WIDTH + TILE_SIZE - 1) / TILE_SIZE;
-    glUniform1ui(glGetUniformLocation(g_renderer.mainShader, "u_numTilesX"), num_tiles_x);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)(WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));

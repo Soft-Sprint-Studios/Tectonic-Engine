@@ -51,18 +51,6 @@ struct Flashlight {
     vec3 direction;
 };
 
-#define TILE_SIZE 16
-
-layout(std430, binding = 5) readonly buffer LightGrid {
-    uvec2 light_grid[];
-};
-
-layout(std430, binding = 6) readonly buffer LightIndexList {
-    uint light_index_list[];
-};
-
-uniform uint u_numTilesX;
-
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D rmaMap;
@@ -88,6 +76,7 @@ layout(std430, binding = 3) readonly buffer LightBlock {
     ShaderLight lights[];
 };
 
+uniform int numActiveLights;
 uniform Sun sun;
 uniform Flashlight flashlight;
 uniform vec3 viewPos;
@@ -443,68 +432,59 @@ void main()
         Lo += (diffuseContrib + specular * radiance * NdotL * (1.0 - shadow));
     }
 
-    uvec2 tileCoords = uvec2(gl_FragCoord.xy) / TILE_SIZE;
-    uint tileIndex = tileCoords.y * u_numTilesX + tileCoords.x;
-    uvec2 lightGridData = light_grid[tileIndex];
-    uint lightOffset = lightGridData.x;
-    uint lightCount = lightGridData.y;
-
-    for (uint i = 0; i < lightCount; ++i)
+    for (int i = 0; i < numActiveLights; ++i)
     {
-        uint lightIndex = light_index_list[lightOffset + i];
-        ShaderLight light = lights[lightIndex];
-        
-        vec3 lightPos = light.position.xyz;
-        float lightType = light.position.w;
+        vec3 lightPos = lights[i].position.xyz;
+        float lightType = lights[i].position.w;
 
         vec3 L = normalize(lightPos - FragPos_world);
         vec3 H = normalize(V + L);
         float distance = length(lightPos - FragPos_world);
         float NdotL = max(dot(N, L), 0.0);
-        vec3 radiance = light.color.rgb * light.color.a;
+        vec3 radiance = lights[i].color.rgb * lights[i].color.a;
         float attenuation = 0.0;
         float shadow = 0.0;
         if (lightType == 0)
         {
-            float radius = light.params1.x;
+            float radius = lights[i].params1.x;
             float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
             attenuation = radiusFalloff / (distance * distance + 1.0);
-            if(attenuation > 0.0 && (light.shadowMapHandle.x > 0 || light.shadowMapHandle.y > 0) ) shadow = calculatePointShadow(light.shadowMapHandle, FragPos_world, lightPos, light.params2.x, light.params2.y);
+            if(attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0) ) shadow = calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y);
         }
         else
         {
-            float lightCutOff = light.params1.y;
-            float lightOuterCutOff = light.params1.z;
-            vec3 lightDir = light.direction.xyz;
+            float lightCutOff = lights[i].params1.y;
+            float lightOuterCutOff = lights[i].params1.z;
+            vec3 lightDir = lights[i].direction.xyz;
 
             float theta = dot(L, -lightDir);
             if (theta > lightOuterCutOff) {
                float epsilon = lightCutOff - lightOuterCutOff;
                float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
-               float radius = light.params1.x;
+               float radius = lights[i].params1.x;
                float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
                attenuation = cone_intensity * radiusFalloff / (distance * distance + 1.0);
                float cookie_attenuation = 1.0;
-               if (attenuation > 0.0 && (light.shadowMapHandle.x > 0 || light.shadowMapHandle.y > 0)) {
+               if (attenuation > 0.0 && (lights[i].shadowMapHandle.x > 0 || lights[i].shadowMapHandle.y > 0)) {
                    float angle_rad = acos(clamp(lightCutOff, -1.0, 1.0));
                    if (angle_rad < 0.01) angle_rad = 0.01;
-                   mat4 lightProjection = perspective(angle_rad * 2.0, 1.0, 1.0, light.params2.x);
+                   mat4 lightProjection = perspective(angle_rad * 2.0, 1.0, 1.0, lights[i].params2.x);
                    vec3 up_vector = vec3(0,1,0);
                    if (abs(dot(lightDir, up_vector)) > 0.99) up_vector = vec3(1,0,0);
                    mat4 lightView = lookAt(lightPos, lightPos + lightDir, up_vector);
                    mat4 lightSpaceMatrix = lightProjection * lightView;
                    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(FragPos_world, 1.0);
-                    if (light.cookieMapHandle[0] > 0u || light.cookieMapHandle[1] > 0u) {
+                    if (lights[i].cookieMapHandle[0] > 0u || lights[i].cookieMapHandle[1] > 0u) {
                        vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
                        projCoords = projCoords * 0.5 + 0.5;
                        if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0) {
-                           sampler2D cookieSampler = sampler2D(light.cookieMapHandle);
+                           sampler2D cookieSampler = sampler2D(lights[i].cookieMapHandle);
                            cookie_attenuation = texture(cookieSampler, projCoords.xy).r;
                        } else {
                            cookie_attenuation = 0.0;
                        }
                    }
-                   shadow = calculateSpotShadow(light.shadowMapHandle, fragPosLightSpace, N, L, light.params2.y);
+                   shadow = calculateSpotShadow(lights[i].shadowMapHandle, fragPosLightSpace, N, L, lights[i].params2.y);
                }
                attenuation *= cookie_attenuation;
             }
