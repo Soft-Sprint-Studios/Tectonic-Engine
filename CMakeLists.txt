@@ -25,8 +25,8 @@ if(MSVC)
 elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Applying GCC/Clang optimization settings")
     add_compile_options(
-        $<$<CONFIG:RELEASE>:-O3 -march=native -flto>
-        $<$<CONFIG:RELWITHDEBINFO>:-O2 -g -march=native -flto>
+        $<$<CONFIG:RELEASE>:"-O3;-march=native;-flto">
+        $<$<CONFIG:RELWITHDEBINFO>:"-O2;-g;-march=native;-flto">
     )
     add_link_options(
         $<$<CONFIG:RELEASE>:-flto>
