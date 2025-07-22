@@ -6,7 +6,6 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
-#include <GL/glew.h>
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 #include <map>
