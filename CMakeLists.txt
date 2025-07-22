@@ -44,13 +44,23 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(ENGINE_SOURCES
-    engine/binds.c engine/math_lib.c engine/cvar.c engine/discord_wrapper.c engine/dsp_reverb.c engine/editor.c engine/editor_undo.c engine/gameconfig.c engine/gl_console.cpp engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c engine/map.c engine/model_loader.c engine/network.c engine/particle_system.c engine/physics_wrapper.cpp engine/sound_system.c engine/texturemanager.c engine/video_player.c engine/weapons.c engine/sentry_wrapper.c engine/checksum.c engine/commands.c engine/water_manager.c
+    engine/binds.c engine/cvar.c engine/discord_wrapper.c engine/dsp_reverb.c engine/editor.c engine/editor_undo.c engine/gameconfig.c engine/gl_console.cpp engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c engine/map.c engine/model_loader.c engine/network.c engine/particle_system.c engine/physics_wrapper.cpp engine/sound_system.c engine/texturemanager.c engine/video_player.c engine/weapons.c engine/sentry_wrapper.c engine/checksum.c engine/commands.c engine/water_manager.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
     mikktspace/mikktspace.c
 )
 
 set(ENGINE_HEADERS
-    engine/compat.h engine/math_lib.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/math_lib.h engine/model_loader.h engine/network.h engine/particle_system.h engine/physics_wrapper.h engine/sound_system.h engine/texturemanager.h engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h engine/water_manager.h
+    engine/compat.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/math_lib/math_lib.h engine/model_loader.h engine/network.h engine/particle_system.h engine/physics_wrapper.h engine/sound_system.h engine/texturemanager.h engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h engine/water_manager.h
+)
+
+add_library(math_lib SHARED engine/math_lib/math_lib.c engine/math_lib/math_lib.h engine/math_lib/math_api.h)
+
+if(WIN32)
+    target_compile_definitions(math_lib PRIVATE MATH_DLL_EXPORTS)
+endif()
+
+target_include_directories(math_lib PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
 )
 
 add_library(engine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
@@ -71,6 +81,7 @@ target_compile_definitions(engine PRIVATE
 
 target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -125,7 +136,7 @@ if(WIN32)
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         BulletCollision BulletDynamics LinearMath
         OpenAL32 discord-rpc ws2_32
-        sentry
+        sentry math_lib
     )
 
 elseif(UNIX AND NOT APPLE)
@@ -168,6 +179,7 @@ elseif(UNIX AND NOT APPLE)
         pthread
         dl
         freetype
+        math_lib
     )
 else()
     message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")
