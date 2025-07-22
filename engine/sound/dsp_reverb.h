@@ -16,13 +16,14 @@
 #include <stdbool.h>
 #include <SDL_thread.h>
 #include <SDL_mutex.h>
+#include "sound_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    void DSP_Reverb_Thread_Init(void);
-    void DSP_Reverb_Thread_Shutdown(void);
+    SOUND_API void DSP_Reverb_Thread_Init(void);
+    SOUND_API void DSP_Reverb_Thread_Shutdown(void);
 
     typedef enum {
         REVERB_PRESET_NONE,
@@ -47,9 +48,9 @@ extern "C" {
         int num_samples;
     } ProcessedAudio;
 
-    ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
+    SOUND_API ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
 
-    ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
+    SOUND_API ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
 
 #ifdef __cplusplus
 }

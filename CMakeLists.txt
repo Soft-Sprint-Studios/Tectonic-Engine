@@ -66,11 +66,11 @@ endif()
 
 # Source files
 set(ENGINE_SOURCES
-    engine/binds.c engine/cvar.c engine/discord_wrapper.c engine/dsp_reverb.c
+    engine/binds.c engine/cvar.c engine/discord_wrapper.c
     engine/editor.c engine/editor_undo.c engine/gameconfig.c engine/gl_console.cpp
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/model_loader.c engine/network.c engine/particle_system.c
-    engine/sound_system.c engine/texturemanager.c engine/video_player.c engine/weapons.c
+    engine/texturemanager.c engine/video_player.c engine/weapons.c
     engine/sentry_wrapper.c engine/checksum.c engine/commands.c engine/water_manager.c
     imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp
     imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
@@ -79,9 +79,9 @@ set(ENGINE_SOURCES
 
 set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h
-    engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h
+    engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h
-    engine/network.h engine/particle_system.h engine/sound_system.h engine/texturemanager.h
+    engine/network.h engine/particle_system.h engine/texturemanager.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h
     engine/water_manager.h
 )
@@ -147,6 +147,36 @@ else()
     )
 endif()
 
+# sound library
+add_library(sound SHARED
+    engine/sound/sound_system.c
+    engine/sound/dsp_reverb.c
+    engine/sound/sound_system.h
+    engine/sound/dsp_reverb.h
+    engine/sound/sound_api.h
+)
+
+target_compile_definitions(sound PRIVATE
+    $<$<BOOL:${WIN32}>:SOUND_DLL_EXPORTS>
+    MINIMP3_IMPLEMENTATION
+    OGG_IMPL
+    VORBIS_IMPL
+)
+
+target_include_directories(sound PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"
+    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
+)
+
+target_compile_options(sound PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 # engine library
 add_library(engine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
@@ -156,9 +186,6 @@ target_compile_definitions(engine PRIVATE
     SDL_MAIN_HANDLED
     PL_MPEG_IMPLEMENTATION
     CGLTF_IMPLEMENTATION
-    MINIMP3_IMPLEMENTATION
-    OGG_IMPL
-    VORBIS_IMPL
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
 
@@ -166,6 +193,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/physics"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -193,6 +221,18 @@ if(WIN32)
         COMPILE_PDB_NAME engine
     )
 
+    set_target_properties(sound PROPERTIES
+        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
+        COMPILE_PDB_NAME sound
+    )
+
+    target_link_directories(sound PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
+    )
+
+    target_link_libraries(sound PRIVATE SDL2 OpenAL32)
+
     target_link_directories(engine PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
@@ -206,6 +246,7 @@ if(WIN32)
     target_link_libraries(engine PRIVATE
         physics
         math_lib
+        sound
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
         sentry
@@ -222,6 +263,7 @@ else()
         set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
         set(OPENAL_LIB "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux/libopenal.a")
         set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
+        target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
 
         target_link_directories(engine PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux"
@@ -232,6 +274,7 @@ else()
         target_link_libraries(engine PRIVATE
             physics
             math_lib
+            sound
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARY}
             ${SDL2_TTF_LIBRARY}
