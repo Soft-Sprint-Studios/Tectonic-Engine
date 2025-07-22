@@ -203,6 +203,7 @@ target_compile_definitions(sound PRIVATE
 target_include_directories(sound PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"

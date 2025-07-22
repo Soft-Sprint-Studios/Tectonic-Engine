@@ -14,6 +14,7 @@
 //----------------------------------------//
 
 #include "math_lib.h"
+#include "gl_console.h"
 #include <stdbool.h>
 #include "dsp_reverb.h"
 #include "sound_api.h"
@@ -21,14 +22,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-    // HACK: We cant get console printf error from engine.dll without circular dependency
-    typedef struct {
-        void (*printf_error)(const char* fmt, ...);
-    } SoundLogFunctions;
-
-    SOUND_API void Sound_RegisterLogFunctions(SoundLogFunctions* functions);
-    //HACK END
 
     typedef struct {
         unsigned int bufferID;
