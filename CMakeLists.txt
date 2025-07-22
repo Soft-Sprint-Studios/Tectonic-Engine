@@ -204,10 +204,11 @@ if(WIN32)
     )
 
     target_link_libraries(engine PRIVATE
-        SDL2 SDL2_image SDL2_ttf opengl32 glew32
         physics
+        math_lib
+        SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
-        sentry math_lib
+        sentry
     )
 else()
     if(UNIX AND NOT APPLE)
@@ -229,11 +230,12 @@ else()
         )
 
         target_link_libraries(engine PRIVATE
+            physics
+            math_lib
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARY}
             ${SDL2_TTF_LIBRARY}
             ${GLEW_LIBRARIES}
-            physics
             ${OPENAL_LIB}
             ${OPENGL_LIBRARIES}
             ${SENTRY_LIBRARY}
@@ -241,7 +243,6 @@ else()
             pthread
             dl
             freetype
-            math_lib
         )
     else()
         message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")
