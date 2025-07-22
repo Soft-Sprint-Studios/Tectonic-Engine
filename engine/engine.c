@@ -35,14 +35,11 @@
 #include "sentry_wrapper.h"
 #include "checksum.h"
 #include "water_manager.h"
+#include "engine_api.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
-#endif
-
-#ifdef PLATFORM_WINDOWS
-__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-__declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+#include <dlfcn.h>
 #endif
 
 #define SUN_SHADOW_MAP_SIZE 4096
@@ -3194,19 +3191,20 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
     glBindVertexArray(0);
 }
 
-#ifdef PLATFORM_WINDOWS
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-#else
-int main(int argc, char* argv[]) {
-#endif
+ENGINE_API int Engine_Main(int argc, char* argv[]) {
 #ifdef ENABLE_CHECKSUM
-    char exePath[1024];
+    char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
-    GetModuleFileNameA(NULL, exePath, sizeof(exePath));
+    HMODULE hModule = NULL;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)Engine_Main, &hModule);
+    GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
 #else
-    readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+    Dl_info info;
+    dladdr((void*)Engine_Main, &info);
+    strncpy(dllPath, info.dli_fname, sizeof(dllPath) - 1);
+    dllPath[sizeof(dllPath) - 1] = '\0';
 #endif
-    if (!Checksum_Verify(exePath)) {
+    if (!Checksum_Verify(dllPath)) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", NULL);
         return 1;
     }

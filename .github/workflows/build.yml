@@ -14,73 +14,117 @@ jobs:
   build-linux-x64-release:
     runs-on: [self-hosted, linux]
     steps:
-      - uses: actions/checkout@v3
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
-      - run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
-      - run: |
+      - name: Configure CMake
+        run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
+      - name: Build with CMake
+        run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
+      - name: Patch engine library
+        run: build-linux-x64-release/Patcher build-linux-x64-release/libengine.so
+      - name: Prepare artifacts
+        run: |
           mkdir -p commit/linux-x64-release
-          cp build-linux-x64-release/TectonicEngine commit/linux-x64-release/
+          cp build-linux-x64-release/launcher commit/linux-x64-release/
+          cp build-linux-x64-release/libengine.so commit/linux-x64-release/
 
   build-linux-x64-relwithdebinfo:
     runs-on: [self-hosted, linux]
     steps:
-      - uses: actions/checkout@v3
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
-      - run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
-      - run: |
-          cp build-linux-x64-relwithdebinfo/TectonicEngine build-linux-x64-relwithdebinfo/TectonicEngine.debug
-          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/TectonicEngine.debug build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols build-linux-x64-relwithdebinfo/TectonicEngine
-      - run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/TectonicEngine
-      - run: |
+      - name: Configure CMake
+        run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build with CMake
+        run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
+      - name: Create and strip debug symbols
+        run: |
+          # Process Launcher
+          cp build-linux-x64-relwithdebinfo/launcher build-linux-x64-relwithdebinfo/launcher.debug
+          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/launcher.debug build-linux-x64-relwithdebinfo/launcher.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/launcher.debugsymbols build-linux-x64-relwithdebinfo/launcher
+          # Process Engine Library
+          cp build-linux-x64-relwithdebinfo/libengine.so build-linux-x64-relwithdebinfo/libengine.so.debug
+          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/libengine.so.debug build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/libengine.so.debugsymbols build-linux-x64-relwithdebinfo/libengine.so
+      - name: Patch engine library
+        run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libengine.so
+      - name: Prepare artifacts
+        run: |
           mkdir -p commit/linux-x64-relwithdebinfo
-          cp build-linux-x64-relwithdebinfo/TectonicEngine commit/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/TectonicEngine.debugsymbols commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/launcher commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libengine.so commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/launcher.debugsymbols commit/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libengine.so.debugsymbols commit/linux-x64-relwithdebinfo/
 
   build-windows-x64-release:
     runs-on: [self-hosted, windows]
     steps:
-      - uses: actions/checkout@v3
-      - run: cmake -S . -B build-windows-x64-release -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build-windows-x64-release --config Release
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Configure CMake
+        run: cmake -S . -B build-windows-x64-release -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+      - name: Build with CMake
+        run: cmake --build build-windows-x64-release --config Release
+      - name: Prepare artifacts
+        run: |
           mkdir commit\windows-x64-release
-          copy build-windows-x64-release\Release\TectonicEngine.exe commit\windows-x64-release\
+          copy build-windows-x64-release\Release\launcher.exe commit\windows-x64-release\
+          copy build-windows-x64-release\Release\engine.dll commit\windows-x64-release\
 
   build-windows-x64-relwithdebinfo:
     runs-on: [self-hosted, windows]
     steps:
-      - uses: actions/checkout@v3
-      - run: cmake -S . -B build-windows-x64-relwithdebinfo -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Configure CMake
+        run: cmake -S . -B build-windows-x64-relwithdebinfo -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build with CMake
+        run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
+      - name: Prepare artifacts
+        run: |
           mkdir commit\windows-x64-relwithdebinfo
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicEngine.exe commit\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicEngine.pdb commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.dll commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb commit\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb commit\windows-x64-relwithdebinfo\
 
   build-windows-x86-release:
     runs-on: [self-hosted, windows]
     steps:
-      - uses: actions/checkout@v3
-      - run: cmake -S . -B build-windows-x86-release -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build build-windows-x86-release --config Release
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Configure CMake
+        run: cmake -S . -B build-windows-x86-release -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=Release
+      - name: Build with CMake
+        run: cmake --build build-windows-x86-release --config Release
+      - name: Prepare artifacts
+        run: |
           mkdir commit\windows-x86-release
-          copy build-windows-x86-release\Release\TectonicEngine.exe commit\windows-x86-release\
+          copy build-windows-x86-release\Release\launcher.exe commit\windows-x86-release\
+          copy build-windows-x86-release\Release\engine.dll commit\windows-x86-release\
 
   build-windows-x86-relwithdebinfo:
     runs-on: [self-hosted, windows]
     steps:
-      - uses: actions/checkout@v3
-      - run: cmake -S . -B build-windows-x86-relwithdebinfo -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
-      - run: |
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Configure CMake
+        run: cmake -S . -B build-windows-x86-relwithdebinfo -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build with CMake
+        run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
+      - name: Prepare artifacts
+        run: |
           mkdir commit\windows-x86-relwithdebinfo
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicEngine.exe commit\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicEngine.pdb commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.dll commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb commit\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb commit\windows-x86-relwithdebinfo\
