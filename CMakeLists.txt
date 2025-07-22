@@ -30,7 +30,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         $<$<CONFIG:RELEASE>:-O3>
         $<$<CONFIG:RELEASE>:-march=native>
         $<$<CONFIG:RELEASE>:-flto>
-        
+
         $<$<CONFIG:RELWITHDEBINFO>:-O2>
         $<$<CONFIG:RELWITHDEBINFO>:-g>
         $<$<CONFIG:RELWITHDEBINFO>:-march=native>
@@ -44,13 +44,21 @@ elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(ENGINE_SOURCES
-    binds.c cvar.c discord_wrapper.c dsp_reverb.c editor.c editor_undo.c gameconfig.c gl_console.cpp gl_misc.c io_system.c main.c main_menu.c map.c math_lib.c model_loader.c network.c particle_system.c physics_wrapper.cpp sound_system.c texturemanager.c video_player.c weapons.c sentry_wrapper.c checksum.c commands.c water_manager.c
-    imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
+    engine/binds.c engine/cvar.c engine/discord_wrapper.c engine/dsp_reverb.c engine/editor.c engine/editor_undo.c engine/gameconfig.c engine/gl_console.cpp engine/gl_misc.c engine/io_system.c engine/main.c engine/main_menu.c engine/map.c engine/math_lib.c engine/model_loader.c engine/network.c engine/particle_system.c engine/physics_wrapper.cpp engine/sound_system.c engine/texturemanager.c engine/video_player.c engine/weapons.c engine/sentry_wrapper.c engine/checksum.c engine/commands.c engine/water_manager.c
+
+    imgui-master/backends/imgui_impl_opengl3.cpp
+    imgui-master/backends/imgui_impl_sdl2.cpp
+    imgui-master/imgui.cpp
+    imgui-master/imgui_draw.cpp
+    imgui-master/imgui_tables.cpp
+    imgui-master/imgui_widgets.cpp
+
     mikktspace/mikktspace.c
 )
 set(ENGINE_HEADERS
-    compat.h binds.h cvar.h discord_wrapper.h dsp_reverb.h editor.h editor_undo.h gameconfig.h gl_console.h gl_misc.h io_system.h main_menu.h map.h math_lib.h model_loader.h network.h particle_system.h physics_wrapper.h sound_system.h texturemanager.h video_player.h weapons.h sentry_wrapper.h checksum.h commands.h water_manager.h
+    engine/compat.h engine/binds.h engine/cvar.h engine/discord_wrapper.h engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/math_lib.h engine/model_loader.h engine/network.h engine/particle_system.h engine/physics_wrapper.h engine/sound_system.h engine/texturemanager.h engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h engine/water_manager.h
 )
+
 
 add_executable(TectonicEngine ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
@@ -69,6 +77,7 @@ target_compile_definitions(TectonicEngine PRIVATE
 )
 
 target_include_directories(TectonicEngine PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -84,8 +93,8 @@ target_include_directories(TectonicEngine PRIVATE
 )
 
 target_compile_options(TectonicEngine PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/compat.h">
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/compat.h">
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 if(WIN32)
@@ -96,7 +105,7 @@ if(WIN32)
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
         COMPILE_PDB_NAME TectonicEngine
     )
-	
+
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         message(STATUS "Configuring for 64-bit (x64) build.")
         set(ARCH_DIR "x64")
@@ -132,25 +141,25 @@ elseif(UNIX AND NOT APPLE)
     find_package(GLEW REQUIRED)
     find_package(OpenGL REQUIRED)
 
-    set(SDL2_IMAGE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include")
-    set(SDL2_TTF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include")
-    set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
-    set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
+    set(SDL2_IMAGE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_image-2.8.8/include")
+    set(SDL2_TTF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_ttf-2.24.0/include")
+    set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
+    set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
 
-    set(BULLET_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/include")
-    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib")
+    set(BULLET_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/bullet/include")
+    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/bullet/lib")
     set(BULLET_LIBS
         "${BULLET_LIB_DIR}/linux/libBulletDynamics.a"
         "${BULLET_LIB_DIR}/linux/libBulletCollision.a"
         "${BULLET_LIB_DIR}/linux/libLinearMath.a"
     )
 
-    set(OPENAL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include")
-    set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux")
+    set(OPENAL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/openal-soft-1.24.3/include")
+    set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/openal-soft-1.24.3/libs/Linux")
     set(OPENAL_LIB "${OPENAL_LIB_DIR}/libopenal.a")
 
-    set(SENTRY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include")
-    set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
+    set(SENTRY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/sentry/include")
+    set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/sentry/lib/linux/libsentry.so")
 
     target_include_directories(TectonicEngine PRIVATE
         ${SDL2_INCLUDE_DIRS}
@@ -196,7 +205,7 @@ if(WIN32)
     target_link_options(Batchmodelimporter PRIVATE /subsystem:console)
 endif()
 
-add_executable(Patcher checksumpatcher.cpp)
+add_executable(Patcher engine/checksumpatcher.cpp)
 set_target_properties(Patcher PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
 if(WIN32)
