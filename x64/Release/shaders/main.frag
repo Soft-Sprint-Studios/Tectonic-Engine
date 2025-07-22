@@ -312,16 +312,6 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     return normalize(intersectPos - probePos);
 }
 
-vec3 decodeDirection(vec2 f)
-{
-    f = f * 2.0 - 1.0;
-    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-    float t = clamp(-n.z, 0.0, 1.0);
-    n.x += n.x >= 0.0 ? -t : t;
-    n.y += n.y >= 0.0 ? -t : t;
-    return normalize(n);
-}
-
 void main()
 {
     float blendR = v_Color.r;
