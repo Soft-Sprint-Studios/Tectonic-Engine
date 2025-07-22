@@ -7,7 +7,6 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "sound_system.h"
-#include "gl_console.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
