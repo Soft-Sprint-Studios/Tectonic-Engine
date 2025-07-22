@@ -22,6 +22,16 @@
 extern "C" {
 #endif
 
+    // HACK: We cant get console printf error from engine.dll without circular dependency
+    typedef struct {
+        void (*printf)(const char* fmt, ...);
+        void (*printf_error)(const char* fmt, ...);
+        void (*printf_warning)(const char* fmt, ...);
+    } SoundLogFunctions;
+
+    SOUND_API void Sound_RegisterLogFunctions(SoundLogFunctions* functions);
+    //HACK END
+
     typedef struct {
         unsigned int bufferID;
     } Sound;
