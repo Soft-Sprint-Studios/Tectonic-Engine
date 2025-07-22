@@ -13,6 +13,19 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef PLATFORM_WINDOWS
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+#ifdef PLATFORM_WINDOWS
+const char* g_module_names[] = { "engine.dll", "level0.dll", "level1.dll", "math_lib.dll", "physics.dll", "sound.dll" };
+#else
+const char* g_module_names[] = { "engine.so", "level0.so", "level1.so", "math_lib.so", "physics.so", "sound.so" };
+#endif
+const int g_num_modules = sizeof(g_module_names) / sizeof(g_module_names[0]);
+
 static uint32_t crc_table[256];
 static int table_initialized = 0;
 
@@ -47,50 +60,113 @@ __declspec(allocate(".checksum_section"))
 EmbeddedChecksum g_EmbeddedChecksum = { 0xBADF00D5, 0 };
 #endif
 
+static char* get_module_directory() {
+    char path[1024];
+#ifdef PLATFORM_WINDOWS
+    HMODULE hModule = NULL;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)get_module_directory, &hModule);
+    GetModuleFileNameA(hModule, path, sizeof(path));
+#else
+    Dl_info info;
+    dladdr((void*)get_module_directory, &info);
+    strncpy(path, info.dli_fname, sizeof(path) - 1);
+    path[sizeof(path) - 1] = '\0';
+#endif
+
+    const char* last_slash = strrchr(path, '/');
+    const char* last_bslash = strrchr(path, '\\');
+    const char* last_separator = (last_slash > last_bslash) ? last_slash : last_bslash;
+
+    if (last_separator) {
+        size_t len = last_separator - path + 1;
+        char* dir = (char*)malloc(len + 1);
+        strncpy(dir, path, len);
+        dir[len] = '\0';
+        return dir;
+    }
+    return _strdup("./");
+}
+
+
 bool Checksum_Verify(const char* exePath) {
-    FILE* file = fopen(exePath, "rb");
-    if (!file) return false;
+    unsigned char* full_buffer = NULL;
+    long totalSize = 0;
+    long engineModuleSize = 0;
 
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    unsigned char* buffer = (unsigned char*)malloc(fileSize);
-    if (!buffer) {
-        fclose(file);
+    char* moduleDir = get_module_directory();
+    if (!moduleDir) {
         return false;
     }
 
-    if (fread(buffer, 1, fileSize, file) != fileSize) {
-        free(buffer);
-        fclose(file);
+    for (int i = 0; i < g_num_modules; ++i) {
+        char modulePath[512];
+        snprintf(modulePath, sizeof(modulePath), "%s%s", moduleDir, g_module_names[i]);
+
+        FILE* moduleFile = fopen(modulePath, "rb");
+        if (!moduleFile) {
+            Console_Printf_Error("[Checksum] Failed to open module: %s", modulePath);
+            free(moduleDir);
+            free(full_buffer);
+            return false;
+        }
+
+        fseek(moduleFile, 0, SEEK_END);
+        long moduleSize = ftell(moduleFile);
+        fseek(moduleFile, 0, SEEK_SET);
+
+        unsigned char* temp_buffer = (unsigned char*)realloc(full_buffer, totalSize + moduleSize);
+        if (!temp_buffer) {
+            Console_Printf_Error("[Checksum] Failed to reallocate memory for module: %s", modulePath);
+            fclose(moduleFile);
+            free(moduleDir);
+            free(full_buffer);
+            return false;
+        }
+        full_buffer = temp_buffer;
+
+        if (fread(full_buffer + totalSize, 1, moduleSize, moduleFile) != moduleSize) {
+            Console_Printf_Error("[Checksum] Failed to read module: %s", modulePath);
+            fclose(moduleFile);
+            free(moduleDir);
+            free(full_buffer);
+            return false;
+        }
+
+        fclose(moduleFile);
+        if (i == 0) {
+            engineModuleSize = moduleSize;
+        }
+        totalSize += moduleSize;
+    }
+    free(moduleDir);
+
+    if (totalSize == 0) {
         return false;
     }
-    fclose(file);
 
     long checksumStructFileOffset = -1;
-    for (long i = 0; i <= fileSize - (long)sizeof(EmbeddedChecksum); ++i) {
-        if (memcmp(buffer + i, &g_EmbeddedChecksum.signature, sizeof(uint32_t)) == 0) {
+    for (long i = 0; i <= engineModuleSize - (long)sizeof(EmbeddedChecksum); ++i) {
+        if (memcmp(full_buffer + i, &g_EmbeddedChecksum.signature, sizeof(uint32_t)) == 0) {
             checksumStructFileOffset = i;
             break;
         }
     }
 
     if (checksumStructFileOffset == -1) {
-        free(buffer);
+        free(full_buffer);
         return false;
     }
 
     uint32_t storedChecksum;
-    memcpy(&storedChecksum, buffer + checksumStructFileOffset + offsetof(EmbeddedChecksum, checksum), sizeof(uint32_t));
+    memcpy(&storedChecksum, full_buffer + checksumStructFileOffset + offsetof(EmbeddedChecksum, checksum), sizeof(uint32_t));
 
     uint32_t zero = 0;
-    memcpy(buffer + checksumStructFileOffset + offsetof(EmbeddedChecksum, checksum), &zero, sizeof(uint32_t));
+    memcpy(full_buffer + checksumStructFileOffset + offsetof(EmbeddedChecksum, checksum), &zero, sizeof(uint32_t));
 
     crc32_init_table();
-    uint32_t calculatedChecksum = crc32_calculate(buffer, fileSize);
+    uint32_t calculatedChecksum = crc32_calculate(full_buffer, totalSize);
 
-    free(buffer);
+    free(full_buffer);
 
     if (storedChecksum != calculatedChecksum) {
         return false;
