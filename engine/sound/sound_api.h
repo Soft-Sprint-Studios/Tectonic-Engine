@@ -1,7 +1,13 @@
+/*
+ * Copyright © 2025 Soft Sprint Studios
+ * All rights reserved.
+ *
+ * This file is proprietary and confidential. Unauthorized reproduction,
+ * modification, or distribution is strictly prohibited unless explicit
+ * written permission is granted by Soft Sprint Studios.
+ */
 #ifndef SOUND_API_H
 #define SOUND_API_H
-
-#include "compat.h"
 
 #ifdef PLATFORM_WINDOWS
     #ifdef SOUND_DLL_EXPORTS
