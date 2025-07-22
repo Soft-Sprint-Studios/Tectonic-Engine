@@ -999,11 +999,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
         else if (strcmp(keyword, "fog_settings") == 0) {
             int enabled_int;
-            sscanf(line, "%*s %d %f %f %f %f %f %f %f %f",
-                &enabled_int, &scene->sun.direction.x, &scene->sun.direction.y, &scene->sun.direction.z,
-                &scene->sun.color.x, &scene->sun.color.y, &scene->sun.color.z, &scene->sun.intensity, &scene->sun.volumetricIntensity);
+            sscanf(line, "%*s %d %f %f %f %f %f",
+                &enabled_int, &scene->fog.color.x, &scene->fog.color.y, &scene->fog.color.z, &scene->fog.start, &scene->fog.end);
             scene->fog.enabled = (bool)enabled_int;
-            vec3_normalize(&scene->sun.direction);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
             int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int;
