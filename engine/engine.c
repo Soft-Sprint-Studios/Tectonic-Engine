@@ -661,6 +661,71 @@ void Cmd_Echo(int argc, char** argv) {
     Console_Printf("%s", message);
 }
 
+void Cmd_Clear(int argc, char** argv) {
+    Console_ClearLog();
+}
+
+void Cmd_Help(int argc, char** argv) {
+    Console_Printf("--- Command List ---");
+    for (int i = 0; i < Commands_GetCount(); ++i) {
+        const Command* cmd = Commands_GetCommand(i);
+        if (cmd) {
+            Console_Printf("%s - %s", cmd->name, cmd->description);
+        }
+    }
+    Console_Printf("--- CVAR List ---");
+    Console_Printf("To set a cvar, type: <cvar_name> <value>");
+    for (int i = 0; i < Cvar_GetCount(); i++) {
+        const Cvar* c = Cvar_GetCvar(i);
+        if (c && !(c->flags & CVAR_HIDDEN)) {
+            Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
+        }
+    }
+    Console_Printf("--------------------");
+}
+
+void Cmd_Exec(int argc, char** argv) {
+    if (argc != 2) {
+        Console_Printf("Usage: exec <filename>");
+        return;
+    }
+
+    const char* filename = argv[1];
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        Console_Printf_Error("[error] Could not open script file: %s", filename);
+        return;
+    }
+
+    Console_Printf("Executing script: %s", filename);
+    char line[512];
+    while (fgets(line, sizeof(line), file)) {
+        char* trimmed_line = trim(line);
+        if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
+            continue;
+        }
+
+        char* cmd_copy = _strdup(trimmed_line);
+#define MAX_ARGS 32
+        int exec_argc = 0;
+        char* exec_argv[MAX_ARGS];
+
+        char* p = strtok(cmd_copy, " ");
+        while (p != NULL && exec_argc < MAX_ARGS) {
+            exec_argv[exec_argc++] = p;
+            p = strtok(NULL, " ");
+        }
+
+        if (exec_argc > 0) {
+            Commands_Execute(exec_argc, exec_argv);
+        }
+        free(cmd_copy);
+    }
+
+    fclose(file);
+    Console_Printf("Finished executing script: %s", filename);
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -741,6 +806,31 @@ void init_cvars() {
     Cvar_Register("p_disable_deactivation", "0", "Disables physics objects sleeping (0=off, 1=on).", CVAR_NONE);
 }
 
+void init_commands() {
+    Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.", CMD_NONE);
+    Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
+    Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
+    Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
+    Commands_Register("exit", Cmd_Quit, "Alias for the 'quit' command.", CMD_NONE);
+    Commands_Register("setpos", Cmd_SetPos, "Teleports the player to a specified XYZ coordinate.", CMD_CHEAT);
+    Commands_Register("noclip", Cmd_Noclip, "Toggles player collision and gravity.", CMD_CHEAT);
+    Commands_Register("bind", Cmd_Bind, "Binds a key to a command.", CMD_NONE);
+    Commands_Register("unbind", Cmd_Unbind, "Removes a key binding.", CMD_NONE);
+    Commands_Register("unbindall", Cmd_UnbindAll, "Removes all key bindings.", CMD_NONE);
+    Commands_Register("map", Cmd_Map, "Loads the specified map.", CMD_NONE);
+    Commands_Register("maps", Cmd_Maps, "Lists all available .map files in the root directory.", CMD_NONE);
+    Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.", CMD_NONE);
+    Commands_Register("download", Cmd_Download, "Downloads a file from a URL.", CMD_NONE);
+    Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.", CMD_NONE);
+    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
+    Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.", CMD_NONE);
+    Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.", CMD_NONE);
+    Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
+    Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
+
+    Console_Printf("Engine commands registered.");
+}
+
 void PrintCPUInfo() {
     unsigned int eax, ebx, ecx, edx;
 
@@ -799,6 +889,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     IO_Init();
     Binds_Init();
     Commands_Init();
+    init_commands();
     Sentry_Init();
     FILE* autoexec_file = fopen("autoexec.cfg", "r");
     if (autoexec_file) {

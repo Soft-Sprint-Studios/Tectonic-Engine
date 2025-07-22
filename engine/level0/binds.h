@@ -14,6 +14,7 @@
 //----------------------------------------//
 
 #include <SDL_keycode.h>
+#include "level0_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,14 +28,14 @@ typedef struct {
     char command[MAX_COMMAND_LENGTH];
 } KeyBind;
 
-void Binds_Init(void);
-void Binds_Shutdown(void);
-void Binds_Load(const char* filename);
-void Binds_Save(const char* filename);
-void Binds_Set(const char* keyName, const char* command);
-void Binds_Unset(const char* keyName);
-void Binds_UnbindAll(void);
-const char* Binds_GetCommand(SDL_Keycode key);
+LEVEL0_API void Binds_Init(void);
+LEVEL0_API void Binds_Shutdown(void);
+LEVEL0_API void Binds_Load(const char* filename);
+LEVEL0_API void Binds_Save(const char* filename);
+LEVEL0_API void Binds_Set(const char* keyName, const char* command);
+LEVEL0_API void Binds_Unset(const char* keyName);
+LEVEL0_API void Binds_UnbindAll(void);
+LEVEL0_API const char* Binds_GetCommand(SDL_Keycode key);
 
 #ifdef __cplusplus
 }

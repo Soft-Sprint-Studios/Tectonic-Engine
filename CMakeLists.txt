@@ -66,23 +66,21 @@ endif()
 
 # Source files
 set(ENGINE_SOURCES
-    engine/binds.c engine/cvar.c engine/discord_wrapper.c
-    engine/editor.c engine/editor_undo.c engine/gameconfig.c engine/gl_console.cpp
+    engine/discord_wrapper.c
+    engine/editor.c engine/editor_undo.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/model_loader.c engine/network.c engine/particle_system.c
     engine/texturemanager.c engine/video_player.c engine/weapons.c
-    engine/sentry_wrapper.c engine/checksum.c engine/commands.c engine/water_manager.c
-    imgui-master/backends/imgui_impl_opengl3.cpp imgui-master/backends/imgui_impl_sdl2.cpp
-    imgui-master/imgui.cpp imgui-master/imgui_draw.cpp imgui-master/imgui_tables.cpp imgui-master/imgui_widgets.cpp
+    engine/sentry_wrapper.c engine/checksum.c engine/water_manager.c
     mikktspace/mikktspace.c
 )
 
 set(ENGINE_HEADERS
-    engine/compat.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h
-    engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h
+    engine/compat.h engine/engine_api.h engine/discord_wrapper.h
+    engine/editor.h engine/editor_undo.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h
     engine/network.h engine/particle_system.h engine/texturemanager.h
-    engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h
+    engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
     engine/water_manager.h
 )
 
@@ -102,6 +100,45 @@ target_include_directories(math_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/engine")
 target_compile_options(math_lib PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
     $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
+# level0 library (core utilities)
+add_library(level0 SHARED
+    engine/level0/gl_console.cpp
+    engine/level0/gameconfig.c
+    engine/level0/binds.c
+    engine/level0/cvar.c
+    engine/level0/commands.c
+    engine/level0/gl_console.h
+    engine/level0/gameconfig.h
+    engine/level0/binds.h
+    engine/level0/cvar.h
+    engine/level0/commands.h
+    engine/level0/level0_api.h
+    imgui-master/backends/imgui_impl_opengl3.cpp
+    imgui-master/backends/imgui_impl_sdl2.cpp
+    imgui-master/imgui.cpp
+    imgui-master/imgui_draw.cpp
+    imgui-master/imgui_tables.cpp
+    imgui-master/imgui_widgets.cpp
+)
+target_compile_definitions(level0 PRIVATE
+    $<$<BOOL:${WIN32}>:LEVEL0_DLL_EXPORTS>
+    IMGUI_DEFINE_MATH_OPERATORS
+    $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
+)
+target_include_directories(level0 PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master"
+    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
+)
+target_compile_options(level0 PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # physics library
@@ -182,7 +219,6 @@ add_library(engine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 target_compile_definitions(engine PRIVATE
     ENGINE_DLL_EXPORTS
-    IMGUI_DEFINE_MATH_OPERATORS
     SDL_MAIN_HANDLED
     PL_MPEG_IMPLEMENTATION
     CGLTF_IMPLEMENTATION
@@ -194,6 +230,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/physics"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -216,6 +253,13 @@ target_compile_options(engine PRIVATE
 if(WIN32)
     message(STATUS "Configuring for Windows")
 
+    target_link_directories(level0 PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+    )
+
+    target_link_libraries(level0 PRIVATE math_lib SDL2 opengl32 glew32) 
+
     set_target_properties(engine PROPERTIES
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
         COMPILE_PDB_NAME engine
@@ -231,7 +275,7 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
     )
 
-    target_link_libraries(sound PRIVATE SDL2 OpenAL32)
+    target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
 
     target_link_directories(engine PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
@@ -244,6 +288,7 @@ if(WIN32)
     )
 
     target_link_libraries(engine PRIVATE
+        level0
         physics
         math_lib
         sound
@@ -272,6 +317,7 @@ else()
         )
 
         target_link_libraries(engine PRIVATE
+            level0
             physics
             math_lib
             sound

@@ -13,6 +13,8 @@
 // Brief: The "gameconf.txt"
 //----------------------------------------//
 
+#include "level0_api.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,8 +24,8 @@ typedef struct {
     char gamename[128];
 } GameConfig;
 
-void GameConfig_Init(void);
-const GameConfig* GameConfig_Get(void);
+LEVEL0_API void GameConfig_Init(void);
+LEVEL0_API const GameConfig* GameConfig_Get(void);
 
 #ifdef __cplusplus
 }

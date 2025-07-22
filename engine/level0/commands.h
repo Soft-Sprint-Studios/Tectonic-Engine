@@ -13,6 +13,8 @@
 // Brief: Concommands are handled here
 //----------------------------------------//
 
+#include "level0_api.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,12 +31,12 @@ typedef struct {
     int flags;
 } Command;
 
-void Commands_Init(void);
-void Commands_Shutdown(void);
-void Commands_Register(const char* name, command_func_t func, const char* description, int flags);
-void Commands_Execute(int argc, char** argv);
-int Commands_GetCount();
-const Command* Commands_GetCommand(int index);
+LEVEL0_API void Commands_Init(void);
+LEVEL0_API void Commands_Shutdown(void);
+LEVEL0_API void Commands_Register(const char* name, command_func_t func, const char* description, int flags);
+LEVEL0_API void Commands_Execute(int argc, char** argv);
+LEVEL0_API int Commands_GetCount();
+LEVEL0_API const Command* Commands_GetCommand(int index);
 
 #ifdef __cplusplus
 }
