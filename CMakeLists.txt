@@ -25,8 +25,8 @@ if(MSVC)
 elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Applying GCC/Clang optimization settings")
     add_compile_options(
-        $<$<CONFIG:RELEASE>:"-O3;-march=native;-flto">
-        $<$<CONFIG:RELWITHDEBINFO>:"-O2;-g;-march=native;-flto">
+        $<$<CONFIG:RELEASE>:-O3 -march=native -flto>
+        $<$<CONFIG:RELWITHDEBINFO>:-O2 -g -march=native -flto>
     )
     add_link_options(
         $<$<CONFIG:RELEASE>:-flto>
@@ -42,6 +42,10 @@ if(WIN32)
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         message(STATUS "Configuring for 32-bit (x86) build.")
         set(ARCH_DIR "x86")
+        if(MSVC)
+            string(REPLACE "/SAFESEH" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+        endif()
     else()
         message(FATAL_ERROR "Unsupported architecture size.")
     endif()
