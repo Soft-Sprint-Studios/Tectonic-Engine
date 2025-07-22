@@ -251,6 +251,12 @@ endif()
 
 # launcher executable
 add_executable(launcher launcher/launcher.c)
+
+if(WIN32)
+    set(LAUNCHER_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.rc")
+    target_sources(launcher PRIVATE ${LAUNCHER_ICON_RC})
+endif()
+
 target_link_libraries(launcher PRIVATE engine)
 target_compile_options(launcher PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
