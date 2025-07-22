@@ -70,8 +70,8 @@ set(ENGINE_SOURCES
     engine/editor.c engine/editor_undo.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/model_loader.c engine/particle_system.c
-    engine/texturemanager.c engine/video_player.c engine/weapons.c
-    engine/sentry_wrapper.c engine/checksum.c engine/water_manager.c
+    engine/video_player.c engine/weapons.c
+    engine/sentry_wrapper.c engine/checksum.c
     mikktspace/mikktspace.c
 )
 
@@ -79,9 +79,8 @@ set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor.h engine/editor_undo.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h
-    engine/particle_system.h engine/texturemanager.h
+    engine/particle_system.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
-    engine/water_manager.h
 )
 
 # math_lib library
@@ -178,6 +177,33 @@ target_compile_options(level1 PRIVATE
     $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
+# materials library
+add_library(materials SHARED
+    engine/materials/texturemanager.c
+    engine/materials/water_manager.c
+    engine/materials/texturemanager.h
+    engine/materials/water_manager.h
+    engine/materials/materials_api.h
+)
+
+target_compile_definitions(materials PRIVATE
+    $<$<BOOL:${WIN32}>:MATERIALS_DLL_EXPORTS>
+)
+
+target_include_directories(materials PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
+)
+
+target_compile_options(materials PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 # physics library
 add_library(physics SHARED
     engine/physics/physics_wrapper.cpp
@@ -270,6 +296,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -309,12 +336,24 @@ if(WIN32)
         COMPILE_PDB_NAME sound
     )
 
+    set_target_properties(materials PROPERTIES
+        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
+        COMPILE_PDB_NAME materials
+    )
+
     target_link_directories(sound PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
     )
 
     target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
+    target_link_libraries(materials PRIVATE level0 math_lib SDL2 SDL2_image opengl32 glew32)
+
+    target_link_directories(materials PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+    )
 
     target_link_directories(engine PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
@@ -332,6 +371,7 @@ if(WIN32)
         physics
         math_lib
         sound
+        materials
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
         sentry
@@ -349,6 +389,7 @@ else()
         set(OPENAL_LIB "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux/libopenal.a")
         set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
         target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
+        target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 SDL2::SDL2_image GLEW::glew OpenGL::GL)
 
         target_link_directories(engine PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux"
@@ -362,6 +403,7 @@ else()
             physics
             math_lib
             sound
+            materials
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARY}
             ${SDL2_TTF_LIBRARY}
