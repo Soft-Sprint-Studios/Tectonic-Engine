@@ -9,8 +9,6 @@
 #ifndef MATH_API_H
 #define MATH_API_H
 
-#include "compat.h"
-
 #ifdef PLATFORM_WINDOWS
     #ifdef MATH_DLL_EXPORTS
         #define MATH_API __declspec(dllexport)

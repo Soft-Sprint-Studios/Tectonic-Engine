@@ -63,6 +63,11 @@ target_include_directories(math_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
 )
 
+target_compile_options(math_lib PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 add_library(engine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 if(WIN32)
