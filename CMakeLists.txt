@@ -157,7 +157,6 @@ target_compile_definitions(engine PRIVATE
     OGG_IMPL
     VORBIS_IMPL
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
-    $<$<BOOL:${UNIX_AND_NOT_APPLE}>:_GNU_SOURCE>
 )
 
 target_include_directories(engine PUBLIC
@@ -210,7 +209,7 @@ if(WIN32)
 else()
     if(UNIX AND NOT APPLE)
         message(STATUS "Configuring for Linux")
-
+        target_compile_definitions(engine PRIVATE _GNU_SOURCE)
         find_package(SDL2 REQUIRED)
         find_package(GLEW REQUIRED)
         find_package(OpenGL REQUIRED)
