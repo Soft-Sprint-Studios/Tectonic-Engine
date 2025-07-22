@@ -35,6 +35,7 @@
 #include "sentry_wrapper.h"
 #include "checksum.h"
 #include "water_manager.h"
+#include "video_player.h" 
 #include "engine_api.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>

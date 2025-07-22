@@ -9,8 +9,6 @@
 #ifndef ENGINE_API_H
 #define ENGINE_API_H
 
-#include "compat.h"
-
 #ifdef PLATFORM_WINDOWS
     #ifdef ENGINE_DLL_EXPORTS
         #define ENGINE_API __declspec(dllexport)
