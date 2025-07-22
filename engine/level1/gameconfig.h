@@ -6,26 +6,29 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef GAMECONFIG_H
+#define GAMECONFIG_H
 
 //----------------------------------------//
-// Brief: Networking, for now pining and download files only
+// Brief: The "gameconf.txt"
 //----------------------------------------//
 
-#include <stdbool.h>
+#include "level1_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void Network_Init(void);
-	void Network_Shutdown(void);
-	bool Network_DownloadFile(const char* url, const char* output_filepath);
-	bool Network_Ping(const char* hostname);
+typedef struct {
+    char startmap[128];
+    char gamename[128];
+} GameConfig;
+
+LEVEL1_API void GameConfig_Init(void);
+LEVEL1_API const GameConfig* GameConfig_Get(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif // GAMECONFIG_H

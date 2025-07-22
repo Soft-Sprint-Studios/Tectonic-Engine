@@ -69,7 +69,7 @@ set(ENGINE_SOURCES
     engine/discord_wrapper.c
     engine/editor.c engine/editor_undo.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
-    engine/map.c engine/model_loader.c engine/network.c engine/particle_system.c
+    engine/map.c engine/model_loader.c engine/particle_system.c
     engine/texturemanager.c engine/video_player.c engine/weapons.c
     engine/sentry_wrapper.c engine/checksum.c engine/water_manager.c
     mikktspace/mikktspace.c
@@ -79,7 +79,7 @@ set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor.h engine/editor_undo.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h
-    engine/network.h engine/particle_system.h engine/texturemanager.h
+    engine/particle_system.h engine/texturemanager.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
     engine/water_manager.h
 )
@@ -105,12 +105,10 @@ target_compile_options(math_lib PRIVATE
 # level0 library (core utilities)
 add_library(level0 SHARED
     engine/level0/gl_console.cpp
-    engine/level0/gameconfig.c
     engine/level0/binds.c
     engine/level0/cvar.c
     engine/level0/commands.c
     engine/level0/gl_console.h
-    engine/level0/gameconfig.h
     engine/level0/binds.h
     engine/level0/cvar.h
     engine/level0/commands.h
@@ -139,6 +137,45 @@ target_include_directories(level0 PUBLIC
 target_compile_options(level0 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
     $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
+# level1 library (mid-core utilities)
+add_library(level1 SHARED
+    engine/level1/gameconfig.c
+    engine/level1/network.c
+    engine/level1/gameconfig.h
+    engine/level1/network.h
+    engine/level1/level1_api.h
+)
+
+target_compile_definitions(level1 PRIVATE
+    $<$<BOOL:${WIN32}>:LEVEL1_DLL_EXPORTS>
+)
+
+target_include_directories(level1 PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+)
+
+if(WIN32)
+    target_link_directories(level1 PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+    )
+    
+    target_link_libraries(level1 PRIVATE level0 SDL2)
+else()
+    if(UNIX AND NOT APPLE)
+        find_package(SDL2 REQUIRED)
+        target_link_libraries(level1 PRIVATE level0 SDL2::SDL2)
+    else()
+        message(FATAL_ERROR "Unsupported platform for level1!")
+    endif()
+endif()
+
+target_compile_options(level1 PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # physics library
@@ -232,6 +269,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -290,6 +328,7 @@ if(WIN32)
 
     target_link_libraries(engine PRIVATE
         level0
+        level1
         physics
         math_lib
         sound
@@ -319,6 +358,7 @@ else()
 
         target_link_libraries(engine PRIVATE
             level0
+            level1
             physics
             math_lib
             sound

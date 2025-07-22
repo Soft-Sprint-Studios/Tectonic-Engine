@@ -7,7 +7,6 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #include "gameconfig.h"
-#include "gl_console.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
