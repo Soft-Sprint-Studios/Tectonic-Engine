@@ -104,11 +104,9 @@ target_compile_options(math_lib PRIVATE
 # level0 library (core utilities)
 add_library(level0 SHARED
     engine/level0/gl_console.cpp
-    engine/level0/binds.c
     engine/level0/cvar.c
     engine/level0/commands.c
     engine/level0/gl_console.h
-    engine/level0/binds.h
     engine/level0/cvar.h
     engine/level0/commands.h
     engine/level0/level0_api.h
@@ -142,8 +140,10 @@ target_compile_options(level0 PRIVATE
 add_library(level1 SHARED
     engine/level1/gameconfig.c
     engine/level1/network.c
+    engine/level1/binds.c
     engine/level1/gameconfig.h
     engine/level1/network.h
+    engine/level1/binds.h
     engine/level1/level1_api.h
 )
 
