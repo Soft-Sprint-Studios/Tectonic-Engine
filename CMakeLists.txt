@@ -16,18 +16,28 @@ if(MSVC)
         set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /LTCG /DEBUG")
         set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /LTCG /DEBUG")
     endforeach()
+
     foreach(config DEBUG MINSIZEREL)
         set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /Zi")
         set(CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}} /Zi")
         set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /DEBUG")
         set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /DEBUG")
     endforeach()
+
 elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Applying GCC/Clang optimization settings")
+
     add_compile_options(
-        $<$<CONFIG:RELEASE>:-O3 -march=native -flto>
-        $<$<CONFIG:RELWITHDEBINFO>:-O2 -g -march=native -flto>
+        $<$<CONFIG:RELEASE>:-O3>
+        $<$<CONFIG:RELEASE>:-march=native>
+        $<$<CONFIG:RELEASE>:-flto>
+
+        $<$<CONFIG:RELWITHDEBINFO>:-O2>
+        $<$<CONFIG:RELWITHDEBINFO>:-g>
+        $<$<CONFIG:RELWITHDEBINFO>:-march=native>
+        $<$<CONFIG:RELWITHDEBINFO>:-flto>
     )
+
     add_link_options(
         $<$<CONFIG:RELEASE>:-flto>
         $<$<CONFIG:RELWITHDEBINFO>:-flto>
