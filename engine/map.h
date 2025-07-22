@@ -301,6 +301,8 @@ typedef struct {
 
 typedef struct {
     Vec3 position;
+    float yaw;
+    float pitch;
 } PlayerStart;
 
 typedef struct {
@@ -464,7 +466,7 @@ void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
 void LogicSystem_Update(Scene* scene, float deltaTime);
 void Scene_Clear(Scene* scene, Engine* engine);
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
-void Scene_SaveMap(Scene* scene, const char* mapPath);
+bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath);
 
 #ifdef __cplusplus
 }

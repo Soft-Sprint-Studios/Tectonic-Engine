@@ -963,7 +963,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
     FILE* file = fopen(mapPath, "r");
     if (!file) {
-        Console_Printf("[error] Could not find map file: %s", mapPath);
+        Console_Printf_Error("[error] Could not find map file: %s", mapPath);
         return false;
     }
 
@@ -995,7 +995,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         char keyword[64];
         sscanf(line, "%s", keyword);
         if (strcmp(keyword, "player_start") == 0) {
-            sscanf(line, "%*s %f %f %f", &scene->playerStart.position.x, &scene->playerStart.position.y, &scene->playerStart.position.z);
+            if (sscanf(line, "%*s %f %f %f %f %f", &scene->playerStart.position.x, &scene->playerStart.position.y, &scene->playerStart.position.z, &scene->playerStart.yaw, &scene->playerStart.pitch) != 5) {
+                sscanf(line, "%*s %f %f %f", &scene->playerStart.position.x, &scene->playerStart.position.y, &scene->playerStart.position.z);
+                scene->playerStart.yaw = 0.0f;
+                scene->playerStart.pitch = 0.0f;
+            }
         }
         else if (strcmp(keyword, "fog_settings") == 0) {
             int enabled_int;
@@ -1199,7 +1203,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix);
                 if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false);
             }
-            else if (newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
+            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
                 Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f });
                 newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
             }
@@ -1330,13 +1334,17 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (g_num_io_connections < MAX_IO_CONNECTIONS) {
                 IOConnection* conn = &g_io_connections[g_num_io_connections];
                 conn->active = true;
-                conn->hasFired = false;
                 conn->parameter[0] = '\0';
                 int type_int;
                 int fire_once_int;
-                sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d \"%63[^\"]\"", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int, conn->parameter);
+                int has_fired_int = 0;
+                int items_scanned = sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d %d \"%63[^\"]\"", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int, &has_fired_int, conn->parameter);
+                if (items_scanned < 8) {
+                    has_fired_int = 0;
+                }
                 conn->sourceType = (EntityType)type_int;
                 conn->fireOnce = (bool)fire_once_int;
+                conn->hasFired = (bool)has_fired_int;
                 g_num_io_connections++;
             }
         }
@@ -1356,13 +1364,14 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) continue;
             LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
             memset(ent, 0, sizeof(LogicEntity));
-            
+
             while (fgets(line, sizeof(line), file) && strncmp(line, "logic_entity_end", 16) != 0) {
-                char prop_key[64];
                 if (sscanf(line, " classname \"%63[^\"]\"", ent->classname) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", ent->targetname) == 1) {}
                 else if (sscanf(line, " pos %f %f %f", &ent->pos.x, &ent->pos.y, &ent->pos.z) == 3) {}
                 else if (sscanf(line, " rot %f %f %f", &ent->rot.x, &ent->rot.y, &ent->rot.z) == 3) {}
+                else if (sscanf(line, " runtime_active %d", (int*)&ent->runtime_active) == 1) {}
+                else if (sscanf(line, " runtime_float_a %f", &ent->runtime_float_a) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
                         if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
@@ -1395,7 +1404,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         const char* face_pointers[6];
         for (int i = 0; i < 6; ++i) {
             sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]);
-            face_pointers[i] = face_paths[i];
+            face_pointers[i] = face_pointers[i];
         }
         scene->skybox_cubemap = loadCubemap(face_pointers);
     }
@@ -1405,15 +1414,25 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
     engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
     engine->camera.position = scene->playerStart.position;
+    engine->camera.yaw = scene->playerStart.yaw;
+    engine->camera.pitch = scene->playerStart.pitch;
 
     return true;
 }
 
-void Scene_SaveMap(Scene* scene, const char* mapPath) {
+bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     FILE* file = fopen(mapPath, "w");
-    if (!file) { return; }
+    if (!file) {
+        Console_Printf_Error("Failed to open %s for writing.", mapPath);
+        return false;
+    }
     fprintf(file, "MAP_VERSION %d\n\n", MAP_VERSION);
-    fprintf(file, "player_start %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z);
+    if (engine) {
+        fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", engine->camera.position.x, engine->camera.position.y, engine->camera.position.z, engine->camera.yaw, engine->camera.pitch);
+    }
+    else {
+        fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z, scene->playerStart.yaw, scene->playerStart.pitch);
+    }
     fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
     fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",
         (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
@@ -1545,6 +1564,8 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
         fprintf(file, "  targetname \"%s\"\n", ent->targetname);
         fprintf(file, "  pos %.4f %.4f %.4f\n", ent->pos.x, ent->pos.y, ent->pos.z);
         fprintf(file, "  rot %.4f %.4f %.4f\n", ent->rot.x, ent->rot.y, ent->rot.z);
+        fprintf(file, "  runtime_active %d\n", ent->runtime_active);
+        fprintf(file, "  runtime_float_a %.4f\n", ent->runtime_float_a);
         fprintf(file, "  properties\n");
         fprintf(file, "  {\n");
         for (int j = 0; j < ent->numProperties; ++j) {
@@ -1556,8 +1577,9 @@ void Scene_SaveMap(Scene* scene, const char* mapPath) {
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
         if (conn->active) {
-            fprintf(file, "io_connection %d %d \"%s\" \"%s\" \"%s\" %.4f %d \"%s\"\n", (int)conn->sourceType, conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, conn->delay, (int)conn->fireOnce, conn->parameter);
+            fprintf(file, "io_connection %d %d \"%s\" \"%s\" \"%s\" %.4f %d %d \"%s\"\n", (int)conn->sourceType, conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, conn->delay, (int)conn->fireOnce, (int)conn->hasFired, conn->parameter);
         }
     }
     fclose(file);
+    return true;
 }

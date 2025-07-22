@@ -2825,7 +2825,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.show_save_map_popup = true;
             }
             else {
-                Scene_SaveMap(scene, g_EditorState.currentMapPath);
+                Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
             }
             return;
         }
@@ -6485,7 +6485,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     g_EditorState.show_save_map_popup = true;
                 }
                 else {
-                    Scene_SaveMap(scene, g_EditorState.currentMapPath);
+                    Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
                     Editor_AddRecentFile(g_EditorState.currentMapPath);
                 }
             }
@@ -6544,7 +6544,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Begin("Save Map As", &g_EditorState.show_save_map_popup);
         UI_InputText("Filename", g_EditorState.save_map_path, sizeof(g_EditorState.save_map_path));
         if (UI_Button("Save")) {
-            Scene_SaveMap(scene, g_EditorState.save_map_path);
+            Scene_SaveMap(scene, NULL, g_EditorState.save_map_path);
             strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
             Editor_AddRecentFile(g_EditorState.currentMapPath);
             Console_Printf("Map saved to %s", g_EditorState.currentMapPath);

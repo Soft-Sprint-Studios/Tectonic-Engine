@@ -726,6 +726,61 @@ void Cmd_Exec(int argc, char** argv) {
     Console_Printf("Finished executing script: %s", filename);
 }
 
+void Cmd_SaveGame(int argc, char** argv) {
+    if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR) {
+        Console_Printf_Error("Can only save when a map is loaded.");
+        return;
+    }
+
+    if (argc != 2) {
+        Console_Printf("Usage: save <savename>");
+        return;
+    }
+
+    char savePath[256];
+    snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
+
+    if (_mkdir("saves") != 0 && errno != EEXIST) {
+        Console_Printf_Error("Could not create saves directory.");
+        return;
+    }
+
+    if (Scene_SaveMap(&g_scene, g_engine, savePath)) {
+        Console_Printf("Game saved to %s", savePath);
+    }
+    else {
+        Console_Printf_Error("Failed to save game to %s", savePath);
+    }
+}
+
+void Cmd_LoadGame(int argc, char** argv) {
+    if (argc != 2) {
+        Console_Printf("Usage: load <savename>");
+        return;
+    }
+
+    char savePath[256];
+    snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
+
+    Console_Printf("Loading game from %s...", savePath);
+
+    if (g_is_editor_mode) {
+        Editor_Shutdown();
+    }
+    g_current_mode = MODE_GAME;
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+
+    if (Scene_LoadMap(&g_scene, &g_renderer, savePath, g_engine)) {
+        Console_Printf("Game loaded successfully.");
+    }
+    else {
+        Console_Printf_Error("Failed to load save file: %s", savePath);
+        g_current_mode = MODE_MAINMENU;
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        MainMenu_SetInGameMenuMode(false, false);
+    }
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -820,6 +875,8 @@ void init_commands() {
     Commands_Register("map", Cmd_Map, "Loads the specified map.", CMD_NONE);
     Commands_Register("maps", Cmd_Maps, "Lists all available .map files in the root directory.", CMD_NONE);
     Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.", CMD_NONE);
+    Commands_Register("save", Cmd_SaveGame, "Saves the current game state.", CMD_NONE);
+    Commands_Register("load", Cmd_LoadGame, "Loads a saved game state.", CMD_NONE);
     Commands_Register("download", Cmd_Download, "Downloads a file from a URL.", CMD_NONE);
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.", CMD_NONE);
     Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
@@ -1294,7 +1351,9 @@ void init_renderer() {
 void init_scene() {
     memset(&g_scene, 0, sizeof(Scene));
     const GameConfig* config = GameConfig_Get();
-    Scene_LoadMap(&g_scene, &g_renderer, config->startmap, g_engine);
+    if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
+        Scene_LoadMap(&g_scene, &g_renderer, config->startmap, g_engine);
+    }
     strncpy(g_scene.mapPath, config->startmap, sizeof(g_scene.mapPath) - 1);
     g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
     g_last_player_pos = g_scene.playerStart.position;
