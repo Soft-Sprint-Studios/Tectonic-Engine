@@ -50,7 +50,7 @@ set(ENGINE_SOURCES
 )
 
 set(ENGINE_HEADERS
-    engine/compat.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/math_lib/math_lib.h engine/model_loader.h engine/network.h engine/particle_system.h engine/physics_wrapper.h engine/sound_system.h engine/texturemanager.h engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h engine/water_manager.h
+    engine/compat.h engine/engine_api.h engine/binds.h engine/cvar.h engine/discord_wrapper.h engine/dsp_reverb.h engine/editor.h engine/editor_undo.h engine/gameconfig.h engine/gl_console.h engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h engine/network.h engine/particle_system.h engine/physics_wrapper.h engine/sound_system.h engine/texturemanager.h engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h engine/commands.h engine/water_manager.h
 )
 
 add_library(math_lib SHARED engine/math_lib/math_lib.c engine/math_lib/math_lib.h engine/math_lib/math_api.h)
