@@ -790,11 +790,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
-    SoundLogFunctions log_functions = {
-       .printf = Console_Printf,
-       .printf_error = Console_Printf_Error,
-       .printf_warning = Console_Printf_Warning
-    };
+    SoundLogFunctions log_functions = { .printf_error = Console_Printf_Error, };
     Sound_RegisterLogFunctions(&log_functions);
     Cvar_Init();
     Log_Init("logs.txt");

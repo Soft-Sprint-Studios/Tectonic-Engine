@@ -53,22 +53,11 @@ static int g_playing_link_count = 0;
 
 // HACK: We cant get console printf error from engine.dll without circular dependency
 
-static SoundLogFunctions g_Log = { NULL, NULL, NULL };
+static SoundLogFunctions g_Log = { NULL };
 
 SOUND_API void Sound_RegisterLogFunctions(SoundLogFunctions* functions) {
     if (functions) {
         g_Log = *functions;
-    }
-}
-
-static void Log_Info(const char* fmt, ...) {
-    if (g_Log.printf) {
-        va_list args;
-        va_start(args, fmt);
-        char buffer[1024];
-        vsnprintf(buffer, sizeof(buffer), fmt, args);
-        g_Log.printf(buffer);
-        va_end(args);
     }
 }
 
