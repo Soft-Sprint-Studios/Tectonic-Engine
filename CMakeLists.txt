@@ -141,25 +141,25 @@ elseif(UNIX AND NOT APPLE)
     find_package(GLEW REQUIRED)
     find_package(OpenGL REQUIRED)
 
-    set(SDL2_IMAGE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_image-2.8.8/include")
-    set(SDL2_TTF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_ttf-2.24.0/include")
-    set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
-    set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
+    set(SDL2_IMAGE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include")
+    set(SDL2_TTF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include")
+    set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
+    set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
 
-    set(BULLET_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/bullet/include")
-    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/bullet/lib")
+    set(BULLET_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/include")
+    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib")
     set(BULLET_LIBS
         "${BULLET_LIB_DIR}/linux/libBulletDynamics.a"
         "${BULLET_LIB_DIR}/linux/libBulletCollision.a"
         "${BULLET_LIB_DIR}/linux/libLinearMath.a"
     )
 
-    set(OPENAL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/openal-soft-1.24.3/include")
-    set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/openal-soft-1.24.3/libs/Linux")
+    set(OPENAL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include")
+    set(OPENAL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux")
     set(OPENAL_LIB "${OPENAL_LIB_DIR}/libopenal.a")
 
-    set(SENTRY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine/sentry/include")
-    set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/engine/sentry/lib/linux/libsentry.so")
+    set(SENTRY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include")
+    set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
 
     target_include_directories(TectonicEngine PRIVATE
         ${SDL2_INCLUDE_DIRS}
