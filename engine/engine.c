@@ -36,6 +36,7 @@
 #include "checksum.h"
 #include "water_manager.h"
 #include "video_player.h" 
+#include "lightmapper.h"
 #include "engine_api.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
@@ -238,6 +239,33 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), obj->swayEnabled);
     if (obj->model) {
+        if (obj->bakedVertexColors || obj->bakedVertexDirections) {
+            unsigned int vertex_offset = 0;
+            const int stride_floats = 24;
+            for (int i = 0; i < obj->model->meshCount; ++i) {
+                Mesh* mesh = &obj->model->meshes[i];
+                for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
+                    if (obj->bakedVertexColors) {
+                        memcpy(&mesh->final_vbo_data[(v * stride_floats) + 12], &obj->bakedVertexColors[vertex_offset + v], sizeof(Vec4));
+                    }
+                    if (obj->bakedVertexDirections) {
+                        memcpy(&mesh->final_vbo_data[(v * stride_floats) + 16], &obj->bakedVertexDirections[vertex_offset + v], sizeof(Vec4));
+                    }
+                }
+                glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->final_vbo_data_size, mesh->final_vbo_data);
+                vertex_offset += mesh->vertexCount;
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            if (obj->bakedVertexColors) {
+                free(obj->bakedVertexColors);
+                obj->bakedVertexColors = NULL;
+            }
+            if (obj->bakedVertexDirections) {
+                free(obj->bakedVertexDirections);
+                obj->bakedVertexDirections = NULL;
+            }
+        }
         for (int i = 0; i < obj->model->meshCount; ++i) {
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
@@ -268,11 +296,11 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 }
 
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
-    if (b->isReflectionProbe || b->isTrigger || b->isWater || b->isGlass) return;
-    bool envMapEnabled = false;
+    if (b->isReflectionProbe || b->isTrigger || b->isWater || b->isGlass || b->totalRenderVertexCount == 0) return;
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
+    bool envMapEnabled = false;
     if (!is_baking_pass && shader == g_renderer.mainShader) {
         int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
         if (reflection_brush_idx != -1) {
@@ -297,21 +325,43 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
         }
     }
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
 
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
     glBindVertexArray(b->vao);
+
+    if (b->lightmapAtlas != 0) {
+        glUniform1i(glGetUniformLocation(shader, "useLightmap"), 1);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+        glUniform1i(glGetUniformLocation(shader, "lightmap"), 5);
+    }
+    else {
+        glUniform1i(glGetUniformLocation(shader, "useLightmap"), 0);
+    }
+
+    if (b->directionalLightmapAtlas != 0) {
+        glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 1);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
+        glUniform1i(glGetUniformLocation(shader, "directionalLightmap"), 6);
+    }
+    else {
+        glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 0);
+    }
+
+
     if (shader == g_renderer.mainShader || shader == g_renderer.vplGenerationShader) {
-        int face_idx = 0;
         int vbo_offset = 0;
+        int face_idx = 0;
         while (face_idx < b->numFaces) {
             BrushFace* first_face_in_batch = &b->faces[face_idx];
-            Material* batch_material = first_face_in_batch->material;
-            if (batch_material == &g_NodrawMaterial) {
-                int verts_to_skip = (first_face_in_batch->numVertexIndices - 2) * 3;
-                vbo_offset += verts_to_skip;
+            if (first_face_in_batch->material == &g_NodrawMaterial) {
+                vbo_offset += (first_face_in_batch->numVertexIndices - 2) * 3;
                 face_idx++;
                 continue;
             }
+
+            Material* batch_material = first_face_in_batch->material;
             Material* batch_material2 = first_face_in_batch->material2;
             Material* batch_material3 = first_face_in_batch->material3;
             Material* batch_material4 = first_face_in_batch->material4;
@@ -326,9 +376,10 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 b->faces[current_face_in_batch_idx].material3 == batch_material3 &&
                 b->faces[current_face_in_batch_idx].material4 == batch_material4) {
 
-                int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
-                batch_vertex_count += num_face_verts;
-                vbo_offset += num_face_verts;
+                if (b->faces[current_face_in_batch_idx].numVertexIndices >= 3) {
+                    int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
+                    batch_vertex_count += num_face_verts;
+                }
                 current_face_in_batch_idx++;
             }
 
@@ -340,84 +391,31 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 (batch_material4 && batch_material4->heightScale > 0.0f)
                 );
             glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), isParallaxEnabledForBatch);
-            glUniform1f(glGetUniformLocation(shader, "heightScale"), batch_material->heightScale);
-            glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), batch_material->roughness);
-            glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), batch_material->metalness);
-            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, batch_material->diffuseMap);
-            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material->normalMap);
-            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material->rmaMap);
-            glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material->heightMap);
-            glUniform1f(glGetUniformLocation(shader, "detailScale"), batch_material->detailScale);
-            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, batch_material->detailDiffuseMap);
 
-            if (batch_material2) {
-                glUniform1i(glGetUniformLocation(shader, "diffuseMap2"), 12);
-                glUniform1i(glGetUniformLocation(shader, "normalMap2"), 13);
-                glUniform1i(glGetUniformLocation(shader, "rmaMap2"), 14);
-                glUniform1i(glGetUniformLocation(shader, "heightMap2"), 15);
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), parallaxEnabled ? batch_material2->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), batch_material2->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), batch_material2->metalness);
-                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, batch_material2->diffuseMap);
-                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, batch_material2->normalMap);
-                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, batch_material2->rmaMap);
-                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, batch_material2->heightMap);
-            }
-            else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale2"), 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override2"), -1.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override2"), -1.0f);
-                glActiveTexture(GL_TEXTURE12); glBindTexture(GL_TEXTURE_2D, missingTextureID);
-                glActiveTexture(GL_TEXTURE13); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
-                glActiveTexture(GL_TEXTURE14); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
-                glActiveTexture(GL_TEXTURE15); glBindTexture(GL_TEXTURE_2D, 0);
-            }
+            glUniform1f(glGetUniformLocation(shader, "heightScale"), batch_material ? batch_material->heightScale : 0.0f);
+            glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), batch_material ? batch_material->roughness : -1.0f);
+            glUniform1f(glGetUniformLocation(shader, "u_metalness_override"), batch_material ? batch_material->metalness : -1.0f);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->diffuseMap : missingTextureID);
+            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->normalMap : defaultNormalMapID);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->rmaMap : defaultRmaMapID);
+            glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->heightMap : 0);
+            glUniform1f(glGetUniformLocation(shader, "detailScale"), batch_material ? batch_material->detailScale : 1.0f);
+            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->detailDiffuseMap : 0);
 
-            if (batch_material3) {
-                glUniform1i(glGetUniformLocation(shader, "diffuseMap3"), 17);
-                glUniform1i(glGetUniformLocation(shader, "normalMap3"), 18);
-                glUniform1i(glGetUniformLocation(shader, "rmaMap3"), 19);
-                glUniform1i(glGetUniformLocation(shader, "heightMap3"), 20);
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), parallaxEnabled ? batch_material3->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), batch_material3->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), batch_material3->metalness);
-                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, batch_material3->diffuseMap);
-                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, batch_material3->normalMap);
-                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, batch_material3->rmaMap);
-                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, batch_material3->heightMap);
+#define BIND_MATERIAL_SLOT(slot, material) \
+            if (material) { \
+                glUniform1i(glGetUniformLocation(shader, "diffuseMap" #slot), 12 + (slot-2)*5); \
+                glUniform1f(glGetUniformLocation(shader, "heightScale" #slot), parallaxEnabled ? material->heightScale : 0.0f); \
+                glActiveTexture(GL_TEXTURE12 + (slot-2)*5); glBindTexture(GL_TEXTURE_2D, material->diffuseMap); \
+                glActiveTexture(GL_TEXTURE13 + (slot-2)*5); glBindTexture(GL_TEXTURE_2D, material->normalMap); \
+                glActiveTexture(GL_TEXTURE14 + (slot-2)*5); glBindTexture(GL_TEXTURE_2D, material->rmaMap); \
+                glActiveTexture(GL_TEXTURE15 + (slot-2)*5); glBindTexture(GL_TEXTURE_2D, material->heightMap); \
+            } else { \
+                glUniform1f(glGetUniformLocation(shader, "heightScale" #slot), 0.0f); \
             }
-            else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale3"), 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override3"), -1.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override3"), -1.0f);
-                glActiveTexture(GL_TEXTURE17); glBindTexture(GL_TEXTURE_2D, missingTextureID);
-                glActiveTexture(GL_TEXTURE18); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
-                glActiveTexture(GL_TEXTURE19); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
-                glActiveTexture(GL_TEXTURE20); glBindTexture(GL_TEXTURE_2D, 0);
-            }
-
-            if (batch_material4) {
-                glUniform1i(glGetUniformLocation(shader, "diffuseMap4"), 21);
-                glUniform1i(glGetUniformLocation(shader, "normalMap4"), 22);
-                glUniform1i(glGetUniformLocation(shader, "rmaMap4"), 23);
-                glUniform1i(glGetUniformLocation(shader, "heightMap4"), 24);
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), parallaxEnabled ? batch_material4->heightScale : 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), batch_material4->roughness);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), batch_material4->metalness);
-                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, batch_material4->diffuseMap);
-                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, batch_material4->normalMap);
-                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, batch_material4->rmaMap);
-                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, batch_material4->heightMap);
-            }
-            else {
-                glUniform1f(glGetUniformLocation(shader, "heightScale4"), 0.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_roughness_override4"), -1.0f);
-                glUniform1f(glGetUniformLocation(shader, "u_metalness_override4"), -1.0f);
-                glActiveTexture(GL_TEXTURE21); glBindTexture(GL_TEXTURE_2D, missingTextureID);
-                glActiveTexture(GL_TEXTURE22); glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
-                glActiveTexture(GL_TEXTURE23); glBindTexture(GL_TEXTURE_2D, defaultRmaMapID);
-                glActiveTexture(GL_TEXTURE24); glBindTexture(GL_TEXTURE_2D, 0);
-            }
+            BIND_MATERIAL_SLOT(2, batch_material2);
+            BIND_MATERIAL_SLOT(3, batch_material3);
+            BIND_MATERIAL_SLOT(4, batch_material4);
 
             if (batch_vertex_count > 0) {
                 if (shader == g_renderer.mainShader) {
@@ -427,14 +425,13 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                     glDrawArrays(GL_TRIANGLES, batch_start_vbo_offset, batch_vertex_count);
                 }
             }
+
+            vbo_offset += batch_vertex_count;
             face_idx = current_face_in_batch_idx;
         }
     }
     else {
-        if (shader == g_renderer.mainShader) {
-            glDrawArrays(GL_PATCHES, 0, b->totalRenderVertexCount);
-        }
-        else {
+        if (b->totalRenderVertexCount > 0) {
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
         }
     }
@@ -781,6 +778,21 @@ void Cmd_LoadGame(int argc, char** argv) {
     }
 }
 
+void Cmd_BuildLighting(int argc, char** argv) {
+    int resolution = 128;
+    if (argc > 1) {
+        int res_arg = atoi(argv[1]);
+        if (res_arg > 0 && (res_arg & (res_arg - 1)) == 0) {
+            resolution = res_arg;
+        }
+        else {
+            Console_Printf_Warning("[WARNING] Invalid lightmap resolution '%s'. Must be a power of two. Using default 128.", argv[1]);
+        }
+    }
+
+    Lightmapper_Generate(&g_scene, g_engine, resolution);
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -877,6 +889,7 @@ void init_commands() {
     Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.", CMD_NONE);
     Commands_Register("save", Cmd_SaveGame, "Saves the current game state.", CMD_NONE);
     Commands_Register("load", Cmd_LoadGame, "Loads a saved game state.", CMD_NONE);
+    Commands_Register("build_lighting", Cmd_BuildLighting, "Builds static lighting for the scene. Usage: build_lighting [resolution]", CMD_NONE);
     Commands_Register("download", Cmd_Download, "Downloads a file from a URL.", CMD_NONE);
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.", CMD_NONE);
     Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
@@ -2573,62 +2586,72 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
 
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), g_scene.numActiveLights);
 
-    if (g_scene.numActiveLights > 0) {
-        ShaderLight shader_lights[MAX_LIGHTS];
-        Mat4 lightSpaceMatrices[MAX_LIGHTS];
-        for (int i = 0; i < g_scene.numActiveLights; ++i) {
-            Light* light = &g_scene.lights[i];
-            shader_lights[i].position.x = light->position.x;
-            shader_lights[i].position.y = light->position.y;
-            shader_lights[i].position.z = light->position.z;
-            shader_lights[i].position.w = (float)light->type;
+    ShaderLight dynamic_lights[MAX_LIGHTS];
+    Mat4 lightSpaceMatrices[MAX_LIGHTS];
+    int num_dynamic_lights = 0;
 
-            shader_lights[i].direction.x = light->direction.x;
-            shader_lights[i].direction.y = light->direction.y;
-            shader_lights[i].direction.z = light->direction.z;
+    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+        Light* light = &g_scene.lights[i];
+        if (light->is_static) continue;
 
-            shader_lights[i].color.x = light->color.x;
-            shader_lights[i].color.y = light->color.y;
-            shader_lights[i].color.z = light->color.z;
-            shader_lights[i].color.w = light->intensity;
+        ShaderLight* shader_light = &dynamic_lights[num_dynamic_lights];
 
-            shader_lights[i].params1.x = light->radius;
-            shader_lights[i].params1.y = light->cutOff;
-            shader_lights[i].params1.z = light->outerCutOff;
+        shader_light->position.x = light->position.x;
+        shader_light->position.y = light->position.y;
+        shader_light->position.z = light->position.z;
+        shader_light->position.w = (float)light->type;
 
-            shader_lights[i].params2.x = light->shadowFarPlane;
-            shader_lights[i].params2.y = light->shadowBias;
-            shader_lights[i].params2.z = light->volumetricIntensity / 100.0f;
+        shader_light->direction.x = light->direction.x;
+        shader_light->direction.y = light->direction.y;
+        shader_light->direction.z = light->direction.z;
 
-            shader_lights[i].shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
-            shader_lights[i].shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
+        shader_light->color.x = light->color.x;
+        shader_light->color.y = light->color.y;
+        shader_light->color.z = light->color.z;
+        shader_light->color.w = light->intensity;
 
-            if (light->cookieMap != 0) {
-                if (light->cookieMapHandle == 0) {
-                    light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
-                    glMakeTextureHandleResidentARB(light->cookieMapHandle);
-                }
-                shader_lights[i].cookieMapHandle[0] = (unsigned int)(light->cookieMapHandle & 0xFFFFFFFF);
-                shader_lights[i].cookieMapHandle[1] = (unsigned int)(light->cookieMapHandle >> 32);
-            }
-            else {
-                shader_lights[i].cookieMapHandle[0] = 0;
-                shader_lights[i].cookieMapHandle[1] = 0;
-            }
+        shader_light->params1.x = light->radius;
+        shader_light->params1.y = light->cutOff;
+        shader_light->params1.z = light->outerCutOff;
 
-            if (light->type == LIGHT_SPOT) {
-                float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
-                Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
-                Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
-                Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
-                mat4_multiply(&lightSpaceMatrices[i], &lightProjection, &lightView);
-            }
-            else {
-                mat4_identity(&lightSpaceMatrices[i]);
-            }
+        shader_light->params2.x = light->shadowFarPlane;
+        shader_light->params2.y = light->shadowBias;
+        shader_light->params2.z = light->volumetricIntensity / 100.0f;
+
+        shader_light->shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
+        shader_light->shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
+
+        if (light->cookieMapHandle != 0) {
+            shader_light->cookieMapHandle[0] = (unsigned int)(light->cookieMapHandle & 0xFFFFFFFF);
+            shader_light->cookieMapHandle[1] = (unsigned int)(light->cookieMapHandle >> 32);
         }
+        else {
+            shader_light->cookieMapHandle[0] = 0;
+            shader_light->cookieMapHandle[1] = 0;
+        }
+
+        if (light->type == LIGHT_SPOT) {
+            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
+            if (angle_rad < 0.01f) angle_rad = 0.01f;
+            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Vec3 up_vector = (Vec3){ 0, 1, 0 };
+            if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) {
+                up_vector = (Vec3){ 1, 0, 0 };
+            }
+            Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+            mat4_multiply(&lightSpaceMatrices[num_dynamic_lights], &lightProjection, &lightView);
+        }
+        else {
+            mat4_identity(&lightSpaceMatrices[num_dynamic_lights]);
+        }
+
+        num_dynamic_lights++;
+    }
+
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), num_dynamic_lights);
+    if (num_dynamic_lights > 0) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, g_scene.numActiveLights * sizeof(ShaderLight), shader_lights);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, num_dynamic_lights * sizeof(ShaderLight), dynamic_lights);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 

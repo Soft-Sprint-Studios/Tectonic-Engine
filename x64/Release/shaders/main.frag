@@ -16,12 +16,15 @@ in vec2 TexCoords;
 in vec2 TexCoords2;
 in vec2 TexCoords3;
 in vec2 TexCoords4;
+in vec2 TexCoordsLightmap;
 in mat3 TBN;
 in vec4 FragPosSunLightSpace;
 in vec4 v_Color;
+in vec4 v_Color2;
 in float fadeAlpha;
 
 in vec3 indirectLight;
+flat in int isBrush;
 
 in vec2 Velocity;
 
@@ -69,6 +72,11 @@ uniform sampler2D diffuseMap4;
 uniform sampler2D normalMap4;
 uniform sampler2D rmaMap4;
 uniform sampler2D heightMap4;
+
+uniform sampler2D lightmap;
+uniform bool useLightmap;
+uniform sampler2D directionalLightmap;
+uniform bool useDirectionalLightmap;
 
 uniform sampler2D sunShadowMap;
 
@@ -314,22 +322,7 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
 
 void main()
 {
-    float blendR = v_Color.r;
-    float blendG = v_Color.g;
-    float blendB = v_Color.b;
-
-    float totalWeight = max(blendR + blendG + blendB, 0.0001);
-
-    if (totalWeight > 1.0) {
-        blendR /= totalWeight;
-        blendG /= totalWeight;
-        blendB /= totalWeight;
-    }
-
-    float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
-    float blendBase = 1.0 - blendTotal;
-
-	vec2 finalTexCoords1 = TexCoords;
+    vec2 finalTexCoords1 = TexCoords;
     vec2 finalTexCoords2 = TexCoords2;
     vec2 finalTexCoords3 = TexCoords3;
     vec2 finalTexCoords4 = TexCoords4;
@@ -337,10 +330,8 @@ void main()
     if (u_isParallaxEnabled) {
         vec3 viewDir_world = normalize(viewPos - FragPos_world);
         vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
-
         float dist = length(FragPos_world - viewPos);
         float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
-    
         finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
         finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
         finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
@@ -369,33 +360,54 @@ void main()
         texColor1.rgb *= detailColor * 2.0;
     }
 
-    vec3 albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
-    float alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
-    alpha *= fadeAlpha;
+    vec3 albedo;
+    float alpha;
+    vec3 normalTex;
+    float roughness;
+    float metallic;
+    float ao;
 
+    if (isBrush == 1) {
+        float blendR = v_Color.r;
+        float blendG = v_Color.g;
+        float blendB = v_Color.b;
+        float totalWeight = max(blendR + blendG + blendB, 0.0001);
+        if (totalWeight > 1.0) {
+            blendR /= totalWeight;
+            blendG /= totalWeight;
+            blendB /= totalWeight;
+        }
+        float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
+        float blendBase = 1.0 - blendTotal;
+        albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
+        alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
+        normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
+        float r1 = (u_roughness_override >= 0.0) ? u_roughness_override : rma1.g;
+        float m1 = (u_metalness_override >= 0.0) ? u_metalness_override : rma1.b;
+        float r2 = (u_roughness_override2 >= 0.0) ? u_roughness_override2 : rma2.g;
+        float m2 = (u_metalness_override2 >= 0.0) ? u_metalness_override2 : rma2.b;
+        float r3 = (u_roughness_override3 >= 0.0) ? u_roughness_override3 : rma3.g;
+        float m3 = (u_metalness_override3 >= 0.0) ? u_metalness_override3 : rma3.b;
+        float r4 = (u_roughness_override4 >= 0.0) ? u_roughness_override4 : rma4.g;
+        float m4 = (u_metalness_override4 >= 0.0) ? u_metalness_override4 : rma4.b;
+        roughness = r1 * blendBase + r2 * blendR + r3 * blendG + r4 * blendB;
+        metallic = m1 * blendBase + m2 * blendR + m3 * blendG + m4 * blendB;
+        ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
+    } else {
+        albedo = texColor1.rgb;
+        alpha = texColor1.a;
+        normalTex = normalTex1;
+        roughness = (u_roughness_override >= 0.0) ? u_roughness_override : rma1.g;
+        metallic = (u_metalness_override >= 0.0) ? u_metalness_override : rma1.b;
+        ao = rma1.r;
+    }
+
+    alpha *= fadeAlpha;
     if (alpha < 0.1) 
         discard;
-
-    vec3 normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
-    float r1 = (u_roughness_override >= 0.0) ? u_roughness_override : rma1.g;
-    float m1 = (u_metalness_override >= 0.0) ? u_metalness_override : rma1.b;
-
-    float r2 = (u_roughness_override2 >= 0.0) ? u_roughness_override2 : rma2.g;
-    float m2 = (u_metalness_override2 >= 0.0) ? u_metalness_override2 : rma2.b;
-
-    float r3 = (u_roughness_override3 >= 0.0) ? u_roughness_override3 : rma3.g;
-    float m3 = (u_metalness_override3 >= 0.0) ? u_metalness_override3 : rma3.b;
-
-    float r4 = (u_roughness_override4 >= 0.0) ? u_roughness_override4 : rma4.g;
-    float m4 = (u_metalness_override4 >= 0.0) ? u_metalness_override4 : rma4.b;
-
-    float roughness = r1 * blendBase + r2 * blendR + r3 * blendG + r4 * blendB;
-    float metallic = m1 * blendBase + m2 * blendR + m3 * blendG + m4 * blendB;
-    float ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
 	
     vec3 N = normalize(TBN * (normalTex * 2.0 - 1.0));
     vec3 V = normalize(viewPos - FragPos_world);
-    
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
 
@@ -427,15 +439,12 @@ void main()
         ShaderLight light = lights[i];
         vec3 lightPos = light.position.xyz;
         float lightType = light.position.w;
-
         vec3 L = normalize(lightPos - FragPos_world);
         float distance = length(lightPos - FragPos_world);
         float radius = light.params1.x;
         float NdotL = max(dot(N, L), 0.0);
-
         float radiusFalloff = pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0);
         float baseAttenuation = radiusFalloff / (distance * distance + 1.0);
-
         float spotFactor = 1.0;
         vec3 lightDir = light.direction.xyz;
         if (lightType > 0.5) {
@@ -443,21 +452,12 @@ void main()
             float outerCutOff = light.params1.z;
             spotFactor = smoothstep(outerCutOff, light.params1.y, theta);
         }
-
         float attenuation = baseAttenuation * spotFactor;
-
         float shadow = 0.0;
         bool hasShadow = (light.shadowMapHandle.x > 0u) || (light.shadowMapHandle.y > 0u);
-
         if (hasShadow) {
             if (lightType < 0.5) {
-                shadow = calculatePointShadow(
-                    light.shadowMapHandle,
-                    FragPos_world,
-                    lightPos,
-                    light.params2.x,
-                    light.params2.y
-                );
+                shadow = calculatePointShadow(light.shadowMapHandle, FragPos_world, lightPos, light.params2.x, light.params2.y);
             } else {
                 float angle_rad = acos(clamp(light.params1.y, -1.0, 1.0));
                 angle_rad = max(angle_rad, 0.01);
@@ -466,31 +466,20 @@ void main()
                 vec3 spotLightUp = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 0.0, 0.0), nearVertical);
                 mat4 lightView = lookAt(lightPos, lightPos + lightDir, spotLightUp);
                 mat4 lightSpaceMatrix = lightProj * lightView;
-
-                shadow = calculateSpotShadow(
-                    light.shadowMapHandle,
-                    lightSpaceMatrix * vec4(FragPos_world, 1.0),
-                    N,
-                    L,
-                    light.params2.y
-                );
+                shadow = calculateSpotShadow(light.shadowMapHandle, lightSpaceMatrix * vec4(FragPos_world, 1.0), N, L, light.params2.y);
             }
         }
-
         if (attenuation > 0.0 && NdotL > 0.0) {
             vec3 H = normalize(V + L);
             vec3 radiance = light.color.rgb * light.color.a * attenuation * (1.0 - shadow);
-
             float NDF = DistributionGGX(N, H, roughness);
             float G = GeometrySmith(N, V, L, roughness);
             vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
             vec3 kS = F;
             vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
             vec3 numerator = NDF * G * F;
             float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.0001;
             vec3 specular = numerator / denominator;
-
             vec3 diffuse = kD * albedo / PI;
             Lo += (diffuse + specular) * radiance * NdotL;
             totalDirectDiffuse += diffuse * radiance * NdotL;
@@ -536,28 +525,21 @@ void main()
     if (useParallaxCorrection) {
         R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
     }
-    
     vec3 F_for_IBL_specular = fresnelSchlick(max(dot(N, V), 0.0), F0); 
-
     vec3 ambient = vec3(0.0);
     if (useEnvironmentMap)
     {
         vec3 irradiance = texture(environmentMap, N).rgb;
         vec3 diffuse_ibl_contribution = vec3(0.0);
-        
         const float MAX_REFLECTION_LOD = 4.0; 
         vec3 prefilteredColor = textureLod(environmentMap, R_env,  roughness * MAX_REFLECTION_LOD).rgb;
-        
         vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular_ibl_contribution = prefilteredColor * (F_for_IBL_specular * envBRDF.x + envBRDF.y);
-		
 		vec3 totalLightIntensity = totalDirectDiffuse + indirectLight;
 		specular_ibl_contribution *= totalLightIntensity;
-        
         vec3 kS_ibl = F_for_IBL_specular;
         vec3 kD_ibl = vec3(1.0) - kS_ibl;
         kD_ibl *= (1.0 - metallic);
-
         ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * 1.0) * ao;
     }
 	
@@ -569,48 +551,87 @@ void main()
         vec3 gridCoord = (FragPos_world - u_gridMin) / (u_gridMax - u_gridMin);
         if (all(greaterThanEqual(gridCoord, vec3(0.0))) && all(lessThanEqual(gridCoord, vec3(1.0)))) {
             vec3 gi_radiance = texture(u_StaticVPLGrid_Albedo, gridCoord).rgb;
-            
             if (u_vplDirectional) {
                 vec3 gi_direction = texture(u_StaticVPLGrid_Direction, gridCoord).rgb;
-                
                 if (dot(gi_direction, gi_direction) > 0.0001) {
                     float gi_diffuse_factor = max(dot(N, -normalize(gi_direction)), 0.0);
                     finalIndirectDiffuse = gi_radiance * gi_diffuse_factor;
-
                     vec3 L_indirect = -normalize(gi_direction);
                     vec3 H_indirect = normalize(V + L_indirect);
                     float NdotL_indirect = max(dot(N, L_indirect), 0.0);
-
                     float NDF_indirect = DistributionGGX(N, H_indirect, roughness);
                     float G_indirect = GeometrySmith(N, V, L_indirect, roughness);
                     vec3 F_indirect = fresnelSchlick(max(dot(H_indirect, V), 0.0), F0);
-
                     vec3 numerator_indirect = NDF_indirect * G_indirect * F_indirect;
                     float denominator_indirect = 4.0 * max(dot(N, V), 0.0) * NdotL_indirect + 0.001;
                     vec3 specular_indirect_pbr = numerator_indirect / denominator_indirect;
-
                     if (u_vplSpecular) {
                         vplSpecularContribution = specular_indirect_pbr * gi_radiance * NdotL_indirect;
-                    } else {
-                        vplSpecularContribution = vec3(0.0);
                     }
                 } else {
                     finalIndirectDiffuse = gi_radiance;
-                    vplSpecularContribution = vec3(0.0);
                 }
             } else {
                 finalIndirectDiffuse = gi_radiance;
-                vplSpecularContribution = vec3(0.0);
             }
         } else {
             finalIndirectDiffuse = vec3(0.0);
-            vplSpecularContribution = vec3(0.0);
         }
     }
     
     vec3 kD_indirect = vec3(1.0) - fresnelSchlick(max(dot(N, V), 0.0), F0);
     kD_indirect *= (1.0 - metallic);
     vec3 indirectLightingContribution = finalIndirectDiffuse * kD_indirect * albedo + vplSpecularContribution;
+
+    vec3 bakedDiffuse = vec3(0.0);
+	vec3 bakedSpecular = vec3(0.0);
+    if (isBrush == 1) {
+        if (useLightmap) {
+            vec3 bakedRadiance = texture(lightmap, TexCoordsLightmap).rgb;
+            if (useDirectionalLightmap) {
+                vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
+                vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
+                float bakedIntensity = directionalData.a * 10.0;
+                vec3 L_baked = bakedLightDir;
+                vec3 H_baked = normalize(V + L_baked);
+                float NdotL_baked = max(dot(N, L_baked), 0.0);
+                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
+                if (NdotL_baked > 0.0) {
+                    float NDF = DistributionGGX(N, H_baked, roughness);
+                    float G = GeometrySmith(N, V, L_baked, roughness);
+                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                    vec3 numerator = NDF * G * F;
+                    float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
+                    vec3 specular = numerator / denominator;
+                    bakedSpecular = specular * bakedIntensity * bakedRadiance * NdotL_baked * ao;
+                }
+            } else {
+                bakedDiffuse = bakedRadiance * albedo;
+            }
+        }
+    } else {
+        bakedDiffuse = v_Color.rgb * albedo;
+        if (v_Color2.a > 0.0) {
+            vec3 bakedLightDir = normalize(v_Color2.rgb);
+            float bakedIntensity = v_Color2.a * 10.0;
+            vec3 L_baked = bakedLightDir;
+            vec3 H_baked = normalize(V + L_baked);
+            float NdotL_baked = max(dot(N, L_baked), 0.0);
+            bakedDiffuse = v_Color.rgb * albedo * NdotL_baked;
+            if (NdotL_baked > 0.0) {
+                float NDF = DistributionGGX(N, H_baked, roughness);
+                float G = GeometrySmith(N, V, L_baked, roughness);
+                vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                vec3 numerator = NDF * G * F;
+                float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
+                vec3 specular = numerator / denominator;
+                vec3 bakedRadiance = v_Color.rgb;
+                bakedSpecular = specular * bakedRadiance * NdotL_baked * ao * bakedIntensity;
+            }
+        }
+    }
+
+    vec3 finalColor = Lo + ambient + indirectLightingContribution + bakedDiffuse + bakedSpecular;
 
     if (is_debug_vpl) {
         out_LitColor = vec4(indirectLightingContribution, 1.0);
@@ -619,7 +640,7 @@ void main()
         out_LitColor = vec4(albedo, 1.0);
     }
     else {
-        out_LitColor = vec4(ambient + Lo + indirectLightingContribution, alpha);
+        out_LitColor = vec4(finalColor, alpha);
     }
     out_Position = FragPos_view; 
     out_Normal = normalize(TBN * vec3(0.5, 0.5, 1.0));

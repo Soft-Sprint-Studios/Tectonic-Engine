@@ -32,6 +32,7 @@ extern "C" {
 	MATH_API Vec3 vec3_add(Vec3 a, Vec3 b);
 	MATH_API Vec3 vec3_sub(Vec3 a, Vec3 b);
 	MATH_API Vec3 vec3_muls(Vec3 v, float s);
+	MATH_API Vec3 vec3_mul(Vec3 a, Vec3 b);
 	MATH_API float vec3_dot(Vec3 a, Vec3 b);
 	MATH_API float vec3_length(Vec3 v);
 	MATH_API float vec3_length_sq(Vec3 v);

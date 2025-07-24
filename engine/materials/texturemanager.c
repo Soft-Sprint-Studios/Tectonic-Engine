@@ -33,6 +33,9 @@ MATERIALS_API bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
     if (filename == NULL || filename[0] == '\0') return NULL;
+    if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
+        return _strdup(filename);
+    }
     const char* baseFolder = "textures/";
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
     char* fullPath = (char*)malloc(len);

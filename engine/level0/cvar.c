@@ -101,10 +101,6 @@ Cvar* Cvar_Find(const char* name) {
 void Cvar_Set(const char* name, const char* value) {
     Cvar* c = Cvar_Find(name);
     if (c) {
-        if (c->flags & CVAR_HIDDEN) {
-            Console_Printf("Cvar '%s' is protected and cannot be modified from the console.", name);
-            return;
-        }
         if ((c->flags & CVAR_CHEAT) && Cvar_GetInt("g_cheats") == 0) {
             Console_Printf_Error("Cvar '%s' is cheat protected.", name);
             return;

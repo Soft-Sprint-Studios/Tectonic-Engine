@@ -7,9 +7,11 @@ in VS_OUT {
     vec2 texCoords2;
     vec2 texCoords3;
     vec2 texCoords4;
+	vec2 lightmapTexCoords;
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+	vec4 color2;
     flat int isBrush;
 } tcs_in[];
 
@@ -19,9 +21,11 @@ out TCS_OUT {
     vec2 texCoords2;
     vec2 texCoords3;
     vec2 texCoords4;
+	vec2 lightmapTexCoords;
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+	vec4 color2;
     flat int isBrush;
 } tcs_out[];
 
@@ -35,9 +39,11 @@ void main()
     tcs_out[gl_InvocationID].texCoords2 = tcs_in[gl_InvocationID].texCoords2;
     tcs_out[gl_InvocationID].texCoords3 = tcs_in[gl_InvocationID].texCoords3;
     tcs_out[gl_InvocationID].texCoords4 = tcs_in[gl_InvocationID].texCoords4;
+	tcs_out[gl_InvocationID].lightmapTexCoords = tcs_in[gl_InvocationID].lightmapTexCoords;
     tcs_out[gl_InvocationID].worldNormal = tcs_in[gl_InvocationID].worldNormal;
     tcs_out[gl_InvocationID].tbn = tcs_in[gl_InvocationID].tbn;
     tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+	tcs_out[gl_InvocationID].color2 = tcs_in[gl_InvocationID].color2;
     tcs_out[gl_InvocationID].isBrush = tcs_in[gl_InvocationID].isBrush;
 
     gl_TessLevelOuter[0] = 1.0;

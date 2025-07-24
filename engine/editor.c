@@ -587,6 +587,7 @@ void Editor_DeleteModel(Scene* scene, int index, Engine* engine) {
     Undo_PushDeleteEntity(scene, ENTITY_MODEL, index, "Delete Model");
     if (scene->objects[index].model) Model_Free(scene->objects[index].model);
     if (scene->objects[index].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->objects[index].physicsBody);
+    if (scene->objects[index].bakedVertexColors) free(scene->objects[index].bakedVertexColors);
     for (int i = index; i < scene->numObjects - 1; ++i) scene->objects[i] = scene->objects[i + 1];
     scene->numObjects--;
     if (scene->numObjects > 0) { scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject)); }
@@ -6209,7 +6210,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
             }
         }
-        if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); light->is_on = !light->is_on; Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Toggle Light On"); } UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
+        if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); light->is_on = !light->is_on; Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Toggle Light On"); } 
+        UI_SameLine();
+        if (UI_Checkbox("Static", &light->is_static)) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index);
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Toggle Light Static");
+        }
+        UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, g_EditorState.selected_entity_index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
     }
     else if (g_EditorState.selected_entity_type == ENTITY_DECAL && g_EditorState.selected_entity_index < scene->numDecals) {
         Decal* d = &scene->decals[g_EditorState.selected_entity_index];

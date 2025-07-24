@@ -12,6 +12,7 @@
 Vec3 vec3_add(Vec3 a, Vec3 b) { return (Vec3) { a.x + b.x, a.y + b.y, a.z + b.z }; }
 Vec3 vec3_sub(Vec3 a, Vec3 b) { return (Vec3) { a.x - b.x, a.y - b.y, a.z - b.z }; }
 Vec3 vec3_muls(Vec3 v, float s) { return (Vec3) { v.x* s, v.y* s, v.z* s }; }
+Vec3 vec3_mul(Vec3 a, Vec3 b) { return (Vec3) { a.x* b.x, a.y* b.y, a.z* b.z }; }
 float vec3_dot(Vec3 a, Vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 float vec3_length_sq(Vec3 v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
 float vec3_length(Vec3 v) { return sqrtf(vec3_length_sq(v)); }

@@ -13,6 +13,8 @@
 #include <string.h>
 #include <float.h>
 
+#define MODEL_VERTEX_STRIDE_FLOATS 24
+
 static LoadedModel* g_ErrorModel = NULL;
 
 static void create_error_model() {
@@ -26,46 +28,42 @@ static void create_error_model() {
     errorMesh->material = &g_MissingMaterial;
 
     float size = 0.5f;
-    float vertices[] = {
-        -size, -size, -size,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size, -size, -size,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size,  size, -size,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        -size,  size, -size,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+    float vertices[24 * MODEL_VERTEX_STRIDE_FLOATS];
 
-        -size, -size,  size,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size, -size,  size,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size,  size,  size,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        -size,  size,  size,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-
-        -size,  size,  size, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        -size,  size, -size, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        -size, -size, -size, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        -size, -size,  size, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-
-         size,  size,  size,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-         size,  size, -size,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-         size, -size, -size,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-         size, -size,  size,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-
-        -size, -size, -size,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size, -size, -size,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size, -size,  size,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        -size, -size,  size,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-
-        -size,  size, -size,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size,  size, -size,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-         size,  size,  size,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        -size,  size,  size,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
+    float cube_verts[24][3] = {
+        {-size, -size, -size}, { size, -size, -size}, { size,  size, -size}, {-size,  size, -size},
+        {-size, -size,  size}, { size, -size,  size}, { size,  size,  size}, {-size,  size,  size},
+        {-size,  size,  size}, {-size,  size, -size}, {-size, -size, -size}, {-size, -size,  size},
+        { size,  size,  size}, { size,  size, -size}, { size, -size, -size}, { size, -size,  size},
+        {-size, -size, -size}, { size, -size, -size}, { size, -size,  size}, {-size, -size,  size},
+        {-size,  size, -size}, { size,  size, -size}, { size,  size,  size}, {-size,  size,  size}
+    };
+    float cube_normals[24][3] = {
+        { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1},
+        { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1},
+        {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0},
+        { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0},
+        { 0, -1,  0}, { 0, -1,  0}, { 0, -1,  0}, { 0, -1,  0},
+        { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}
+    };
+    float cube_uvs[24][2] = {
+        {0,0},{1,0},{1,1},{0,1}, {0,0},{1,0},{1,1},{0,1},
+        {1,1},{0,1},{0,0},{1,0}, {1,1},{0,1},{0,0},{1,0},
+        {0,1},{1,1},{1,0},{0,0}, {0,1},{1,1},{1,0},{0,0}
     };
 
-    unsigned int indices[] = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12,
-        16, 17, 18, 18, 19, 16,
-        20, 21, 22, 22, 23, 20
-    };
+    for (int i = 0; i < 24; ++i) {
+        int base = i * MODEL_VERTEX_STRIDE_FLOATS;
+        vertices[base + 0] = cube_verts[i][0]; vertices[base + 1] = cube_verts[i][1]; vertices[base + 2] = cube_verts[i][2];
+        vertices[base + 3] = cube_normals[i][0]; vertices[base + 4] = cube_normals[i][1]; vertices[base + 5] = cube_normals[i][2];
+        vertices[base + 6] = cube_uvs[i][0]; vertices[base + 7] = cube_uvs[i][1];
+        vertices[base + 8] = 1.0f; vertices[base + 9] = 0.0f; vertices[base + 10] = 0.0f; vertices[base + 11] = 1.0f;
+        vertices[base + 12] = 1.0f; vertices[base + 13] = 0.0f; vertices[base + 14] = 1.0f; vertices[base + 15] = 1.0f;
+        vertices[base + 16] = 0.0f; vertices[base + 17] = 0.0f; vertices[base + 18] = 0.0f; vertices[base + 19] = 0.0f;
+        memset(&vertices[base + 20], 0, 4 * sizeof(float));
+    }
+
+    unsigned int indices[] = { 0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8, 12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20 };
 
     errorMesh->vertexCount = 24;
     errorMesh->indexCount = 36;
@@ -88,14 +86,13 @@ static void create_error_model() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, errorMesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), errorMesh->indexData, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float)));
-    glEnableVertexAttribArray(3);
+    size_t offset = 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(0); offset += 3 * sizeof(float);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(1); offset += 3 * sizeof(float);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(2); offset += 2 * sizeof(float);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(3); offset += 4 * sizeof(float);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(4); offset += 4 * sizeof(float);
+    glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(9);
 
     glBindVertexArray(0);
 
@@ -103,31 +100,40 @@ static void create_error_model() {
     g_ErrorModel->aabb_max = (Vec3){ size, size, size };
 }
 
-static void create_combined_collision_mesh(LoadedModel* model) {
+static void Model_CombineMeshData(LoadedModel* model) {
     if (!model || model->meshCount == 0) return;
-    model->totalVertexCount = 0; model->totalIndexCount = 0;
+    model->totalVertexCount = 0;
+    model->totalIndexCount = 0;
     for (int i = 0; i < model->meshCount; ++i) {
         model->totalVertexCount += model->meshes[i].vertexCount;
         model->totalIndexCount += model->meshes[i].indexCount;
     }
     if (model->totalVertexCount == 0 || model->totalIndexCount == 0) return;
     model->combinedVertexData = malloc(model->totalVertexCount * 3 * sizeof(float));
+    model->combinedNormalData = malloc(model->totalVertexCount * 3 * sizeof(float));
     model->combinedIndexData = malloc(model->totalIndexCount * sizeof(unsigned int));
-    if (!model->combinedVertexData || !model->combinedIndexData) {
-        free(model->combinedVertexData); free(model->combinedIndexData);
-        model->combinedVertexData = NULL; model->combinedIndexData = NULL;
+    if (!model->combinedVertexData || !model->combinedIndexData || !model->combinedNormalData) {
+        free(model->combinedVertexData);
+        free(model->combinedNormalData);
+        free(model->combinedIndexData);
+        model->combinedVertexData = NULL;
+        model->combinedNormalData = NULL;
+        model->combinedIndexData = NULL;
         return;
     }
-    unsigned int vertexOffset = 0; unsigned int indexOffset = 0;
+    unsigned int vertexOffset = 0;
+    unsigned int indexOffset = 0;
     for (int i = 0; i < model->meshCount; ++i) {
         Mesh* mesh = &model->meshes[i];
         for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
-            memcpy(&model->combinedVertexData[(vertexOffset + v) * 3], &mesh->vertexData[v * 3], 3 * sizeof(float));
+            memcpy(&model->combinedVertexData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 0], 3 * sizeof(float));
+            memcpy(&model->combinedNormalData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 3], 3 * sizeof(float));
         }
         for (unsigned int j = 0; j < mesh->indexCount; ++j) {
             model->combinedIndexData[indexOffset + j] = mesh->indexData[j] + vertexOffset;
         }
-        vertexOffset += mesh->vertexCount; indexOffset += mesh->indexCount;
+        vertexOffset += mesh->vertexCount;
+        indexOffset += mesh->indexCount;
     }
 }
 
@@ -135,14 +141,13 @@ LoadedModel* Model_Load(const char* path) {
     if (!g_ErrorModel) {
         create_error_model();
     }
-    cgltf_options options = { 0 }; cgltf_data* data = NULL;
+    cgltf_options options = { 0 };
+    cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
-        Console_Printf_Error("ModelLoader ERROR: Failed to parse %s. Returning error model.\n", path);
         return g_ErrorModel;
     }
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
         cgltf_free(data);
-        Console_Printf_Error("ModelLoader ERROR: Failed to load buffers for %s. Returning error model.\n", path);
         return g_ErrorModel;
     }
     LoadedModel* loadedModel = malloc(sizeof(LoadedModel));
@@ -187,16 +192,31 @@ LoadedModel* Model_Load(const char* path) {
             if (!normals) normals = calloc(vertexCount * 3, sizeof(float));
             if (!texcoords) texcoords = calloc(vertexCount * 2, sizeof(float));
             if (!tangents) tangents = calloc(vertexCount * 4, sizeof(float));
-            newMesh->vertexData = positions;
-            newMesh->final_vbo_data_size = vertexCount * 12 * sizeof(float);
+
+            newMesh->final_vbo_data_size = vertexCount * MODEL_VERTEX_STRIDE_FLOATS * sizeof(float);
             newMesh->final_vbo_data = malloc(newMesh->final_vbo_data_size);
+
             for (cgltf_size v = 0; v < vertexCount; v++) {
-                memcpy(&newMesh->final_vbo_data[v * 12 + 0], &positions[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 12 + 3], &normals[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 12 + 6], &texcoords[v * 2], 2 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[v * 12 + 8], &tangents[v * 4], 4 * sizeof(float));
+                int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
+                memcpy(&newMesh->final_vbo_data[base_idx + 0], &positions[v * 3], 3 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 3], &normals[v * 3], 3 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 6], &texcoords[v * 2], 2 * sizeof(float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 8], &tangents[v * 4], 4 * sizeof(float));
+
+                newMesh->final_vbo_data[base_idx + 12] = 1.0f;
+                newMesh->final_vbo_data[base_idx + 13] = 1.0f;
+                newMesh->final_vbo_data[base_idx + 14] = 1.0f;
+                newMesh->final_vbo_data[base_idx + 15] = 1.0f;
+
+                newMesh->final_vbo_data[base_idx + 16] = 0.0f;
+                newMesh->final_vbo_data[base_idx + 17] = 0.0f;
+                newMesh->final_vbo_data[base_idx + 18] = 0.0f;
+                newMesh->final_vbo_data[base_idx + 19] = 0.0f;
+
+                memset(&newMesh->final_vbo_data[base_idx + 20], 0, 4 * sizeof(float));
             }
-            free(normals); free(texcoords); free(tangents);
+            free(positions); free(normals); free(texcoords); free(tangents);
+
             if (primitive->indices) {
                 newMesh->indexCount = (int)primitive->indices->count;
                 newMesh->indexData = malloc(newMesh->indexCount * sizeof(unsigned int));
@@ -218,15 +238,18 @@ LoadedModel* Model_Load(const char* path) {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newMesh->EBO);
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indexCount * sizeof(unsigned int), newMesh->indexData, GL_STATIC_DRAW);
             }
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
+            size_t offset = 0;
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(0); offset += 3 * sizeof(float);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(1); offset += 3 * sizeof(float);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(2); offset += 2 * sizeof(float);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(3); offset += 4 * sizeof(float);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(4); offset += 4 * sizeof(float);
+            glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset); glEnableVertexAttribArray(9);
             currentMeshIndex++;
         }
     }
     loadedModel->meshCount = currentMeshIndex;
-    create_combined_collision_mesh(loadedModel);
+    Model_CombineMeshData(loadedModel);
     glBindVertexArray(0); cgltf_free(data);
     return loadedModel;
 }
@@ -241,8 +264,9 @@ void Model_Free(LoadedModel* model) {
         free(model->meshes[i].indexData);
         free(model->meshes[i].final_vbo_data);
     }
-    free(model->combinedVertexData);
-    free(model->combinedIndexData);
+    if (model->combinedVertexData) free(model->combinedVertexData);
+    if (model->combinedNormalData) free(model->combinedNormalData);
+    if (model->combinedIndexData) free(model->combinedIndexData);
     free(model->meshes);
     free(model);
 }

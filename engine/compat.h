@@ -146,6 +146,20 @@ static char* trim(char* str) {
     return str;
 }
 
+static void sanitize_filename_map(const char* input, char* output, size_t max_len) {
+    size_t i = 0;
+    while (i < max_len - 1 && input[i] != '\0') {
+        if (isalnum((unsigned char)input[i]) || input[i] == '_' || input[i] == '-') {
+            output[i] = input[i];
+        }
+        else {
+            output[i] = '_';
+        }
+        i++;
+    }
+    output[i] = '\0';
+}
+
 static bool CheckForDebugger(void) {
 #ifdef PLATFORM_WINDOWS
     return IsDebuggerPresent();

@@ -14,7 +14,7 @@ struct ShaderLight {
     vec4 params1;
     vec4 params2;
     uvec2 shadowMapHandle;
-    uvec2 _padding;
+    uvec2 cookieMapHandle;
 };
 
 struct Sun {

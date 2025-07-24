@@ -7,6 +7,8 @@ layout (location = 4) in vec4 aColor;
 layout (location = 5) in vec2 aTexCoords2;
 layout (location = 6) in vec2 aTexCoords3;
 layout (location = 7) in vec2 aTexCoords4;
+layout (location = 8) in vec2 aTexCoordsLightmap;
+layout (location = 9) in vec4 aColor2;
 
 out VS_OUT {
     vec3 worldPos;
@@ -14,9 +16,11 @@ out VS_OUT {
     vec2 texCoords2;
     vec2 texCoords3;
     vec2 texCoords4;
+	vec2 lightmapTexCoords; 
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+	vec4 color2;
     flat int isBrush;
 } vs_out;
 
@@ -50,7 +54,9 @@ void main()
     vs_out.texCoords2 = aTexCoords2;
     vs_out.texCoords3 = aTexCoords3;
     vs_out.texCoords4 = aTexCoords4;
+	vs_out.lightmapTexCoords = aTexCoordsLightmap;
     vs_out.color = aColor;
+	vs_out.color2 = aColor2;
     vs_out.isBrush = (isBrush ? 1 : 0);
 
     mat3 normalMatrix = mat3(transpose(inverse(model)));

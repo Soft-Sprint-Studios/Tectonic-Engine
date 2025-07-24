@@ -7,9 +7,11 @@ in TCS_OUT {
     vec2 texCoords2;
     vec2 texCoords3;
     vec2 texCoords4;
+	vec2 lightmapTexCoords;
     vec3 worldNormal;
     mat3 tbn;
     vec4 color;
+	vec4 color2;
     flat int isBrush;
 } tes_in[];
 
@@ -20,12 +22,15 @@ out vec2 TexCoords;
 out vec2 TexCoords2;
 out vec2 TexCoords3;
 out vec2 TexCoords4;
+out vec2 TexCoordsLightmap;
 out mat3 TBN;
 out vec4 FragPosSunLightSpace;
 out vec2 Velocity;
 out vec4 v_Color;
+out vec4 v_Color2;
 out float fadeAlpha;
 out vec3 indirectLight;
+flat out int isBrush;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -68,6 +73,18 @@ void main()
     vec4 c1 = gl_TessCoord.y * tes_in[1].color;
     vec4 c2 = gl_TessCoord.z * tes_in[2].color;
     v_Color = c0 + c1 + c2;
+
+	vec4 c0_2 = gl_TessCoord.x * tes_in[0].color2;
+    vec4 c1_2 = gl_TessCoord.y * tes_in[1].color2;
+    vec4 c2_2 = gl_TessCoord.z * tes_in[2].color2;
+    v_Color2 = c0_2 + c1_2 + c2_2;
+	
+	vec2 lm_tc0 = gl_TessCoord.x * tes_in[0].lightmapTexCoords;
+    vec2 lm_tc1 = gl_TessCoord.y * tes_in[1].lightmapTexCoords;
+    vec2 lm_tc2 = gl_TessCoord.z * tes_in[2].lightmapTexCoords;
+    TexCoordsLightmap = lm_tc0 + lm_tc1 + lm_tc2;
+	
+	isBrush = tes_in[0].isBrush;
 	
    if (tes_in[0].isBrush == 0 && u_fadeEndDist > 0.0) {
         float dist = length(FragPos_world - viewPos);

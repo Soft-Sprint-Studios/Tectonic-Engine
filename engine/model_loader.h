@@ -42,6 +42,7 @@ extern "C" {
         Mesh* meshes;
         int meshCount;
         float* combinedVertexData;
+        float* combinedNormalData;
         float* combinedWorldVertexData;
         unsigned int* combinedIndexData;
         unsigned int totalVertexCount;

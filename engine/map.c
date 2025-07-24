@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 Soft Sprint Studios
+ * Copyright  2025 Soft Sprint Studios
  * All rights reserved.
  *
  * This file is proprietary and confidential. Unauthorized reproduction,
@@ -19,6 +19,8 @@
 #include "gl_console.h"
 #include "water_manager.h"
 #include "mikktspace/mikktspace.h"
+#include <float.h>
+#include <SDL_image.h>
 
 typedef struct {
     Brush* brush;
@@ -720,6 +722,96 @@ static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTan
     vbo_data[vbo_idx + 11] = fSign;
 }
 
+static void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath) {
+    if (!obj->model || obj->model->totalVertexCount == 0) return;
+
+    char map_name_sanitized[128];
+    char* dot = strrchr(mapPath, '.');
+    if (dot) {
+        size_t len = dot - mapPath;
+        strncpy(map_name_sanitized, mapPath, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, mapPath);
+    }
+
+    char model_name_sanitized[128];
+    if (strlen(obj->targetname) > 0) {
+        sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
+    }
+    else {
+        sprintf(model_name_sanitized, "Model_%d", index);
+    }
+
+    char vlm_path[512];
+    snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s.vlm", map_name_sanitized, model_name_sanitized);
+
+    FILE* file = fopen(vlm_path, "rb");
+    if (file) {
+        char header[4];
+        unsigned int vertex_count;
+        fread(header, 1, 4, file);
+        fread(&vertex_count, sizeof(unsigned int), 1, file);
+
+        if (strncmp(header, "VLM1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
+            obj->bakedVertexColors = malloc(vertex_count * sizeof(Vec4));
+            if (obj->bakedVertexColors) {
+                fread(obj->bakedVertexColors, sizeof(Vec4), vertex_count, file);
+            }
+        }
+        else {
+            Console_Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
+        }
+        fclose(file);
+    }
+}
+
+static void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath) {
+    if (!obj->model || obj->model->totalVertexCount == 0) return;
+
+    char map_name_sanitized[128];
+    char* dot = strrchr(mapPath, '.');
+    if (dot) {
+        size_t len = dot - mapPath;
+        strncpy(map_name_sanitized, mapPath, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, mapPath);
+    }
+
+    char model_name_sanitized[128];
+    if (strlen(obj->targetname) > 0) {
+        sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
+    }
+    else {
+        sprintf(model_name_sanitized, "Model_%d", index);
+    }
+
+    char vld_path[512];
+    snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s.vld", map_name_sanitized, model_name_sanitized);
+
+    FILE* file = fopen(vld_path, "rb");
+    if (file) {
+        char header[4];
+        unsigned int vertex_count;
+        fread(header, 1, 4, file);
+        fread(&vertex_count, sizeof(unsigned int), 1, file);
+
+        if (strncmp(header, "VLD1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
+            obj->bakedVertexDirections = malloc(vertex_count * sizeof(Vec4));
+            if (obj->bakedVertexDirections) {
+                fread(obj->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
+            }
+        }
+        else {
+            Console_Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
+        }
+        fclose(file);
+    }
+}
+
 void Brush_CreateRenderData(Brush* b) {
     if (b->numFaces == 0 || b->numVertices == 0) {
         b->totalRenderVertexCount = 0;
@@ -732,7 +824,6 @@ void Brush_CreateRenderData(Brush* b) {
     for (int i = 0; i < b->numFaces; ++i) {
         BrushFace* face = &b->faces[i];
         if (face->numVertexIndices < 3) continue;
-
         for (int j = 0; j < face->numVertexIndices - 2; ++j) {
             int idx0 = face->vertexIndices[0];
             int idx1 = face->vertexIndices[j + 1];
@@ -746,7 +837,6 @@ void Brush_CreateRenderData(Brush* b) {
             temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
         }
     }
-
     for (int i = 0; i < b->numVertices; ++i) {
         vec3_normalize(&temp_normals[i]);
     }
@@ -763,7 +853,8 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    float* final_vbo_data = calloc(total_render_verts * 22, sizeof(float));
+    const int stride_floats = 24;
+    float* final_vbo_data = calloc(total_render_verts * stride_floats, sizeof(float));
     if (!final_vbo_data) {
         free(temp_normals);
         return;
@@ -781,6 +872,37 @@ void Brush_CreateRenderData(Brush* b) {
     for (int i = 0; i < b->numFaces; ++i) {
         BrushFace* face = &b->faces[i];
         if (face->numVertexIndices < 3) continue;
+
+        Vec3 face_v0 = b->vertices[face->vertexIndices[0]].pos;
+        Vec3 face_v1 = b->vertices[face->vertexIndices[1]].pos;
+        Vec3 face_v2 = b->vertices[face->vertexIndices[2]].pos;
+        Vec3 lightmap_face_normal = vec3_cross(vec3_sub(face_v1, face_v0), vec3_sub(face_v2, face_v0));
+        vec3_normalize(&lightmap_face_normal);
+
+        Vec3 u_axis, v_axis;
+        if (fabsf(lightmap_face_normal.x) > fabsf(lightmap_face_normal.y)) {
+            u_axis = (Vec3){ -lightmap_face_normal.z, 0, lightmap_face_normal.x };
+        }
+        else {
+            u_axis = (Vec3){ 0, lightmap_face_normal.z, -lightmap_face_normal.y };
+        }
+        vec3_normalize(&u_axis);
+        v_axis = vec3_cross(lightmap_face_normal, u_axis);
+
+        float min_u = FLT_MAX, max_u = -FLT_MAX;
+        float min_v = FLT_MAX, max_v = -FLT_MAX;
+        for (int k = 0; k < face->numVertexIndices; k++) {
+            Vec3 vert_pos = b->vertices[face->vertexIndices[k]].pos;
+            float u = vec3_dot(vert_pos, u_axis);
+            float v = vec3_dot(vert_pos, v_axis);
+            if (u < min_u) min_u = u; if (u > max_u) max_u = u;
+            if (v < min_v) min_v = v; if (v > max_v) max_v = v;
+        }
+
+        float u_range = max_u - min_u;
+        float v_range = max_v - min_v;
+        if (u_range < 0.001f) u_range = 1.0f;
+        if (v_range < 0.001f) v_range = 1.0f;
 
         int num_tris_in_face = face->numVertexIndices - 2;
         int num_verts_in_face = num_tris_in_face * 3;
@@ -800,22 +922,21 @@ void Brush_CreateRenderData(Brush* b) {
 
         SMikkTSpaceContext mikk_context = { 0 };
         mikk_context.m_pInterface = &mikk_interface;
-        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * 22);
-
+        mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * stride_floats);
         genTangSpaceDefault(&mikk_context);
 
         for (int j = 0; j < num_verts_in_face; ++j) {
-            int vbo_idx = (vbo_vertex_offset + j) * 22;
+            int vbo_idx = (vbo_vertex_offset + j) * stride_floats;
             int vertex_index = face_tri_indices[j];
             BrushVertex vert = b->vertices[vertex_index];
             Vec3 norm = temp_normals[vertex_index];
             float uv1[2], uv2[2], uv3[2], uv4[2];
+
             getTexCoord(NULL, uv1, j / 3, j % 3);
             Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
             Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
             Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
-            Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-            vec3_normalize(&normal_vec);
+            Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0)); vec3_normalize(&normal_vec);
             float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
             int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
             float u, v;
@@ -829,26 +950,23 @@ void Brush_CreateRenderData(Brush* b) {
             float rad4 = face->uv_rotation4 * (M_PI / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
             uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
-            final_vbo_data[vbo_idx + 0] = vert.pos.x;
-            final_vbo_data[vbo_idx + 1] = vert.pos.y;
-            final_vbo_data[vbo_idx + 2] = vert.pos.z;
-            final_vbo_data[vbo_idx + 3] = norm.x;
-            final_vbo_data[vbo_idx + 4] = norm.y;
-            final_vbo_data[vbo_idx + 5] = norm.z;
-            final_vbo_data[vbo_idx + 6] = uv1[0];
-            final_vbo_data[vbo_idx + 7] = uv1[1];
-            final_vbo_data[vbo_idx + 12] = vert.color.x;
-            final_vbo_data[vbo_idx + 13] = vert.color.y;
-            final_vbo_data[vbo_idx + 14] = vert.color.z;
-            final_vbo_data[vbo_idx + 15] = vert.color.w;
-            final_vbo_data[vbo_idx + 16] = uv2[0];
-            final_vbo_data[vbo_idx + 17] = uv2[1];
-            final_vbo_data[vbo_idx + 18] = uv3[0];
-            final_vbo_data[vbo_idx + 19] = uv3[1];
-            final_vbo_data[vbo_idx + 20] = uv4[0];
-            final_vbo_data[vbo_idx + 21] = uv4[1];
-        }
+            float lightmap_u_val = vec3_dot(vert.pos, u_axis);
+            float lightmap_v_val = vec3_dot(vert.pos, v_axis);
+            float local_u = (lightmap_u_val - min_u) / u_range;
+            float local_v = (lightmap_v_val - min_v) / v_range;
 
+            vert.lightmap_uv.x = face->atlas_coords.x + local_u * face->atlas_coords.z;
+            vert.lightmap_uv.y = face->atlas_coords.y + local_v * face->atlas_coords.w;
+
+            memcpy(&final_vbo_data[vbo_idx + 0], &vert.pos, sizeof(Vec3));
+            memcpy(&final_vbo_data[vbo_idx + 3], &norm, sizeof(Vec3));
+            memcpy(&final_vbo_data[vbo_idx + 6], uv1, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 12], &vert.color, sizeof(Vec4));
+            memcpy(&final_vbo_data[vbo_idx + 16], uv2, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 18], uv3, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 20], uv4, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 22], &vert.lightmap_uv, sizeof(Vec2));
+        }
         free(face_tri_indices);
         vbo_vertex_offset += num_verts_in_face;
     }
@@ -856,17 +974,20 @@ void Brush_CreateRenderData(Brush* b) {
     if (b->vao == 0) { glGenVertexArrays(1, &b->vao); glGenBuffers(1, &b->vbo); }
     glBindVertexArray(b->vao);
     glBindBuffer(GL_ARRAY_BUFFER, b->vbo);
-    glBufferData(GL_ARRAY_BUFFER, total_render_verts * 22 * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(12 * sizeof(float))); glEnableVertexAttribArray(4);
-    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(16 * sizeof(float))); glEnableVertexAttribArray(5);
-    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(18 * sizeof(float))); glEnableVertexAttribArray(6);
-    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 22 * sizeof(float), (void*)(20 * sizeof(float))); glEnableVertexAttribArray(7);
-    glBindVertexArray(0);
+    glBufferData(GL_ARRAY_BUFFER, total_render_verts * stride_floats * sizeof(float), final_vbo_data, GL_DYNAMIC_DRAW);
 
+    size_t offset = 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(0); offset += 3 * sizeof(float);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(1); offset += 3 * sizeof(float);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(2); offset += 2 * sizeof(float);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(3); offset += 4 * sizeof(float);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(4); offset += 4 * sizeof(float);
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(5); offset += 2 * sizeof(float);
+    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(6); offset += 2 * sizeof(float);
+    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(7); offset += 2 * sizeof(float);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(8);
+
+    glBindVertexArray(0);
     free(final_vbo_data);
     free(temp_normals);
 }
@@ -879,12 +1000,26 @@ void Scene_Clear(Scene* scene, Engine* engine) {
             if (scene->objects[i].model) {
                 Model_Free(scene->objects[i].model);
             }
+            if (scene->objects[i].bakedVertexColors) {
+                free(scene->objects[i].bakedVertexColors);
+            }
+            if (scene->objects[i].bakedVertexDirections) {
+                free(scene->objects[i].bakedVertexDirections);
+            }
         }
         free(scene->objects);
         scene->objects = NULL;
     }
 
     for (int i = 0; i < scene->numBrushes; ++i) {
+        for (int j = 0; j < scene->brushes[i].numFaces; ++j) {
+            if (scene->brushes[i].lightmapAtlas != 0) {
+                glDeleteTextures(1, &scene->brushes[i].lightmapAtlas);
+            }
+            if (scene->brushes[i].directionalLightmapAtlas != 0) {
+                glDeleteTextures(1, &scene->brushes[i].directionalLightmapAtlas);
+            }
+        }
         Brush_FreeData(&scene->brushes[i]);
         scene->brushes[i].physicsBody = NULL;
     }
@@ -958,6 +1093,109 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     vec3_normalize(&scene->sun.direction);
     scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
+    scene->lightmapResolution = 128;
+}
+
+static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
+    if (b->numFaces == 0) return;
+
+    SDL_Surface** color_surfaces = calloc(b->numFaces, sizeof(SDL_Surface*));
+    SDL_Surface** dir_surfaces = calloc(b->numFaces, sizeof(SDL_Surface*));
+    int valid_faces = 0;
+
+    char brush_name_sanitized[128];
+    if (strlen(b->targetname) > 0) {
+        sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
+    }
+    else {
+        sprintf(brush_name_sanitized, "Brush_%d", brush_index);
+    }
+
+    char brush_dir[512];
+    snprintf(brush_dir, sizeof(brush_dir), "lightmaps/%s", map_name_sanitized);
+    char final_brush_dir[1024];
+    snprintf(final_brush_dir, sizeof(final_brush_dir), "%s/%s", brush_dir, brush_name_sanitized);
+
+
+    for (int i = 0; i < b->numFaces; ++i) {
+        char path[512];
+        snprintf(path, sizeof(path), "%s/face_%d_color.png", final_brush_dir, i);
+        color_surfaces[i] = IMG_Load(path);
+
+        snprintf(path, sizeof(path), "%s/face_%d_dir.png", final_brush_dir, i);
+        dir_surfaces[i] = IMG_Load(path);
+
+        if (color_surfaces[i] && dir_surfaces[i]) {
+            valid_faces++;
+        }
+    }
+
+    if (valid_faces == 0) {
+        free(color_surfaces);
+        free(dir_surfaces);
+        b->lightmapAtlas = 0;
+        b->directionalLightmapAtlas = 0;
+        return;
+    }
+
+    int atlas_cols = (int)ceil(sqrt((double)valid_faces));
+    int atlas_rows = (int)ceil((double)valid_faces / atlas_cols);
+    int atlas_width = atlas_cols * resolution;
+    int atlas_height = atlas_rows * resolution;
+
+    glGenTextures(1, &b->lightmapAtlas);
+    glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atlas_width, atlas_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    glGenTextures(1, &b->directionalLightmapAtlas);
+    glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, atlas_width, atlas_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    int current_face = 0;
+    for (int i = 0; i < b->numFaces; ++i) {
+        if (color_surfaces[i] && dir_surfaces[i]) {
+            int x_pos = (current_face % atlas_cols) * resolution;
+            int y_pos = (current_face / atlas_cols) * resolution;
+
+            SDL_Surface* color_converted = SDL_ConvertSurfaceFormat(color_surfaces[i], SDL_PIXELFORMAT_RGB24, 0);
+            SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surfaces[i], SDL_PIXELFORMAT_RGBA32, 0);
+
+            if (color_converted) {
+                glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGB, GL_UNSIGNED_BYTE, color_converted->pixels);
+                SDL_FreeSurface(color_converted);
+            }
+            if (dir_converted) {
+                glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
+                SDL_FreeSurface(dir_converted);
+            }
+
+            b->faces[i].atlas_coords.x = (float)x_pos / atlas_width;
+            b->faces[i].atlas_coords.y = (float)y_pos / atlas_height;
+            b->faces[i].atlas_coords.z = (float)resolution / atlas_width;
+            b->faces[i].atlas_coords.w = (float)resolution / atlas_height;
+
+            current_face++;
+        }
+    }
+
+    glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    for (int i = 0; i < b->numFaces; ++i) {
+        if (color_surfaces[i]) SDL_FreeSurface(color_surfaces[i]);
+        if (dir_surfaces[i]) SDL_FreeSurface(dir_surfaces[i]);
+    }
+    free(color_surfaces);
+    free(dir_surfaces);
 }
 
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
@@ -1000,6 +1238,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 scene->playerStart.yaw = 0.0f;
                 scene->playerStart.pitch = 0.0f;
             }
+        }
+        else if (strcmp(keyword, "lightmap_resolution") == 0) {
+            sscanf(line, "%*s %d", &scene->lightmapResolution);
         }
         else if (strcmp(keyword, "fog_settings") == 0) {
             int enabled_int;
@@ -1134,6 +1375,17 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name);
             }
             Brush_UpdateMatrix(b);
+            char map_name_sanitized[128];
+            char* dot = strrchr(scene->mapPath, '.');
+            if (dot) {
+                size_t len = dot - scene->mapPath;
+                strncpy(map_name_sanitized, scene->mapPath, len);
+                map_name_sanitized[len] = '\0';
+            }
+            else {
+                strcpy(map_name_sanitized, scene->mapPath);
+            }
+            Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             Brush_CreateRenderData(b);
             if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && !b->isDSP && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
@@ -1196,6 +1448,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
             SceneObject_UpdateMatrix(newObj);
             newObj->model = Model_Load(newObj->modelPath);
+            SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
+            SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
             if (!newObj->model) {
                 scene->numObjects--; continue;
             }
@@ -1214,10 +1468,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             memset(light, 0, sizeof(Light));
             int type_int = 0;
             int preset_int = 0;
-            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, light->cookiePath);
+            int is_static_int = 0;
+            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
             light->preset = preset_int;
             light->type = (LightType)type_int;
             light->is_on = (light->base_intensity > 0.0f);
+            light->is_static = (bool)is_static_int;
             light->intensity = light->base_intensity;
             if (items_scanned == 18 && strcmp(light->cookiePath, "none") != 0) {
                 Material* cookieMat = TextureManager_FindMaterial(light->cookiePath);
@@ -1427,6 +1683,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         return false;
     }
     fprintf(file, "MAP_VERSION %d\n\n", MAP_VERSION);
+    fprintf(file, "lightmap_resolution %d\n", scene->lightmapResolution);
     if (engine) {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", engine->camera.position.x, engine->camera.position.y, engine->camera.position.z, engine->camera.yaw, engine->camera.pitch);
     }
@@ -1513,7 +1770,11 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
-        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d \"%s\"\n", (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z, light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius, light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity, light->preset, cookiePathStr);
+        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d \"%s\"\n",
+            (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z,
+            light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius,
+            light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
+            light->preset, (int)light->is_static, cookiePathStr);
         if (strlen(light->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", light->targetname);
     }
     fprintf(file, "\n");

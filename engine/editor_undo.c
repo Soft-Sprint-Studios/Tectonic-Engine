@@ -74,6 +74,7 @@ static void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     if (index < 0 || index >= scene->numObjects) return;
     if (scene->objects[index].model) Model_Free(scene->objects[index].model);
     if (scene->objects[index].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->objects[index].physicsBody);
+    if (scene->objects[index].bakedVertexColors) free(scene->objects[index].bakedVertexColors);
     for (int i = index; i < scene->numObjects - 1; ++i) scene->objects[i] = scene->objects[i + 1];
     scene->numObjects--;
     if (scene->numObjects > 0) { scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject)); }
