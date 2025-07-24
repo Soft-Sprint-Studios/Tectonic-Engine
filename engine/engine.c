@@ -901,7 +901,7 @@ void init_commands() {
     Console_Printf("Engine commands registered.");
 }
 
-void PrintCPUInfo() {
+void PrintSystemInfo() {
     char vendor[13];
     char brand[49];
 
@@ -925,6 +925,21 @@ void PrintCPUInfo() {
     Console_Printf("AVX2 support: %s\n", SDL_HasAVX2() ? "Yes" : "No");
     Console_Printf("NEON support: %s\n", SDL_HasNEON() ? "Yes" : "No");
     Console_Printf("RAM: %d MB\n", SDL_GetSystemRAM());
+#ifdef PLATFORM_WINDOWS
+    OSVERSIONINFO osvi;
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    if (GetVersionEx(&osvi)) {
+        Console_Printf("Windows Version: %d.%d Build %d\n",
+            (int)osvi.dwMajorVersion,
+            (int)osvi.dwMinorVersion,
+            (int)osvi.dwBuildNumber);
+    }
+    else {
+        Console_Printf("Windows Version: Unknown\n");
+    }
+#endif
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
@@ -970,7 +985,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf_Error("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
-    PrintCPUInfo();
+    PrintSystemInfo();
     Console_Printf("Tectonic Engine initialized.\n");
     Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
     SDL_SetRelativeMouseMode(SDL_FALSE);
