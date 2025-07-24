@@ -206,7 +206,7 @@ LoadedModel* Model_Load(const char* path) {
                 newMesh->final_vbo_data[base_idx + 12] = 1.0f;
                 newMesh->final_vbo_data[base_idx + 13] = 1.0f;
                 newMesh->final_vbo_data[base_idx + 14] = 1.0f;
-                newMesh->final_vbo_data[base_idx + 15] = 1.0f;
+                newMesh->final_vbo_data[base_idx + 15] = 0.0f;
 
                 newMesh->final_vbo_data[base_idx + 16] = 0.0f;
                 newMesh->final_vbo_data[base_idx + 17] = 0.0f;

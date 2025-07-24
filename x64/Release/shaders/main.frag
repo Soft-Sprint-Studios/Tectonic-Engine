@@ -610,7 +610,11 @@ void main()
             }
         }
     } else {
-        bakedDiffuse = v_Color.rgb * albedo;
+        if (v_Color.a > 0.5) {
+            bakedDiffuse = v_Color.rgb * albedo;
+        } else {
+            bakedDiffuse = vec3(0.0);
+        }
         if (v_Color2.a > 0.0) {
             vec3 bakedLightDir = normalize(v_Color2.rgb);
             float bakedIntensity = v_Color2.a * 10.0;
