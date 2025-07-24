@@ -15,7 +15,6 @@
 #endif
 #include "lightmapper.h"
 #include "gl_console.h"
-#include "compat.h"
 #include "math_lib.h"
 
 #include <vector>
@@ -718,6 +717,9 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
     }
 }
 #else
+#include "lightmapper.h"
+#include "gl_console.h"
+
 void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
 {
     Console_Printf_Error("[Lightmapper] Not available on x86 builds.");
