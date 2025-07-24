@@ -6,6 +6,7 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
+#ifndef ARCH_32BIT
 #ifdef min
 #undef min
 #endif
@@ -716,3 +717,9 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
         Console_Printf_Error("[Lightmapper] Unknown C++ exception occurred.");
     }
 }
+#else
+void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
+{
+    Console_Printf_Error("[Lightmapper] Not available on x86 builds.");
+}
+#endif

@@ -379,8 +379,12 @@ if(WIN32)
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
         sentry
-        embree4 tbb12
     )
+    if(ARCH_DIR STREQUAL "x64")
+        target_link_libraries(engine PRIVATE embree4 tbb12)
+    else()
+        message(STATUS "Skipping Embree linking for 32-bit build")
+    endif()
 else()
     if(UNIX AND NOT APPLE)
         message(STATUS "Configuring for Linux")
