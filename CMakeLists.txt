@@ -473,11 +473,10 @@ set_target_properties(Patcher PROPERTIES
 )
 
 if(WIN32)
-    add_custom_command(
-        TARGET launcher
-        POST_BUILD
+    add_custom_target(patch_engine ALL
         COMMAND $<TARGET_FILE:Patcher> $<TARGET_FILE:engine>
-        COMMENT "Patching engine DLL with checksum..."
+        DEPENDS Patcher engine
+        COMMENT "Patching DLL with checksum..."
         VERBATIM
     )
 endif()
