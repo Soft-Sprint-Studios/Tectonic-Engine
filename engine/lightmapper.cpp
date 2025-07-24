@@ -31,8 +31,11 @@
 #include <cctype>
 #include <cmath>
 #include <cfloat>
+#include <stdexcept>
+#include <limits>
 
 #include <SDL_image.h>
+#include <embree4/rtcore.h>
 
 namespace
 {
@@ -40,6 +43,11 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
+
+    void embree_error_function(void* userPtr, RTCError error, const char* str)
+    {
+        Console_Printf_Error("[Embree] Error %d: %s", error, str);
+    }
 
     struct BrushFaceJobData
     {
@@ -62,9 +70,11 @@ namespace
     {
     public:
         Lightmapper(Scene* scene, int resolution);
+        ~Lightmapper();
         void generate();
 
     private:
+        void build_embree_scene();
         void prepare_jobs();
         void worker_main();
         void process_job(const JobPayload& job);
@@ -72,7 +82,6 @@ namespace
         void process_model_vertex(const ModelVertexJobData& data);
 
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
-        static bool ray_intersects_triangle(const Vec3& ray_origin, const Vec3& ray_dir, const Vec3& v0, const Vec3& v1, const Vec3& v2, float& t);
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
         static void save_png(const fs::path& path, const void* data, int width, int height, int bit_depth, int stride, uint32_t r_mask, uint32_t g_mask, uint32_t b_mask, uint32_t a_mask);
         static std::string sanitize_filename(std::string input);
@@ -80,6 +89,9 @@ namespace
         Scene* m_scene;
         int m_resolution;
         fs::path m_output_path;
+
+        RTCDevice m_rtc_device;
+        RTCScene m_rtc_scene;
 
         std::vector<JobPayload> m_jobs;
         std::atomic<size_t> m_next_job_index{ 0 };
@@ -89,33 +101,37 @@ namespace
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution)
-        : m_scene(scene), m_resolution(resolution) {
+        : m_scene(scene), m_resolution(resolution), m_rtc_device(nullptr), m_rtc_scene(nullptr)
+    {
+        m_rtc_device = rtcNewDevice(nullptr);
+        if (!m_rtc_device)
+        {
+            throw std::runtime_error("Failed to create Embree device.");
+        }
+        rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
+        build_embree_scene();
     }
 
-    bool Lightmapper::ray_intersects_triangle(const Vec3& ray_origin, const Vec3& ray_dir, const Vec3& v0, const Vec3& v1, const Vec3& v2, float& t)
+    Lightmapper::~Lightmapper()
     {
-        constexpr float EPSILON = 0.000001f;
-        Vec3 edge1 = vec3_sub(v1, v0);
-        Vec3 edge2 = vec3_sub(v2, v0);
-        Vec3 h = vec3_cross(ray_dir, edge2);
-        float a = vec3_dot(edge1, h);
-        if (a > -EPSILON && a < EPSILON) return false;
-        float f = 1.0f / a;
-        Vec3 s = vec3_sub(ray_origin, v0);
-        float u = f * vec3_dot(s, h);
-        if (u < 0.0f || u > 1.0f) return false;
-        Vec3 q = vec3_cross(s, edge1);
-        float v = f * vec3_dot(ray_dir, q);
-        if (v < 0.0f || u + v > 1.0f) return false;
-        t = f * vec3_dot(edge2, q);
-        return (t > EPSILON);
+        if (m_rtc_scene)
+        {
+            rtcReleaseScene(m_rtc_scene);
+        }
+        if (m_rtc_device)
+        {
+            rtcReleaseDevice(m_rtc_device);
+        }
     }
 
-    bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
+    void Lightmapper::build_embree_scene()
     {
-        Vec3 ray_dir = vec3_sub(end, start);
-        const float max_dist = vec3_length(ray_dir);
-        vec3_normalize(&ray_dir);
+        m_rtc_scene = rtcNewScene(m_rtc_device);
+        rtcSetSceneBuildQuality(m_rtc_scene, RTC_BUILD_QUALITY_HIGH);
+        rtcSetSceneFlags(m_rtc_scene, RTC_SCENE_FLAG_ROBUST);
+
+        std::vector<Vec3> all_vertices;
+        std::vector<unsigned int> all_indices;
 
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
@@ -129,15 +145,13 @@ namespace
 
                 for (int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
-                    Vec3 v0 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos);
-                    Vec3 v1 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos);
-                    Vec3 v2 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos);
-
-                    float t;
-                    if (ray_intersects_triangle(start, ray_dir, v0, v1, v2, t) && t < max_dist)
-                    {
-                        return true;
-                    }
+                    unsigned int base_index = static_cast<unsigned int>(all_vertices.size());
+                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos));
+                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos));
+                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos));
+                    all_indices.push_back(base_index);
+                    all_indices.push_back(base_index + 1);
+                    all_indices.push_back(base_index + 2);
                 }
             }
         }
@@ -147,35 +161,70 @@ namespace
             const SceneObject& obj = m_scene->objects[i];
             if (!obj.model || !obj.model->combinedIndexData) continue;
 
-            float t_obb;
-            if (!RayIntersectsOBB(start, ray_dir, &obj.modelMatrix, obj.model->aabb_min, obj.model->aabb_max, &t_obb) || t_obb > max_dist)
-            {
-                continue;
-            }
-
             for (unsigned int j = 0; j < obj.model->totalIndexCount; j += 3)
             {
+                unsigned int base_index = static_cast<unsigned int>(all_vertices.size());
                 unsigned int i0 = obj.model->combinedIndexData[j];
                 unsigned int i1 = obj.model->combinedIndexData[j + 1];
                 unsigned int i2 = obj.model->combinedIndexData[j + 2];
-
                 Vec3 v0 = { obj.model->combinedVertexData[i0 * 3 + 0], obj.model->combinedVertexData[i0 * 3 + 1], obj.model->combinedVertexData[i0 * 3 + 2] };
                 Vec3 v1 = { obj.model->combinedVertexData[i1 * 3 + 0], obj.model->combinedVertexData[i1 * 3 + 1], obj.model->combinedVertexData[i1 * 3 + 2] };
                 Vec3 v2 = { obj.model->combinedVertexData[i2 * 3 + 0], obj.model->combinedVertexData[i2 * 3 + 1], obj.model->combinedVertexData[i2 * 3 + 2] };
-
-                v0 = mat4_mul_vec3(&obj.modelMatrix, v0);
-                v1 = mat4_mul_vec3(&obj.modelMatrix, v1);
-                v2 = mat4_mul_vec3(&obj.modelMatrix, v2);
-
-                float t;
-                if (ray_intersects_triangle(start, ray_dir, v0, v1, v2, t) && t < max_dist)
-                {
-                    return true;
-                }
+                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v0));
+                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v1));
+                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v2));
+                all_indices.push_back(base_index);
+                all_indices.push_back(base_index + 1);
+                all_indices.push_back(base_index + 2);
             }
         }
 
-        return false;
+        if (all_vertices.empty()) return;
+
+        RTCGeometry geom = rtcNewGeometry(m_rtc_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+        Vec3* vertices_buf = (Vec3*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vec3), all_vertices.size());
+        memcpy(vertices_buf, all_vertices.data(), all_vertices.size() * sizeof(Vec3));
+        unsigned int* indices_buf = (unsigned int*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned int), all_indices.size() / 3);
+        memcpy(indices_buf, all_indices.data(), all_indices.size() * sizeof(unsigned int));
+
+        rtcCommitGeometry(geom);
+        rtcAttachGeometry(m_rtc_scene, geom);
+        rtcReleaseGeometry(geom);
+        rtcCommitScene(m_rtc_scene);
+    }
+
+    bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
+    {
+        if (!m_rtc_scene) return false;
+
+        Vec3 ray_dir = vec3_sub(end, start);
+        const float max_dist = vec3_length(ray_dir);
+        if (max_dist < SHADOW_BIAS) return false;
+        vec3_normalize(&ray_dir);
+
+        RTCRay ray;
+        ray.org_x = start.x;
+        ray.org_y = start.y;
+        ray.org_z = start.z;
+        ray.dir_x = ray_dir.x;
+        ray.dir_y = ray_dir.y;
+        ray.dir_z = ray_dir.z;
+        ray.tnear = SHADOW_BIAS;
+        ray.tfar = max_dist - SHADOW_BIAS;
+        ray.time = 0.0f;
+        ray.mask = -1;
+        ray.flags = 0;
+
+        RTCRayQueryContext query_context;
+        rtcInitRayQueryContext(&query_context);
+
+        RTCOccludedArguments args;
+        rtcInitOccludedArguments(&args);
+        args.context = &query_context;
+
+        rtcOccluded1(m_rtc_scene, &ray, &args);
+
+        return ray.tfar == -std::numeric_limits<float>::infinity();
     }
 
     std::string Lightmapper::sanitize_filename(std::string input)
@@ -205,7 +254,6 @@ namespace
         }
 
         std::vector<float> totals(channels);
-
         for (int y = 0; y < height; ++y)
         {
             for (int x = 0; x < width; ++x)
@@ -276,14 +324,8 @@ namespace
         vec3_normalize(&face_normal);
 
         Vec3 u_axis, v_axis;
-        if (fabsf(face_normal.x) > fabsf(face_normal.y))
-        {
-            u_axis = { -face_normal.z, 0, face_normal.x };
-        }
-        else
-        {
-            u_axis = { 0, face_normal.z, -face_normal.y };
-        }
+        if (fabsf(face_normal.x) > fabsf(face_normal.y)) u_axis = { -face_normal.z, 0, face_normal.x };
+        else u_axis = { 0, face_normal.z, -face_normal.y };
         vec3_normalize(&u_axis);
         v_axis = vec3_cross(face_normal, u_axis);
 
@@ -301,7 +343,6 @@ namespace
 
         float u_range = std::max(0.001f, max_u - min_u);
         float v_range = std::max(0.001f, max_v - min_v);
-
         std::vector<unsigned char> lightmap_data(m_resolution * m_resolution * 3, 0);
         std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
 
@@ -336,7 +377,6 @@ namespace
                         float inv_denom = 1.0f / (dot00 * dot11 - dot01 * dot01);
                         float bary_u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
                         float bary_v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-
                         if (bary_u >= 0 && bary_v >= 0 && (bary_u + bary_v < 1))
                         {
                             inside = true;
@@ -350,7 +390,6 @@ namespace
                         Vec3 light_accumulator = { 0,0,0 }, direction_accumulator_sample = { 0,0,0 };
                         float max_contribution_sample = -1.0f, dominant_intensity_sample = 0.0f;
                         Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
-
                         for (int k = 0; k < m_scene->numActiveLights; ++k)
                         {
                             const Light& light = m_scene->lights[k];
@@ -359,10 +398,8 @@ namespace
                             float dist = vec3_length(light_dir);
                             vec3_normalize(&light_dir);
                             if (dist > light.radius) continue;
-
                             float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
                             if (NdotL <= 0.0f) continue;
-
                             float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
                             float spot_factor = 1.0f;
                             if (light.type == LIGHT_SPOT)
@@ -372,13 +409,11 @@ namespace
                                 float epsilon = light.cutOff - light.outerCutOff;
                                 spot_factor = std::min(1.0f, (theta - light.outerCutOff) / epsilon);
                             }
-
                             if (!is_in_shadow(point_to_light_check, light.position))
                             {
                                 Vec3 light_color = vec3_muls(light.color, light.intensity);
                                 Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation * spot_factor);
                                 light_accumulator = vec3_add(light_accumulator, light_contribution);
-
                                 float contribution_magnitude = vec3_length(light_contribution);
                                 direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
                                 if (contribution_magnitude > max_contribution_sample)
@@ -558,9 +593,9 @@ namespace
         }
 
         m_jobs.reserve(total_brush_faces + total_model_vertices);
-
         m_model_color_buffers.resize(m_scene->numObjects);
         m_model_direction_buffers.resize(m_scene->numObjects);
+
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
             if (m_scene->objects[i].model)
@@ -574,11 +609,9 @@ namespace
         {
             const Brush& b = m_scene->brushes[i];
             if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
-
             std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
             fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
             fs::create_directories(brush_dir);
-
             for (int j = 0; j < b.numFaces; ++j)
             {
                 m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
@@ -603,9 +636,7 @@ namespace
     {
         Console_Printf("[Lightmapper] Starting lightmap generation...");
         auto start_time = std::chrono::high_resolution_clock::now();
-
         m_scene->lightmapResolution = m_resolution;
-
         prepare_jobs();
         if (m_jobs.empty()) return;
 
@@ -618,7 +649,6 @@ namespace
         {
             threads.emplace_back(&Lightmapper::worker_main, this);
         }
-
         for (auto& t : threads)
         {
             t.join();
@@ -628,10 +658,8 @@ namespace
         {
             const SceneObject& obj = m_scene->objects[i];
             if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i]) continue;
-
             std::string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + std::to_string(i);
             std::string sanitized_name = sanitize_filename(model_name_str);
-
             fs::path vlm_path = m_output_path / (sanitized_name + ".vlm");
             std::ofstream vlm_file(vlm_path, std::ios::binary);
             if (vlm_file)

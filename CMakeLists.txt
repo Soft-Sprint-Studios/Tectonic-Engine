@@ -311,6 +311,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
     "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
     "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/include"
 )
 
 target_compile_options(engine PRIVATE
@@ -365,6 +366,7 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/${ARCH_DIR}"
     )
 
     target_link_libraries(engine PRIVATE
@@ -377,6 +379,7 @@ if(WIN32)
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
         sentry
+        embree4 tbb12
     )
 else()
     if(UNIX AND NOT APPLE)
@@ -390,6 +393,9 @@ else()
         set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
         set(OPENAL_LIB "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux/libopenal.a")
         set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
+        set(EMBREE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libembree4.so")
+        set(TBB_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tbb/lib/linux/libtbb.so")
+        set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tbb/lib/linux/libtbbmalloc.so")
         target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
         target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 ${SDL2_IMAGE_LIBRARY} GLEW::glew OpenGL::GL)
 
@@ -397,6 +403,7 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux"
         )
 
         target_link_libraries(engine PRIVATE
@@ -417,6 +424,9 @@ else()
             pthread
             dl
             freetype
+            ${EMBREE_LIB}
+            ${TBB_LIB}
+            ${TBB_MALLOC_LIB}
         )
     else()
         message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")
