@@ -1156,14 +1156,27 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
             SDL_Surface* color_converted = SDL_ConvertSurfaceFormat(color_surfaces[i], SDL_PIXELFORMAT_RGB24, 0);
             SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surfaces[i], SDL_PIXELFORMAT_RGBA32, 0);
 
-            if (color_converted) {
+            if (color_converted && dir_converted) {
+                if (color_converted->w < resolution || color_converted->h < resolution ||
+                    dir_converted->w < resolution || dir_converted->h < resolution) {
+                    Console_Printf_Error(
+                        "[error] Lightmap too small for face %d: expected %dx%d, got color %dx%d, dir %dx%d. Skipping.",
+                        i, resolution, resolution,
+                        color_converted->w, color_converted->h,
+                        dir_converted->w, dir_converted->h
+                    );
+                    SDL_FreeSurface(color_converted);
+                    SDL_FreeSurface(dir_converted);
+                    continue;
+                }
+
                 glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGB, GL_UNSIGNED_BYTE, color_converted->pixels);
-                SDL_FreeSurface(color_converted);
-            }
-            if (dir_converted) {
+
                 glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
+
+                SDL_FreeSurface(color_converted);
                 SDL_FreeSurface(dir_converted);
             }
 
