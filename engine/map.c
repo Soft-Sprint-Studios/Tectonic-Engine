@@ -1111,18 +1111,15 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
         sprintf(brush_name_sanitized, "Brush_%d", brush_index);
     }
 
-    char brush_dir[512];
-    snprintf(brush_dir, sizeof(brush_dir), "lightmaps/%s", map_name_sanitized);
     char final_brush_dir[1024];
-    snprintf(final_brush_dir, sizeof(final_brush_dir), "%s/%s", brush_dir, brush_name_sanitized);
-
+    snprintf(final_brush_dir, sizeof(final_brush_dir), "lightmaps/%s/%s", map_name_sanitized, brush_name_sanitized);
 
     for (int i = 0; i < b->numFaces; ++i) {
         char path[512];
-        snprintf(path, sizeof(path), "%s/face_%d_color.png", final_brush_dir, i);
+        snprintf(path, sizeof(path), "%s/face_%d_color.bmp", final_brush_dir, i);
         color_surfaces[i] = IMG_Load(path);
 
-        snprintf(path, sizeof(path), "%s/face_%d_dir.png", final_brush_dir, i);
+        snprintf(path, sizeof(path), "%s/face_%d_dir.bmp", final_brush_dir, i);
         dir_surfaces[i] = IMG_Load(path);
 
         if (color_surfaces[i] && dir_surfaces[i]) {

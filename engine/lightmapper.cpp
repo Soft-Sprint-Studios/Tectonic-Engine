@@ -44,6 +44,30 @@ namespace
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
 
+#pragma pack(push, 1)
+    struct BMPFileHeader {
+        uint16_t file_type{ 0x4D42 };
+        uint32_t file_size{ 0 };
+        uint16_t reserved1{ 0 };
+        uint16_t reserved2{ 0 };
+        uint32_t offset_data{ 0 };
+    };
+
+    struct BMPInfoHeader {
+        uint32_t size{ 40 };
+        int32_t width{ 0 };
+        int32_t height{ 0 };
+        uint16_t planes{ 1 };
+        uint16_t bit_count{ 0 };
+        uint32_t compression{ 0 };
+        uint32_t size_image{ 0 };
+        int32_t x_pixels_per_meter{ 0 };
+        int32_t y_pixels_per_meter{ 0 };
+        uint32_t colors_used{ 0 };
+        uint32_t colors_important{ 0 };
+    };
+#pragma pack(pop)
+
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
         Console_Printf_Error("[Embree] Error %d: %s", error, str);
@@ -83,7 +107,7 @@ namespace
 
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
-        static void save_png(const fs::path& path, const void* data, int width, int height, int bit_depth, int stride, uint32_t r_mask, uint32_t g_mask, uint32_t b_mask, uint32_t a_mask);
+        static void save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth);
         static std::string sanitize_filename(std::string input);
 
         Scene* m_scene;
@@ -301,13 +325,38 @@ namespace
         }
     }
 
-    void Lightmapper::save_png(const fs::path& path, const void* data, int width, int height, int bit_depth, int stride, uint32_t r_mask, uint32_t g_mask, uint32_t b_mask, uint32_t a_mask)
+    void Lightmapper::save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth)
     {
-        SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(const_cast<void*>(data), width, height, bit_depth, stride, r_mask, g_mask, b_mask, a_mask);
-        if (surface)
-        {
-            IMG_SavePNG(surface, path.string().c_str());
-            SDL_FreeSurface(surface);
+        BMPFileHeader file_header;
+        BMPInfoHeader info_header;
+
+        int channels = bit_depth / 8;
+        int row_stride = width * channels;
+        int padded_row_stride = (row_stride + 3) & (~3);
+
+        info_header.width = width;
+        info_header.height = height;
+        info_header.bit_count = bit_depth;
+        info_header.size_image = padded_row_stride * height;
+
+        file_header.offset_data = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+        file_header.file_size = file_header.offset_data + info_header.size_image;
+
+        std::ofstream file(path, std::ios::binary);
+        if (!file) {
+            Console_Printf_Error("[Lightmapper] ERROR: Could not write to '%s'", path.string().c_str());
+            return;
+        }
+
+        file.write(reinterpret_cast<const char*>(&file_header), sizeof(file_header));
+        file.write(reinterpret_cast<const char*>(&info_header), sizeof(info_header));
+
+        const unsigned char* pixel_data = static_cast<const unsigned char*>(data);
+        const std::vector<unsigned char> padding(padded_row_stride - row_stride, 0);
+
+        for (int i = height - 1; i >= 0; --i) {
+            file.write(reinterpret_cast<const char*>(pixel_data + (i * row_stride)), row_stride);
+            file.write(reinterpret_cast<const char*>(padding.data()), padding.size());
         }
     }
 
@@ -430,14 +479,14 @@ namespace
                 float b = powf(std::max(0.0f, final_light_color.z), gamma);
 
                 int idx = (y * m_resolution + x) * 3;
-                lightmap_data[idx + 0] = static_cast<unsigned char>(std::min(1.0f, r) * 255.0f);
+                lightmap_data[idx + 2] = static_cast<unsigned char>(std::min(1.0f, r) * 255.0f);
                 lightmap_data[idx + 1] = static_cast<unsigned char>(std::min(1.0f, g) * 255.0f);
-                lightmap_data[idx + 2] = static_cast<unsigned char>(std::min(1.0f, b) * 255.0f);
+                lightmap_data[idx + 0] = static_cast<unsigned char>(std::min(1.0f, b) * 255.0f);
 
                 int dir_idx = (y * m_resolution + x) * 4;
-                dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
+                dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 1] = static_cast<unsigned char>((accumulated_direction.y * 0.5f + 0.5f) * 255.0f);
-                dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
+                dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 3] = 255;
             }
         }
@@ -445,8 +494,8 @@ namespace
         apply_gaussian_blur(lightmap_data, m_resolution, m_resolution, 3);
         apply_gaussian_blur(dir_lightmap_data, m_resolution, m_resolution, 4);
 
-        save_png(data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.png"), lightmap_data.data(), m_resolution, m_resolution, 24, m_resolution * 3, 0x0000FF, 0x00FF00, 0xFF0000, 0);
-        save_png(data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png"), dir_lightmap_data.data(), m_resolution, m_resolution, 32, m_resolution * 4, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+        save_bmp(data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.bmp"), lightmap_data.data(), m_resolution, m_resolution, 24);
+        save_bmp(data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.bmp"), dir_lightmap_data.data(), m_resolution, m_resolution, 32);
     }
 
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
