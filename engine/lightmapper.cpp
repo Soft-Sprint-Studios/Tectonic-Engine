@@ -90,6 +90,19 @@ namespace
 
     using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData>;
 
+    Vec3 aces_tonemap(Vec3 x) {
+        constexpr float a = 2.51f;
+        constexpr float b = 0.03f;
+        constexpr float c = 2.43f;
+        constexpr float d = 0.59f;
+        constexpr float e = 0.14f;
+
+        x.x = std::max(0.0f, (x.x * (a * x.x + b)) / (x.x * (c * x.x + d) + e));
+        x.y = std::max(0.0f, (x.y * (a * x.y + b)) / (x.y * (c * x.y + d) + e));
+        x.z = std::max(0.0f, (x.z * (a * x.z + b)) / (x.z * (c * x.z + d) + e));
+        return x;
+    }
+
     class Lightmapper
     {
     public:
@@ -470,13 +483,15 @@ namespace
                 }
 
                 final_light_color = vec3_muls(final_light_color, 1.0f / SAMPLES);
+                final_light_color = aces_tonemap(final_light_color);
+
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
                 float gamma = 1.0f / 2.2f;
-                float r = powf(std::max(0.0f, final_light_color.x), gamma);
-                float g = powf(std::max(0.0f, final_light_color.y), gamma);
-                float b = powf(std::max(0.0f, final_light_color.z), gamma);
+                float r = powf(final_light_color.x, gamma);
+                float g = powf(final_light_color.y, gamma);
+                float b = powf(final_light_color.z, gamma);
 
                 int idx = (y * m_resolution + x) * 3;
                 lightmap_data[idx + 2] = static_cast<unsigned char>(std::min(1.0f, r) * 255.0f);
@@ -547,11 +562,12 @@ namespace
             }
         }
 
+        light_accumulator = aces_tonemap(light_accumulator);
         float gamma = 1.0f / 2.2f;
         data.output_color_buffer[v_idx] = {
-            powf(std::max(0.0f, light_accumulator.x), gamma),
-            powf(std::max(0.0f, light_accumulator.y), gamma),
-            powf(std::max(0.0f, light_accumulator.z), gamma),
+            powf(light_accumulator.x, gamma),
+            powf(light_accumulator.y, gamma),
+            powf(light_accumulator.z, gamma),
             1.0f
         };
 
