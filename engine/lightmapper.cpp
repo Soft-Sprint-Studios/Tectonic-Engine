@@ -130,7 +130,7 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
-        void generate_virtual_point_lights(std::mt19937& rng);
+        void generate_virtual_point_lights(int start_brush_index, int end_brush_index);
 
         void precalculate_material_reflectivity();
 
@@ -153,6 +153,7 @@ namespace
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
         std::vector<VirtualPointLight> m_vpls;
         std::map<const Material*, Vec3> m_material_reflectivity;
+        std::mutex m_vpl_mutex;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution)
@@ -802,13 +803,15 @@ namespace
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
-    void Lightmapper::generate_virtual_point_lights(std::mt19937& rng)
+    void Lightmapper::generate_virtual_point_lights(int start_brush_index, int end_brush_index)
     {
-        Console_Printf("[Lightmapper] Generating Virtual Point Lights...");
-
+        std::random_device rd;
+        std::mt19937 rng(rd());
         std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
-        for (int i = 0; i < m_scene->numBrushes; ++i)
+        std::vector<VirtualPointLight> local_vpls;
+
+        for (int i = start_brush_index; i < end_brush_index; ++i)
         {
             const Brush& b = m_scene->brushes[i];
             if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
@@ -874,13 +877,18 @@ namespace
                             vpl.position = sample_pos;
                             vpl.color = vec3_mul(direct_light, reflectivity);
                             vpl.normal = face_normal;
-                            m_vpls.push_back(vpl);
+                            local_vpls.push_back(vpl);
                         }
                     }
                 }
             }
         }
-        Console_Printf("[Lightmapper] Generated %zu VPLs.", m_vpls.size());
+
+        if (!local_vpls.empty())
+        {
+            std::lock_guard<std::mutex> lock(m_vpl_mutex);
+            m_vpls.insert(m_vpls.end(), local_vpls.begin(), local_vpls.end());
+        }
     }
 
     void Lightmapper::generate()
@@ -889,19 +897,36 @@ namespace
         auto start_time = std::chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
 
-        std::random_device rd;
-        std::mt19937 rng(rd());
-
         precalculate_material_reflectivity();
-        generate_virtual_point_lights(rng);
+
+        Console_Printf("[Lightmapper] Generating Virtual Point Lights...");
+        unsigned int num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        int brushes_per_thread = (m_scene->numBrushes + num_threads - 1) / num_threads;
+
+        m_vpls.reserve(m_scene->numBrushes * VPL_SAMPLES_PER_TRIANGLE);
+
+        for (unsigned int i = 0; i < num_threads; ++i)
+        {
+            int start_brush = i * brushes_per_thread;
+            int end_brush = std::min(start_brush + brushes_per_thread, m_scene->numBrushes);
+            if (start_brush >= end_brush) continue;
+
+            threads.emplace_back(&Lightmapper::generate_virtual_point_lights, this, start_brush, end_brush);
+        }
+
+        for (auto& t : threads) {
+            t.join();
+        }
+        threads.clear();
+
+        Console_Printf("[Lightmapper] Generated %zu VPLs.", m_vpls.size());
+
         prepare_jobs();
         if (m_jobs.empty()) return;
 
-        unsigned int num_threads = std::thread::hardware_concurrency();
         Console_Printf("[Lightmapper] Using %u threads.", num_threads);
 
-        std::vector<std::thread> threads;
-        threads.reserve(num_threads);
         for (unsigned int i = 0; i < num_threads; ++i)
         {
             threads.emplace_back(&Lightmapper::worker_main, this);
@@ -952,7 +977,6 @@ namespace
         std::chrono::duration<float> duration = end_time - start_time;
         Console_Printf("[Lightmapper] Finished in %.2f seconds.", duration.count());
     }
-
 }
 
 void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
