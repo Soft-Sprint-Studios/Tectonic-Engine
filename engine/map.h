@@ -47,8 +47,6 @@ extern "C" {
 #define MAX_BRUSH_FACES 16384
 #define MAX_LOGIC_ENTITIES 8192
 #define MAX_ENTITY_PROPERTIES 32
-#define MAX_VPLS 4096
-#define VPL_GEN_TEXTURE_SIZE 1024
 
 #define MAP_VERSION 9
 
@@ -153,14 +151,6 @@ extern "C" {
     } Camera;
 
     typedef struct {
-        Vec3 position;
-        float _padding0;
-        unsigned int packedColor;
-        unsigned int packedNormal;
-        uint64_t shadowMapHandle;
-    } VPL;
-
-    typedef struct {
         GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
         GLuint zPrepassShader;
         GLuint lightingCompositeShader;
@@ -172,14 +162,6 @@ extern "C" {
         GLuint spriteShader;
         GLuint spriteVAO, spriteVBO;
         GLuint cloudTexture;
-        GLuint vplGenerationFBO;
-        GLuint vplPosTex, vplNormalTex, vplAlbedoTex, vplPbrParamsTex;
-        GLuint vplGenerationShader;
-        GLuint vplComputeShader;
-        GLuint vplGridShader;
-        GLuint vplGridTexture_Albedo;
-        GLuint vplGridTexture_Direction;
-        GLuint vplSSBO;
         GLuint brdfLUTTexture;
         GLuint decalVAO, decalVBO;
         GLuint parallaxRoomVAO, parallaxRoomVBO;
@@ -414,8 +396,6 @@ extern "C" {
         int numObjects;
         Brush brushes[MAX_BRUSHES];
         int numBrushes;
-        VPL vpls[MAX_VPLS];
-        int num_vpls;
         PlayerStart playerStart;
         Decal decals[MAX_DECALS];
         int numDecals;
@@ -438,12 +418,7 @@ extern "C" {
         char skybox_path[128];
         GLuint skybox_cubemap;
         ColorCorrectionSettings colorCorrection;
-        bool static_vpls_generated;
         bool static_shadows_generated;
-        bool static_vpl_grid_generated;
-        Vec3 vplGridMin;
-        Vec3 vplGridMax;
-        ivec3s vplGridResolution;
         int lightmapResolution;
     } Scene;
 

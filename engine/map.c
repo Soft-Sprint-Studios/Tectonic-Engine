@@ -1061,7 +1061,6 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 
     scene->numSprites = 0;
     memset(scene, 0, sizeof(Scene));
-    scene->static_vpls_generated = false;
     scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
     scene->fog.enabled = false;
