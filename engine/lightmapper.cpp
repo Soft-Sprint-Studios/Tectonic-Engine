@@ -6,7 +6,7 @@
  * modification, or distribution is strictly prohibited unless explicit
  * written permission is granted by Soft Sprint Studios.
  */
-#ifndef ARCH_32BIT
+#ifdef ARCH_64BIT
 #ifdef min
 #undef min
 #endif
@@ -352,8 +352,6 @@ namespace
             {
                 Vec3 final_light_color = { 0, 0, 0 };
                 Vec3 accumulated_direction = { 0, 0, 0 };
-                float dominant_light_intensity = 0.0f;
-                float max_contribution_magnitude = -1.0f;
 
                 constexpr int SAMPLES = 4;
                 constexpr float sub_pixel_offsets[SAMPLES][2] = { {-0.25f, -0.25f}, {0.25f, -0.25f}, {-0.25f, 0.25f}, {0.25f, 0.25f} };
@@ -388,7 +386,6 @@ namespace
                     if (inside)
                     {
                         Vec3 light_accumulator = { 0,0,0 }, direction_accumulator_sample = { 0,0,0 };
-                        float max_contribution_sample = -1.0f, dominant_intensity_sample = 0.0f;
                         Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
                         for (int k = 0; k < m_scene->numActiveLights; ++k)
                         {
@@ -416,20 +413,10 @@ namespace
                                 light_accumulator = vec3_add(light_accumulator, light_contribution);
                                 float contribution_magnitude = vec3_length(light_contribution);
                                 direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
-                                if (contribution_magnitude > max_contribution_sample)
-                                {
-                                    max_contribution_sample = contribution_magnitude;
-                                    dominant_intensity_sample = light.intensity;
-                                }
                             }
                         }
                         final_light_color = vec3_add(final_light_color, light_accumulator);
                         accumulated_direction = vec3_add(accumulated_direction, direction_accumulator_sample);
-                        if (max_contribution_sample > max_contribution_magnitude)
-                        {
-                            max_contribution_magnitude = max_contribution_sample;
-                            dominant_light_intensity = dominant_intensity_sample;
-                        }
                     }
                 }
 
@@ -451,8 +438,7 @@ namespace
                 dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 1] = static_cast<unsigned char>((accumulated_direction.y * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
-                float normalized_intensity = dominant_light_intensity / 100.0f;
-                dir_lightmap_data[dir_idx + 3] = static_cast<unsigned char>(std::min(1.0f, normalized_intensity) * 255.0f);
+                dir_lightmap_data[dir_idx + 3] = 255;
             }
         }
 
@@ -476,7 +462,6 @@ namespace
         vec3_normalize(&world_normal);
 
         Vec3 light_accumulator = { 0,0,0 }, direction_accumulator = { 0,0,0 };
-        float dominant_light_intensity = 0.0f, max_contribution_magnitude = -1.0f;
         Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(world_normal, SHADOW_BIAS));
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
@@ -510,11 +495,6 @@ namespace
 
                 float contribution_magnitude = vec3_length(light_contribution);
                 direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
-                if (contribution_magnitude > max_contribution_magnitude)
-                {
-                    max_contribution_magnitude = contribution_magnitude;
-                    dominant_light_intensity = light.intensity;
-                }
             }
         }
 
@@ -533,7 +513,7 @@ namespace
             direction_accumulator.x,
             direction_accumulator.y,
             direction_accumulator.z,
-            std::min(1.0f, dominant_light_intensity / 100.0f)
+            1.0f
         };
     }
 

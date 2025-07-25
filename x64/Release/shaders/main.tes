@@ -86,7 +86,7 @@ void main()
 	
 	isBrush = tes_in[0].isBrush;
 	
-   if (tes_in[0].isBrush == 0 && u_fadeEndDist > 0.0) {
+    if (tes_in[0].isBrush == 0 && u_fadeEndDist > 0.0) {
         float dist = length(FragPos_world - viewPos);
         fadeAlpha = 1.0 - smoothstep(u_fadeStartDist, u_fadeEndDist, dist);
     } else {

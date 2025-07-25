@@ -591,7 +591,6 @@ void main()
             if (useDirectionalLightmap) {
                 vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
                 vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
-                float bakedIntensity = directionalData.a * 10.0;
                 vec3 L_baked = bakedLightDir;
                 vec3 H_baked = normalize(V + L_baked);
                 float NdotL_baked = max(dot(N, L_baked), 0.0);
@@ -603,7 +602,7 @@ void main()
                     vec3 numerator = NDF * G * F;
                     float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
                     vec3 specular = numerator / denominator;
-                    bakedSpecular = specular * bakedIntensity * bakedRadiance * NdotL_baked * ao;
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
                 }
             } else {
                 bakedDiffuse = bakedRadiance * albedo;
@@ -617,7 +616,6 @@ void main()
         }
         if (v_Color2.a > 0.0) {
             vec3 bakedLightDir = normalize(v_Color2.rgb);
-            float bakedIntensity = v_Color2.a * 10.0;
             vec3 L_baked = bakedLightDir;
             vec3 H_baked = normalize(V + L_baked);
             float NdotL_baked = max(dot(N, L_baked), 0.0);
@@ -630,7 +628,7 @@ void main()
                 float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
                 vec3 specular = numerator / denominator;
                 vec3 bakedRadiance = v_Color.rgb;
-                bakedSpecular = specular * bakedRadiance * NdotL_baked * ao * bakedIntensity;
+                bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
             }
         }
     }
