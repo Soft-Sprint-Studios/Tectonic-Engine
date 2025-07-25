@@ -35,6 +35,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include <random>
 
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
@@ -129,7 +130,7 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
-        void generate_virtual_point_lights();
+        void generate_virtual_point_lights(std::mt19937& rng);
 
         void precalculate_material_reflectivity();
 
@@ -801,9 +802,11 @@ namespace
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
-    void Lightmapper::generate_virtual_point_lights()
+    void Lightmapper::generate_virtual_point_lights(std::mt19937& rng)
     {
         Console_Printf("[Lightmapper] Generating Virtual Point Lights...");
+
+        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
@@ -835,8 +838,8 @@ namespace
 
                     for (int s = 0; s < VPL_SAMPLES_PER_TRIANGLE; ++s)
                     {
-                        float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-                        float r2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                        float r1 = dist(rng);
+                        float r2 = dist(rng);
                         if (r1 + r2 > 1.0f) {
                             r1 = 1.0f - r1;
                             r2 = 1.0f - r2;
@@ -885,8 +888,12 @@ namespace
         Console_Printf("[Lightmapper] Starting lightmap generation...");
         auto start_time = std::chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
+
+        std::random_device rd;
+        std::mt19937 rng(rd());
+
         precalculate_material_reflectivity();
-        generate_virtual_point_lights();
+        generate_virtual_point_lights(rng);
         prepare_jobs();
         if (m_jobs.empty()) return;
 
