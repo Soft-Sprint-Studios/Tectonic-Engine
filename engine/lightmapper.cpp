@@ -714,7 +714,6 @@ namespace
                 vlm_file.write(header, 4);
                 vlm_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
                 vlm_file.write(reinterpret_cast<const char*>(m_model_color_buffers[i].get()), sizeof(Vec4) * count);
-                Console_Printf("[Lightmapper]   -> Saved '%s'", vlm_path.string().c_str());
             }
             else
             {
@@ -730,7 +729,6 @@ namespace
                 vld_file.write(header, 4);
                 vld_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
                 vld_file.write(reinterpret_cast<const char*>(m_model_direction_buffers[i].get()), sizeof(Vec4) * count);
-                Console_Printf("[Lightmapper]   -> Saved '%s'", vld_path.string().c_str());
             }
             else
             {
