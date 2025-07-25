@@ -69,7 +69,7 @@ set(ENGINE_SOURCES
     engine/discord_wrapper.c
     engine/editor.c engine/editor_undo.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
-    engine/map.c engine/model_loader.c engine/particle_system.c
+    engine/map.c engine/particle_system.c
     engine/video_player.c engine/weapons.c
     engine/sentry_wrapper.c engine/checksum.c
     engine/lightmapper.cpp
@@ -79,7 +79,7 @@ set(ENGINE_SOURCES
 set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor.h engine/editor_undo.h
-    engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h engine/model_loader.h
+    engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h
     engine/particle_system.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
     engine/lightmapper.h
@@ -206,6 +206,61 @@ target_compile_options(materials PRIVATE
     $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
+# models library
+add_library(models SHARED
+    engine/models/model_loader.c
+    engine/models/model_loader.h
+    engine/models/models_api.h
+)
+
+target_compile_definitions(models PRIVATE
+    $<$<BOOL:${WIN32}>:MODELS_DLL_EXPORTS>
+    CGLTF_IMPLEMENTATION
+)
+
+target_include_directories(models PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
+)
+
+target_compile_options(models PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
+if(WIN32)
+    target_link_directories(models PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+    )
+    target_link_libraries(models PRIVATE 
+        materials 
+        math_lib 
+        level0 
+        opengl32 
+        glew32 
+        SDL2 
+        SDL2_image
+    )
+else()
+    target_link_libraries(models PRIVATE 
+        materials 
+        math_lib 
+        level0 
+        GLEW::glew 
+        OpenGL::GL 
+        SDL2::SDL2 
+        ${SDL2_IMAGE_LIBRARY}
+    )
+endif()
+
 # physics library
 add_library(physics SHARED
     engine/physics/physics_wrapper.cpp
@@ -287,7 +342,6 @@ target_compile_definitions(engine PRIVATE
     ENGINE_DLL_EXPORTS
     SDL_MAIN_HANDLED
     PL_MPEG_IMPLEMENTATION
-    CGLTF_IMPLEMENTATION
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
 
@@ -299,6 +353,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/models"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -376,6 +431,7 @@ if(WIN32)
         math_lib
         sound
         materials
+        models
         SDL2 SDL2_image SDL2_ttf opengl32 glew32
         OpenAL32 discord-rpc ws2_32
         sentry
@@ -417,6 +473,7 @@ else()
             math_lib
             sound
             materials
+            models
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARY}
             ${SDL2_TTF_LIBRARY}

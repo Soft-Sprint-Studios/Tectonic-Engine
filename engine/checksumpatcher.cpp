@@ -18,13 +18,13 @@
 const char* g_module_names[] = {
     "engine.dll", "level0.dll", "level1.dll",
     "math_lib.dll", "physics.dll", "sound.dll",
-    "materials.dll"
+    "materials.dll", "models.dll"
 };
 #else
 const char* g_module_names[] = {
     "libengine.so", "liblevel0.so", "liblevel1.so",
     "libmath_lib.so", "libphysics.so", "libsound.so",
-    "libmaterials.so"
+    "libmaterials.so", "libmodels.so"
 };
 #endif
 const int g_num_modules = sizeof(g_module_names) / sizeof(g_module_names[0]);

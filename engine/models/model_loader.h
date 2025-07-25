@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include "texturemanager.h" 
 #include "math_lib.h"
+#include "models_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,9 +50,9 @@ extern "C" {
         unsigned int totalIndexCount;
     } LoadedModel;
 
-    LoadedModel* Model_Load(const char* path);
-    void Model_Free(LoadedModel* model);
-    void ModelLoader_Shutdown();
+    MODELS_API LoadedModel* Model_Load(const char* path);
+    MODELS_API void Model_Free(LoadedModel* model);
+    MODELS_API void ModelLoader_Shutdown();
 
 #ifdef __cplusplus
 }
