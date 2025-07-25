@@ -33,6 +33,8 @@
 #include <cfloat>
 #include <stdexcept>
 #include <limits>
+#include <map>
+#include <set>
 
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
@@ -72,6 +74,16 @@ namespace
     {
         Console_Printf_Error("[Embree] Error %d: %s", error, str);
     }
+
+    struct VirtualPointLight {
+        Vec3 position;
+        Vec3 color;
+        Vec3 normal;
+    };
+
+    constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
+    constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
+    constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
 
     struct BrushFaceJobData
     {
@@ -117,6 +129,9 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
+        void generate_virtual_point_lights();
+
+        void precalculate_material_reflectivity();
 
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
@@ -135,6 +150,8 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
+        std::vector<VirtualPointLight> m_vpls;
+        std::map<const Material*, Vec3> m_material_reflectivity;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution)
@@ -447,8 +464,12 @@ namespace
 
                     if (inside)
                     {
-                        Vec3 light_accumulator = { 0,0,0 }, direction_accumulator_sample = { 0,0,0 };
+                        Vec3 direct_light_accumulator = { 0,0,0 };
+                        Vec3 indirect_light_accumulator = { 0,0,0 };
+                        Vec3 direction_accumulator_sample = { 0,0,0 };
+
                         Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
+
                         for (int k = 0; k < m_scene->numActiveLights; ++k)
                         {
                             const Light& light = m_scene->lights[k];
@@ -457,27 +478,44 @@ namespace
                             float dist = vec3_length(light_dir);
                             vec3_normalize(&light_dir);
                             if (dist > light.radius) continue;
+
                             float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
                             if (NdotL <= 0.0f) continue;
+
+                            if (is_in_shadow(point_to_light_check, light.position)) continue;
+
                             float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
-                            float spot_factor = 1.0f;
-                            if (light.type == LIGHT_SPOT)
-                            {
-                                float theta = vec3_dot(light_dir, vec3_muls(light.direction, -1.0f));
-                                if (theta < light.outerCutOff) continue;
-                                float epsilon = light.cutOff - light.outerCutOff;
-                                spot_factor = std::min(1.0f, (theta - light.outerCutOff) / epsilon);
-                            }
-                            if (!is_in_shadow(point_to_light_check, light.position))
-                            {
-                                Vec3 light_color = vec3_muls(light.color, light.intensity);
-                                Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation * spot_factor);
-                                light_accumulator = vec3_add(light_accumulator, light_contribution);
-                                float contribution_magnitude = vec3_length(light_contribution);
-                                direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
+                            Vec3 light_color = vec3_muls(light.color, light.intensity);
+                            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
+                            direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
+
+                            float contribution_magnitude = vec3_length(light_contribution);
+                            direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
+                        }
+
+                        for (const auto& vpl : m_vpls) {
+                            Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
+                            float dist_sq = vec3_length_sq(vpl_dir);
+                            if (dist_sq < 0.001f) continue;
+
+                            float dist = sqrtf(dist_sq);
+                            vec3_normalize(&vpl_dir);
+
+                            float NdotL_receiver = std::max(0.0f, vec3_dot(face_normal, vpl_dir));
+                            float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
+
+                            if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
+                                if (!is_in_shadow(point_to_light_check, vpl.position)) {
+                                    float falloff = 1.0f / (dist_sq + 1.0f);
+                                    Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
+                                    indirect_light_accumulator = vec3_add(indirect_light_accumulator, vpl_contribution);
+                                    direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
+                                }
                             }
                         }
-                        final_light_color = vec3_add(final_light_color, light_accumulator);
+
+
+                        final_light_color = vec3_add(final_light_color, vec3_add(direct_light_accumulator, indirect_light_accumulator));
                         accumulated_direction = vec3_add(accumulated_direction, direction_accumulator_sample);
                     }
                 }
@@ -491,12 +529,12 @@ namespace
                 float gamma = 1.0f / 2.2f;
                 float r = powf(final_light_color.x, gamma);
                 float g = powf(final_light_color.y, gamma);
-                float b = powf(final_light_color.z, gamma);
+                float b_val = powf(final_light_color.z, gamma);
 
                 int idx = (y * m_resolution + x) * 3;
                 lightmap_data[idx + 2] = static_cast<unsigned char>(std::min(1.0f, r) * 255.0f);
                 lightmap_data[idx + 1] = static_cast<unsigned char>(std::min(1.0f, g) * 255.0f);
-                lightmap_data[idx + 0] = static_cast<unsigned char>(std::min(1.0f, b) * 255.0f);
+                lightmap_data[idx + 0] = static_cast<unsigned char>(std::min(1.0f, b_val) * 255.0f);
 
                 int dir_idx = (y * m_resolution + x) * 4;
                 dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
@@ -525,7 +563,7 @@ namespace
         Vec3 world_normal = mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
         vec3_normalize(&world_normal);
 
-        Vec3 light_accumulator = { 0,0,0 }, direction_accumulator = { 0,0,0 };
+        Vec3 direct_light_accumulator = { 0,0,0 }, direction_accumulator = { 0,0,0 };
         Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(world_normal, SHADOW_BIAS));
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
@@ -541,33 +579,48 @@ namespace
             float NdotL = std::max(0.0f, vec3_dot(world_normal, light_dir));
             if (NdotL <= 0.0f) continue;
 
+            if (is_in_shadow(point_to_light_check, light.position)) continue;
+
             float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
-            float spot_factor = 1.0f;
-            if (light.type == LIGHT_SPOT)
-            {
-                float theta = vec3_dot(light_dir, vec3_muls(light.direction, -1.0f));
-                if (theta < light.outerCutOff) continue;
-                float epsilon = light.cutOff - light.outerCutOff;
-                spot_factor = std::min(1.0f, (theta - light.outerCutOff) / epsilon);
-            }
+            Vec3 light_color = vec3_muls(light.color, light.intensity);
+            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
+            direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
 
-            if (!is_in_shadow(point_to_light_check, light.position))
-            {
-                Vec3 light_color = vec3_muls(light.color, light.intensity);
-                Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation * spot_factor);
-                light_accumulator = vec3_add(light_accumulator, light_contribution);
+            float contribution_magnitude = vec3_length(light_contribution);
+            direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
+        }
 
-                float contribution_magnitude = vec3_length(light_contribution);
-                direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
+        Vec3 indirect_light_accumulator = { 0, 0, 0 };
+        for (const auto& vpl : m_vpls) {
+            Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
+            float dist_sq = vec3_length_sq(vpl_dir);
+            if (dist_sq < 0.001f) continue;
+
+            float dist = sqrtf(dist_sq);
+            vec3_normalize(&vpl_dir);
+
+            float NdotL_receiver = std::max(0.0f, vec3_dot(world_normal, vpl_dir));
+            float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
+
+            if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
+                if (!is_in_shadow(point_to_light_check, vpl.position)) {
+                    float falloff = 1.0f / (dist_sq + 1.0f);
+                    Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
+                    indirect_light_accumulator = vec3_add(indirect_light_accumulator, vpl_contribution);
+                    direction_accumulator = vec3_add(direction_accumulator, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
+                }
             }
         }
 
-        light_accumulator = aces_tonemap(light_accumulator);
+        Vec3 final_light_color = vec3_add(direct_light_accumulator, indirect_light_accumulator);
+
+        final_light_color = aces_tonemap(final_light_color);
         float gamma = 1.0f / 2.2f;
+
         data.output_color_buffer[v_idx] = {
-            powf(light_accumulator.x, gamma),
-            powf(light_accumulator.y, gamma),
-            powf(light_accumulator.z, gamma),
+            powf(final_light_color.x, gamma),
+            powf(final_light_color.y, gamma),
+            powf(final_light_color.z, gamma),
             1.0f
         };
 
@@ -677,11 +730,163 @@ namespace
         Console_Printf("[Lightmapper] Baking %zu faces and %zu vertices.", total_brush_faces, total_model_vertices);
     }
 
+    void Lightmapper::precalculate_material_reflectivity()
+    {
+        Console_Printf("[Lightmapper] Pre-calculating material reflectivity...");
+
+        std::set<const Material*> unique_materials;
+        for (int i = 0; i < m_scene->numBrushes; ++i) {
+            const Brush& b = m_scene->brushes[i];
+            for (int j = 0; j < b.numFaces; ++j) {
+                const BrushFace& face = b.faces[j];
+                if (face.material && face.material != &g_NodrawMaterial) {
+                    unique_materials.insert(face.material);
+                }
+            }
+        }
+
+        Console_Printf("[Lightmapper] Found %zu unique materials to analyze.", unique_materials.size());
+
+        for (const Material* mat : unique_materials) {
+            if (!mat || mat->diffusePath[0] == '\0') {
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                continue;
+            }
+
+            std::string full_path = "textures/" + std::string(mat->diffusePath);
+            SDL_Surface* loaded_surface = IMG_Load(full_path.c_str());
+            if (!loaded_surface) {
+                Console_Printf_Warning("[Lightmapper] Could not load texture for reflectivity: %s", full_path.c_str());
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                continue;
+            }
+
+            SDL_Surface* surface = SDL_ConvertSurfaceFormat(loaded_surface, SDL_PIXELFORMAT_RGBA32, 0);
+            SDL_FreeSurface(loaded_surface);
+
+            if (!surface) {
+                Console_Printf_Error("[Lightmapper] Could not convert surface for: %s", full_path.c_str());
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                continue;
+            }
+
+            long long total_r = 0, total_g = 0, total_b = 0;
+            int width = surface->w;
+            int height = surface->h;
+            int texels = width * height;
+
+            Uint8* pixels = (Uint8*)surface->pixels;
+            for (int i = 0; i < texels; ++i) {
+                total_r += pixels[i * 4 + 0];
+                total_g += pixels[i * 4 + 1];
+                total_b += pixels[i * 4 + 2];
+            }
+
+            SDL_FreeSurface(surface);
+
+            Vec3 reflectivity = {
+                static_cast<float>(total_r) / texels / 255.0f,
+                static_cast<float>(total_g) / texels / 255.0f,
+                static_cast<float>(total_b) / texels / 255.0f
+            };
+
+            float max_comp = std::max({ reflectivity.x, reflectivity.y, reflectivity.z });
+            if (max_comp > 0.001f) {
+                float scale = 1.0f / max_comp;
+                reflectivity = vec3_muls(reflectivity, scale * 0.75f);
+            }
+
+            m_material_reflectivity[mat] = reflectivity;
+        }
+        Console_Printf("[Lightmapper] Reflectivity calculation complete.");
+    }
+
+    void Lightmapper::generate_virtual_point_lights()
+    {
+        Console_Printf("[Lightmapper] Generating Virtual Point Lights...");
+
+        for (int i = 0; i < m_scene->numBrushes; ++i)
+        {
+            const Brush& b = m_scene->brushes[i];
+            if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
+
+            for (int j = 0; j < b.numFaces; ++j)
+            {
+                const BrushFace& face = b.faces[j];
+                if (face.numVertexIndices < 3) continue;
+
+                const Material* mat = face.material;
+                if (!mat || mat == &g_NodrawMaterial) continue;
+
+                Vec3 reflectivity = { 0.5f, 0.5f, 0.5f };
+                auto it = m_material_reflectivity.find(mat);
+                if (it != m_material_reflectivity.end()) {
+                    reflectivity = it->second;
+                }
+
+                for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                {
+                    Vec3 v0 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos);
+                    Vec3 v1 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos);
+                    Vec3 v2 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos);
+
+                    Vec3 face_normal = vec3_cross(vec3_sub(v1, v0), vec3_sub(v2, v0));
+                    vec3_normalize(&face_normal);
+
+                    for (int s = 0; s < VPL_SAMPLES_PER_TRIANGLE; ++s)
+                    {
+                        float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                        float r2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                        if (r1 + r2 > 1.0f) {
+                            r1 = 1.0f - r1;
+                            r2 = 1.0f - r2;
+                        }
+
+                        Vec3 sample_pos = vec3_add(v0, vec3_add(vec3_muls(vec3_sub(v1, v0), r1), vec3_muls(vec3_sub(v2, v0), r2)));
+                        Vec3 point_to_light_check = vec3_add(sample_pos, vec3_muls(face_normal, SHADOW_BIAS));
+
+                        Vec3 direct_light = { 0, 0, 0 };
+                        for (int l = 0; l < m_scene->numActiveLights; ++l)
+                        {
+                            const Light& light = m_scene->lights[l];
+                            if (!light.is_static) continue;
+
+                            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
+                            float dist = vec3_length(light_dir);
+                            vec3_normalize(&light_dir);
+                            if (dist > light.radius) continue;
+
+                            float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
+                            if (NdotL <= 0.0f) continue;
+
+                            if (is_in_shadow(point_to_light_check, light.position)) continue;
+
+                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                            direct_light = vec3_add(direct_light, vec3_muls(light.color, light.intensity * NdotL * attenuation));
+                        }
+
+                        float brightness = vec3_dot(direct_light, { 0.299f, 0.587f, 0.114f });
+                        if (brightness > VPL_BRIGHTNESS_THRESHOLD) {
+                            VirtualPointLight vpl;
+                            vpl.position = sample_pos;
+                            vpl.color = vec3_mul(direct_light, reflectivity);
+                            vpl.normal = face_normal;
+                            m_vpls.push_back(vpl);
+                        }
+                    }
+                }
+            }
+        }
+        Console_Printf("[Lightmapper] Generated %zu VPLs.", m_vpls.size());
+    }
+
     void Lightmapper::generate()
     {
         Console_Printf("[Lightmapper] Starting lightmap generation...");
         auto start_time = std::chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
+        precalculate_material_reflectivity();
+        generate_virtual_point_lights();
         prepare_jobs();
         if (m_jobs.empty()) return;
 
