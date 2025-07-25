@@ -16,7 +16,6 @@
 #include "lightmapper.h"
 #include "gl_console.h"
 #include "math_lib.h"
-#include "texturemanager.h"
 
 #include <vector>
 #include <string>
@@ -34,7 +33,6 @@
 #include <cfloat>
 #include <stdexcept>
 #include <limits>
-#include <map>
 
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
@@ -45,10 +43,6 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int VPL_GRID_SIZE = 5;
-    constexpr float VPL_RADIUS = 256.0f;
-    constexpr float VPL_INTENSITY_THRESHOLD = 0.01f;
-    constexpr float VPL_INTENSITY_SCALE = 0.5f;
 
 #pragma pack(push, 1)
     struct BMPFileHeader {
@@ -119,7 +113,6 @@ namespace
     private:
         void build_embree_scene();
         void prepare_jobs();
-        void generate_vpls();
         void worker_main();
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
@@ -129,10 +122,6 @@ namespace
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
         static void save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth);
         static std::string sanitize_filename(std::string input);
-
-        SDL_Surface* get_surface(const std::string& path);
-        Vec3 sample_surface(SDL_Surface* surface, float u, float v);
-        Vec3 get_brush_albedo(const Brush* b, const BrushFace* face, const Vec3& barycentric, int v_idx0, int v_idx1, int v_idx2, const Vec3& face_normal);
 
         Scene* m_scene;
         int m_resolution;
@@ -146,10 +135,6 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
-        std::vector<Light> m_vpls;
-
-        std::mutex m_surface_cache_mutex;
-        std::map<std::string, SDL_Surface*> m_surface_cache;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution)
@@ -174,141 +159,6 @@ namespace
         {
             rtcReleaseDevice(m_rtc_device);
         }
-        for (auto const& [key, val] : m_surface_cache)
-        {
-            SDL_FreeSurface(val);
-        }
-        m_surface_cache.clear();
-    }
-
-    SDL_Surface* Lightmapper::get_surface(const std::string& path)
-    {
-        std::lock_guard<std::mutex> lock(m_surface_cache_mutex);
-        if (m_surface_cache.count(path))
-        {
-            return m_surface_cache[path];
-        }
-
-        SDL_Surface* loaded_surface = IMG_Load(path.c_str());
-        if (!loaded_surface)
-        {
-            Console_Printf_Warning("[Lightmapper] Warning: Failed to load texture '%s'.", path.c_str());
-            m_surface_cache[path] = nullptr;
-            return nullptr;
-        }
-
-        SDL_Surface* formatted_surface = SDL_ConvertSurfaceFormat(loaded_surface, SDL_PIXELFORMAT_RGBA32, 0);
-        SDL_FreeSurface(loaded_surface);
-
-        if (!formatted_surface) {
-            Console_Printf_Warning("[Lightmapper] Warning: Failed to convert surface for '%s'.", path.c_str());
-            m_surface_cache[path] = nullptr;
-            return nullptr;
-        }
-
-
-        m_surface_cache[path] = formatted_surface;
-        return formatted_surface;
-    }
-
-    Vec3 Lightmapper::sample_surface(SDL_Surface* surface, float u, float v)
-    {
-        if (!surface)
-        {
-            return { 1.0f, 0.0f, 1.0f };
-        }
-
-        u = fmodf(u, 1.0f);
-        if (u < 0) u += 1.0f;
-        v = fmodf(v, 1.0f);
-        if (v < 0) v += 1.0f;
-
-        int x = static_cast<int>(u * surface->w) % surface->w;
-        int y = static_cast<int>((1.0f - v) * surface->h) % surface->h;
-
-        uint32_t* pixels = static_cast<uint32_t*>(surface->pixels);
-        uint32_t pixel = pixels[y * surface->w + x];
-
-        SDL_Color color;
-        SDL_GetRGBA(pixel, surface->format, &color.r, &color.g, &color.b, &color.a);
-
-        return {
-            powf(color.r / 255.0f, 2.2f),
-            powf(color.g / 255.0f, 2.2f),
-            powf(color.b / 255.0f, 2.2f)
-        };
-    }
-
-    Vec3 Lightmapper::get_brush_albedo(const Brush* b, const BrushFace* face, const Vec3& barycentric, int v_idx0, int v_idx1, int v_idx2, const Vec3& face_normal)
-    {
-        const BrushVertex& bv0 = b->vertices[v_idx0];
-        const BrushVertex& bv1 = b->vertices[v_idx1];
-        const BrushVertex& bv2 = b->vertices[v_idx2];
-
-        Vec4 interpolated_color = {
-            bv0.color.x * barycentric.x + bv1.color.x * barycentric.y + bv2.color.x * barycentric.z,
-            bv0.color.y * barycentric.x + bv1.color.y * barycentric.y + bv2.color.y * barycentric.z,
-            bv0.color.z * barycentric.x + bv1.color.z * barycentric.y + bv2.color.z * barycentric.z,
-            bv0.color.w * barycentric.x + bv1.color.w * barycentric.y + bv2.color.w * barycentric.z
-        };
-
-        Vec3 pos = vec3_add(vec3_add(vec3_muls(bv0.pos, barycentric.x), vec3_muls(bv1.pos, barycentric.y)), vec3_muls(bv2.pos, barycentric.z));
-
-        float absX = fabsf(face_normal.x), absY = fabsf(face_normal.y), absZ = fabsf(face_normal.z);
-        int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
-        float u_coord, v_coord;
-        if (dominant_axis == 0) { u_coord = pos.y; v_coord = pos.z; }
-        else if (dominant_axis == 1) { u_coord = pos.x; v_coord = pos.z; }
-        else { u_coord = pos.x; v_coord = pos.y; }
-
-        auto calculate_uv = [&](float rot_deg, Vec2 scale, Vec2 offset) {
-            float rad = rot_deg * (3.14159265f / 180.0f);
-            float cos_r = cosf(rad); float sin_r = sinf(rad);
-            float u = ((u_coord * cos_r - v_coord * sin_r) / scale.x) + offset.x;
-            float v = ((u_coord * sin_r + v_coord * cos_r) / scale.y) + offset.y;
-            return Vec2{ u, v };
-            };
-
-        Vec3 albedo1 = { 1.0f, 0.0f, 1.0f };
-        if (face->material) {
-            char* fullPath = prependTexturePath(face->material->diffusePath);
-            albedo1 = sample_surface(get_surface(fullPath), calculate_uv(face->uv_rotation, face->uv_scale, face->uv_offset).x, calculate_uv(face->uv_rotation, face->uv_scale, face->uv_offset).y);
-            free(fullPath);
-        }
-
-        Vec3 albedo2 = { 0,0,0 };
-        if (face->material2) {
-            char* fullPath = prependTexturePath(face->material2->diffusePath);
-            albedo2 = sample_surface(get_surface(fullPath), calculate_uv(face->uv_rotation2, face->uv_scale2, face->uv_offset2).x, calculate_uv(face->uv_rotation2, face->uv_scale2, face->uv_offset2).y);
-            free(fullPath);
-        }
-
-        Vec3 albedo3 = { 0,0,0 };
-        if (face->material3) {
-            char* fullPath = prependTexturePath(face->material3->diffusePath);
-            albedo3 = sample_surface(get_surface(fullPath), calculate_uv(face->uv_rotation3, face->uv_scale3, face->uv_offset3).x, calculate_uv(face->uv_rotation3, face->uv_scale3, face->uv_offset3).y);
-            free(fullPath);
-        }
-
-        Vec3 albedo4 = { 0,0,0 };
-        if (face->material4) {
-            char* fullPath = prependTexturePath(face->material4->diffusePath);
-            albedo4 = sample_surface(get_surface(fullPath), calculate_uv(face->uv_rotation4, face->uv_scale4, face->uv_offset4).x, calculate_uv(face->uv_rotation4, face->uv_scale4, face->uv_offset4).y);
-            free(fullPath);
-        }
-
-        float blendR = interpolated_color.x;
-        float blendG = interpolated_color.y;
-        float blendB = interpolated_color.z;
-        float totalWeight = blendR + blendG + blendB;
-        if (totalWeight > 1.0f) {
-            blendR /= totalWeight;
-            blendG /= totalWeight;
-            blendB /= totalWeight;
-        }
-        float blendBase = 1.0f - (blendR + blendG + blendB);
-
-        return vec3_add(vec3_add(vec3_add(vec3_muls(albedo1, blendBase), vec3_muls(albedo2, blendR)), vec3_muls(albedo3, blendG)), vec3_muls(albedo4, blendB));
     }
 
     void Lightmapper::build_embree_scene()
@@ -523,141 +373,6 @@ namespace
         }
     }
 
-    void Lightmapper::generate_vpls()
-    {
-        Console_Printf("[Lightmapper] Generating Virtual Point Lights (VPLs)...");
-
-        for (int i = 0; i < m_scene->numBrushes; ++i)
-        {
-            const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isWater) continue;
-
-            for (int j = 0; j < b.numFaces; ++j)
-            {
-                const BrushFace& face = b.faces[j];
-                if (face.numVertexIndices < 3) continue;
-
-                Vec3 v0 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos);
-                Vec3 v1 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[1]].pos);
-                Vec3 v2 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[2]].pos);
-                Vec3 face_normal = vec3_cross(vec3_sub(v1, v0), vec3_sub(v2, v0));
-                vec3_normalize(&face_normal);
-
-                Vec3 u_axis, v_axis;
-                if (fabsf(face_normal.x) > fabsf(face_normal.y)) u_axis = { -face_normal.z, 0, face_normal.x };
-                else u_axis = { 0, face_normal.z, -face_normal.y };
-                vec3_normalize(&u_axis);
-                v_axis = vec3_cross(face_normal, u_axis);
-
-                float min_u = FLT_MAX, max_u = -FLT_MAX;
-                float min_v = FLT_MAX, max_v = -FLT_MAX;
-                std::vector<Vec3> world_verts(face.numVertexIndices);
-                for (int k = 0; k < face.numVertexIndices; ++k)
-                {
-                    world_verts[k] = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
-                    min_u = std::min(min_u, vec3_dot(world_verts[k], u_axis));
-                    max_u = std::max(max_u, vec3_dot(world_verts[k], u_axis));
-                    min_v = std::min(min_v, vec3_dot(world_verts[k], v_axis));
-                    max_v = std::max(max_v, vec3_dot(world_verts[k], v_axis));
-                }
-
-                float u_range = std::max(0.001f, max_u - min_u);
-                float v_range = std::max(0.001f, max_v - min_v);
-
-                for (int y = VPL_GRID_SIZE / 2; y < m_resolution; y += VPL_GRID_SIZE)
-                {
-                    for (int x = VPL_GRID_SIZE / 2; x < m_resolution; x += VPL_GRID_SIZE)
-                    {
-                        float u_tex = static_cast<float>(x) / (m_resolution - 1);
-                        float v_tex = static_cast<float>(y) / (m_resolution - 1);
-                        float world_u = min_u + u_tex * u_range;
-                        float world_v = min_v + v_tex * v_range;
-                        Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
-
-                        Vec3 world_pos;
-                        bool inside = false;
-                        for (int k = 0; k < face.numVertexIndices - 2; ++k)
-                        {
-                            Vec3 p0 = world_verts[0];
-                            Vec3 p1 = world_verts[k + 1];
-                            Vec3 p2 = world_verts[k + 2];
-
-                            Vec3 v_p0p1 = vec3_sub(p1, p0);
-                            Vec3 v_p0p2 = vec3_sub(p2, p0);
-                            Vec3 v_p0pt = vec3_sub(point_on_plane, p0);
-
-                            float dot00 = vec3_dot(v_p0p1, v_p0p1);
-                            float dot01 = vec3_dot(v_p0p1, v_p0p2);
-                            float dot02 = vec3_dot(v_p0p1, v_p0pt);
-                            float dot11 = vec3_dot(v_p0p2, v_p0p2);
-                            float dot12 = vec3_dot(v_p0p2, v_p0pt);
-
-                            float inv_denom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-                            float bary_u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
-                            float bary_v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-                            float bary_w = 1.0f - bary_u - bary_v;
-
-
-                            if (bary_u >= 0.0f && bary_v >= 0.0f && (bary_u + bary_v < 1.0f))
-                            {
-                                inside = true;
-                                world_pos = vec3_add(p0, vec3_add(vec3_muls(v_p0p1, bary_u), vec3_muls(v_p0p2, bary_v)));
-
-                                Vec3 direct_light_accumulator = { 0,0,0 };
-                                Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
-
-                                for (int light_idx = 0; light_idx < m_scene->numActiveLights; ++light_idx)
-                                {
-                                    const Light& light = m_scene->lights[light_idx];
-                                    if (!light.is_static) continue;
-                                    Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-                                    float dist = vec3_length(light_dir);
-                                    if (dist > light.radius) continue;
-                                    vec3_normalize(&light_dir);
-
-                                    float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
-                                    if (NdotL <= 0.0f) continue;
-                                    if (is_in_shadow(point_to_light_check, light.position)) continue;
-
-                                    float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
-                                    float spot_factor = 1.0f;
-                                    if (light.type == LIGHT_SPOT)
-                                    {
-                                        float theta = vec3_dot(light_dir, vec3_muls(light.direction, -1.0f));
-                                        if (theta < light.outerCutOff) continue;
-                                        float epsilon = light.cutOff - light.outerCutOff;
-                                        spot_factor = std::min(1.0f, (theta - light.outerCutOff) / epsilon);
-                                    }
-                                    Vec3 light_color = vec3_muls(light.color, light.intensity);
-                                    direct_light_accumulator = vec3_add(direct_light_accumulator, vec3_muls(light_color, NdotL * attenuation * spot_factor));
-                                }
-
-                                if (vec3_length_sq(direct_light_accumulator) > VPL_INTENSITY_THRESHOLD)
-                                {
-                                    Vec3 albedo = get_brush_albedo(&b, &face, { bary_w, bary_u, bary_v }, face.vertexIndices[0], face.vertexIndices[k + 1], face.vertexIndices[k + 2], face_normal);
-
-                                    Light vpl;
-                                    vpl.is_static = true;
-                                    vpl.type = LIGHT_POINT;
-                                    vpl.position = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS * 2.0f));
-                                    vpl.color = vec3_muls(vec3_mul(direct_light_accumulator, albedo), VPL_INTENSITY_SCALE);
-                                    vpl.intensity = 1.0f;
-                                    vpl.radius = VPL_RADIUS;
-                                    vpl.direction = { 0,0,0 };
-                                    vpl.cutOff = 0.0f;
-                                    vpl.outerCutOff = 0.0f;
-                                    m_vpls.push_back(vpl);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Console_Printf("[Lightmapper] Generated %zu VPLs.", m_vpls.size());
-    }
-
     void Lightmapper::process_brush_face(const BrushFaceJobData& data)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
@@ -762,27 +477,6 @@ namespace
                                 direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
                             }
                         }
-
-                        for (const auto& light : m_vpls)
-                        {
-                            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-                            float dist = vec3_length(light_dir);
-                            vec3_normalize(&light_dir);
-                            if (dist > light.radius) continue;
-
-                            float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
-                            if (NdotL <= 0.0f) continue;
-
-                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
-
-                            if (!is_in_shadow(point_to_light_check, light.position))
-                            {
-                                Vec3 light_contribution = vec3_muls(light.color, NdotL * attenuation);
-                                light_accumulator = vec3_add(light_accumulator, light_contribution);
-                                float contribution_magnitude = vec3_length(light_contribution);
-                                direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
-                            }
-                        }
                         final_light_color = vec3_add(final_light_color, light_accumulator);
                         accumulated_direction = vec3_add(accumulated_direction, direction_accumulator_sample);
                     }
@@ -862,27 +556,7 @@ namespace
                 Vec3 light_color = vec3_muls(light.color, light.intensity);
                 Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation * spot_factor);
                 light_accumulator = vec3_add(light_accumulator, light_contribution);
-                float contribution_magnitude = vec3_length(light_contribution);
-                direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
-            }
-        }
 
-        for (const auto& light : m_vpls)
-        {
-            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-            float dist = vec3_length(light_dir);
-            vec3_normalize(&light_dir);
-            if (dist > light.radius) continue;
-
-            float NdotL = std::max(0.0f, vec3_dot(world_normal, light_dir));
-            if (NdotL <= 0.0f) continue;
-
-            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
-
-            if (!is_in_shadow(point_to_light_check, light.position))
-            {
-                Vec3 light_contribution = vec3_muls(light.color, NdotL * attenuation);
-                light_accumulator = vec3_add(light_accumulator, light_contribution);
                 float contribution_magnitude = vec3_length(light_contribution);
                 direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
             }
@@ -1008,7 +682,6 @@ namespace
         Console_Printf("[Lightmapper] Starting lightmap generation...");
         auto start_time = std::chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
-        generate_vpls();
         prepare_jobs();
         if (m_jobs.empty()) return;
 
