@@ -31,7 +31,7 @@ MATERIALS_API Material g_NodrawMaterial;
 MATERIALS_API bool g_is_editor_mode = false;
 MATERIALS_API bool g_is_unlit_mode = false;
 
-static char* prependTexturePath(const char* filename) {
+char* prependTexturePath(const char* filename) {
     if (filename == NULL || filename[0] == '\0') return NULL;
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
         return _strdup(filename);

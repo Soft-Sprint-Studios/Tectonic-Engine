@@ -69,6 +69,7 @@ MATERIALS_API void TextureManager_LoadMaterialTextures(Material* material);
 MATERIALS_API GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 MATERIALS_API GLuint TextureManager_LoadLUT(const char* filename_only);
 MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb);
+MATERIALS_API char* prependTexturePath(const char* filename);
 
 #ifdef __cplusplus
 }
