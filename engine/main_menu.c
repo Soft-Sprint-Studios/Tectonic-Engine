@@ -125,11 +125,6 @@ static void MainMenu_RenderOptionsMenu() {
                     Cvar_Set("r_ssao", ssao ? "1" : "0");
                 }
 
-                bool shadows = Cvar_GetInt("r_shadows_static");
-                if (UI_Checkbox("Dynamic Shadows", &shadows)) {
-                    Cvar_Set("r_shadows_static", shadows ? "0" : "1");
-                }
-
                 bool volumetrics = Cvar_GetInt("r_volumetrics");
                 if (UI_Checkbox("Volumetric Lighting", &volumetrics)) {
                     Cvar_Set("r_volumetrics", volumetrics ? "1" : "0");

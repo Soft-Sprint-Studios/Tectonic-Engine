@@ -806,7 +806,6 @@ void init_cvars() {
     Cvar_Register("r_zprepass", "1", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render in wireframe mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Enable dynamic shadows (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_shadows_static", "0", "Static light shadows only (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_distance_max", "100.0", "Max shadow casting distance", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Shadow map resolution", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping (0=off, 1=on)", CVAR_NONE);
@@ -3063,18 +3062,8 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             mat4_identity(&sunLightSpaceMatrix);
 
             if (Cvar_GetInt("r_shadows")) {
-                if (Cvar_GetInt("r_shadows_static")) {
-                    if (!g_scene.static_shadows_generated) {
-                        Console_Printf("Generating static shadows for the map...");
-                        render_shadows();
-                        g_scene.static_shadows_generated = true;
-                        Console_Printf("Static shadow generation complete.");
-                    }
-                }
-                else {
-                    if ((g_frame_counter % 2) == 0) {
-                        render_shadows();
-                    }
+                if ((g_frame_counter % 2) == 0) {
+                    render_shadows();
                 }
 
                 if (g_scene.sun.enabled) {
