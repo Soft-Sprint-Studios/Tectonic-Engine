@@ -121,6 +121,7 @@ namespace
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
         std::vector<VirtualPointLight> m_vpls;
         std::map<const Material*, Vec3> m_material_reflectivity;
+        std::vector<const BrushFace*> m_primID_to_face_map;
         std::mutex m_vpl_mutex;
         std::atomic<int> m_halton_index{ 0 };
     };
@@ -157,6 +158,7 @@ namespace
 
         std::vector<Vec3> all_vertices;
         std::vector<unsigned int> all_indices;
+        m_primID_to_face_map.clear();
 
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
@@ -177,6 +179,7 @@ namespace
                     all_indices.push_back(base_index);
                     all_indices.push_back(base_index + 1);
                     all_indices.push_back(base_index + 2);
+                    m_primID_to_face_map.push_back(&face);
                 }
             }
         }
@@ -201,6 +204,7 @@ namespace
                 all_indices.push_back(base_index);
                 all_indices.push_back(base_index + 1);
                 all_indices.push_back(base_index + 2);
+                m_primID_to_face_map.push_back(nullptr);
             }
         }
 
@@ -811,7 +815,7 @@ namespace
             float max_comp = std::max({ reflectivity.x, reflectivity.y, reflectivity.z });
             if (max_comp > 0.001f) {
                 float scale = 1.0f / max_comp;
-                reflectivity = vec3_muls(reflectivity, scale * 0.75f);
+                reflectivity = vec3_muls(reflectivity, scale);
             }
 
             m_material_reflectivity[mat] = reflectivity;
@@ -990,6 +994,17 @@ namespace
                     vec3_normalize(&hit_normal);
 
                     Vec3 reflectivity = { 0.5f, 0.5f, 0.5f };
+
+                    if (rayhit.hit.primID < m_primID_to_face_map.size()) {
+                        const BrushFace* hit_face = m_primID_to_face_map[rayhit.hit.primID];
+
+                        if (hit_face && hit_face->material) {
+                            auto it = m_material_reflectivity.find(hit_face->material);
+                            if (it != m_material_reflectivity.end()) {
+                                reflectivity = it->second;
+                            }
+                        }
+                    }
 
                     float NdotL = std::max(0.0f, vec3_dot(source_vpl.normal, ray_dir));
                     Vec3 incoming_light = vec3_muls(vpl_energy, NdotL / (float)VPL_SAMPLES_PER_BOUNCE);
