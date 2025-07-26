@@ -24,13 +24,13 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     HMODULE engineLib = LoadLibraryA("engine.dll");
     if (!engineLib) {
-        MessageBoxA(NULL, "Failed to load engine.dll", "Error", MB_ICONERROR);
+        MessageBoxA(NULL, "Failed to load engine.dll", "Engine Error", MB_ICONERROR);
         return -1;
     }
 
     EngineMainFunc Engine_Main = (EngineMainFunc)GetProcAddress(engineLib, "Engine_Main");
     if (!Engine_Main) {
-        MessageBoxA(NULL, "Failed to find Engine_Main in engine.dll", "Error", MB_ICONERROR);
+        MessageBoxA(NULL, "Failed to find Engine_Main in engine.dll", "Engine Error", MB_ICONERROR);
         FreeLibrary(engineLib);
         return -1;
     }

@@ -518,8 +518,13 @@ endif()
 
 if(WIN32)
     set(LAUNCHER_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.rc")
-    target_sources(launcher PRIVATE ${LAUNCHER_ICON_RC})
+    set(LAUNCHER_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.manifest")
+
+    target_sources(launcher PRIVATE ${LAUNCHER_ICON_RC} ${LAUNCHER_MANIFEST})
+
+    target_link_options(launcher PRIVATE "/MANIFEST:EMBED" "/MANIFESTINPUT:${LAUNCHER_MANIFEST}" /subsystem:windows)
 endif()
+
 
 target_compile_options(launcher PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
