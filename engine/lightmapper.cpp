@@ -430,114 +430,105 @@ namespace
                 Vec3 final_light_color = { 0, 0, 0 };
                 Vec3 accumulated_direction = { 0, 0, 0 };
 
-                constexpr int SAMPLES = 4;
-                constexpr float sub_pixel_offsets[SAMPLES][2] = { {-0.25f, -0.25f}, {0.25f, -0.25f}, {-0.25f, 0.25f}, {0.25f, 0.25f} };
+                float u_tex = (static_cast<float>(x) + 0.5f) / m_resolution;
+                float v_tex = (static_cast<float>(y) + 0.5f) / m_resolution;
+                float world_u = min_u + u_tex * u_range;
+                float world_v = min_v + v_tex * v_range;
+                Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
 
-                for (int s = 0; s < SAMPLES; ++s)
+                Vec3 world_pos;
+                bool inside = false;
+                for (int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
-                    float u_tex = (static_cast<float>(x) + sub_pixel_offsets[s][0]) / (m_resolution - 1);
-                    float v_tex = (static_cast<float>(y) + sub_pixel_offsets[s][1]) / (m_resolution - 1);
-                    float world_u = min_u + u_tex * u_range;
-                    float world_v = min_v + v_tex * v_range;
-                    Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
-
-                    Vec3 world_pos;
-                    bool inside = false;
-                    for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                    Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
+                    Vec3 v_p0p1 = vec3_sub(p1, p0), v_p0p2 = vec3_sub(p2, p0), v_p0pt = vec3_sub(point_on_plane, p0);
+                    float dot00 = vec3_dot(v_p0p1, v_p0p1), dot01 = vec3_dot(v_p0p1, v_p0p2), dot02 = vec3_dot(v_p0p1, v_p0pt);
+                    float dot11 = vec3_dot(v_p0p2, v_p0p2), dot12 = vec3_dot(v_p0p2, v_p0pt);
+                    float inv_denom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+                    float bary_u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+                    float bary_v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+                    if (bary_u >= 0 && bary_v >= 0 && (bary_u + bary_v < 1))
                     {
-                        Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
-                        Vec3 v_p0p1 = vec3_sub(p1, p0), v_p0p2 = vec3_sub(p2, p0), v_p0pt = vec3_sub(point_on_plane, p0);
-                        float dot00 = vec3_dot(v_p0p1, v_p0p1), dot01 = vec3_dot(v_p0p1, v_p0p2), dot02 = vec3_dot(v_p0p1, v_p0pt);
-                        float dot11 = vec3_dot(v_p0p2, v_p0p2), dot12 = vec3_dot(v_p0p2, v_p0pt);
-                        float inv_denom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-                        float bary_u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
-                        float bary_v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-                        if (bary_u >= 0 && bary_v >= 0 && (bary_u + bary_v < 1))
-                        {
-                            inside = true;
-                            world_pos = vec3_add(p0, vec3_add(vec3_muls(v_p0p1, bary_u), vec3_muls(v_p0p2, bary_v)));
-                            break;
-                        }
-                    }
-
-                    if (inside)
-                    {
-                        Vec3 direct_light_accumulator = { 0,0,0 };
-                        Vec3 indirect_light_accumulator = { 0,0,0 };
-                        Vec3 direction_accumulator_sample = { 0,0,0 };
-
-                        Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
-
-                        for (int k = 0; k < m_scene->numActiveLights; ++k)
-                        {
-                            const Light& light = m_scene->lights[k];
-                            if (!light.is_static) continue;
-                            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-                            float dist = vec3_length(light_dir);
-                            vec3_normalize(&light_dir);
-                            if (dist > light.radius) continue;
-
-                            float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
-                            if (NdotL <= 0.0f) continue;
-
-                            if (is_in_shadow(point_to_light_check, light.position)) continue;
-
-                            float spotFactor = 1.0f;
-                            if (light.type == LIGHT_SPOT)
-                            {
-                                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                                float theta = vec3_dot(light_dir, light_forward_vector);
-                                float inner_cone_cos = light.cutOff;
-                                float outer_cone_cos = light.outerCutOff;
-
-                                if (theta < outer_cone_cos) {
-                                    spotFactor = 0.0f;
-                                }
-                                else {
-                                    float delta = inner_cone_cos - outer_cone_cos;
-                                    if (delta > 0.0001f) {
-                                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
-                                        spotFactor = t * t * (3.0f - 2.0f * t);
-                                    }
-                                    else {
-                                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
-                                    }
-                                }
-                            }
-
-                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
-                            Vec3 light_color = vec3_muls(light.color, light.intensity);
-                            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
-                            direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
-
-                            float contribution_magnitude = vec3_length(light_contribution);
-                            direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(light_dir, contribution_magnitude));
-                        }
-
-                        for (const auto& vpl : m_vpls) {
-                            Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
-                            float dist_sq = vec3_length_sq(vpl_dir);
-                            if (dist_sq < 0.001f) continue;
-                            float dist = sqrtf(dist_sq);
-                            vec3_normalize(&vpl_dir);
-                            float NdotL_receiver = std::max(0.0f, vec3_dot(face_normal, vpl_dir));
-                            float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
-                            if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
-                                if (!is_in_shadow(point_to_light_check, vpl.position)) {
-                                    float falloff = 1.0f / (dist_sq + 1.0f);
-                                    Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
-                                    indirect_light_accumulator = vec3_add(indirect_light_accumulator, vpl_contribution);
-                                    direction_accumulator_sample = vec3_add(direction_accumulator_sample, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
-                                }
-                            }
-                        }
-
-                        final_light_color = vec3_add(final_light_color, vec3_add(direct_light_accumulator, indirect_light_accumulator));
-                        accumulated_direction = vec3_add(accumulated_direction, direction_accumulator_sample);
+                        inside = true;
+                        world_pos = vec3_add(p0, vec3_add(vec3_muls(v_p0p1, bary_u), vec3_muls(v_p0p2, bary_v)));
+                        break;
                     }
                 }
 
-                final_light_color = vec3_muls(final_light_color, 1.0f / SAMPLES);
+                if (inside)
+                {
+                    Vec3 direct_light = { 0,0,0 };
+                    Vec3 indirect_light = { 0,0,0 };
+
+                    Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
+
+                    for (int k = 0; k < m_scene->numActiveLights; ++k)
+                    {
+                        const Light& light = m_scene->lights[k];
+                        if (!light.is_static) continue;
+                        Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
+                        float dist = vec3_length(light_dir);
+                        vec3_normalize(&light_dir);
+                        if (dist > light.radius) continue;
+
+                        float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
+                        if (NdotL <= 0.0f) continue;
+
+                        if (is_in_shadow(point_to_light_check, light.position)) continue;
+
+                        float spotFactor = 1.0f;
+                        if (light.type == LIGHT_SPOT)
+                        {
+                            Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
+                            float theta = vec3_dot(light_dir, light_forward_vector);
+                            float inner_cone_cos = light.cutOff;
+                            float outer_cone_cos = light.outerCutOff;
+
+                            if (theta < outer_cone_cos) {
+                                spotFactor = 0.0f;
+                            }
+                            else {
+                                float delta = inner_cone_cos - outer_cone_cos;
+                                if (delta > 0.0001f) {
+                                    float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                                    spotFactor = t * t * (3.0f - 2.0f * t);
+                                }
+                                else {
+                                    spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
+                                }
+                            }
+                        }
+
+                        float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
+                        Vec3 light_color = vec3_muls(light.color, light.intensity);
+                        Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
+                        direct_light = vec3_add(direct_light, light_contribution);
+
+                        float contribution_magnitude = vec3_length(light_contribution);
+                        accumulated_direction = vec3_add(accumulated_direction, vec3_muls(light_dir, contribution_magnitude));
+                    }
+
+                    for (const auto& vpl : m_vpls) {
+                        Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
+                        float dist_sq = vec3_length_sq(vpl_dir);
+                        if (dist_sq < 0.001f) continue;
+                        float dist = sqrtf(dist_sq);
+                        vec3_normalize(&vpl_dir);
+                        float NdotL_receiver = std::max(0.0f, vec3_dot(face_normal, vpl_dir));
+                        float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
+                        if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
+                            if (!is_in_shadow(point_to_light_check, vpl.position)) {
+                                float falloff = 1.0f / (dist_sq + 1.0f);
+                                Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
+                                indirect_light = vec3_add(indirect_light, vpl_contribution);
+                                accumulated_direction = vec3_add(accumulated_direction, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
+                            }
+                        }
+                    }
+
+                    final_light_color = vec3_add(direct_light, indirect_light);
+                }
+
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
