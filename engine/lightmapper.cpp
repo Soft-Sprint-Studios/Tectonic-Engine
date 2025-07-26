@@ -47,30 +47,9 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-
-#pragma pack(push, 1)
-    struct BMPFileHeader {
-        uint16_t file_type{ 0x4D42 };
-        uint32_t file_size{ 0 };
-        uint16_t reserved1{ 0 };
-        uint16_t reserved2{ 0 };
-        uint32_t offset_data{ 0 };
-    };
-
-    struct BMPInfoHeader {
-        uint32_t size{ 40 };
-        int32_t width{ 0 };
-        int32_t height{ 0 };
-        uint16_t planes{ 1 };
-        uint16_t bit_count{ 0 };
-        uint32_t compression{ 0 };
-        uint32_t size_image{ 0 };
-        int32_t x_pixels_per_meter{ 0 };
-        int32_t y_pixels_per_meter{ 0 };
-        uint32_t colors_used{ 0 };
-        uint32_t colors_important{ 0 };
-    };
-#pragma pack(pop)
+    constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
+    constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
+    constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
@@ -82,10 +61,6 @@ namespace
         Vec3 color;
         Vec3 normal;
     };
-
-    constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
-    constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
-    constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
 
     struct BrushFaceJobData
     {
@@ -138,7 +113,6 @@ namespace
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
         static void apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels);
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
-        static void save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth);
         static std::string sanitize_filename(std::string input);
 
         Scene* m_scene;
@@ -423,41 +397,6 @@ namespace
                     data[dst_idx + c] = static_cast<unsigned char>(std::min(255.0f, totals[c]));
                 }
             }
-        }
-    }
-
-    void Lightmapper::save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth)
-    {
-        BMPFileHeader file_header;
-        BMPInfoHeader info_header;
-
-        int channels = bit_depth / 8;
-        int row_stride = width * channels;
-        int padded_row_stride = (row_stride + 3) & (~3);
-
-        info_header.width = width;
-        info_header.height = height;
-        info_header.bit_count = bit_depth;
-        info_header.size_image = padded_row_stride * height;
-
-        file_header.offset_data = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
-        file_header.file_size = file_header.offset_data + info_header.size_image;
-
-        std::ofstream file(path, std::ios::binary);
-        if (!file) {
-            Console_Printf_Error("[Lightmapper] ERROR: Could not write to '%s'", path.string().c_str());
-            return;
-        }
-
-        file.write(reinterpret_cast<const char*>(&file_header), sizeof(file_header));
-        file.write(reinterpret_cast<const char*>(&info_header), sizeof(info_header));
-
-        const unsigned char* pixel_data = static_cast<const unsigned char*>(data);
-        const std::vector<unsigned char> padding(padded_row_stride - row_stride, 0);
-
-        for (int i = height - 1; i >= 0; --i) {
-            file.write(reinterpret_cast<const char*>(pixel_data + (i * row_stride)), row_stride);
-            file.write(reinterpret_cast<const char*>(padding.data()), padding.size());
         }
     }
 
