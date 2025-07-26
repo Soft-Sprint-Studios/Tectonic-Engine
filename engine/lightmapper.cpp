@@ -117,6 +117,7 @@ namespace
         std::vector<VirtualPointLight> m_vpls;
         std::map<const Material*, Vec3> m_material_reflectivity;
         std::mutex m_vpl_mutex;
+        std::atomic<int> m_halton_index{ 0 };
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution)
@@ -798,10 +799,6 @@ namespace
 
     void Lightmapper::generate_virtual_point_lights(int start_brush_index, int end_brush_index)
     {
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-
         std::vector<VirtualPointLight> local_vpls;
 
         for (int i = start_brush_index; i < end_brush_index; ++i)
@@ -834,8 +831,10 @@ namespace
 
                     for (int s = 0; s < VPL_SAMPLES_PER_TRIANGLE; ++s)
                     {
-                        float r1 = dist(rng);
-                        float r2 = dist(rng);
+                        int sample_index = m_halton_index.fetch_add(1);
+                        float r1 = halton(sample_index, 2);
+                        float r2 = halton(sample_index, 3);
+
                         if (r1 + r2 > 1.0f) {
                             r1 = 1.0f - r1;
                             r2 = 1.0f - r2;
