@@ -39,6 +39,7 @@
 
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
+#include "stb_image_write.h"
 
 namespace
 {
@@ -135,6 +136,7 @@ namespace
         void precalculate_material_reflectivity();
 
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
+        static void apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels);
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
         static void save_bmp(const fs::path& path, const void* data, int width, int height, int bit_depth);
         static std::string sanitize_filename(std::string input);
@@ -290,6 +292,73 @@ namespace
         return input;
     }
 
+    void Lightmapper::apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels)
+    {
+        std::vector<float> temp_data(data.size());
+        constexpr int KERNEL_SIZE = BLUR_RADIUS * 2 + 1;
+
+        std::vector<float> kernel(KERNEL_SIZE);
+        float sigma = static_cast<float>(BLUR_RADIUS) / 2.0f;
+        float sum = 0.0f;
+        for (int i = 0; i < KERNEL_SIZE; ++i)
+        {
+            int x = i - BLUR_RADIUS;
+            kernel[i] = expf(-static_cast<float>(x * x) / (2.0f * sigma * sigma));
+            sum += kernel[i];
+        }
+        for (float& val : kernel)
+        {
+            val /= sum;
+        }
+
+        std::vector<float> totals(channels);
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                std::fill(totals.begin(), totals.end(), 0.0f);
+                for (int k = -BLUR_RADIUS; k <= BLUR_RADIUS; ++k)
+                {
+                    int sample_x = std::clamp(x + k, 0, width - 1);
+                    int src_idx = (y * width + sample_x) * channels;
+                    float weight = kernel[k + BLUR_RADIUS];
+                    for (int c = 0; c < channels; ++c)
+                    {
+                        totals[c] += data[src_idx + c] * weight;
+                    }
+                }
+                int dst_idx = (y * width + x) * channels;
+                for (int c = 0; c < channels; ++c)
+                {
+                    temp_data[dst_idx + c] = totals[c];
+                }
+            }
+        }
+
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                std::fill(totals.begin(), totals.end(), 0.0f);
+                for (int k = -BLUR_RADIUS; k <= BLUR_RADIUS; ++k)
+                {
+                    int sample_y = std::clamp(y + k, 0, height - 1);
+                    int src_idx = (sample_y * width + x) * channels;
+                    float weight = kernel[k + BLUR_RADIUS];
+                    for (int c = 0; c < channels; ++c)
+                    {
+                        totals[c] += temp_data[src_idx + c] * weight;
+                    }
+                }
+                int dst_idx = (y * width + x) * channels;
+                for (int c = 0; c < channels; ++c)
+                {
+                    data[dst_idx + c] = totals[c];
+                }
+            }
+        }
+    }
+
     void Lightmapper::apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels)
     {
         std::vector<unsigned char> temp_data(data.size());
@@ -424,7 +493,7 @@ namespace
 
         float u_range = std::max(0.001f, max_u - min_u);
         float v_range = std::max(0.001f, max_v - min_v);
-        std::vector<unsigned char> lightmap_data(m_resolution * m_resolution * 3, 0);
+        std::vector<float> hdr_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
 
         for (int y = 0; y < m_resolution; ++y)
@@ -523,34 +592,35 @@ namespace
                 }
 
                 final_light_color = vec3_muls(final_light_color, 1.0f / SAMPLES);
-                final_light_color = aces_tonemap(final_light_color);
 
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
-                float gamma = 1.0f / 2.2f;
-                float r = powf(final_light_color.x, gamma);
-                float g = powf(final_light_color.y, gamma);
-                float b_val = powf(final_light_color.z, gamma);
-
-                int idx = (y * m_resolution + x) * 3;
-                lightmap_data[idx + 2] = static_cast<unsigned char>(std::min(1.0f, r) * 255.0f);
-                lightmap_data[idx + 1] = static_cast<unsigned char>(std::min(1.0f, g) * 255.0f);
-                lightmap_data[idx + 0] = static_cast<unsigned char>(std::min(1.0f, b_val) * 255.0f);
+                int hdr_idx = (y * m_resolution + x) * 3;
+                hdr_lightmap_data[hdr_idx + 0] = final_light_color.x;
+                hdr_lightmap_data[hdr_idx + 1] = final_light_color.y;
+                hdr_lightmap_data[hdr_idx + 2] = final_light_color.z;
 
                 int dir_idx = (y * m_resolution + x) * 4;
-                dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
+                dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 1] = static_cast<unsigned char>((accumulated_direction.y * 0.5f + 0.5f) * 255.0f);
-                dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
+                dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
                 dir_lightmap_data[dir_idx + 3] = 255;
             }
         }
 
-        apply_gaussian_blur(lightmap_data, m_resolution, m_resolution, 3);
+        apply_gaussian_blur(hdr_lightmap_data, m_resolution, m_resolution, 3);
         apply_gaussian_blur(dir_lightmap_data, m_resolution, m_resolution, 4);
 
-        save_bmp(data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.bmp"), lightmap_data.data(), m_resolution, m_resolution, 24);
-        save_bmp(data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.bmp"), dir_lightmap_data.data(), m_resolution, m_resolution, 32);
+        fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
+        stbi_write_hdr(color_path.string().c_str(), m_resolution, m_resolution, 3, hdr_lightmap_data.data());
+        fs::path dir_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png");
+        SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(dir_lightmap_data.data(), m_resolution, m_resolution, 32, m_resolution * 4,
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+        if (dir_surface) {
+            IMG_SavePNG(dir_surface, dir_path.string().c_str());
+            SDL_FreeSurface(dir_surface);
+        }
     }
 
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)

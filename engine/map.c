@@ -21,6 +21,7 @@
 #include "mikktspace/mikktspace.h"
 #include <float.h>
 #include <SDL_image.h>
+#include "stb_image.h"
 
 typedef struct {
     Brush* brush;
@@ -1098,7 +1099,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
     if (b->numFaces == 0) return;
 
-    SDL_Surface** color_surfaces = calloc(b->numFaces, sizeof(SDL_Surface*));
+    float** color_data_buffers = calloc(b->numFaces, sizeof(float*));
     SDL_Surface** dir_surfaces = calloc(b->numFaces, sizeof(SDL_Surface*));
     int valid_faces = 0;
 
@@ -1115,19 +1116,25 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
 
     for (int i = 0; i < b->numFaces; ++i) {
         char path[512];
-        snprintf(path, sizeof(path), "%s/face_%d_color.bmp", final_brush_dir, i);
-        color_surfaces[i] = IMG_Load(path);
 
-        snprintf(path, sizeof(path), "%s/face_%d_dir.bmp", final_brush_dir, i);
+        snprintf(path, sizeof(path), "%s/face_%d_color.hdr", final_brush_dir, i);
+        int width, height, channels;
+        color_data_buffers[i] = stbi_loadf(path, &width, &height, &channels, 3);
+
+        snprintf(path, sizeof(path), "%s/face_%d_dir.png", final_brush_dir, i);
         dir_surfaces[i] = IMG_Load(path);
 
-        if (color_surfaces[i] && dir_surfaces[i]) {
+        if (color_data_buffers[i] && dir_surfaces[i]) {
             valid_faces++;
         }
     }
 
     if (valid_faces == 0) {
-        free(color_surfaces);
+        for (int i = 0; i < b->numFaces; ++i) {
+            if (color_data_buffers[i]) stbi_image_free(color_data_buffers[i]);
+            if (dir_surfaces[i]) SDL_FreeSurface(dir_surfaces[i]);
+        }
+        free(color_data_buffers);
         free(dir_surfaces);
         b->lightmapAtlas = 0;
         b->directionalLightmapAtlas = 0;
@@ -1141,7 +1148,7 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atlas_width, atlas_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, atlas_width, atlas_height, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &b->directionalLightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
@@ -1149,34 +1156,17 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
 
     int current_face = 0;
     for (int i = 0; i < b->numFaces; ++i) {
-        if (color_surfaces[i] && dir_surfaces[i]) {
+        if (color_data_buffers[i] && dir_surfaces[i]) {
             int x_pos = (current_face % atlas_cols) * resolution;
             int y_pos = (current_face / atlas_cols) * resolution;
 
-            SDL_Surface* color_converted = SDL_ConvertSurfaceFormat(color_surfaces[i], SDL_PIXELFORMAT_RGB24, 0);
+            glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGB, GL_FLOAT, color_data_buffers[i]);
+
             SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surfaces[i], SDL_PIXELFORMAT_RGBA32, 0);
-
-            if (color_converted && dir_converted) {
-                if (color_converted->w < resolution || color_converted->h < resolution ||
-                    dir_converted->w < resolution || dir_converted->h < resolution) {
-                    Console_Printf_Error(
-                        "[error] Lightmap too small for face %d: expected %dx%d, got color %dx%d, dir %dx%d. Skipping.",
-                        i, resolution, resolution,
-                        color_converted->w, color_converted->h,
-                        dir_converted->w, dir_converted->h
-                    );
-                    SDL_FreeSurface(color_converted);
-                    SDL_FreeSurface(dir_converted);
-                    continue;
-                }
-
-                glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-                glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGB, GL_UNSIGNED_BYTE, color_converted->pixels);
-
+            if (dir_converted) {
                 glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
                 glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
-
-                SDL_FreeSurface(color_converted);
                 SDL_FreeSurface(dir_converted);
             }
 
@@ -1200,10 +1190,10 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
     glBindTexture(GL_TEXTURE_2D, 0);
 
     for (int i = 0; i < b->numFaces; ++i) {
-        if (color_surfaces[i]) SDL_FreeSurface(color_surfaces[i]);
+        if (color_data_buffers[i]) stbi_image_free(color_data_buffers[i]);
         if (dir_surfaces[i]) SDL_FreeSurface(dir_surfaces[i]);
     }
-    free(color_surfaces);
+    free(color_data_buffers);
     free(dir_surfaces);
 }
 

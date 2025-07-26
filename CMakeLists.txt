@@ -342,6 +342,8 @@ target_compile_definitions(engine PRIVATE
     ENGINE_DLL_EXPORTS
     SDL_MAIN_HANDLED
     PL_MPEG_IMPLEMENTATION
+    STB_IMAGE_WRITE_IMPLEMENTATION
+    STB_IMAGE_IMPLEMENTATION
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
 
@@ -367,6 +369,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
     "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/stb"
 )
 
 target_compile_options(engine PRIVATE
