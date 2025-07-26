@@ -493,6 +493,8 @@ else()
             pthread
             dl
             freetype
+            -Wl,-rpath,${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux
+            -Wl,-rpath,${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux
             ${EMBREE_LIB}
             ${TBB_LIB}
             ${TBB_MALLOC_LIB}
