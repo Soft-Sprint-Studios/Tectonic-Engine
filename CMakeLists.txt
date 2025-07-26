@@ -521,7 +521,6 @@ if(WIN32)
     target_sources(launcher PRIVATE ${LAUNCHER_ICON_RC})
 endif()
 
-target_link_libraries(launcher PRIVATE engine)
 target_compile_options(launcher PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
     $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
