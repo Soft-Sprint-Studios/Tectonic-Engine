@@ -47,7 +47,9 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
+    constexpr int NUM_BOUNCES = 2;
     constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
+    constexpr int VPL_SAMPLES_PER_BOUNCE = 32;
     constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
     constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
 
@@ -93,7 +95,9 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
-        void generate_virtual_point_lights(int start_brush_index, int end_brush_index);
+
+        void generate_first_bounce_vpls(int start_brush_index, int end_brush_index, std::vector<VirtualPointLight>& out_vpls);
+        void generate_subsequent_bounce_vpls(const std::vector<VirtualPointLight>& source_vpls, int start_vpl_index, int end_vpl_index, std::vector<VirtualPointLight>& out_vpls);
 
         void precalculate_material_reflectivity();
 
@@ -101,6 +105,7 @@ namespace
         static void apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels);
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
         static std::string sanitize_filename(std::string input);
+        static Vec3 random_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen);
 
         Scene* m_scene;
         int m_resolution;
@@ -814,7 +819,7 @@ namespace
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
-    void Lightmapper::generate_virtual_point_lights(int start_brush_index, int end_brush_index)
+    void Lightmapper::generate_first_bounce_vpls(int start_brush_index, int end_brush_index, std::vector<VirtualPointLight>& out_vpls)
     {
         std::vector<VirtualPointLight> local_vpls;
 
@@ -918,7 +923,91 @@ namespace
         if (!local_vpls.empty())
         {
             std::lock_guard<std::mutex> lock(m_vpl_mutex);
-            m_vpls.insert(m_vpls.end(), local_vpls.begin(), local_vpls.end());
+            out_vpls.insert(out_vpls.end(), local_vpls.begin(), local_vpls.end());
+        }
+    }
+
+    Vec3 Lightmapper::random_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen) {
+        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+        float u1 = dist(gen);
+        float u2 = dist(gen);
+
+        float r = sqrtf(1.0f - u1 * u1);
+        float phi = 2.0f * M_PI * u2;
+
+        Vec3 sample_dir = { cosf(phi) * r, sinf(phi) * r, u1 };
+
+        Vec3 up = fabsf(normal.z) < 0.999f ? Vec3{ 0,0,1 } : Vec3{ 1,0,0 };
+        Vec3 tangent = vec3_cross(up, normal);
+        vec3_normalize(&tangent);
+        Vec3 bitangent = vec3_cross(normal, tangent);
+
+        return vec3_add(vec3_muls(tangent, sample_dir.x), vec3_add(vec3_muls(bitangent, sample_dir.y), vec3_muls(normal, sample_dir.z)));
+    }
+
+    void Lightmapper::generate_subsequent_bounce_vpls(const std::vector<VirtualPointLight>& source_vpls, int start_vpl_index, int end_vpl_index, std::vector<VirtualPointLight>& out_vpls)
+    {
+        std::vector<VirtualPointLight> local_vpls;
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> distrib(0.0f, 1.0f);
+
+        for (int i = start_vpl_index; i < end_vpl_index; ++i)
+        {
+            const auto& source_vpl = source_vpls[i];
+
+            float p = std::max({ source_vpl.color.x, source_vpl.color.y, source_vpl.color.z });
+            p = std::clamp(p, 0.0f, 1.0f);
+            if (distrib(gen) > p) {
+                continue;
+            }
+            Vec3 vpl_energy = vec3_muls(source_vpl.color, 1.0f / p);
+
+            for (int s = 0; s < VPL_SAMPLES_PER_BOUNCE; ++s)
+            {
+                Vec3 ray_dir = random_direction_in_hemisphere(source_vpl.normal, gen);
+                Vec3 ray_org = vec3_add(source_vpl.position, vec3_muls(source_vpl.normal, SHADOW_BIAS));
+
+                RTCRayHit rayhit;
+                rayhit.ray.org_x = ray_org.x; rayhit.ray.org_y = ray_org.y; rayhit.ray.org_z = ray_org.z;
+                rayhit.ray.dir_x = ray_dir.x; rayhit.ray.dir_y = ray_dir.y; rayhit.ray.dir_z = ray_dir.z;
+                rayhit.ray.tnear = 0.0f;
+                rayhit.ray.tfar = FLT_MAX;
+                rayhit.ray.mask = -1;
+                rayhit.ray.flags = 0;
+                rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+                RTCIntersectArguments args;
+                rtcInitIntersectArguments(&args);
+                args.feature_mask = RTC_FEATURE_FLAG_NONE;
+                rtcIntersect1(m_rtc_scene, &rayhit, &args);
+
+                if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
+                {
+                    Vec3 hit_pos = { ray_org.x + rayhit.ray.tfar * ray_dir.x, ray_org.y + rayhit.ray.tfar * ray_dir.y, ray_org.z + rayhit.ray.tfar * ray_dir.z };
+                    Vec3 hit_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
+                    vec3_normalize(&hit_normal);
+
+                    Vec3 reflectivity = { 0.5f, 0.5f, 0.5f };
+
+                    float NdotL = std::max(0.0f, vec3_dot(source_vpl.normal, ray_dir));
+                    Vec3 incoming_light = vec3_muls(vpl_energy, NdotL / (float)VPL_SAMPLES_PER_BOUNCE);
+
+                    Vec3 new_vpl_color = vec3_mul(incoming_light, reflectivity);
+
+                    float brightness = vec3_dot(new_vpl_color, { 0.299f, 0.587f, 0.114f });
+                    if (brightness > VPL_BRIGHTNESS_THRESHOLD * 0.05f) {
+                        local_vpls.push_back({ hit_pos, new_vpl_color, hit_normal });
+                    }
+                }
+            }
+        }
+
+        if (!local_vpls.empty())
+        {
+            std::lock_guard<std::mutex> lock(m_vpl_mutex);
+            out_vpls.insert(out_vpls.end(), local_vpls.begin(), local_vpls.end());
         }
     }
 
@@ -930,33 +1019,56 @@ namespace
 
         precalculate_material_reflectivity();
 
-        Console_Printf("[Lightmapper] Generating Virtual Point Lights...");
+        Console_Printf("[Lightmapper] Generating Virtual Point Lights (%d bounces)...", NUM_BOUNCES);
         unsigned int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
+
+        m_vpls.clear();
+        std::vector<VirtualPointLight> source_vpls;
+
+        Console_Printf("[Lightmapper]   - Pass 1: Generating VPLs from scene lights...");
         int brushes_per_thread = (m_scene->numBrushes + num_threads - 1) / num_threads;
-
-        m_vpls.reserve(m_scene->numBrushes * VPL_SAMPLES_PER_TRIANGLE);
-
         for (unsigned int i = 0; i < num_threads; ++i)
         {
             int start_brush = i * brushes_per_thread;
             int end_brush = std::min(start_brush + brushes_per_thread, m_scene->numBrushes);
-            if (start_brush >= end_brush) continue;
-
-            threads.emplace_back(&Lightmapper::generate_virtual_point_lights, this, start_brush, end_brush);
+            if (start_brush < end_brush) {
+                threads.emplace_back(&Lightmapper::generate_first_bounce_vpls, this, start_brush, end_brush, std::ref(source_vpls));
+            }
         }
-
-        for (auto& t : threads) {
-            t.join();
-        }
+        for (auto& t : threads) t.join();
         threads.clear();
+        m_vpls.insert(m_vpls.end(), source_vpls.begin(), source_vpls.end());
+        Console_Printf("[Lightmapper]     Generated %zu VPLs.", source_vpls.size());
 
-        Console_Printf("[Lightmapper] Generated %zu VPLs.", m_vpls.size());
+        for (int bounce = 2; bounce <= NUM_BOUNCES; ++bounce)
+        {
+            if (source_vpls.empty()) break;
+            Console_Printf("[Lightmapper]   - Pass %d: Generating VPLs from %zu source VPLs...", bounce, source_vpls.size());
 
+            std::vector<VirtualPointLight> next_bounce_vpls;
+            int vpls_per_thread = (source_vpls.size() + num_threads - 1) / num_threads;
+            for (unsigned int i = 0; i < num_threads; ++i)
+            {
+                int start_vpl = i * vpls_per_thread;
+                int end_vpl = std::min(start_vpl + vpls_per_thread, (int)source_vpls.size());
+                if (start_vpl < end_vpl) {
+                    threads.emplace_back(&Lightmapper::generate_subsequent_bounce_vpls, this, std::cref(source_vpls), start_vpl, end_vpl, std::ref(next_bounce_vpls));
+                }
+            }
+            for (auto& t : threads) t.join();
+            threads.clear();
+
+            source_vpls = std::move(next_bounce_vpls);
+            m_vpls.insert(m_vpls.end(), source_vpls.begin(), source_vpls.end());
+            Console_Printf("[Lightmapper]     Generated %zu VPLs.", source_vpls.size());
+        }
+
+        Console_Printf("[Lightmapper] Total VPLs generated: %zu.", m_vpls.size());
         prepare_jobs();
         if (m_jobs.empty()) return;
 
-        Console_Printf("[Lightmapper] Using %u threads.", num_threads);
+        Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
 
         for (unsigned int i = 0; i < num_threads; ++i)
         {
