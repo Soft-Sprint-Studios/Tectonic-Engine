@@ -79,19 +79,6 @@ namespace
 
     using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData>;
 
-    Vec3 aces_tonemap(Vec3 x) {
-        constexpr float a = 2.51f;
-        constexpr float b = 0.03f;
-        constexpr float c = 2.43f;
-        constexpr float d = 0.59f;
-        constexpr float e = 0.14f;
-
-        x.x = std::max(0.0f, (x.x * (a * x.x + b)) / (x.x * (c * x.x + d) + e));
-        x.y = std::max(0.0f, (x.y * (a * x.y + b)) / (x.y * (c * x.y + d) + e));
-        x.z = std::max(0.0f, (x.z * (a * x.z + b)) / (x.z * (c * x.z + d) + e));
-        return x;
-    }
-
     class Lightmapper
     {
     public:
@@ -625,14 +612,11 @@ namespace
 
         Vec3 final_light_color = vec3_add(direct_light_accumulator, indirect_light_accumulator);
 
-        final_light_color = aces_tonemap(final_light_color);
-        float gamma = 1.0f / 2.2f;
-
         data.output_color_buffer[v_idx] = {
-            powf(final_light_color.x, gamma),
-            powf(final_light_color.y, gamma),
-            powf(final_light_color.z, gamma),
-            1.0f
+             final_light_color.x,
+             final_light_color.y,
+             final_light_color.z,
+             1.0f
         };
 
         if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
