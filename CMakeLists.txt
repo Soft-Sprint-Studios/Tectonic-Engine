@@ -462,6 +462,7 @@ else()
         set(TBB_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbb.so")
         set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbbmalloc.so")
         set(OIDN_LIB "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux/libOpenImageDenoise.so")
+         set(OIDN_CORE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux/libOpenImageDenoise_core.so")
         target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
         target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 ${SDL2_IMAGE_LIBRARY} GLEW::glew OpenGL::GL)
 
@@ -495,6 +496,7 @@ else()
             ${TBB_LIB}
             ${TBB_MALLOC_LIB}
             ${OIDN_LIB}
+            ${OIDN_CORE_LIB}
         )
     else()
         message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")
