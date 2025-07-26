@@ -112,6 +112,9 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
+uniform bool r_debug_lightmaps;
+uniform bool r_debug_lightmaps_directional;
+
 const float PI = 3.14159265359;
 
 mat4 perspective(float fov, float aspect, float near, float far) {
@@ -587,6 +590,20 @@ void main()
     }
 
     vec3 finalColor = Lo + ambient + bakedDiffuse + bakedSpecular;
+	
+    if (r_debug_lightmaps) {
+        if (isBrush == 1 && useLightmap) {
+            finalColor = texture(lightmap, TexCoordsLightmap).rgb;
+        } else {
+            finalColor = vec3(0.0);
+        }
+    } else if (r_debug_lightmaps_directional) {
+        if (isBrush == 1 && useDirectionalLightmap) {
+            finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+        } else {
+            finalColor = vec3(0.0);
+        }
+    }
 
     if (is_unlit) {
         out_LitColor = vec4(albedo, 1.0);
