@@ -114,6 +114,7 @@ uniform vec3 probePosition;
 
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
+uniform bool r_debug_vertex_light;
 
 const float PI = 3.14159265359;
 
@@ -597,9 +598,17 @@ void main()
         } else {
             finalColor = vec3(0.0);
         }
-    } else if (r_debug_lightmaps_directional) {
+	}
+    else if (r_debug_lightmaps_directional) {
         if (isBrush == 1 && useDirectionalLightmap) {
             finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+        } else {
+            finalColor = vec3(0.0);
+        }
+    }
+	else if (r_debug_vertex_light) {
+        if (isBrush == 0 && v_Color.a > 0.5) {
+            finalColor = v_Color.rgb;
         } else {
             finalColor = vec3(0.0);
         }

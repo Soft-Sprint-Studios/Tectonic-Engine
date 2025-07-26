@@ -842,6 +842,7 @@ void init_cvars() {
     Cvar_Register("r_debug_bloom", "0", "Show bloom mask (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_lightmaps", "0", "Show lightmap buffer (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_lightmaps_directional", "0", "Show directional lightmap buffer (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_debug_vertex_light", "0", "Show baked vertex lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "Sun shadow frustum size", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality (1=very low to 5=very high)", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "Vertical field of view (degrees)", CVAR_NONE);
@@ -2141,6 +2142,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "sunShadowMap"), 11);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_lightmaps"), Cvar_GetInt("r_debug_lightmaps"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_lightmaps_directional"), Cvar_GetInt("r_debug_lightmaps_directional"));
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_vertex_light"), Cvar_GetInt("r_debug_vertex_light"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glActiveTexture(GL_TEXTURE16);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
