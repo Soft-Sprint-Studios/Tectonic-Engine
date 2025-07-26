@@ -47,7 +47,6 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int NUM_BOUNCES = 2;
     constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
     constexpr int VPL_SAMPLES_PER_BOUNCE = 32;
     constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
@@ -84,7 +83,7 @@ namespace
     class Lightmapper
     {
     public:
-        Lightmapper(Scene* scene, int resolution);
+        Lightmapper(Scene* scene, int resolution, int bounces);
         ~Lightmapper();
         void generate();
 
@@ -109,6 +108,7 @@ namespace
 
         Scene* m_scene;
         int m_resolution;
+        int m_bounces;
         fs::path m_output_path;
 
         RTCDevice m_rtc_device;
@@ -125,8 +125,8 @@ namespace
         std::atomic<int> m_halton_index{ 0 };
     };
 
-    Lightmapper::Lightmapper(Scene* scene, int resolution)
-        : m_scene(scene), m_resolution(resolution), m_rtc_device(nullptr), m_rtc_scene(nullptr)
+    Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
+        : m_scene(scene), m_resolution(resolution), m_bounces(bounces), m_rtc_device(nullptr), m_rtc_scene(nullptr)
     {
         m_rtc_device = rtcNewDevice(nullptr);
         if (!m_rtc_device)
@@ -1019,7 +1019,7 @@ namespace
 
         precalculate_material_reflectivity();
 
-        Console_Printf("[Lightmapper] Generating Virtual Point Lights (%d bounces)...", NUM_BOUNCES);
+        Console_Printf("[Lightmapper] Generating Virtual Point Lights (%d bounces)...", m_bounces);
         unsigned int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
 
@@ -1041,7 +1041,7 @@ namespace
         m_vpls.insert(m_vpls.end(), source_vpls.begin(), source_vpls.end());
         Console_Printf("[Lightmapper]     Generated %zu VPLs.", source_vpls.size());
 
-        for (int bounce = 2; bounce <= NUM_BOUNCES; ++bounce)
+        for (int bounce = 2; bounce <= m_bounces; ++bounce)
         {
             if (source_vpls.empty()) break;
             Console_Printf("[Lightmapper]   - Pass %d: Generating VPLs from %zu source VPLs...", bounce, source_vpls.size());
@@ -1122,11 +1122,11 @@ namespace
     }
 }
 
-void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
+void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int bounces)
 {
     try
     {
-        Lightmapper mapper(scene, resolution);
+        Lightmapper mapper(scene, resolution, bounces);
         mapper.generate();
     }
     catch (const std::exception& e)
@@ -1142,7 +1142,7 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
 #include "lightmapper.h"
 #include "gl_console.h"
 
-void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution)
+void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int bounces)
 {
     Console_Printf_Error("[Lightmapper] Not available on x86 builds.");
 }
