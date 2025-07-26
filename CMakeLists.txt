@@ -463,8 +463,8 @@ else()
         set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbbmalloc.so")
 
         set(OIDN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux")
-        target_link_directories(engine PRIVATE "${OIDN_LIB_DIR}")
-        target_link_options(engine PRIVATE "-Wl,-rpath-link,${OIDN_LIB_DIR}")
+        set(OIDN_MAIN_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise.so.2.3.3")
+        set(OIDN_CORE_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise_core.so.2.3.3")
 
         target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
         target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 ${SDL2_IMAGE_LIBRARY} GLEW::glew OpenGL::GL)
@@ -474,7 +474,10 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux"
+            "${OIDN_LIB_DIR}"
         )
+
+        target_link_options(engine PRIVATE "-Wl,-rpath-link,${OIDN_LIB_DIR}")
 
         target_link_libraries(engine PRIVATE
             level0
@@ -498,8 +501,8 @@ else()
             ${EMBREE_LIB}
             ${TBB_LIB}
             ${TBB_MALLOC_LIB}
-            OpenImageDenoise
-            OpenImageDenoise_core
+            ${OIDN_MAIN_LIB}
+            ${OIDN_CORE_LIB}
         )
     else()
         message(FATAL_ERROR "Unsupported platform! This project supports only Windows and Linux.")
