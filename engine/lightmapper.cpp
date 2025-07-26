@@ -440,6 +440,7 @@ namespace
         std::vector<float> direct_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<float> indirect_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<float> albedo_lightmap_data(m_resolution * m_resolution * 3);
+        std::vector<float> normal_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
 
         Vec3 face_reflectivity = { 0.5f, 0.5f, 0.5f };
@@ -484,17 +485,27 @@ namespace
                     }
                 }
 
+                int hdr_idx = (y * m_resolution + x) * 3;
+
                 if (inside)
                 {
                     direct_light_color = calculate_direct_light(world_pos, face_normal, accumulated_direction);
                     indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
+                    normal_lightmap_data[hdr_idx + 0] = face_normal.x;
+                    normal_lightmap_data[hdr_idx + 1] = face_normal.y;
+                    normal_lightmap_data[hdr_idx + 2] = face_normal.z;
+                }
+                else
+                {
+                    normal_lightmap_data[hdr_idx + 0] = 0.0f;
+                    normal_lightmap_data[hdr_idx + 1] = 0.0f;
+                    normal_lightmap_data[hdr_idx + 2] = 0.0f;
                 }
 
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
-                int hdr_idx = (y * m_resolution + x) * 3;
                 direct_lightmap_data[hdr_idx + 0] = direct_light_color.x;
                 direct_lightmap_data[hdr_idx + 1] = direct_light_color.y;
                 direct_lightmap_data[hdr_idx + 2] = direct_light_color.z;
@@ -515,7 +526,6 @@ namespace
             }
         }
 
-        size_t buffer_size = (size_t)m_resolution * m_resolution * 3 * sizeof(float);
         size_t pixelStride = sizeof(float) * 3;
         size_t rowStride = pixelStride * m_resolution;
 
@@ -523,6 +533,7 @@ namespace
 
         oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
         oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+        oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
 
         std::vector<float> denoised_indirect_data(m_resolution * m_resolution * 3);
         oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
