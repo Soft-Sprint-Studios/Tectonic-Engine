@@ -482,7 +482,30 @@ namespace
 
                             if (is_in_shadow(point_to_light_check, light.position)) continue;
 
-                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                            float spotFactor = 1.0f;
+                            if (light.type == LIGHT_SPOT)
+                            {
+                                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
+                                float theta = vec3_dot(light_dir, light_forward_vector);
+                                float inner_cone_cos = light.cutOff;
+                                float outer_cone_cos = light.outerCutOff;
+
+                                if (theta < outer_cone_cos) {
+                                    spotFactor = 0.0f;
+                                }
+                                else {
+                                    float delta = inner_cone_cos - outer_cone_cos;
+                                    if (delta > 0.0001f) {
+                                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                                        spotFactor = t * t * (3.0f - 2.0f * t);
+                                    }
+                                    else {
+                                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
+                                    }
+                                }
+                            }
+
+                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
                             Vec3 light_color = vec3_muls(light.color, light.intensity);
                             Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
                             direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
@@ -495,13 +518,10 @@ namespace
                             Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
                             float dist_sq = vec3_length_sq(vpl_dir);
                             if (dist_sq < 0.001f) continue;
-
                             float dist = sqrtf(dist_sq);
                             vec3_normalize(&vpl_dir);
-
                             float NdotL_receiver = std::max(0.0f, vec3_dot(face_normal, vpl_dir));
                             float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
-
                             if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
                                 if (!is_in_shadow(point_to_light_check, vpl.position)) {
                                     float falloff = 1.0f / (dist_sq + 1.0f);
@@ -512,14 +532,12 @@ namespace
                             }
                         }
 
-
                         final_light_color = vec3_add(final_light_color, vec3_add(direct_light_accumulator, indirect_light_accumulator));
                         accumulated_direction = vec3_add(accumulated_direction, direction_accumulator_sample);
                     }
                 }
 
                 final_light_color = vec3_muls(final_light_color, 1.0f / SAMPLES);
-
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
@@ -580,7 +598,30 @@ namespace
 
             if (is_in_shadow(point_to_light_check, light.position)) continue;
 
-            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+            float spotFactor = 1.0f;
+            if (light.type == LIGHT_SPOT)
+            {
+                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
+                float theta = vec3_dot(light_dir, light_forward_vector);
+                float inner_cone_cos = light.cutOff;
+                float outer_cone_cos = light.outerCutOff;
+
+                if (theta < outer_cone_cos) {
+                    spotFactor = 0.0f;
+                }
+                else {
+                    float delta = inner_cone_cos - outer_cone_cos;
+                    if (delta > 0.0001f) {
+                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                        spotFactor = t * t * (3.0f - 2.0f * t);
+                    }
+                    else {
+                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
+                    }
+                }
+            }
+
+            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
             Vec3 light_color = vec3_muls(light.color, light.intensity);
             Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
             direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
@@ -594,13 +635,10 @@ namespace
             Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
             float dist_sq = vec3_length_sq(vpl_dir);
             if (dist_sq < 0.001f) continue;
-
             float dist = sqrtf(dist_sq);
             vec3_normalize(&vpl_dir);
-
             float NdotL_receiver = std::max(0.0f, vec3_dot(world_normal, vpl_dir));
             float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
-
             if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
                 if (!is_in_shadow(point_to_light_check, vpl.position)) {
                     float falloff = 1.0f / (dist_sq + 1.0f);
@@ -612,23 +650,11 @@ namespace
         }
 
         Vec3 final_light_color = vec3_add(direct_light_accumulator, indirect_light_accumulator);
-
-        data.output_color_buffer[v_idx] = {
-             final_light_color.x,
-             final_light_color.y,
-             final_light_color.z,
-             1.0f
-        };
+        data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
         if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
         else direction_accumulator = { 0,0,0 };
-
-        data.output_direction_buffer[v_idx] = {
-            direction_accumulator.x,
-            direction_accumulator.y,
-            direction_accumulator.z,
-            1.0f
-        };
+        data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
 
     void Lightmapper::process_job(const JobPayload& job)
@@ -834,7 +860,6 @@ namespace
                         int sample_index = m_halton_index.fetch_add(1);
                         float r1 = halton(sample_index, 2);
                         float r2 = halton(sample_index, 3);
-
                         if (r1 + r2 > 1.0f) {
                             r1 = 1.0f - r1;
                             r2 = 1.0f - r2;
@@ -859,7 +884,30 @@ namespace
 
                             if (is_in_shadow(point_to_light_check, light.position)) continue;
 
-                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                            float spotFactor = 1.0f;
+                            if (light.type == LIGHT_SPOT)
+                            {
+                                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
+                                float theta = vec3_dot(light_dir, light_forward_vector);
+                                float inner_cone_cos = light.cutOff;
+                                float outer_cone_cos = light.outerCutOff;
+
+                                if (theta < outer_cone_cos) {
+                                    spotFactor = 0.0f;
+                                }
+                                else {
+                                    float delta = inner_cone_cos - outer_cone_cos;
+                                    if (delta > 0.0001f) {
+                                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                                        spotFactor = t * t * (3.0f - 2.0f * t);
+                                    }
+                                    else {
+                                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
+                                    }
+                                }
+                            }
+
+                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
                             direct_light = vec3_add(direct_light, vec3_muls(light.color, light.intensity * NdotL * attenuation));
                         }
 
