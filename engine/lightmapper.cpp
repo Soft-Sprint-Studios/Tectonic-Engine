@@ -40,6 +40,7 @@
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
 #include "stb_image_write.h"
+#include <OpenImageDenoise/oidn.h>
 
 namespace
 {
@@ -47,9 +48,7 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int VPL_SAMPLES_PER_TRIANGLE = 8;
-    constexpr int VPL_SAMPLES_PER_BOUNCE = 32;
-    constexpr float VPL_BRIGHTNESS_THRESHOLD = 0.1f;
+    constexpr int INDIRECT_SAMPLES_PER_POINT = 128;
     constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
@@ -57,11 +56,10 @@ namespace
         Console_Printf_Error("[Embree] Error %d: %s", error, str);
     }
 
-    struct VirtualPointLight {
-        Vec3 position;
-        Vec3 color;
-        Vec3 normal;
-    };
+    void oidn_error_function(void* userPtr, OIDNError error, const char* message)
+    {
+        Console_Printf_Error("[OIDN] Error %d: %s", error, message);
+    }
 
     struct BrushFaceJobData
     {
@@ -91,20 +89,20 @@ namespace
         void build_embree_scene();
         void prepare_jobs();
         void worker_main();
-        void process_job(const JobPayload& job);
-        void process_brush_face(const BrushFaceJobData& data);
-        void process_model_vertex(const ModelVertexJobData& data);
+        void process_job(const JobPayload& job, std::mt19937& rng);
+        void process_brush_face(const BrushFaceJobData& data, std::mt19937& rng);
+        void process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng);
 
-        void generate_first_bounce_vpls(int start_brush_index, int end_brush_index, std::vector<VirtualPointLight>& out_vpls);
-        void generate_subsequent_bounce_vpls(const std::vector<VirtualPointLight>& source_vpls, int start_vpl_index, int end_vpl_index, std::vector<VirtualPointLight>& out_vpls);
+        Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
+        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir);
+        Vec3 get_reflectivity_at_hit(unsigned int primID) const;
 
         void precalculate_material_reflectivity();
-
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
         static void apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels);
         static void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
         static std::string sanitize_filename(std::string input);
-        static Vec3 random_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen);
+        static Vec3 cosine_weighted_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen);
 
         Scene* m_scene;
         int m_resolution;
@@ -113,17 +111,15 @@ namespace
 
         RTCDevice m_rtc_device;
         RTCScene m_rtc_scene;
+        OIDNDevice m_oidn_device;
 
         std::vector<JobPayload> m_jobs;
         std::atomic<size_t> m_next_job_index{ 0 };
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
-        std::vector<VirtualPointLight> m_vpls;
         std::map<const Material*, Vec3> m_material_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
-        std::mutex m_vpl_mutex;
-        std::atomic<int> m_halton_index{ 0 };
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
@@ -136,6 +132,13 @@ namespace
         }
         rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
         build_embree_scene();
+        m_oidn_device = oidnNewDevice(OIDN_DEVICE_TYPE_CPU);
+        if (!m_oidn_device)
+        {
+            throw std::runtime_error("Failed to create OIDN device.");
+        }
+        oidnSetDeviceErrorFunction(m_oidn_device, oidn_error_function, nullptr);
+        oidnCommitDevice(m_oidn_device);
     }
 
     Lightmapper::~Lightmapper()
@@ -147,6 +150,10 @@ namespace
         if (m_rtc_device)
         {
             rtcReleaseDevice(m_rtc_device);
+        }
+        if (m_oidn_device)
+        {
+            oidnReleaseDevice(m_oidn_device);
         }
     }
 
@@ -397,7 +404,7 @@ namespace
         }
     }
 
-    void Lightmapper::process_brush_face(const BrushFaceJobData& data)
+    void Lightmapper::process_brush_face(const BrushFaceJobData& data, std::mt19937& rng)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
         const BrushFace& face = b.faces[data.face_index];
@@ -429,15 +436,28 @@ namespace
 
         float u_range = std::max(0.001f, max_u - min_u);
         float v_range = std::max(0.001f, max_v - min_v);
-        std::vector<float> hdr_lightmap_data(m_resolution * m_resolution * 3);
+
+        std::vector<float> direct_lightmap_data(m_resolution * m_resolution * 3);
+        std::vector<float> indirect_lightmap_data(m_resolution * m_resolution * 3);
+        std::vector<float> albedo_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
+
+        Vec3 face_reflectivity = { 0.5f, 0.5f, 0.5f };
+        if (face.material) {
+            auto it = m_material_reflectivity.find(face.material);
+            if (it != m_material_reflectivity.end()) {
+                face_reflectivity = it->second;
+            }
+        }
 
         for (int y = 0; y < m_resolution; ++y)
         {
             for (int x = 0; x < m_resolution; ++x)
             {
-                Vec3 final_light_color = { 0, 0, 0 };
+                Vec3 direct_light_color = { 0, 0, 0 };
+                Vec3 indirect_light_color = { 0, 0, 0 };
                 Vec3 accumulated_direction = { 0, 0, 0 };
+                Vec3 indirect_direction = { 0, 0, 0 };
 
                 float u_tex = (static_cast<float>(x) + 0.5f) / m_resolution;
                 float v_tex = (static_cast<float>(y) + 0.5f) / m_resolution;
@@ -466,85 +486,26 @@ namespace
 
                 if (inside)
                 {
-                    Vec3 direct_light = { 0,0,0 };
-                    Vec3 indirect_light = { 0,0,0 };
-
-                    Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(face_normal, SHADOW_BIAS));
-
-                    for (int k = 0; k < m_scene->numActiveLights; ++k)
-                    {
-                        const Light& light = m_scene->lights[k];
-                        if (!light.is_static) continue;
-                        Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-                        float dist = vec3_length(light_dir);
-                        vec3_normalize(&light_dir);
-                        if (dist > light.radius) continue;
-
-                        float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
-                        if (NdotL <= 0.0f) continue;
-
-                        if (is_in_shadow(point_to_light_check, light.position)) continue;
-
-                        float spotFactor = 1.0f;
-                        if (light.type == LIGHT_SPOT)
-                        {
-                            Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                            float theta = vec3_dot(light_dir, light_forward_vector);
-                            float inner_cone_cos = light.cutOff;
-                            float outer_cone_cos = light.outerCutOff;
-
-                            if (theta < outer_cone_cos) {
-                                spotFactor = 0.0f;
-                            }
-                            else {
-                                float delta = inner_cone_cos - outer_cone_cos;
-                                if (delta > 0.0001f) {
-                                    float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
-                                    spotFactor = t * t * (3.0f - 2.0f * t);
-                                }
-                                else {
-                                    spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
-                                }
-                            }
-                        }
-
-                        float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
-                        Vec3 light_color = vec3_muls(light.color, light.intensity);
-                        Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
-                        direct_light = vec3_add(direct_light, light_contribution);
-
-                        float contribution_magnitude = vec3_length(light_contribution);
-                        accumulated_direction = vec3_add(accumulated_direction, vec3_muls(light_dir, contribution_magnitude));
-                    }
-
-                    for (const auto& vpl : m_vpls) {
-                        Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
-                        float dist_sq = vec3_length_sq(vpl_dir);
-                        if (dist_sq < 0.001f) continue;
-                        float dist = sqrtf(dist_sq);
-                        vec3_normalize(&vpl_dir);
-                        float NdotL_receiver = std::max(0.0f, vec3_dot(face_normal, vpl_dir));
-                        float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
-                        if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
-                            if (!is_in_shadow(point_to_light_check, vpl.position)) {
-                                float falloff = 1.0f / (dist_sq + 1.0f);
-                                Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
-                                indirect_light = vec3_add(indirect_light, vpl_contribution);
-                                accumulated_direction = vec3_add(accumulated_direction, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
-                            }
-                        }
-                    }
-
-                    final_light_color = vec3_add(direct_light, indirect_light);
+                    direct_light_color = calculate_direct_light(world_pos, face_normal, accumulated_direction);
+                    indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction);
+                    accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
                 }
 
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
                 int hdr_idx = (y * m_resolution + x) * 3;
-                hdr_lightmap_data[hdr_idx + 0] = final_light_color.x;
-                hdr_lightmap_data[hdr_idx + 1] = final_light_color.y;
-                hdr_lightmap_data[hdr_idx + 2] = final_light_color.z;
+                direct_lightmap_data[hdr_idx + 0] = direct_light_color.x;
+                direct_lightmap_data[hdr_idx + 1] = direct_light_color.y;
+                direct_lightmap_data[hdr_idx + 2] = direct_light_color.z;
+
+                indirect_lightmap_data[hdr_idx + 0] = indirect_light_color.x;
+                indirect_lightmap_data[hdr_idx + 1] = indirect_light_color.y;
+                indirect_lightmap_data[hdr_idx + 2] = indirect_light_color.z;
+
+                albedo_lightmap_data[hdr_idx + 0] = face_reflectivity.x;
+                albedo_lightmap_data[hdr_idx + 1] = face_reflectivity.y;
+                albedo_lightmap_data[hdr_idx + 2] = face_reflectivity.z;
 
                 int dir_idx = (y * m_resolution + x) * 4;
                 dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
@@ -554,11 +515,38 @@ namespace
             }
         }
 
-        apply_gaussian_blur(hdr_lightmap_data, m_resolution, m_resolution, 3);
+        size_t buffer_size = (size_t)m_resolution * m_resolution * 3 * sizeof(float);
+        size_t pixelStride = sizeof(float) * 3;
+        size_t rowStride = pixelStride * m_resolution;
+
+        OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
+
+        oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+        oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+
+        std::vector<float> denoised_indirect_data(m_resolution * m_resolution * 3);
+        oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+
+        oidnSetFilterBool(filter, "hdr", true);
+        oidnCommitFilter(filter);
+        oidnExecuteFilter(filter);
+
+        const char* errorMessage;
+        if (oidnGetDeviceError(m_oidn_device, &errorMessage) != OIDN_ERROR_NONE)
+            Console_Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
+
+        oidnReleaseFilter(filter);
+
+        std::vector<float> final_hdr_lightmap_data(m_resolution * m_resolution * 3);
+        for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
+            final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
+        }
+
+        apply_gaussian_blur(final_hdr_lightmap_data, m_resolution, m_resolution, 3);
         apply_gaussian_blur(dir_lightmap_data, m_resolution, m_resolution, 4);
 
         fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
-        stbi_write_hdr(color_path.string().c_str(), m_resolution, m_resolution, 3, hdr_lightmap_data.data());
+        stbi_write_hdr(color_path.string().c_str(), m_resolution, m_resolution, 3, final_hdr_lightmap_data.data());
         fs::path dir_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png");
         SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(dir_lightmap_data.data(), m_resolution, m_resolution, 32, m_resolution * 4,
             0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -568,7 +556,7 @@ namespace
         }
     }
 
-    void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
+    void Lightmapper::process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
         unsigned int v_idx = data.vertex_index;
@@ -580,76 +568,13 @@ namespace
         Vec3 world_normal = mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
         vec3_normalize(&world_normal);
 
-        Vec3 direct_light_accumulator = { 0,0,0 }, direction_accumulator = { 0,0,0 };
-        Vec3 point_to_light_check = vec3_add(world_pos, vec3_muls(world_normal, SHADOW_BIAS));
+        Vec3 direction_accumulator = { 0,0,0 };
+        Vec3 indirect_dir = { 0,0,0 };
+        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
+        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir);
 
-        for (int k = 0; k < m_scene->numActiveLights; ++k)
-        {
-            const Light& light = m_scene->lights[k];
-            if (!light.is_static) continue;
-
-            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-            float dist = vec3_length(light_dir);
-            vec3_normalize(&light_dir);
-            if (dist > light.radius) continue;
-
-            float NdotL = std::max(0.0f, vec3_dot(world_normal, light_dir));
-            if (NdotL <= 0.0f) continue;
-
-            if (is_in_shadow(point_to_light_check, light.position)) continue;
-
-            float spotFactor = 1.0f;
-            if (light.type == LIGHT_SPOT)
-            {
-                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                float theta = vec3_dot(light_dir, light_forward_vector);
-                float inner_cone_cos = light.cutOff;
-                float outer_cone_cos = light.outerCutOff;
-
-                if (theta < outer_cone_cos) {
-                    spotFactor = 0.0f;
-                }
-                else {
-                    float delta = inner_cone_cos - outer_cone_cos;
-                    if (delta > 0.0001f) {
-                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
-                        spotFactor = t * t * (3.0f - 2.0f * t);
-                    }
-                    else {
-                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
-                    }
-                }
-            }
-
-            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
-            Vec3 light_color = vec3_muls(light.color, light.intensity);
-            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
-            direct_light_accumulator = vec3_add(direct_light_accumulator, light_contribution);
-
-            float contribution_magnitude = vec3_length(light_contribution);
-            direction_accumulator = vec3_add(direction_accumulator, vec3_muls(light_dir, contribution_magnitude));
-        }
-
-        Vec3 indirect_light_accumulator = { 0, 0, 0 };
-        for (const auto& vpl : m_vpls) {
-            Vec3 vpl_dir = vec3_sub(vpl.position, point_to_light_check);
-            float dist_sq = vec3_length_sq(vpl_dir);
-            if (dist_sq < 0.001f) continue;
-            float dist = sqrtf(dist_sq);
-            vec3_normalize(&vpl_dir);
-            float NdotL_receiver = std::max(0.0f, vec3_dot(world_normal, vpl_dir));
-            float NdotL_emitter = std::max(0.0f, vec3_dot(vpl.normal, vec3_muls(vpl_dir, -1.0f)));
-            if (NdotL_receiver > 0.0f && NdotL_emitter > 0.0f) {
-                if (!is_in_shadow(point_to_light_check, vpl.position)) {
-                    float falloff = 1.0f / (dist_sq + 1.0f);
-                    Vec3 vpl_contribution = vec3_muls(vpl.color, NdotL_receiver * NdotL_emitter * falloff * INDIRECT_LIGHT_STRENGTH);
-                    indirect_light_accumulator = vec3_add(indirect_light_accumulator, vpl_contribution);
-                    direction_accumulator = vec3_add(direction_accumulator, vec3_muls(vpl_dir, vec3_length(vpl_contribution)));
-                }
-            }
-        }
-
-        Vec3 final_light_color = vec3_add(direct_light_accumulator, indirect_light_accumulator);
+        Vec3 final_light_color = vec3_add(direct_light, indirect_light);
+        direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
         if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
@@ -657,19 +582,22 @@ namespace
         data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
 
-    void Lightmapper::process_job(const JobPayload& job)
+    void Lightmapper::process_job(const JobPayload& job, std::mt19937& rng)
     {
-        std::visit([this](auto&& arg) {
+        std::visit([this, &rng](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, BrushFaceJobData>)
-                process_brush_face(arg);
+                process_brush_face(arg, rng);
             else if constexpr (std::is_same_v<T, ModelVertexJobData>)
-                process_model_vertex(arg);
+                process_model_vertex(arg, rng);
             }, job);
     }
 
     void Lightmapper::worker_main()
     {
+        std::random_device rd;
+        std::mt19937 rng(rd() ^ std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
         while (true)
         {
             size_t job_index = m_next_job_index.fetch_add(1);
@@ -677,7 +605,7 @@ namespace
             {
                 break;
             }
-            process_job(m_jobs[job_index]);
+            process_job(m_jobs[job_index], rng);
         }
     }
 
@@ -812,170 +740,136 @@ namespace
                 static_cast<float>(total_b) / texels / 255.0f
             };
 
-            float max_comp = std::max({ reflectivity.x, reflectivity.y, reflectivity.z });
-            if (max_comp > 0.001f) {
-                float scale = 1.0f / max_comp;
-                reflectivity = vec3_muls(reflectivity, scale);
-            }
-
             m_material_reflectivity[mat] = reflectivity;
         }
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
-    void Lightmapper::generate_first_bounce_vpls(int start_brush_index, int end_brush_index, std::vector<VirtualPointLight>& out_vpls)
+    Vec3 Lightmapper::calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const
     {
-        std::vector<VirtualPointLight> local_vpls;
+        Vec3 direct_light = { 0,0,0 };
+        out_dominant_dir = { 0,0,0 };
+        Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
 
-        for (int i = start_brush_index; i < end_brush_index; ++i)
+        for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
-            const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
+            const Light& light = m_scene->lights[k];
+            if (!light.is_static) continue;
 
-            for (int j = 0; j < b.numFaces; ++j)
+            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
+            float dist = vec3_length(light_dir);
+            vec3_normalize(&light_dir);
+            if (dist > light.radius) continue;
+
+            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            if (NdotL <= 0.0f) continue;
+
+            if (is_in_shadow(point_to_light_check, light.position)) continue;
+
+            float spotFactor = 1.0f;
+            if (light.type == LIGHT_SPOT)
             {
-                const BrushFace& face = b.faces[j];
-                if (face.numVertexIndices < 3) continue;
+                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
+                float theta = vec3_dot(light_dir, light_forward_vector);
+                float inner_cone_cos = light.cutOff;
+                float outer_cone_cos = light.outerCutOff;
 
-                const Material* mat = face.material;
-                if (!mat || mat == &g_NodrawMaterial) continue;
-
-                Vec3 reflectivity = { 0.5f, 0.5f, 0.5f };
-                auto it = m_material_reflectivity.find(mat);
-                if (it != m_material_reflectivity.end()) {
-                    reflectivity = it->second;
+                if (theta < outer_cone_cos) {
+                    spotFactor = 0.0f;
                 }
-
-                for (int k = 0; k < face.numVertexIndices - 2; ++k)
-                {
-                    Vec3 v0 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos);
-                    Vec3 v1 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos);
-                    Vec3 v2 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos);
-
-                    Vec3 face_normal = vec3_cross(vec3_sub(v1, v0), vec3_sub(v2, v0));
-                    vec3_normalize(&face_normal);
-
-                    for (int s = 0; s < VPL_SAMPLES_PER_TRIANGLE; ++s)
-                    {
-                        int sample_index = m_halton_index.fetch_add(1);
-                        float r1 = halton(sample_index, 2);
-                        float r2 = halton(sample_index, 3);
-                        if (r1 + r2 > 1.0f) {
-                            r1 = 1.0f - r1;
-                            r2 = 1.0f - r2;
-                        }
-
-                        Vec3 sample_pos = vec3_add(v0, vec3_add(vec3_muls(vec3_sub(v1, v0), r1), vec3_muls(vec3_sub(v2, v0), r2)));
-                        Vec3 point_to_light_check = vec3_add(sample_pos, vec3_muls(face_normal, SHADOW_BIAS));
-
-                        Vec3 direct_light = { 0, 0, 0 };
-                        for (int l = 0; l < m_scene->numActiveLights; ++l)
-                        {
-                            const Light& light = m_scene->lights[l];
-                            if (!light.is_static) continue;
-
-                            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
-                            float dist = vec3_length(light_dir);
-                            vec3_normalize(&light_dir);
-                            if (dist > light.radius) continue;
-
-                            float NdotL = std::max(0.0f, vec3_dot(face_normal, light_dir));
-                            if (NdotL <= 0.0f) continue;
-
-                            if (is_in_shadow(point_to_light_check, light.position)) continue;
-
-                            float spotFactor = 1.0f;
-                            if (light.type == LIGHT_SPOT)
-                            {
-                                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                                float theta = vec3_dot(light_dir, light_forward_vector);
-                                float inner_cone_cos = light.cutOff;
-                                float outer_cone_cos = light.outerCutOff;
-
-                                if (theta < outer_cone_cos) {
-                                    spotFactor = 0.0f;
-                                }
-                                else {
-                                    float delta = inner_cone_cos - outer_cone_cos;
-                                    if (delta > 0.0001f) {
-                                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
-                                        spotFactor = t * t * (3.0f - 2.0f * t);
-                                    }
-                                    else {
-                                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
-                                    }
-                                }
-                            }
-
-                            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
-                            direct_light = vec3_add(direct_light, vec3_muls(light.color, light.intensity * NdotL * attenuation));
-                        }
-
-                        float brightness = vec3_dot(direct_light, { 0.299f, 0.587f, 0.114f });
-                        if (brightness > VPL_BRIGHTNESS_THRESHOLD) {
-                            VirtualPointLight vpl;
-                            vpl.position = sample_pos;
-                            vpl.color = vec3_mul(direct_light, reflectivity);
-                            vpl.normal = face_normal;
-                            local_vpls.push_back(vpl);
-                        }
+                else {
+                    float delta = inner_cone_cos - outer_cone_cos;
+                    if (delta > 0.0001f) {
+                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                        spotFactor = t * t * (3.0f - 2.0f * t);
+                    }
+                    else {
+                        spotFactor = (theta >= inner_cone_cos) ? 1.0f : 0.0f;
                     }
                 }
             }
-        }
 
-        if (!local_vpls.empty())
-        {
-            std::lock_guard<std::mutex> lock(m_vpl_mutex);
-            out_vpls.insert(out_vpls.end(), local_vpls.begin(), local_vpls.end());
+            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
+            Vec3 light_color = vec3_muls(light.color, light.intensity);
+            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
+            direct_light = vec3_add(direct_light, light_contribution);
+
+            float contribution_magnitude = vec3_length(light_contribution);
+            out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
         }
+        return direct_light;
     }
 
-    Vec3 Lightmapper::random_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen) {
+    Vec3 Lightmapper::cosine_weighted_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen)
+    {
         std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-
         float u1 = dist(gen);
         float u2 = dist(gen);
 
-        float r = sqrtf(1.0f - u1 * u1);
-        float phi = 2.0f * M_PI * u2;
+        float r = sqrtf(u1);
+        float theta = 2.0f * (float)M_PI * u2;
 
-        Vec3 sample_dir = { cosf(phi) * r, sinf(phi) * r, u1 };
+        float x = r * cosf(theta);
+        float y = r * sinf(theta);
+        float z = sqrtf(std::max(0.0f, 1.0f - u1));
 
         Vec3 up = fabsf(normal.z) < 0.999f ? Vec3{ 0,0,1 } : Vec3{ 1,0,0 };
         Vec3 tangent = vec3_cross(up, normal);
         vec3_normalize(&tangent);
         Vec3 bitangent = vec3_cross(normal, tangent);
 
-        return vec3_add(vec3_muls(tangent, sample_dir.x), vec3_add(vec3_muls(bitangent, sample_dir.y), vec3_muls(normal, sample_dir.z)));
+        return vec3_add(vec3_muls(tangent, x), vec3_add(vec3_muls(bitangent, y), vec3_muls(normal, z)));
     }
 
-    void Lightmapper::generate_subsequent_bounce_vpls(const std::vector<VirtualPointLight>& source_vpls, int start_vpl_index, int end_vpl_index, std::vector<VirtualPointLight>& out_vpls)
+    Vec3 Lightmapper::get_reflectivity_at_hit(unsigned int primID) const
     {
-        std::vector<VirtualPointLight> local_vpls;
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> distrib(0.0f, 1.0f);
-
-        for (int i = start_vpl_index; i < end_vpl_index; ++i)
+        if (primID < m_primID_to_face_map.size())
         {
-            const auto& source_vpl = source_vpls[i];
-
-            float p = std::max({ source_vpl.color.x, source_vpl.color.y, source_vpl.color.z });
-            p = std::clamp(p, 0.0f, 1.0f);
-            if (distrib(gen) > p) {
-                continue;
-            }
-            Vec3 vpl_energy = vec3_muls(source_vpl.color, 1.0f / p);
-
-            for (int s = 0; s < VPL_SAMPLES_PER_BOUNCE; ++s)
+            const BrushFace* hit_face = m_primID_to_face_map[primID];
+            if (hit_face && hit_face->material)
             {
-                Vec3 ray_dir = random_direction_in_hemisphere(source_vpl.normal, gen);
-                Vec3 ray_org = vec3_add(source_vpl.position, vec3_muls(source_vpl.normal, SHADOW_BIAS));
+                auto it = m_material_reflectivity.find(hit_face->material);
+                if (it != m_material_reflectivity.end())
+                {
+                    return it->second;
+                }
+            }
+        }
+        return { 0.5f, 0.5f, 0.5f };
+    }
+
+    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir)
+    {
+        Vec3 accumulated_color = { 0, 0, 0 };
+        out_indirect_dir = { 0, 0, 0 };
+        std::uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
+
+        if (m_bounces <= 0 || INDIRECT_SAMPLES_PER_POINT <= 0)
+        {
+            return accumulated_color;
+        }
+
+        for (int i = 0; i < INDIRECT_SAMPLES_PER_POINT; ++i)
+        {
+            Vec3 ray_origin = origin;
+            Vec3 ray_normal = normal;
+            Vec3 throughput = { 1.0f, 1.0f, 1.0f };
+            Vec3 first_bounce_dir = { 0,0,0 };
+            Vec3 path_radiance = { 0,0,0 };
+
+            for (int bounce = 0; bounce < m_bounces; ++bounce)
+            {
+                Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(ray_normal, rng);
+                if (bounce == 0)
+                {
+                    first_bounce_dir = bounce_dir;
+                }
+
+                Vec3 trace_origin = vec3_add(ray_origin, vec3_muls(ray_normal, SHADOW_BIAS));
 
                 RTCRayHit rayhit;
-                rayhit.ray.org_x = ray_org.x; rayhit.ray.org_y = ray_org.y; rayhit.ray.org_z = ray_org.z;
-                rayhit.ray.dir_x = ray_dir.x; rayhit.ray.dir_y = ray_dir.y; rayhit.ray.dir_z = ray_dir.z;
+                rayhit.ray.org_x = trace_origin.x; rayhit.ray.org_y = trace_origin.y; rayhit.ray.org_z = trace_origin.z;
+                rayhit.ray.dir_x = bounce_dir.x; rayhit.ray.dir_y = bounce_dir.y; rayhit.ray.dir_z = bounce_dir.z;
                 rayhit.ray.tnear = 0.0f;
                 rayhit.ray.tfar = FLT_MAX;
                 rayhit.ray.mask = -1;
@@ -985,45 +879,42 @@ namespace
                 RTCIntersectArguments args;
                 rtcInitIntersectArguments(&args);
                 args.feature_mask = RTC_FEATURE_FLAG_NONE;
+
                 rtcIntersect1(m_rtc_scene, &rayhit, &args);
 
                 if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
                 {
-                    Vec3 hit_pos = { ray_org.x + rayhit.ray.tfar * ray_dir.x, ray_org.y + rayhit.ray.tfar * ray_dir.y, ray_org.z + rayhit.ray.tfar * ray_dir.z };
+                    Vec3 hit_pos = { trace_origin.x + rayhit.ray.tfar * bounce_dir.x, trace_origin.y + rayhit.ray.tfar * bounce_dir.y, trace_origin.z + rayhit.ray.tfar * bounce_dir.z };
                     Vec3 hit_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
                     vec3_normalize(&hit_normal);
 
-                    Vec3 reflectivity = { 0.5f, 0.5f, 0.5f };
+                    Vec3 reflectivity = get_reflectivity_at_hit(rayhit.hit.primID);
+                    Vec3 dummy_dir;
+                    Vec3 direct_light_at_hit = calculate_direct_light(hit_pos, hit_normal, dummy_dir);
 
-                    if (rayhit.hit.primID < m_primID_to_face_map.size()) {
-                        const BrushFace* hit_face = m_primID_to_face_map[rayhit.hit.primID];
+                    path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light_at_hit, reflectivity), throughput));
 
-                        if (hit_face && hit_face->material) {
-                            auto it = m_material_reflectivity.find(hit_face->material);
-                            if (it != m_material_reflectivity.end()) {
-                                reflectivity = it->second;
-                            }
-                        }
+                    throughput = vec3_mul(throughput, reflectivity);
+                    ray_origin = hit_pos;
+                    ray_normal = hit_normal;
+
+                    float p = std::max({ throughput.x, throughput.y, throughput.z });
+                    if (roulette_dist(rng) > p || p < 0.001f)
+                    {
+                        break;
                     }
-
-                    float NdotL = std::max(0.0f, vec3_dot(source_vpl.normal, ray_dir));
-                    Vec3 incoming_light = vec3_muls(vpl_energy, NdotL / (float)VPL_SAMPLES_PER_BOUNCE);
-
-                    Vec3 new_vpl_color = vec3_mul(incoming_light, reflectivity);
-
-                    float brightness = vec3_dot(new_vpl_color, { 0.299f, 0.587f, 0.114f });
-                    if (brightness > VPL_BRIGHTNESS_THRESHOLD * 0.05f) {
-                        local_vpls.push_back({ hit_pos, new_vpl_color, hit_normal });
-                    }
+                    throughput = vec3_muls(throughput, 1.0f / p);
+                }
+                else
+                {
+                    break;
                 }
             }
+            accumulated_color = vec3_add(accumulated_color, path_radiance);
+            out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(first_bounce_dir, vec3_length(path_radiance)));
         }
 
-        if (!local_vpls.empty())
-        {
-            std::lock_guard<std::mutex> lock(m_vpl_mutex);
-            out_vpls.insert(out_vpls.end(), local_vpls.begin(), local_vpls.end());
-        }
+        return vec3_muls(accumulated_color, INDIRECT_LIGHT_STRENGTH / (float)INDIRECT_SAMPLES_PER_POINT);
     }
 
     void Lightmapper::generate()
@@ -1034,55 +925,13 @@ namespace
 
         precalculate_material_reflectivity();
 
-        Console_Printf("[Lightmapper] Generating Virtual Point Lights (%d bounces)...", m_bounces);
-        unsigned int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads;
-
-        m_vpls.clear();
-        std::vector<VirtualPointLight> source_vpls;
-
-        Console_Printf("[Lightmapper]   - Pass 1: Generating VPLs from scene lights...");
-        int brushes_per_thread = (m_scene->numBrushes + num_threads - 1) / num_threads;
-        for (unsigned int i = 0; i < num_threads; ++i)
-        {
-            int start_brush = i * brushes_per_thread;
-            int end_brush = std::min(start_brush + brushes_per_thread, m_scene->numBrushes);
-            if (start_brush < end_brush) {
-                threads.emplace_back(&Lightmapper::generate_first_bounce_vpls, this, start_brush, end_brush, std::ref(source_vpls));
-            }
-        }
-        for (auto& t : threads) t.join();
-        threads.clear();
-        m_vpls.insert(m_vpls.end(), source_vpls.begin(), source_vpls.end());
-        Console_Printf("[Lightmapper]     Generated %zu VPLs.", source_vpls.size());
-
-        for (int bounce = 2; bounce <= m_bounces; ++bounce)
-        {
-            if (source_vpls.empty()) break;
-            Console_Printf("[Lightmapper]   - Pass %d: Generating VPLs from %zu source VPLs...", bounce, source_vpls.size());
-
-            std::vector<VirtualPointLight> next_bounce_vpls;
-            int vpls_per_thread = (source_vpls.size() + num_threads - 1) / num_threads;
-            for (unsigned int i = 0; i < num_threads; ++i)
-            {
-                int start_vpl = i * vpls_per_thread;
-                int end_vpl = std::min(start_vpl + vpls_per_thread, (int)source_vpls.size());
-                if (start_vpl < end_vpl) {
-                    threads.emplace_back(&Lightmapper::generate_subsequent_bounce_vpls, this, std::cref(source_vpls), start_vpl, end_vpl, std::ref(next_bounce_vpls));
-                }
-            }
-            for (auto& t : threads) t.join();
-            threads.clear();
-
-            source_vpls = std::move(next_bounce_vpls);
-            m_vpls.insert(m_vpls.end(), source_vpls.begin(), source_vpls.end());
-            Console_Printf("[Lightmapper]     Generated %zu VPLs.", source_vpls.size());
-        }
-
-        Console_Printf("[Lightmapper] Total VPLs generated: %zu.", m_vpls.size());
         prepare_jobs();
         if (m_jobs.empty()) return;
 
+        Console_Printf("[Lightmapper] Using path tracing with %d bounces and %d indirect samples.", m_bounces, INDIRECT_SAMPLES_PER_POINT);
+
+        unsigned int num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
         Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
 
         for (unsigned int i = 0; i < num_threads; ++i)
