@@ -461,8 +461,10 @@ else()
         set(EMBREE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libembree4.so")
         set(TBB_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbb.so")
         set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbbmalloc.so")
-        set(OIDN_LIB "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux/libOpenImageDenoise.so.2.3.3")
-        set(OIDN_CORE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux/libOpenImageDenoise_core.so.2.3.3")
+
+        set(OIDN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux")
+        set(OIDN_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise.so.2.3.3")
+        set(OIDN_CORE_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise_core.so.2.3.3")
 
         target_link_libraries(sound PRIVATE ${SDL2_LIBRARIES} ${OPENAL_LIB})
         target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 ${SDL2_IMAGE_LIBRARY} GLEW::glew OpenGL::GL)
@@ -472,7 +474,7 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux"
-            "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux"
+            "${OIDN_LIB_DIR}"
         )
 
         target_link_libraries(engine PRIVATE
@@ -507,6 +509,10 @@ endif()
 
 # launcher executable
 add_executable(launcher launcher/launcher.c)
+
+if(UNIX AND NOT APPLE)
+    target_link_options(launcher PRIVATE "-Wl,-rpath,'$ORIGIN'")
+endif()
 
 if(WIN32)
     set(LAUNCHER_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.rc")
