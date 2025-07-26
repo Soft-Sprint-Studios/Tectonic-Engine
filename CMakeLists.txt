@@ -471,6 +471,7 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
             "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux"
         )
 
         target_link_libraries(engine PRIVATE
