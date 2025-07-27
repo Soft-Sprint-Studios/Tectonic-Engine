@@ -554,7 +554,9 @@ namespace
                 float v_tex = (static_cast<float>(y) + 0.5f) / m_resolution;
                 float world_u = min_u + u_tex * u_range;
                 float world_v = min_v + v_tex * v_range;
-                Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
+                Vec3 point_on_origin_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
+                float plane_dist = vec3_dot(v0, face_normal);
+                Vec3 point_on_plane = vec3_add(point_on_origin_plane, vec3_muls(face_normal, plane_dist));
 
                 Vec3 world_pos;
                 bool inside = false;
@@ -1009,6 +1011,11 @@ namespace
                     Vec3 hit_pos = { trace_origin.x + rayhit.ray.tfar * bounce_dir.x, trace_origin.y + rayhit.ray.tfar * bounce_dir.y, trace_origin.z + rayhit.ray.tfar * bounce_dir.z };
                     Vec3 hit_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
                     vec3_normalize(&hit_normal);
+
+                    if (vec3_dot(bounce_dir, hit_normal) > 0.0f)
+                    {
+                        break;
+                    }
 
                     Vec3 reflectivity = get_reflectivity_at_hit(rayhit.hit.primID);
                     Vec3 dummy_dir;
