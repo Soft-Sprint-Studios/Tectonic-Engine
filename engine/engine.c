@@ -981,6 +981,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 
 void init_renderer() {
     g_renderer.zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");
+    g_renderer.wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
     g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     g_renderer.debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
     g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
@@ -2023,10 +2024,6 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
         glDisable(GL_CULL_FACE);
     }
 
-    if (Cvar_GetInt("r_wireframe")) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1.0f, 1.0f);
 
@@ -2053,10 +2050,6 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
-    }
-
-    if (Cvar_GetInt("r_wireframe")) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     glDisable(GL_POLYGON_OFFSET_FILL);
@@ -2129,9 +2122,6 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     else {
         glDisable(GL_CULL_FACE);
-    }
-    if (Cvar_GetInt("r_wireframe")) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     glUseProgram(g_renderer.mainShader);
@@ -2306,15 +2296,64 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }
-    if (Cvar_GetInt("r_wireframe")) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
     if (Cvar_GetInt("r_zprepass")) {
         glDepthFunc(GL_LESS);
     }
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glBindVertexArray(0);
+    if (Cvar_GetInt("r_wireframe")) {
+        glUseProgram(g_renderer.wireframeShader);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "view"), 1, GL_FALSE, view->m);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "projection"), 1, GL_FALSE, projection->m);
+
+        glDepthFunc(GL_GREATER);
+        glUniform4f(glGetUniformLocation(g_renderer.wireframeShader, "wireframeColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+
+        for (int i = 0; i < g_scene.numObjects; i++) {
+            SceneObject* obj = &g_scene.objects[i];
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+            if (obj->model) {
+                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                    Mesh* mesh = &obj->model->meshes[meshIdx];
+                    glBindVertexArray(mesh->VAO);
+                    if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
+                    else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+                }
+            }
+        }
+        for (int i = 0; i < g_scene.numBrushes; i++) {
+            Brush* b = &g_scene.brushes[i];
+            if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+            glBindVertexArray(b->vao);
+            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        }
+
+        glDepthFunc(GL_LEQUAL);
+        glUniform4f(glGetUniformLocation(g_renderer.wireframeShader, "wireframeColor"), 0.0f, 0.0f, 1.0f, 1.0f);
+
+        for (int i = 0; i < g_scene.numObjects; i++) {
+            SceneObject* obj = &g_scene.objects[i];
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+            if (obj->model) {
+                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                    Mesh* mesh = &obj->model->meshes[meshIdx];
+                    glBindVertexArray(mesh->VAO);
+                    if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
+                    else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+                }
+            }
+        }
+        for (int i = 0; i < g_scene.numBrushes; i++) {
+            Brush* b = &g_scene.brushes[i];
+            if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+            glBindVertexArray(b->vao);
+            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        }
+        glDepthFunc(GL_LESS);
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
