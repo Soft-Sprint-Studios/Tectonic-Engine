@@ -403,6 +403,96 @@ namespace
         }
     }
 
+    void box_blur(std::vector<float>& out, const std::vector<float>& in, int width, int height, int radius)
+    {
+        std::vector<float> temp(width * height);
+        float scale = 1.0f / (2 * radius + 1);
+
+        for (int y = 0; y < height; ++y) {
+            float sum = 0;
+            for (int x = -radius; x <= radius; ++x) {
+                sum += in[y * width + std::clamp(x, 0, width - 1)];
+            }
+            for (int x = 0; x < width; ++x) {
+                temp[y * width + x] = sum * scale;
+                int prev_idx = std::clamp(x - radius, 0, width - 1);
+                int next_idx = std::clamp(x + radius + 1, 0, width - 1);
+                sum += in[y * width + next_idx] - in[y * width + prev_idx];
+            }
+        }
+
+        for (int x = 0; x < width; ++x) {
+            float sum = 0;
+            for (int y = -radius; y <= radius; ++y) {
+                sum += temp[std::clamp(y, 0, height - 1) * width + x];
+            }
+            for (int y = 0; y < height; ++y) {
+                out[y * width + x] = sum * scale;
+                int prev_idx = std::clamp(y - radius, 0, height - 1);
+                int next_idx = std::clamp(y + radius + 1, 0, height - 1);
+                sum += temp[next_idx * width + x] - temp[prev_idx * width + x];
+            }
+        }
+    }
+
+    void apply_guided_filter(std::vector<float>& out_p, const std::vector<float>& in_p, const std::vector<float>& guide, int width, int height, int radius, float epsilon)
+    {
+        int n_pixels = width * height;
+        std::vector<float> guide_gray(n_pixels);
+        for (int i = 0; i < n_pixels; ++i) {
+            guide_gray[i] = (guide[i * 3 + 0] * 0.299f + guide[i * 3 + 1] * 0.587f + guide[i * 3 + 2] * 0.114f);
+        }
+
+        std::vector<float> mean_I(n_pixels);
+        box_blur(mean_I, guide_gray, width, height, radius);
+
+        std::vector<float> var_I(n_pixels);
+        std::vector<float> I_sq(n_pixels);
+        for (int i = 0; i < n_pixels; ++i) {
+            I_sq[i] = guide_gray[i] * guide_gray[i];
+        }
+        box_blur(var_I, I_sq, width, height, radius);
+        for (int i = 0; i < n_pixels; ++i) {
+            var_I[i] -= mean_I[i] * mean_I[i];
+        }
+
+        out_p.resize(n_pixels * 3);
+        std::vector<float> p_channel(n_pixels);
+        std::vector<float> mean_p(n_pixels);
+        std::vector<float> cov_Ip(n_pixels);
+        std::vector<float> Ip(n_pixels);
+        std::vector<float> a(n_pixels), b(n_pixels);
+        std::vector<float> mean_a(n_pixels), mean_b(n_pixels);
+
+        for (int c = 0; c < 3; ++c) {
+            for (int i = 0; i < n_pixels; ++i) {
+                p_channel[i] = in_p[i * 3 + c];
+            }
+
+            box_blur(mean_p, p_channel, width, height, radius);
+
+            for (int i = 0; i < n_pixels; ++i) {
+                Ip[i] = guide_gray[i] * p_channel[i];
+            }
+            box_blur(cov_Ip, Ip, width, height, radius);
+            for (int i = 0; i < n_pixels; ++i) {
+                cov_Ip[i] -= mean_I[i] * mean_p[i];
+            }
+
+            for (int i = 0; i < n_pixels; ++i) {
+                a[i] = cov_Ip[i] / (var_I[i] + epsilon);
+                b[i] = mean_p[i] - a[i] * mean_I[i];
+            }
+
+            box_blur(mean_a, a, width, height, radius);
+            box_blur(mean_b, b, width, height, radius);
+
+            for (int i = 0; i < n_pixels; ++i) {
+                out_p[i * 3 + c] = mean_a[i] * guide_gray[i] + mean_b[i];
+            }
+        }
+    }
+
     void Lightmapper::process_brush_face(const BrushFaceJobData& data, std::mt19937& rng)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
@@ -440,6 +530,7 @@ namespace
         std::vector<float> indirect_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<float> albedo_lightmap_data(m_resolution * m_resolution * 3);
         std::vector<float> normal_lightmap_data(m_resolution * m_resolution * 3);
+        std::vector<float> direction_float_data(m_resolution * m_resolution * 3);
         std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
 
         Vec3 face_reflectivity = { 0.5f, 0.5f, 0.5f };
@@ -505,6 +596,10 @@ namespace
                 if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
+                direction_float_data[hdr_idx + 0] = accumulated_direction.x;
+                direction_float_data[hdr_idx + 1] = accumulated_direction.y;
+                direction_float_data[hdr_idx + 2] = accumulated_direction.z;
+
                 direct_lightmap_data[hdr_idx + 0] = direct_light_color.x;
                 direct_lightmap_data[hdr_idx + 1] = direct_light_color.y;
                 direct_lightmap_data[hdr_idx + 2] = direct_light_color.z;
@@ -516,12 +611,6 @@ namespace
                 albedo_lightmap_data[hdr_idx + 0] = face_reflectivity.x;
                 albedo_lightmap_data[hdr_idx + 1] = face_reflectivity.y;
                 albedo_lightmap_data[hdr_idx + 2] = face_reflectivity.z;
-
-                int dir_idx = (y * m_resolution + x) * 4;
-                dir_lightmap_data[dir_idx + 0] = static_cast<unsigned char>((accumulated_direction.x * 0.5f + 0.5f) * 255.0f);
-                dir_lightmap_data[dir_idx + 1] = static_cast<unsigned char>((accumulated_direction.y * 0.5f + 0.5f) * 255.0f);
-                dir_lightmap_data[dir_idx + 2] = static_cast<unsigned char>((accumulated_direction.z * 0.5f + 0.5f) * 255.0f);
-                dir_lightmap_data[dir_idx + 3] = 255;
             }
         }
 
@@ -552,8 +641,27 @@ namespace
             final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
         }
 
+        std::vector<float> filtered_direction_data;
+        apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, m_resolution, m_resolution, 4, 0.01f);
+
+        for (int i = 0; i < m_resolution * m_resolution; ++i) {
+            int idx3 = i * 3;
+            Vec3 dir = { filtered_direction_data[idx3], filtered_direction_data[idx3 + 1], filtered_direction_data[idx3 + 2] };
+            if (vec3_length_sq(dir) > 0.0001f) {
+                vec3_normalize(&dir);
+            }
+            else {
+                dir = { 0,0,0 };
+            }
+
+            int idx4 = i * 4;
+            dir_lightmap_data[idx4 + 0] = static_cast<unsigned char>((dir.x * 0.5f + 0.5f) * 255.0f);
+            dir_lightmap_data[idx4 + 1] = static_cast<unsigned char>((dir.y * 0.5f + 0.5f) * 255.0f);
+            dir_lightmap_data[idx4 + 2] = static_cast<unsigned char>((dir.z * 0.5f + 0.5f) * 255.0f);
+            dir_lightmap_data[idx4 + 3] = 255;
+        }
+
         apply_gaussian_blur(final_hdr_lightmap_data, m_resolution, m_resolution, 3);
-        apply_gaussian_blur(dir_lightmap_data, m_resolution, m_resolution, 4);
 
         fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
         stbi_write_hdr(color_path.string().c_str(), m_resolution, m_resolution, 3, final_hdr_lightmap_data.data());
