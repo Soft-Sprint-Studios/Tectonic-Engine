@@ -50,6 +50,8 @@ extern "C" {
 	MATH_API Mat4 mat4_rotate_x(float radians);
 	MATH_API Mat4 mat4_rotate_y(float radians);
 	MATH_API Mat4 mat4_rotate_z(float radians);
+	MATH_API Vec4 vec4_add(Vec4 a, Vec4 b);
+	MATH_API Vec4 vec4_muls(Vec4 v, float s);
 	MATH_API Vec3 mat4_mul_vec3_dir(const Mat4* m, Vec3 v);
 	MATH_API Vec4 mat4_mul_vec4(const Mat4* m, Vec4 v);
 	MATH_API void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale);

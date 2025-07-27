@@ -55,6 +55,14 @@ Vec3 vec3_cross(Vec3 a, Vec3 b) {
     };
 }
 
+Vec4 vec4_add(Vec4 a, Vec4 b) {
+    return (Vec4) { a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w };
+}
+
+Vec4 vec4_muls(Vec4 v, float s) {
+    return (Vec4) { v.x* s, v.y* s, v.z* s, v.w* s };
+}
+
 Vec3 mat4_mul_vec3(const Mat4* m, Vec3 v) {
     Vec3 res;
     res.x = m->m[0] * v.x + m->m[4] * v.y + m->m[8] * v.z + m->m[12];
