@@ -46,7 +46,7 @@ namespace
 {
     namespace fs = std::filesystem;
 
-    constexpr float SHADOW_BIAS = 0.001f;
+    constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
     constexpr int INDIRECT_SAMPLES_PER_POINT = 64;
 
@@ -554,9 +554,7 @@ namespace
                 float v_tex = (static_cast<float>(y) + 0.5f) / m_resolution;
                 float world_u = min_u + u_tex * u_range;
                 float world_v = min_v + v_tex * v_range;
-                Vec3 point_on_origin_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
-                float plane_dist = vec3_dot(v0, face_normal);
-                Vec3 point_on_plane = vec3_add(point_on_origin_plane, vec3_muls(face_normal, plane_dist));
+                Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
 
                 Vec3 world_pos;
                 bool inside = false;
@@ -869,6 +867,7 @@ namespace
     {
         Vec3 direct_light = { 0,0,0 };
         out_dominant_dir = { 0,0,0 };
+        Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
@@ -882,9 +881,6 @@ namespace
 
             float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
-
-            float bias = std::max(0.05f * (1.0f - NdotL), 0.005f);
-            Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, bias));
 
             if (is_in_shadow(point_to_light_check, light.position)) continue;
 
@@ -987,9 +983,7 @@ namespace
                     first_bounce_dir = bounce_dir;
                 }
 
-                float NdotV = std::max(0.0f, vec3_dot(ray_normal, bounce_dir));
-                float bias = std::max(0.05f * (1.0f - NdotV), 0.005f);
-                Vec3 trace_origin = vec3_add(ray_origin, vec3_muls(ray_normal, bias));
+                Vec3 trace_origin = vec3_add(ray_origin, vec3_muls(ray_normal, SHADOW_BIAS));
 
                 RTCRayHit rayhit;
                 rayhit.ray.org_x = trace_origin.x; rayhit.ray.org_y = trace_origin.y; rayhit.ray.org_z = trace_origin.z;
