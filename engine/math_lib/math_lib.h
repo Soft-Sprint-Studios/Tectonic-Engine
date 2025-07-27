@@ -60,7 +60,6 @@ extern "C" {
 	MATH_API void extract_frustum_planes(const Mat4* view_proj, Frustum* frustum, bool normalize);
 	MATH_API bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs);
 	MATH_API bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir, Vec3 v0, Vec3 v1, Vec3 v2, float* t_out);
-	MATH_API float halton(int index, int base);
 
 #ifdef __cplusplus
 }

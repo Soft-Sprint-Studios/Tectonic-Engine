@@ -550,16 +550,3 @@ bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs) {
 
     return true;
 }
-
-float halton(int index, int base) {
-    float result = 0.0f;
-    float f = 1.0f / base;
-
-    while (index > 0) {
-        result += f * (index % base);
-        index /= base;
-        f /= base;
-    }
-
-    return result;
-}
