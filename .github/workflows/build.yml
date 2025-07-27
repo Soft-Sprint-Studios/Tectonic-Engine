@@ -28,9 +28,9 @@ jobs:
         run: build-linux-x64-release/Patcher build-linux-x64-release/libengine.so
       - name: Prepare artifacts
         run: |
-          mkdir -p commit/linux-x64-release
-          cp build-linux-x64-release/launcher commit/linux-x64-release/
-          cp build-linux-x64-release/libengine.so commit/linux-x64-release/
+          mkdir -p /mnt/d/tectonicbuilds/linux-x64-release
+          cp build-linux-x64-release/launcher /mnt/d/tectonicbuilds/linux-x64-release/
+          cp build-linux-x64-release/libengine.so /mnt/d/tectonicbuilds/linux-x64-release/
 
   build-linux-x64-relwithdebinfo:
     runs-on: [self-hosted, linux]
@@ -59,11 +59,11 @@ jobs:
         run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libengine.so
       - name: Prepare artifacts
         run: |
-          mkdir -p commit/linux-x64-relwithdebinfo
-          cp build-linux-x64-relwithdebinfo/launcher commit/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/libengine.so commit/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/launcher.debugsymbols commit/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/libengine.so.debugsymbols commit/linux-x64-relwithdebinfo/
+          mkdir -p /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo
+          cp build-linux-x64-relwithdebinfo/launcher /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libengine.so /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/launcher.debugsymbols /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
+          cp build-linux-x64-relwithdebinfo/libengine.so.debugsymbols /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
 
   build-windows-x64-release:
     runs-on: [self-hosted, windows]
@@ -76,9 +76,9 @@ jobs:
         run: cmake --build build-windows-x64-release --config Release
       - name: Prepare artifacts
         run: |
-          mkdir commit\windows-x64-release
-          copy build-windows-x64-release\Release\launcher.exe commit\windows-x64-release\
-          copy build-windows-x64-release\Release\engine.dll commit\windows-x64-release\
+          mkdir "D:\tectonicbuilds\windows-x64-release"
+          copy build-windows-x64-release\Release\launcher.exe D:\tectonicbuilds\windows-x64-release\
+          copy build-windows-x64-release\Release\engine.dll D:\tectonicbuilds\windows-x64-release\
 
   build-windows-x64-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -91,11 +91,11 @@ jobs:
         run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
       - name: Prepare artifacts
         run: |
-          mkdir commit\windows-x64-relwithdebinfo
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe commit\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.dll commit\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb commit\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb commit\windows-x64-relwithdebinfo\
+          mkdir "D:\tectonicbuilds\windows-x64-relwithdebinfo"
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.dll D:\tectonicbuilds\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
 
   build-windows-x86-release:
     runs-on: [self-hosted, windows]
@@ -108,9 +108,9 @@ jobs:
         run: cmake --build build-windows-x86-release --config Release
       - name: Prepare artifacts
         run: |
-          mkdir commit\windows-x86-release
-          copy build-windows-x86-release\Release\launcher.exe commit\windows-x86-release\
-          copy build-windows-x86-release\Release\engine.dll commit\windows-x86-release\
+          mkdir "D:\tectonicbuilds\windows-x86-release"
+          copy build-windows-x86-release\Release\launcher.exe D:\tectonicbuilds\windows-x86-release\
+          copy build-windows-x86-release\Release\engine.dll D:\tectonicbuilds\windows-x86-release\
 
   build-windows-x86-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -123,8 +123,8 @@ jobs:
         run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
       - name: Prepare artifacts
         run: |
-          mkdir commit\windows-x86-relwithdebinfo
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe commit\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.dll commit\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb commit\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb commit\windows-x86-relwithdebinfo\
+          mkdir "D:\tectonicbuilds\windows-x86-relwithdebinfo"
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.dll D:\tectonicbuilds\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
