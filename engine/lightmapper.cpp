@@ -49,7 +49,6 @@ namespace
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 3;
     constexpr int INDIRECT_SAMPLES_PER_POINT = 64;
-    constexpr float INDIRECT_LIGHT_STRENGTH = 1.0f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
@@ -925,7 +924,7 @@ namespace
             out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(first_bounce_dir, vec3_length(path_radiance)));
         }
 
-        return vec3_muls(accumulated_color, INDIRECT_LIGHT_STRENGTH / (float)INDIRECT_SAMPLES_PER_POINT);
+        return vec3_muls(accumulated_color, 1.0f / (float)INDIRECT_SAMPLES_PER_POINT);
     }
 
     void Lightmapper::generate()
