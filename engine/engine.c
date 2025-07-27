@@ -838,6 +838,7 @@ void init_cvars() {
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
     Cvar_Register("r_sprites", "1", "Enable sprites (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_water", "1", "Enable water rendering (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_lightmaps_bicubic", "0", "Enable Bicubic lightmap filtering (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Max FPS (0=unlimited)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_showgraph", "0", "Show framerate graph (0=off, 1=on)", CVAR_NONE);
@@ -2154,6 +2155,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_lightmaps"), Cvar_GetInt("r_debug_lightmaps"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_lightmaps_directional"), Cvar_GetInt("r_debug_lightmaps_directional"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_debug_vertex_light"), Cvar_GetInt("r_debug_vertex_light"));
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "r_lightmaps_bicubic"), Cvar_GetInt("r_lightmaps_bicubic"));
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), 0);
     glActiveTexture(GL_TEXTURE16);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);

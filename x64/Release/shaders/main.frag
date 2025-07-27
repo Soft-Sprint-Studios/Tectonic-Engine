@@ -115,6 +115,7 @@ uniform vec3 probePosition;
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 uniform bool r_debug_vertex_light;
+uniform bool r_lightmaps_bicubic;
 
 const float PI = 3.14159265359;
 
@@ -313,6 +314,63 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     float intersection_t = t_far;
     vec3 intersectPos = fragPos + R * intersection_t;
     return normalize(intersectPos - probePos);
+}
+
+// Bicubic filtering functions adapted from Godot Engine
+float w0(float a) {
+	return (1.0 / 6.0) * (a * (a * (-a + 3.0) - 3.0) + 1.0);
+}
+
+float w1(float a) {
+	return (1.0 / 6.0) * (a * a * (3.0 * a - 6.0) + 4.0);
+}
+
+float w2(float a) {
+	return (1.0 / 6.0) * (a * (a * (-3.0 * a + 3.0) + 3.0) + 1.0);
+}
+
+float w3(float a) {
+	return (1.0 / 6.0) * (a * a * a);
+}
+
+float g0(float a) {
+	return w0(a) + w1(a);
+}
+
+float g1(float a) {
+	return w2(a) + w3(a);
+}
+
+float h0(float a) {
+	return -1.0 + w1(a) / (w0(a) + w1(a));
+}
+
+float h1(float a) {
+	return 1.0 + w3(a) / (w2(a) + w3(a));
+}
+
+vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
+	vec2 texel_size = vec2(1.0) / texture_size;
+
+	uv = uv * texture_size + vec2(0.5);
+
+	vec2 iuv = floor(uv);
+	vec2 fuv = fract(uv);
+
+	float g0x = g0(fuv.x);
+	float g1x = g1(fuv.x);
+	float h0x = h0(fuv.x);
+	float h1x = h1(fuv.x);
+	float h0y = h0(fuv.y);
+	float h1y = h1(fuv.y);
+
+	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) - vec2(0.5)) * texel_size;
+	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) - vec2(0.5)) * texel_size;
+	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) - vec2(0.5)) * texel_size;
+	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) - vec2(0.5)) * texel_size;
+
+	return (g0(fuv.y) * (g0x * texture(tex, p0) + g1x * texture(tex, p1))) +
+		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
 }
 
 void main()
@@ -544,9 +602,20 @@ void main()
 	vec3 bakedSpecular = vec3(0.0);
     if (isBrush == 1) {
         if (useLightmap) {
-            vec3 bakedRadiance = texture(lightmap, TexCoordsLightmap).rgb;
+            vec3 bakedRadiance;
+            if (r_lightmaps_bicubic) {
+                bakedRadiance = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
+            } else {
+                bakedRadiance = texture(lightmap, TexCoordsLightmap).rgb;
+            }
+
             if (useDirectionalLightmap) {
-                vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
+                vec4 directionalData;
+                if (r_lightmaps_bicubic) {
+                    directionalData = texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(directionalLightmap, 0));
+                } else {
+                    directionalData = texture(directionalLightmap, TexCoordsLightmap);
+                }
                 vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
                 vec3 L_baked = bakedLightDir;
                 vec3 H_baked = normalize(V + L_baked);
@@ -594,14 +663,22 @@ void main()
 	
     if (r_debug_lightmaps) {
         if (isBrush == 1 && useLightmap) {
-            finalColor = texture(lightmap, TexCoordsLightmap).rgb;
+            if (r_lightmaps_bicubic) {
+                finalColor = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
+            } else {
+                finalColor = texture(lightmap, TexCoordsLightmap).rgb;
+            }
         } else {
             finalColor = vec3(0.0);
         }
 	}
     else if (r_debug_lightmaps_directional) {
         if (isBrush == 1 && useDirectionalLightmap) {
-            finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+            if (r_lightmaps_bicubic) {
+                finalColor = texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(directionalLightmap, 0)).rgb;
+            } else {
+                finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+            }
         } else {
             finalColor = vec3(0.0);
         }
