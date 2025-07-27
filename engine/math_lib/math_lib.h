@@ -41,7 +41,6 @@ extern "C" {
 
 	typedef struct { float x, y; } Vec2;
 	typedef struct { float x, y, z; } Vec3;
-	typedef struct { int x, y, z; } ivec3s;
 	typedef struct { float x, y, z, w; } Vec4;
 	typedef struct { float m[16]; } Mat4;
 	typedef struct { Vec4 planes[6]; } Frustum;
