@@ -2324,7 +2324,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         for (int i = 0; i < g_scene.numBrushes; i++) {
             Brush* b = &g_scene.brushes[i];
-            if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            if (b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
             glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
             glBindVertexArray(b->vao);
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -2347,7 +2347,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         for (int i = 0; i < g_scene.numBrushes; i++) {
             Brush* b = &g_scene.brushes[i];
-            if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            if (b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
             glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
             glBindVertexArray(b->vao);
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
