@@ -119,6 +119,7 @@ namespace
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
         std::map<const Material*, Vec3> m_material_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
+        std::vector<const Brush*> m_primID_to_brush_map;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
@@ -165,11 +166,12 @@ namespace
         std::vector<Vec3> all_vertices;
         std::vector<unsigned int> all_indices;
         m_primID_to_face_map.clear();
+        m_primID_to_brush_map.clear();
 
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
+            if (b.isTrigger || b.isReflectionProbe || b.isDSP) continue;
 
             for (int j = 0; j < b.numFaces; ++j)
             {
@@ -186,6 +188,7 @@ namespace
                     all_indices.push_back(base_index + 1);
                     all_indices.push_back(base_index + 2);
                     m_primID_to_face_map.push_back(&face);
+                    m_primID_to_brush_map.push_back(&b);
                 }
             }
         }
@@ -211,6 +214,7 @@ namespace
                 all_indices.push_back(base_index + 1);
                 all_indices.push_back(base_index + 2);
                 m_primID_to_face_map.push_back(nullptr);
+                m_primID_to_brush_map.push_back(nullptr);
             }
         }
 
@@ -237,29 +241,47 @@ namespace
         if (max_dist < SHADOW_BIAS) return false;
         vec3_normalize(&ray_dir);
 
-        RTCRay ray;
-        ray.org_x = start.x;
-        ray.org_y = start.y;
-        ray.org_z = start.z;
-        ray.dir_x = ray_dir.x;
-        ray.dir_y = ray_dir.y;
-        ray.dir_z = ray_dir.z;
-        ray.tnear = SHADOW_BIAS;
-        ray.tfar = max_dist - SHADOW_BIAS;
-        ray.time = 0.0f;
-        ray.mask = -1;
-        ray.flags = 0;
+        RTCRayHit rayhit;
+        rayhit.ray.org_x = start.x;
+        rayhit.ray.org_y = start.y;
+        rayhit.ray.org_z = start.z;
+        rayhit.ray.dir_x = ray_dir.x;
+        rayhit.ray.dir_y = ray_dir.y;
+        rayhit.ray.dir_z = ray_dir.z;
+        rayhit.ray.tnear = SHADOW_BIAS;
+        rayhit.ray.tfar = max_dist - SHADOW_BIAS;
+        rayhit.ray.time = 0.0f;
+        rayhit.ray.mask = -1;
+        rayhit.ray.flags = 0;
+        rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 
-        RTCRayQueryContext query_context;
-        rtcInitRayQueryContext(&query_context);
+        RTCIntersectArguments args;
+        rtcInitIntersectArguments(&args);
 
-        RTCOccludedArguments args;
-        rtcInitOccludedArguments(&args);
-        args.context = &query_context;
+        while (true)
+        {
+            rtcIntersect1(m_rtc_scene, &rayhit, &args);
 
-        rtcOccluded1(m_rtc_scene, &ray, &args);
+            if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+            {
+                return false;
+            }
 
-        return ray.tfar == -std::numeric_limits<float>::infinity();
+            if (rayhit.hit.primID < m_primID_to_brush_map.size())
+            {
+                const Brush* hit_brush = m_primID_to_brush_map[rayhit.hit.primID];
+                if (hit_brush && (hit_brush->isGlass || hit_brush->isWater))
+                {
+                    rayhit.ray.tnear = rayhit.ray.tfar + SHADOW_BIAS;
+                    rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    continue;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     std::string Lightmapper::sanitize_filename(std::string input)
@@ -750,10 +772,54 @@ namespace
 
         apply_gaussian_blur(final_hdr_lightmap_data, lightmap_width, lightmap_height, 3);
 
+        const int padding = 1;
+        int padded_width = lightmap_width + padding * 2;
+        int padded_height = lightmap_height + padding * 2;
+
+        std::vector<float> padded_hdr_data(padded_width* padded_height * 3);
+        for (int y = 0; y < lightmap_height; ++y) {
+            for (int x = 0; x < lightmap_width; ++x) {
+                for (int c = 0; c < 3; ++c) {
+                    padded_hdr_data[((y + padding) * padded_width + (x + padding)) * 3 + c] = final_hdr_lightmap_data[(y * lightmap_width + x) * 3 + c];
+                }
+            }
+        }
+        for (int y = 0; y < padded_height; ++y) {
+            for (int x = 0; x < padded_width; ++x) {
+                int clamp_x = std::clamp(x, padding, padded_width - 1 - padding);
+                int clamp_y = std::clamp(y, padding, padded_height - 1 - padding);
+                if (x != clamp_x || y != clamp_y) {
+                    for (int c = 0; c < 3; ++c) {
+                        padded_hdr_data[(y * padded_width + x) * 3 + c] = padded_hdr_data[((clamp_y)*padded_width + (clamp_x)) * 3 + c];
+                    }
+                }
+            }
+        }
+
+        std::vector<unsigned char> padded_dir_data(padded_width * padded_height * 4);
+        for (int y = 0; y < lightmap_height; ++y) {
+            for (int x = 0; x < lightmap_width; ++x) {
+                for (int c = 0; c < 4; ++c) {
+                    padded_dir_data[((y + padding) * padded_width + (x + padding)) * 4 + c] = dir_lightmap_data[(y * lightmap_width + x) * 4 + c];
+                }
+            }
+        }
+        for (int y = 0; y < padded_height; ++y) {
+            for (int x = 0; x < padded_width; ++x) {
+                int clamp_x = std::clamp(x, padding, padded_width - 1 - padding);
+                int clamp_y = std::clamp(y, padding, padded_height - 1 - padding);
+                if (x != clamp_x || y != clamp_y) {
+                    for (int c = 0; c < 4; ++c) {
+                        padded_dir_data[(y * padded_width + x) * 4 + c] = padded_dir_data[((clamp_y)*padded_width + (clamp_x)) * 4 + c];
+                    }
+                }
+            }
+        }
+
         fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
-        stbi_write_hdr(color_path.string().c_str(), lightmap_width, lightmap_height, 3, final_hdr_lightmap_data.data());
+        stbi_write_hdr(color_path.string().c_str(), padded_width, padded_height, 3, padded_hdr_data.data());
         fs::path dir_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png");
-        SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(dir_lightmap_data.data(), lightmap_width, lightmap_height, 32, lightmap_width * 4,
+        SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(padded_dir_data.data(), padded_width, padded_height, 32, padded_width * 4,
             0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
         if (dir_surface) {
             IMG_SavePNG(dir_surface, dir_path.string().c_str());
@@ -1096,6 +1162,17 @@ namespace
                     if (vec3_dot(bounce_dir, hit_normal) > 0.0f)
                     {
                         break;
+                    }
+
+                    if (rayhit.hit.primID < m_primID_to_brush_map.size())
+                    {
+                        const Brush* hit_brush = m_primID_to_brush_map[rayhit.hit.primID];
+                        if (hit_brush && (hit_brush->isGlass || hit_brush->isWater))
+                        {
+                            ray_origin = hit_pos;
+                            ray_normal = normal;
+                            continue;
+                        }
                     }
 
                     Vec3 reflectivity = get_reflectivity_at_hit(rayhit.hit.primID);

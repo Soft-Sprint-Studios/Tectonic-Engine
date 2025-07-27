@@ -869,6 +869,13 @@ void Brush_CreateRenderData(Brush* b) {
     mikk_interface.m_getTexCoord = getTexCoord;
     mikk_interface.m_setTSpaceBasic = setTSpaceBasic;
 
+    int atlas_width = 1, atlas_height = 1;
+    if (b->lightmapAtlas != 0) {
+        glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &atlas_width);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &atlas_height);
+    }
+
     int vbo_vertex_offset = 0;
     for (int i = 0; i < b->numFaces; ++i) {
         BrushFace* face = &b->faces[i];
@@ -956,8 +963,23 @@ void Brush_CreateRenderData(Brush* b) {
             float local_u = (lightmap_u_val - min_u) / u_range;
             float local_v = (lightmap_v_val - min_v) / v_range;
 
-            vert.lightmap_uv.x = face->atlas_coords.x + local_u * face->atlas_coords.z;
-            vert.lightmap_uv.y = face->atlas_coords.y + local_v * face->atlas_coords.w;
+            float total_padded_width_uv = face->atlas_coords.z;
+            float total_padded_height_uv = face->atlas_coords.w;
+
+            float padded_width_px = total_padded_width_uv * atlas_width;
+            float padded_height_px = total_padded_height_uv * atlas_height;
+
+            float content_width_px = padded_width_px - 2.0f;
+            float content_height_px = padded_height_px - 2.0f;
+
+            float content_width_uv = content_width_px / atlas_width;
+            float content_height_uv = content_height_px / atlas_height;
+
+            float u_offset_uv = (total_padded_width_uv - content_width_uv) * 0.5f;
+            float v_offset_uv = (total_padded_height_uv - content_height_uv) * 0.5f;
+
+            vert.lightmap_uv.x = face->atlas_coords.x + u_offset_uv + local_u * content_width_uv;
+            vert.lightmap_uv.y = face->atlas_coords.y + v_offset_uv + local_v * content_height_uv;
 
             memcpy(&final_vbo_data[vbo_idx + 0], &vert.pos, sizeof(Vec3));
             memcpy(&final_vbo_data[vbo_idx + 3], &norm, sizeof(Vec3));
