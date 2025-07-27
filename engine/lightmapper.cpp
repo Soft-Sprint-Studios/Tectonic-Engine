@@ -46,7 +46,7 @@ namespace
 {
     namespace fs = std::filesystem;
 
-    constexpr float SHADOW_BIAS = 0.01f;
+    constexpr float SHADOW_BIAS = 0.001f;
     constexpr int BLUR_RADIUS = 2;
     constexpr int INDIRECT_SAMPLES_PER_POINT = 64;
 
@@ -759,20 +759,22 @@ namespace
     {
         Vec3 direct_light = { 0,0,0 };
         out_dominant_dir = { 0,0,0 };
-        Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
             const Light& light = m_scene->lights[k];
             if (!light.is_static) continue;
 
-            Vec3 light_dir = vec3_sub(light.position, point_to_light_check);
+            Vec3 light_dir = vec3_sub(light.position, pos);
             float dist = vec3_length(light_dir);
             vec3_normalize(&light_dir);
             if (dist > light.radius) continue;
 
             float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
+
+            float bias = std::max(0.05f * (1.0f - NdotL), 0.005f);
+            Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, bias));
 
             if (is_in_shadow(point_to_light_check, light.position)) continue;
 
@@ -875,7 +877,9 @@ namespace
                     first_bounce_dir = bounce_dir;
                 }
 
-                Vec3 trace_origin = vec3_add(ray_origin, vec3_muls(ray_normal, SHADOW_BIAS));
+                float NdotV = std::max(0.0f, vec3_dot(ray_normal, bounce_dir));
+                float bias = std::max(0.05f * (1.0f - NdotV), 0.005f);
+                Vec3 trace_origin = vec3_add(ray_origin, vec3_muls(ray_normal, bias));
 
                 RTCRayHit rayhit;
                 rayhit.ray.org_x = trace_origin.x; rayhit.ray.org_y = trace_origin.y; rayhit.ray.org_z = trace_origin.z;
