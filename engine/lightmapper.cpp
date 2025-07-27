@@ -48,7 +48,7 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int INDIRECT_SAMPLES_PER_POINT = 64;
+    constexpr int INDIRECT_SAMPLES_PER_POINT = 128;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
@@ -1150,8 +1150,8 @@ namespace
         }
 
         Console_Printf("[Lightmapper] Denoising model vertex lighting using bilateral filter...");
-        const int filter_passes = 5;
-        const float normal_threshold = 0.8f;
+        const int filter_passes = 10;
+        const float normal_threshold = 0.7f;
 
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
