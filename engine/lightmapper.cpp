@@ -47,9 +47,9 @@ namespace
     namespace fs = std::filesystem;
 
     constexpr float SHADOW_BIAS = 0.01f;
-    constexpr int BLUR_RADIUS = 4;
-    constexpr int INDIRECT_SAMPLES_PER_POINT = 128;
-    constexpr float INDIRECT_LIGHT_STRENGTH = 0.5f;
+    constexpr int BLUR_RADIUS = 3;
+    constexpr int INDIRECT_SAMPLES_PER_POINT = 64;
+    constexpr float INDIRECT_LIGHT_STRENGTH = 1.0f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
