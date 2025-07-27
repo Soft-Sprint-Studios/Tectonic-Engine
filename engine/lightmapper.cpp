@@ -743,6 +743,7 @@ namespace
             oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
 
             oidnSetFilterBool(filter, "hdr", true);
+            oidnSetFilterBool(filter, "cleanAux", true);
             oidnCommitFilter(filter);
             oidnExecuteFilter(filter);
 
