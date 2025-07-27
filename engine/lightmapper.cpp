@@ -7,16 +7,9 @@
  * written permission is granted by Soft Sprint Studios.
  */
 #ifdef ARCH_64BIT
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
 #include "lightmapper.h"
 #include "gl_console.h"
 #include "math_lib.h"
-
 #include <vector>
 #include <string>
 #include <thread>
@@ -36,11 +29,17 @@
 #include <map>
 #include <set>
 #include <random>
-
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
 #include "stb_image_write.h"
 #include <OpenImageDenoise/oidn.h>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 namespace
 {
@@ -49,6 +48,7 @@ namespace
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
     constexpr int INDIRECT_SAMPLES_PER_POINT = 128;
+    constexpr float LUXELS_PER_UNIT = 16.0f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
@@ -610,12 +610,15 @@ namespace
         float u_range = std::max(0.001f, max_u - min_u);
         float v_range = std::max(0.001f, max_v - min_v);
 
-        std::vector<float> direct_lightmap_data(m_resolution * m_resolution * 3);
-        std::vector<float> indirect_lightmap_data(m_resolution * m_resolution * 3);
-        std::vector<float> albedo_lightmap_data(m_resolution * m_resolution * 3);
-        std::vector<float> normal_lightmap_data(m_resolution * m_resolution * 3);
-        std::vector<float> direction_float_data(m_resolution * m_resolution * 3);
-        std::vector<unsigned char> dir_lightmap_data(m_resolution * m_resolution * 4, 0);
+        int lightmap_width = std::clamp(static_cast<int>(ceilf(u_range * LUXELS_PER_UNIT)), 4, m_resolution);
+        int lightmap_height = std::clamp(static_cast<int>(ceilf(v_range * LUXELS_PER_UNIT)), 4, m_resolution);
+
+        std::vector<float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
+        std::vector<float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
+        std::vector<float> albedo_lightmap_data(lightmap_width * lightmap_height * 3);
+        std::vector<float> normal_lightmap_data(lightmap_width * lightmap_height * 3);
+        std::vector<float> direction_float_data(lightmap_width * lightmap_height * 3);
+        std::vector<unsigned char> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
 
         Vec3 face_reflectivity = { 0.5f, 0.5f, 0.5f };
         if (face.material) {
@@ -625,17 +628,17 @@ namespace
             }
         }
 
-        for (int y = 0; y < m_resolution; ++y)
+        for (int y = 0; y < lightmap_height; ++y)
         {
-            for (int x = 0; x < m_resolution; ++x)
+            for (int x = 0; x < lightmap_width; ++x)
             {
                 Vec3 direct_light_color = { 0, 0, 0 };
                 Vec3 indirect_light_color = { 0, 0, 0 };
                 Vec3 accumulated_direction = { 0, 0, 0 };
                 Vec3 indirect_direction = { 0, 0, 0 };
 
-                float u_tex = (static_cast<float>(x) + 0.5f) / m_resolution;
-                float v_tex = (static_cast<float>(y) + 0.5f) / m_resolution;
+                float u_tex = (static_cast<float>(x) + 0.5f) / lightmap_width;
+                float v_tex = (static_cast<float>(y) + 0.5f) / lightmap_height;
                 float world_u = min_u + u_tex * u_range;
                 float world_v = min_v + v_tex * v_range;
                 Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
@@ -659,7 +662,7 @@ namespace
                     }
                 }
 
-                int hdr_idx = (y * m_resolution + x) * 3;
+                int hdr_idx = (y * lightmap_width + x) * 3;
 
                 if (inside)
                 {
@@ -699,16 +702,16 @@ namespace
         }
 
         size_t pixelStride = sizeof(float) * 3;
-        size_t rowStride = pixelStride * m_resolution;
+        size_t rowStride = pixelStride * lightmap_width;
 
         OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
 
-        oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
-        oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
-        oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+        oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+        oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+        oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
 
-        std::vector<float> denoised_indirect_data(m_resolution * m_resolution * 3);
-        oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, m_resolution, m_resolution, 0, pixelStride, rowStride);
+        std::vector<float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
+        oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
 
         oidnSetFilterBool(filter, "hdr", true);
         oidnCommitFilter(filter);
@@ -720,15 +723,15 @@ namespace
 
         oidnReleaseFilter(filter);
 
-        std::vector<float> final_hdr_lightmap_data(m_resolution * m_resolution * 3);
+        std::vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
             final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
         }
 
         std::vector<float> filtered_direction_data;
-        apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, m_resolution, m_resolution, 4, 0.01f);
+        apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_width, lightmap_height, 4, 0.01f);
 
-        for (int i = 0; i < m_resolution * m_resolution; ++i) {
+        for (int i = 0; i < lightmap_width * lightmap_height; ++i) {
             int idx3 = i * 3;
             Vec3 dir = { filtered_direction_data[idx3], filtered_direction_data[idx3 + 1], filtered_direction_data[idx3 + 2] };
             if (vec3_length_sq(dir) > 0.0001f) {
@@ -745,12 +748,12 @@ namespace
             dir_lightmap_data[idx4 + 3] = 255;
         }
 
-        apply_gaussian_blur(final_hdr_lightmap_data, m_resolution, m_resolution, 3);
+        apply_gaussian_blur(final_hdr_lightmap_data, lightmap_width, lightmap_height, 3);
 
         fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
-        stbi_write_hdr(color_path.string().c_str(), m_resolution, m_resolution, 3, final_hdr_lightmap_data.data());
+        stbi_write_hdr(color_path.string().c_str(), lightmap_width, lightmap_height, 3, final_hdr_lightmap_data.data());
         fs::path dir_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png");
-        SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(dir_lightmap_data.data(), m_resolution, m_resolution, 32, m_resolution * 4,
+        SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(dir_lightmap_data.data(), lightmap_width, lightmap_height, 32, lightmap_width * 4,
             0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
         if (dir_surface) {
             IMG_SavePNG(dir_surface, dir_path.string().c_str());

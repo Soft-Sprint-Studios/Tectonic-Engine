@@ -1099,9 +1099,18 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
     if (b->numFaces == 0) return;
 
-    float** color_data_buffers = calloc(b->numFaces, sizeof(float*));
-    SDL_Surface** dir_surfaces = calloc(b->numFaces, sizeof(SDL_Surface*));
+    typedef struct {
+        float* color_data;
+        SDL_Surface* dir_surface;
+        int width;
+        int height;
+        bool is_valid;
+    } FaceLightmapData;
+
+    FaceLightmapData* face_data = calloc(b->numFaces, sizeof(FaceLightmapData));
     int valid_faces = 0;
+    int max_width = 0;
+    int max_height = 0;
 
     char brush_name_sanitized[128];
     if (strlen(b->targetname) > 0) {
@@ -1115,36 +1124,40 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
     snprintf(final_brush_dir, sizeof(final_brush_dir), "lightmaps/%s/%s", map_name_sanitized, brush_name_sanitized);
 
     for (int i = 0; i < b->numFaces; ++i) {
+        face_data[i].is_valid = false;
         char path[512];
 
         snprintf(path, sizeof(path), "%s/face_%d_color.hdr", final_brush_dir, i);
-        int width, height, channels;
-        color_data_buffers[i] = stbi_loadf(path, &width, &height, &channels, 3);
+        face_data[i].color_data = stbi_loadf(path, &face_data[i].width, &face_data[i].height, NULL, 3);
 
         snprintf(path, sizeof(path), "%s/face_%d_dir.png", final_brush_dir, i);
-        dir_surfaces[i] = IMG_Load(path);
+        face_data[i].dir_surface = IMG_Load(path);
 
-        if (color_data_buffers[i] && dir_surfaces[i]) {
+        if (face_data[i].color_data && face_data[i].dir_surface) {
             valid_faces++;
+            face_data[i].is_valid = true;
+            if (face_data[i].width > max_width) max_width = face_data[i].width;
+            if (face_data[i].height > max_height) max_height = face_data[i].height;
         }
     }
 
     if (valid_faces == 0) {
         for (int i = 0; i < b->numFaces; ++i) {
-            if (color_data_buffers[i]) stbi_image_free(color_data_buffers[i]);
-            if (dir_surfaces[i]) SDL_FreeSurface(dir_surfaces[i]);
+            if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
+            if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
         }
-        free(color_data_buffers);
-        free(dir_surfaces);
+        free(face_data);
         b->lightmapAtlas = 0;
         b->directionalLightmapAtlas = 0;
         return;
     }
 
+    if (max_width == 0) max_width = 4;
+    if (max_height == 0) max_height = 4;
     int atlas_cols = (int)ceil(sqrt((double)valid_faces));
     int atlas_rows = (int)ceil((double)valid_faces / atlas_cols);
-    int atlas_width = atlas_cols * resolution;
-    int atlas_height = atlas_rows * resolution;
+    int atlas_width = atlas_cols * max_width;
+    int atlas_height = atlas_rows * max_height;
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
@@ -1156,24 +1169,26 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
 
     int current_face = 0;
     for (int i = 0; i < b->numFaces; ++i) {
-        if (color_data_buffers[i] && dir_surfaces[i]) {
-            int x_pos = (current_face % atlas_cols) * resolution;
-            int y_pos = (current_face / atlas_cols) * resolution;
+        if (face_data[i].is_valid) {
+            int x_pos = (current_face % atlas_cols) * max_width;
+            int y_pos = (current_face / atlas_cols) * max_height;
+            int w = face_data[i].width;
+            int h = face_data[i].height;
 
             glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGB, GL_FLOAT, color_data_buffers[i]);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, w, h, GL_RGB, GL_FLOAT, face_data[i].color_data);
 
-            SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surfaces[i], SDL_PIXELFORMAT_RGBA32, 0);
+            SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(face_data[i].dir_surface, SDL_PIXELFORMAT_RGBA32, 0);
             if (dir_converted) {
                 glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
-                glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, resolution, resolution, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, w, h, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
                 SDL_FreeSurface(dir_converted);
             }
 
             b->faces[i].atlas_coords.x = (float)x_pos / atlas_width;
             b->faces[i].atlas_coords.y = (float)y_pos / atlas_height;
-            b->faces[i].atlas_coords.z = (float)resolution / atlas_width;
-            b->faces[i].atlas_coords.w = (float)resolution / atlas_height;
+            b->faces[i].atlas_coords.z = (float)w / atlas_width;
+            b->faces[i].atlas_coords.w = (float)h / atlas_height;
 
             current_face++;
         }
@@ -1190,11 +1205,10 @@ static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized
     glBindTexture(GL_TEXTURE_2D, 0);
 
     for (int i = 0; i < b->numFaces; ++i) {
-        if (color_data_buffers[i]) stbi_image_free(color_data_buffers[i]);
-        if (dir_surfaces[i]) SDL_FreeSurface(dir_surfaces[i]);
+        if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
+        if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
     }
-    free(color_data_buffers);
-    free(dir_surfaces);
+    free(face_data);
 }
 
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
