@@ -723,27 +723,39 @@ namespace
             }
         }
 
-        size_t pixelStride = sizeof(float) * 3;
-        size_t rowStride = pixelStride * lightmap_width;
-
-        OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
-
-        oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
-        oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
-        oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
-
         std::vector<float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
-        oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+        constexpr float BLACK_THRESHOLD = 0.0001f;
+        float indirect_sum = 0.0f;
+        for (float val : indirect_lightmap_data) {
+            indirect_sum += val;
+        }
 
-        oidnSetFilterBool(filter, "hdr", true);
-        oidnCommitFilter(filter);
-        oidnExecuteFilter(filter);
+        if (indirect_sum > BLACK_THRESHOLD)
+        {
+            size_t pixelStride = sizeof(float) * 3;
+            size_t rowStride = pixelStride * lightmap_width;
 
-        const char* errorMessage;
-        if (oidnGetDeviceError(m_oidn_device, &errorMessage) != OIDN_ERROR_NONE)
-            Console_Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
+            OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
 
-        oidnReleaseFilter(filter);
+            oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+            oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+            oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+            oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_width, lightmap_height, 0, pixelStride, rowStride);
+
+            oidnSetFilterBool(filter, "hdr", true);
+            oidnCommitFilter(filter);
+            oidnExecuteFilter(filter);
+
+            const char* errorMessage;
+            if (oidnGetDeviceError(m_oidn_device, &errorMessage) != OIDN_ERROR_NONE)
+                Console_Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
+
+            oidnReleaseFilter(filter);
+        }
+        else
+        {
+            std::fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
+        }
 
         std::vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
@@ -776,7 +788,7 @@ namespace
         int padded_width = lightmap_width + padding * 2;
         int padded_height = lightmap_height + padding * 2;
 
-        std::vector<float> padded_hdr_data(padded_width* padded_height * 3);
+        std::vector<float> padded_hdr_data(padded_width * padded_height * 3);
         for (int y = 0; y < lightmap_height; ++y) {
             for (int x = 0; x < lightmap_width; ++x) {
                 for (int c = 0; c < 3; ++c) {
