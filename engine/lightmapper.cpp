@@ -94,7 +94,7 @@ namespace
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
         Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir);
-        Vec3 get_reflectivity_at_hit(unsigned int primID) const;
+        Vec4 get_reflectivity_at_hit(unsigned int primID) const;
 
         void precalculate_material_reflectivity();
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
@@ -117,7 +117,7 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
-        std::map<const Material*, Vec3> m_material_reflectivity;
+        std::map<const Material*, Vec4> m_material_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
         std::vector<const Brush*> m_primID_to_brush_map;
     };
@@ -258,30 +258,33 @@ namespace
         RTCIntersectArguments args;
         rtcInitIntersectArguments(&args);
 
-        while (true)
+        float light_transmission = 1.0f;
+
+        while (rayhit.ray.tnear < rayhit.ray.tfar)
         {
             rtcIntersect1(m_rtc_scene, &rayhit, &args);
 
             if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
             {
-                return false;
+                return light_transmission < 1.0f;
             }
 
-            if (rayhit.hit.primID < m_primID_to_brush_map.size())
+            Vec4 reflectivity = get_reflectivity_at_hit(rayhit.hit.primID);
+            light_transmission *= (1.0f - reflectivity.w);
+
+            if (light_transmission < 0.01f)
             {
-                const Brush* hit_brush = m_primID_to_brush_map[rayhit.hit.primID];
-                if (hit_brush && (hit_brush->isGlass || hit_brush->isWater))
-                {
-                    rayhit.ray.tnear = rayhit.ray.tfar + SHADOW_BIAS;
-                    rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    continue;
-                }
+                return true;
             }
 
-            return true;
+            rayhit.ray.org_x += rayhit.ray.dir_x * rayhit.ray.tfar;
+            rayhit.ray.org_y += rayhit.ray.dir_y * rayhit.ray.tfar;
+            rayhit.ray.org_z += rayhit.ray.dir_z * rayhit.ray.tfar;
+            rayhit.ray.tnear = SHADOW_BIAS;
+            rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         }
 
-        return false;
+        return light_transmission < 1.0f;
     }
 
     std::string Lightmapper::sanitize_filename(std::string input)
@@ -642,11 +645,11 @@ namespace
         std::vector<float> direction_float_data(lightmap_width * lightmap_height * 3);
         std::vector<unsigned char> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
 
-        Vec3 face_reflectivity = { 0.5f, 0.5f, 0.5f };
+        Vec4 face_reflectivity_v4 = { 0.5f, 0.5f, 0.5f, 1.0f };
         if (face.material) {
             auto it = m_material_reflectivity.find(face.material);
             if (it != m_material_reflectivity.end()) {
-                face_reflectivity = it->second;
+                face_reflectivity_v4 = it->second;
             }
         }
 
@@ -717,9 +720,9 @@ namespace
                 indirect_lightmap_data[hdr_idx + 1] = indirect_light_color.y;
                 indirect_lightmap_data[hdr_idx + 2] = indirect_light_color.z;
 
-                albedo_lightmap_data[hdr_idx + 0] = face_reflectivity.x;
-                albedo_lightmap_data[hdr_idx + 1] = face_reflectivity.y;
-                albedo_lightmap_data[hdr_idx + 2] = face_reflectivity.z;
+                albedo_lightmap_data[hdr_idx + 0] = face_reflectivity_v4.x;
+                albedo_lightmap_data[hdr_idx + 1] = face_reflectivity_v4.y;
+                albedo_lightmap_data[hdr_idx + 2] = face_reflectivity_v4.z;
             }
         }
 
@@ -983,7 +986,7 @@ namespace
 
         for (const Material* mat : unique_materials) {
             if (!mat || mat->diffusePath[0] == '\0') {
-                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
                 continue;
             }
 
@@ -991,7 +994,7 @@ namespace
             SDL_Surface* loaded_surface = IMG_Load(full_path.c_str());
             if (!loaded_surface) {
                 Console_Printf_Warning("[Lightmapper] Could not load texture for reflectivity: %s", full_path.c_str());
-                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
                 continue;
             }
 
@@ -1000,11 +1003,11 @@ namespace
 
             if (!surface) {
                 Console_Printf_Error("[Lightmapper] Could not convert surface for: %s", full_path.c_str());
-                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f };
+                m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
                 continue;
             }
 
-            long long total_r = 0, total_g = 0, total_b = 0;
+            long long total_r = 0, total_g = 0, total_b = 0, total_a = 0;
             int width = surface->w;
             int height = surface->h;
             int texels = width * height;
@@ -1014,14 +1017,16 @@ namespace
                 total_r += pixels[i * 4 + 0];
                 total_g += pixels[i * 4 + 1];
                 total_b += pixels[i * 4 + 2];
+                total_a += pixels[i * 4 + 3];
             }
 
             SDL_FreeSurface(surface);
 
-            Vec3 reflectivity = {
+            Vec4 reflectivity = {
                 static_cast<float>(total_r) / texels / 255.0f,
                 static_cast<float>(total_g) / texels / 255.0f,
-                static_cast<float>(total_b) / texels / 255.0f
+                static_cast<float>(total_b) / texels / 255.0f,
+                static_cast<float>(total_a) / texels / 255.0f
             };
 
             m_material_reflectivity[mat] = reflectivity;
@@ -1105,7 +1110,7 @@ namespace
         return vec3_add(vec3_muls(tangent, x), vec3_add(vec3_muls(bitangent, y), vec3_muls(normal, z)));
     }
 
-    Vec3 Lightmapper::get_reflectivity_at_hit(unsigned int primID) const
+    Vec4 Lightmapper::get_reflectivity_at_hit(unsigned int primID) const
     {
         if (primID < m_primID_to_face_map.size())
         {
@@ -1119,7 +1124,8 @@ namespace
                 }
             }
         }
-        return { 0.5f, 0.5f, 0.5f };
+
+        return { 0.5f, 0.5f, 0.5f, 1.0f };
     }
 
     Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir)
@@ -1188,13 +1194,23 @@ namespace
                         }
                     }
 
-                    Vec3 reflectivity = get_reflectivity_at_hit(rayhit.hit.primID);
+                    Vec4 reflectivity_at_hit = get_reflectivity_at_hit(rayhit.hit.primID);
+                    Vec3 albedo = { reflectivity_at_hit.x, reflectivity_at_hit.y, reflectivity_at_hit.z };
+                    float alpha = reflectivity_at_hit.w;
+
+                    if (roulette_dist(rng) > alpha)
+                    {
+                        throughput = vec3_muls(throughput, 1.0f - alpha);
+                        ray_origin = hit_pos;
+                        continue;
+                    }
+
                     Vec3 dummy_dir;
                     Vec3 direct_light_at_hit = calculate_direct_light(hit_pos, hit_normal, dummy_dir);
 
-                    path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light_at_hit, reflectivity), throughput));
+                    path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light_at_hit, albedo), throughput));
 
-                    throughput = vec3_mul(throughput, reflectivity);
+                    throughput = vec3_mul(throughput, albedo);
                     ray_origin = hit_pos;
                     ray_normal = hit_normal;
 
