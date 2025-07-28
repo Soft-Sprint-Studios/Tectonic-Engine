@@ -47,11 +47,9 @@ jobs:
         run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
       - name: Create and strip debug symbols
         run: |
-          # Process Launcher
           cp build-linux-x64-relwithdebinfo/launcher build-linux-x64-relwithdebinfo/launcher.debug
           objcopy --only-keep-debug build-linux-x64-relwithdebinfo/launcher.debug build-linux-x64-relwithdebinfo/launcher.debugsymbols
           objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/launcher.debugsymbols build-linux-x64-relwithdebinfo/launcher
-          # Process Engine Library
           cp build-linux-x64-relwithdebinfo/libengine.so build-linux-x64-relwithdebinfo/libengine.so.debug
           objcopy --only-keep-debug build-linux-x64-relwithdebinfo/libengine.so.debug build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
           objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/libengine.so.debugsymbols build-linux-x64-relwithdebinfo/libengine.so
@@ -78,7 +76,7 @@ jobs:
         run: |
           mkdir "D:\tectonicbuilds\windows-x64-release"
           copy build-windows-x64-release\Release\launcher.exe D:\tectonicbuilds\windows-x64-release\
-          copy build-windows-x64-release\Release\engine.dll D:\tectonicbuilds\windows-x64-release\
+          copy build-windows-x64-release\Release\*.dll D:\tectonicbuilds\windows-x64-release\
 
   build-windows-x64-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -93,7 +91,7 @@ jobs:
         run: |
           mkdir "D:\tectonicbuilds\windows-x64-relwithdebinfo"
           copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.dll D:\tectonicbuilds\windows-x64-relwithdebinfo\
+          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\*.dll D:\tectonicbuilds\windows-x64-relwithdebinfo\
           copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
           copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
 
@@ -110,7 +108,7 @@ jobs:
         run: |
           mkdir "D:\tectonicbuilds\windows-x86-release"
           copy build-windows-x86-release\Release\launcher.exe D:\tectonicbuilds\windows-x86-release\
-          copy build-windows-x86-release\Release\engine.dll D:\tectonicbuilds\windows-x86-release\
+          copy build-windows-x86-release\Release\*.dll D:\tectonicbuilds\windows-x86-release\
 
   build-windows-x86-relwithdebinfo:
     runs-on: [self-hosted, windows]
@@ -125,6 +123,6 @@ jobs:
         run: |
           mkdir "D:\tectonicbuilds\windows-x86-relwithdebinfo"
           copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.dll D:\tectonicbuilds\windows-x86-relwithdebinfo\
+          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\*.dll D:\tectonicbuilds\windows-x86-relwithdebinfo\
           copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
           copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
