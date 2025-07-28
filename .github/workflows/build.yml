@@ -32,7 +32,7 @@ jobs:
         run: build-linux-x64-release/Patcher build-linux-x64-release/libengine.so
 
       - name: Upload Linux Release artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-x64-release
           path: |
@@ -69,7 +69,7 @@ jobs:
         run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libengine.so
 
       - name: Upload Linux RelWithDebInfo artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-x64-relwithdebinfo
           path: |
@@ -91,7 +91,7 @@ jobs:
         run: cmake --build build-windows-x64-release --config Release
 
       - name: Upload Windows x64 Release artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-x64-release
           path: |
@@ -111,7 +111,7 @@ jobs:
         run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
 
       - name: Upload Windows x64 RelWithDebInfo artifacts (with pdbs)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-x64-relwithdebinfo
           path: |
@@ -133,7 +133,7 @@ jobs:
         run: cmake --build build-windows-x86-release --config Release
 
       - name: Upload Windows x86 Release artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-x86-release
           path: |
@@ -153,7 +153,7 @@ jobs:
         run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
 
       - name: Upload Windows x86 RelWithDebInfo artifacts (with pdbs)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-x86-relwithdebinfo
           path: |
