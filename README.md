@@ -24,7 +24,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Percentage-Closer Filtering (PCF): Implemented for soft shadow edges.
 
-- Global Illumination via Virtual Point Lights (VPLs): The engine supports real-time, one-bounce global illumination by generating hundreds of virtual point lights from surfaces hit by direct light, providing realistic color bleeding and indirect lighting.
+- Global Illumination via Lightmapping, the engine supports staticly baked lightmaps, including directional lightmaps for realistic specular and normal mapping
 
 - High-Dynamic Range (HDR) Lighting: The entire lighting pipeline operates in HDR.
 
