@@ -12,39 +12,50 @@ on:
 
 jobs:
   build-linux-x64-release:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
+
       - name: Configure CMake
         run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
+
       - name: Build with CMake
         run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
+
       - name: Patch engine library
         run: build-linux-x64-release/Patcher build-linux-x64-release/libengine.so
-      - name: Prepare artifacts
-        run: |
-          mkdir -p /mnt/d/tectonicbuilds/linux-x64-release
-          cp build-linux-x64-release/launcher /mnt/d/tectonicbuilds/linux-x64-release/
-          cp build-linux-x64-release/libengine.so /mnt/d/tectonicbuilds/linux-x64-release/
+
+      - name: Upload Linux Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-release
+          path: |
+            build-linux-x64-release/launcher
+            build-linux-x64-release/libengine.so
 
   build-linux-x64-relwithdebinfo:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
+
       - name: Configure CMake
         run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
       - name: Build with CMake
         run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
+
       - name: Create and strip debug symbols
         run: |
           cp build-linux-x64-relwithdebinfo/launcher build-linux-x64-relwithdebinfo/launcher.debug
@@ -53,76 +64,100 @@ jobs:
           cp build-linux-x64-relwithdebinfo/libengine.so build-linux-x64-relwithdebinfo/libengine.so.debug
           objcopy --only-keep-debug build-linux-x64-relwithdebinfo/libengine.so.debug build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
           objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/libengine.so.debugsymbols build-linux-x64-relwithdebinfo/libengine.so
+
       - name: Patch engine library
         run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libengine.so
-      - name: Prepare artifacts
-        run: |
-          mkdir -p /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo
-          cp build-linux-x64-relwithdebinfo/launcher /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/libengine.so /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/launcher.debugsymbols /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
-          cp build-linux-x64-relwithdebinfo/libengine.so.debugsymbols /mnt/d/tectonicbuilds/linux-x64-relwithdebinfo/
+
+      - name: Upload Linux RelWithDebInfo artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-relwithdebinfo
+          path: |
+            build-linux-x64-relwithdebinfo/launcher
+            build-linux-x64-relwithdebinfo/libengine.so
+            build-linux-x64-relwithdebinfo/launcher.debugsymbols
+            build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
 
   build-windows-x64-release:
-    runs-on: [self-hosted, windows]
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Configure CMake
         run: cmake -S . -B build-windows-x64-release -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+
       - name: Build with CMake
         run: cmake --build build-windows-x64-release --config Release
-      - name: Prepare artifacts
-        run: |
-          mkdir "D:\tectonicbuilds\windows-x64-release"
-          copy build-windows-x64-release\Release\launcher.exe D:\tectonicbuilds\windows-x64-release\
-          copy build-windows-x64-release\Release\*.dll D:\tectonicbuilds\windows-x64-release\
+
+      - name: Upload Windows x64 Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-release
+          path: |
+            build-windows-x64-release\Release\launcher.exe
+            build-windows-x64-release\Release\*.dll
 
   build-windows-x64-relwithdebinfo:
-    runs-on: [self-hosted, windows]
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Configure CMake
         run: cmake -S . -B build-windows-x64-relwithdebinfo -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
       - name: Build with CMake
         run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
-      - name: Prepare artifacts
-        run: |
-          mkdir "D:\tectonicbuilds\windows-x64-relwithdebinfo"
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\*.dll D:\tectonicbuilds\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
-          copy build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x64-relwithdebinfo\
+
+      - name: Upload Windows x64 RelWithDebInfo artifacts (with pdbs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-relwithdebinfo
+          path: |
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\*.dll
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb
 
   build-windows-x86-release:
-    runs-on: [self-hosted, windows]
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Configure CMake
         run: cmake -S . -B build-windows-x86-release -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=Release
+
       - name: Build with CMake
         run: cmake --build build-windows-x86-release --config Release
-      - name: Prepare artifacts
-        run: |
-          mkdir "D:\tectonicbuilds\windows-x86-release"
-          copy build-windows-x86-release\Release\launcher.exe D:\tectonicbuilds\windows-x86-release\
-          copy build-windows-x86-release\Release\*.dll D:\tectonicbuilds\windows-x86-release\
+
+      - name: Upload Windows x86 Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86-release
+          path: |
+            build-windows-x86-release\Release\launcher.exe
+            build-windows-x86-release\Release\*.dll
 
   build-windows-x86-relwithdebinfo:
-    runs-on: [self-hosted, windows]
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Configure CMake
         run: cmake -S . -B build-windows-x86-relwithdebinfo -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
       - name: Build with CMake
         run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
-      - name: Prepare artifacts
-        run: |
-          mkdir "D:\tectonicbuilds\windows-x86-relwithdebinfo"
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe D:\tectonicbuilds\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\*.dll D:\tectonicbuilds\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
-          copy build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb D:\tectonicbuilds\windows-x86-relwithdebinfo\
+
+      - name: Upload Windows x86 RelWithDebInfo artifacts (with pdbs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86-relwithdebinfo
+          path: |
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\*.dll
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb
