@@ -53,6 +53,9 @@ extern "C" {
 
 #if defined(_WIN32)
     #define PLATFORM_WINDOWS
+    #ifndef NOMINMAX
+    #define NOMINMAX
+    #endif
     #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
     #endif

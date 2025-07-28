@@ -34,13 +34,6 @@
 #include "stb_image_write.h"
 #include <OpenImageDenoise/oidn.h>
 
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
-
 namespace
 {
     namespace fs = std::filesystem;
