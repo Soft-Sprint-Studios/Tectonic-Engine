@@ -40,7 +40,8 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int INDIRECT_SAMPLES_PER_POINT = 128;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 128;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 2048;
     constexpr float LUXELS_PER_UNIT = 16.0f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
@@ -86,7 +87,7 @@ namespace
         void process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
-        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir);
+        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir, int num_samples);
         Vec4 get_reflectivity_at_hit(unsigned int primID) const;
 
         void precalculate_material_reflectivity();
@@ -421,90 +422,6 @@ namespace
         }
     }
 
-    void build_adjacency_list(const SceneObject& obj, std::vector<std::set<unsigned int>>& adjacency)
-    {
-        unsigned int vertex_count = obj.model->totalVertexCount;
-        if (vertex_count == 0) return;
-
-        adjacency.assign(vertex_count, std::set<unsigned int>());
-        const unsigned int* indices = obj.model->combinedIndexData;
-        unsigned int index_count = obj.model->totalIndexCount;
-
-        for (unsigned int i = 0; i < index_count; i += 3)
-        {
-            unsigned int i0 = indices[i];
-            unsigned int i1 = indices[i + 1];
-            unsigned int i2 = indices[i + 2];
-
-            adjacency[i0].insert(i1);
-            adjacency[i0].insert(i2);
-
-            adjacency[i1].insert(i0);
-            adjacency[i1].insert(i2);
-
-            adjacency[i2].insert(i0);
-            adjacency[i2].insert(i1);
-        }
-    }
-
-    void filter_vertex_data(Vec4* output_buffer, const Vec4* input_buffer,
-        const std::vector<std::set<unsigned int>>& adjacency, unsigned int vertex_count)
-    {
-        for (unsigned int i = 0; i < vertex_count; ++i)
-        {
-            Vec4 accumulated_value = input_buffer[i];
-            int neighbor_count = 1;
-
-            for (unsigned int neighbor_index : adjacency[i])
-            {
-                accumulated_value = vec4_add(accumulated_value, input_buffer[neighbor_index]);
-                neighbor_count++;
-            }
-
-            output_buffer[i] = vec4_muls(accumulated_value, 1.0f / neighbor_count);
-        }
-    }
-
-    void apply_bilateral_filter_pass(Vec4* out_buf, const Vec4* in_buf,
-        const std::vector<std::set<unsigned int>>& adjacency,
-        const SceneObject& obj, float normal_similarity_threshold)
-    {
-        unsigned int vertex_count = obj.model->totalVertexCount;
-        const float* normals = obj.model->combinedNormalData;
-
-        for (unsigned int i = 0; i < vertex_count; ++i)
-        {
-            Vec4 total_value = { 0,0,0,0 };
-            float total_weight = 0.0f;
-
-            Vec3 current_normal = { normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2] };
-
-            total_value = vec4_add(total_value, in_buf[i]);
-            total_weight += 1.0f;
-
-            for (unsigned int neighbor_idx : adjacency[i])
-            {
-                Vec3 neighbor_normal = { normals[neighbor_idx * 3], normals[neighbor_idx * 3 + 1], normals[neighbor_idx * 3 + 2] };
-
-                float dot = vec3_dot(current_normal, neighbor_normal);
-                if (dot > normal_similarity_threshold)
-                {
-                    total_value = vec4_add(total_value, in_buf[neighbor_idx]);
-                    total_weight += 1.0f;
-                }
-            }
-
-            if (total_weight > 0)
-            {
-                out_buf[i] = vec4_muls(total_value, 1.0f / total_weight);
-            }
-            else
-            {
-                out_buf[i] = in_buf[i];
-            }
-        }
-    }
-
     void box_blur(std::vector<float>& out, const std::vector<float>& in, int width, int height, int radius)
     {
         std::vector<float> temp(width * height);
@@ -685,7 +602,7 @@ namespace
                 if (inside)
                 {
                     direct_light_color = calculate_direct_light(world_pos, face_normal, accumulated_direction);
-                    indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction);
+                    indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
                     normal_lightmap_data[hdr_idx + 0] = face_normal.x;
                     normal_lightmap_data[hdr_idx + 1] = face_normal.y;
@@ -851,7 +768,7 @@ namespace
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
         Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
-        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir);
+        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
 
         Vec3 final_light_color = vec3_add(direct_light, indirect_light);
         direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
@@ -1121,16 +1038,16 @@ namespace
         return { 0.5f, 0.5f, 0.5f, 1.0f };
     }
 
-    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir)
+    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir, int num_samples)
     {
         Vec3 accumulated_color = { 0, 0, 0 };
         out_indirect_dir = { 0, 0, 0 };
         std::uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
 
-        if (m_bounces <= 0 || INDIRECT_SAMPLES_PER_POINT <= 0)
+        if (m_bounces <= 0 || num_samples <= 0)
             return accumulated_color;
 
-        for (int i = 0; i < INDIRECT_SAMPLES_PER_POINT; ++i)
+        for (int i = 0; i < num_samples; ++i)
         {
             Vec3 ray_origin = origin;
             Vec3 ray_normal = normal;
@@ -1227,7 +1144,7 @@ namespace
         }
 
         vec3_normalize(&out_indirect_dir);
-        return vec3_muls(accumulated_color, 1.0f / (float)INDIRECT_SAMPLES_PER_POINT);
+        return vec3_muls(accumulated_color, 1.0f / (float)num_samples);
     }
 
     void Lightmapper::generate()
@@ -1240,8 +1157,6 @@ namespace
         prepare_jobs();
         if (m_jobs.empty()) return;
 
-        Console_Printf("[Lightmapper] Using path tracing with %d bounces and %d indirect samples.", m_bounces, INDIRECT_SAMPLES_PER_POINT);
-
         unsigned int num_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
         Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
@@ -1253,44 +1168,6 @@ namespace
         for (auto& t : threads)
         {
             t.join();
-        }
-
-        Console_Printf("[Lightmapper] Denoising model vertex lighting using bilateral filter...");
-        const int filter_passes = 10;
-        const float normal_threshold = 0.7f;
-
-        for (int i = 0; i < m_scene->numObjects; ++i)
-        {
-            const SceneObject& obj = m_scene->objects[i];
-            if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i] || obj.model->totalVertexCount == 0) continue;
-
-            unsigned int vertex_count = obj.model->totalVertexCount;
-
-            std::vector<std::set<unsigned int>> adjacency;
-            build_adjacency_list(obj, adjacency);
-
-            auto temp_color_buffer = std::make_unique<Vec4[]>(vertex_count);
-            auto temp_direction_buffer = std::make_unique<Vec4[]>(vertex_count);
-
-            Vec4* read_color = m_model_color_buffers[i].get();
-            Vec4* write_color = temp_color_buffer.get();
-            Vec4* read_dir = m_model_direction_buffers[i].get();
-            Vec4* write_dir = temp_direction_buffer.get();
-
-            for (int pass = 0; pass < filter_passes; ++pass) {
-                apply_bilateral_filter_pass(write_color, read_color, adjacency, obj, normal_threshold);
-                filter_vertex_data(write_dir, read_dir, adjacency, vertex_count);
-
-                std::swap(read_color, write_color);
-                std::swap(read_dir, write_dir);
-            }
-
-            if (read_color != m_model_color_buffers[i].get()) {
-                memcpy(m_model_color_buffers[i].get(), read_color, sizeof(Vec4) * vertex_count);
-            }
-            if (read_dir != m_model_direction_buffers[i].get()) {
-                memcpy(m_model_direction_buffers[i].get(), read_dir, sizeof(Vec4) * vertex_count);
-            }
         }
 
         for (int i = 0; i < m_scene->numObjects; ++i)
