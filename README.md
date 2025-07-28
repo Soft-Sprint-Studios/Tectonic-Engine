@@ -74,3 +74,37 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 - Vertex Painting & Sculpting: Terrain and complex brushes can be directly painted with vertex colors for texture blending or sculpted for organic shapes.
 
 - Developer Console & CVars: A Quake-style dropdown console provides direct access to engine commands and tunable "CVars" for runtime configuration.
+
+# License
+
+Only the following folders are under the main project license (**MIT**):
+
+- `engine/`
+- `launcher/`
+- `Batchmodelimporter/`
+- `docs/`
+
+All other folders are third-party dependencies and fall under their respective open-source licenses.
+
+---
+
+## Third-Party Libraries and Licenses
+
+| Folder                   | Library / Purpose                          | License                            |
+|--------------------------|--------------------------------------------|-------------------------------------|
+| `glew-2.1.0/`            | OpenGL Extension Wrangler                  | BSD 3-Clause                        |
+| `imgui-master/`          | Dear ImGui GUI Library                     | MIT License                         |
+| `SDL2_image-2.8.8/`      | SDL2 Image Addon                           | zlib License                        |
+| `SDL2_ttf-2.24.0/`       | SDL2 TrueType Font Addon                   | zlib License                        |
+| `sdl/`                   | SDL2 Core                                  | zlib License                        |
+| `bullet/`                | Bullet Physics                             | zlib License                        |
+| `cgltf/`                 | GLTF Loader                                | MIT License                         |
+| `mikktspace/`            | Tangent Space Generator                    | zlib License                        |
+| `minimp3/`               | MP3 Decoder                                | Unlicense or MIT                   |
+| `minivorbis/`            | Ogg Vorbis Decoder                         | BSD-like                          |
+| `embree-4.4.0/`          | Ray Tracing Kernels (Intel Embree)         | Apache 2.0 License                  |
+| `oidn-2.3.3/`            | Intel Open Image Denoise                   | Apache 2.0 License                  |
+| `pl_mpeg/`               | MPEG1 Video Decoder                        | MIT License                         |
+| `openal-soft-1.24.3/`    | Audio Library                              | LGPL 2.1                            |
+| `stb/`                   | Image, Audio, and Font Utilities           | Public Domain or MIT               |
+| `sentry/`                | Crash Reporting SDK                        | MIT License                         |
