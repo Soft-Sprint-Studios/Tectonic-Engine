@@ -28,8 +28,6 @@
 // Brief: Compatibility header to properly support linux & some general functions
 //----------------------------------------//
 
-// Notes: Keep in sync with the open source copy "Math_Lib"
-
 #include <stdbool.h>
 #include <stdio.h>
 

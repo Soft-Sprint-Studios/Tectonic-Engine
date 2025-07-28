@@ -28,8 +28,6 @@
 // Brief: Main math library
 //----------------------------------------//
 
-// Notes: Keep in sync with the open source copy "Math_Lib"
-
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>
