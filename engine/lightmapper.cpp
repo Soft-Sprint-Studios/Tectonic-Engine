@@ -527,38 +527,65 @@ namespace
         }
     }
 
+    static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {
+        const BrushFace& face = b->faces[face_index];
+        Vec3 pos = b->vertices[vertex_index].pos;
+
+        Vec3 p0 = b->vertices[face.vertexIndices[0]].pos;
+        Vec3 p1 = b->vertices[face.vertexIndices[1]].pos;
+        Vec3 p2 = b->vertices[face.vertexIndices[2]].pos;
+        Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+        vec3_normalize(&normal_vec);
+
+        float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
+        int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
+
+        float u, v;
+        if (dominant_axis == 0) { u = pos.y; v = pos.z; }
+        else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
+        else { u = pos.x; v = pos.y; }
+
+        float rad = face.uv_rotation * (M_PI / 180.0f);
+        float cos_r = cosf(rad); float sin_r = sinf(rad);
+
+        Vec2 final_uv;
+        final_uv.x = ((u * cos_r - v * sin_r) / face.uv_scale.x) + face.uv_offset.x;
+        final_uv.y = ((u * sin_r + v * cos_r) / face.uv_scale.y) + face.uv_offset.y;
+
+        return final_uv;
+    }
+
     void Lightmapper::process_brush_face(const BrushFaceJobData& data, std::mt19937& rng)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
         const BrushFace& face = b.faces[data.face_index];
         if (face.numVertexIndices < 3) return;
 
-        Vec3 v0 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos);
-        Vec3 v1 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[1]].pos);
-        Vec3 v2 = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[2]].pos);
-        Vec3 face_normal = vec3_cross(vec3_sub(v1, v0), vec3_sub(v2, v0));
+        Vec3 face_normal = { 0.0f, 0.0f, 0.0f };
+        for (int k = 0; k < face.numVertexIndices - 2; ++k) {
+            Vec3 p0 = b.vertices[face.vertexIndices[0]].pos;
+            Vec3 p1 = b.vertices[face.vertexIndices[k + 1]].pos;
+            Vec3 p2 = b.vertices[face.vertexIndices[k + 2]].pos;
+            Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+            face_normal = vec3_add(face_normal, tri_normal);
+        }
         vec3_normalize(&face_normal);
 
-        Vec3 u_axis, v_axis;
-        if (fabsf(face_normal.x) > fabsf(face_normal.y)) u_axis = { -face_normal.z, 0, face_normal.x };
-        else u_axis = { 0, face_normal.z, -face_normal.y };
-        vec3_normalize(&u_axis);
-        v_axis = vec3_cross(face_normal, u_axis);
-
-        float min_u = FLT_MAX, max_u = -FLT_MAX;
-        float min_v = FLT_MAX, max_v = -FLT_MAX;
+        Vec2 min_uv = { FLT_MAX, FLT_MAX };
+        Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
         std::vector<Vec3> world_verts(face.numVertexIndices);
-        for (int k = 0; k < face.numVertexIndices; ++k)
-        {
+        for (int k = 0; k < face.numVertexIndices; ++k) {
             world_verts[k] = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
-            float u = vec3_dot(world_verts[k], u_axis);
-            float v = vec3_dot(world_verts[k], v_axis);
-            min_u = std::min(min_u, u); max_u = std::max(max_u, u);
-            min_v = std::min(min_v, v); max_v = std::max(max_v, v);
+            Vec2 uv = calculate_texture_uv_for_vertex(&b, data.face_index, face.vertexIndices[k]);
+            min_uv.x = std::min(min_uv.x, uv.x);
+            min_uv.y = std::min(min_uv.y, uv.y);
+            max_uv.x = std::max(max_uv.x, uv.x);
+            max_uv.y = std::max(max_uv.y, uv.y);
         }
 
-        float u_range = std::max(0.001f, max_u - min_u);
-        float v_range = std::max(0.001f, max_v - min_v);
+        Vec2 uv_range = { std::max(0.001f, max_uv.x - min_uv.x), std::max(0.001f, max_uv.y - min_uv.y) };
+        float u_range = uv_range.x * face.uv_scale.x;
+        float v_range = uv_range.y * face.uv_scale.y;
 
         int lightmap_width = std::clamp(static_cast<int>(ceilf(u_range * LUXELS_PER_UNIT)), 4, m_resolution);
         int lightmap_height = std::clamp(static_cast<int>(ceilf(v_range * LUXELS_PER_UNIT)), 4, m_resolution);
@@ -589,25 +616,27 @@ namespace
 
                 float u_tex = (static_cast<float>(x) + 0.5f) / lightmap_width;
                 float v_tex = (static_cast<float>(y) + 0.5f) / lightmap_height;
-                float world_u = min_u + u_tex * u_range;
-                float world_v = min_v + v_tex * v_range;
-                Vec3 point_on_plane = vec3_add(vec3_muls(u_axis, world_u), vec3_muls(v_axis, world_v));
+                float target_u = min_uv.x + u_tex * uv_range.x;
+                float target_v = min_uv.y + v_tex * uv_range.y;
 
                 Vec3 world_pos;
                 bool inside = false;
+                Vec3 point_on_plane;
                 for (int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
+                    int idx0 = face.vertexIndices[0];
+                    int idx1 = face.vertexIndices[k + 1];
+                    int idx2 = face.vertexIndices[k + 2];
+                    Vec2 uv0 = calculate_texture_uv_for_vertex(&b, data.face_index, idx0);
+                    Vec2 uv1 = calculate_texture_uv_for_vertex(&b, data.face_index, idx1);
+                    Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
                     Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
-                    Vec3 v_p0p1 = vec3_sub(p1, p0), v_p0p2 = vec3_sub(p2, p0), v_p0pt = vec3_sub(point_on_plane, p0);
-                    float dot00 = vec3_dot(v_p0p1, v_p0p1), dot01 = vec3_dot(v_p0p1, v_p0p2), dot02 = vec3_dot(v_p0p1, v_p0pt);
-                    float dot11 = vec3_dot(v_p0p2, v_p0p2), dot12 = vec3_dot(v_p0p2, v_p0pt);
-                    float inv_denom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-                    float bary_u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
-                    float bary_v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
-                    if (bary_u >= 0 && bary_v >= 0 && (bary_u + bary_v < 1))
-                    {
+
+                    Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
+
+                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) {
                         inside = true;
-                        world_pos = vec3_add(p0, vec3_add(vec3_muls(v_p0p1, bary_u), vec3_muls(v_p0p2, bary_v)));
+                        world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
                         break;
                     }
                 }

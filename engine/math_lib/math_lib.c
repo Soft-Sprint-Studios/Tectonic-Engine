@@ -565,3 +565,21 @@ bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs) {
 
     return true;
 }
+
+Vec3 barycentric_coords(Vec2 p, Vec2 a, Vec2 b, Vec2 c) {
+    Vec2 v0 = { b.x - a.x, b.y - a.y };
+    Vec2 v1 = { c.x - a.x, c.y - a.y };
+    Vec2 v2 = { p.x - a.x, p.y - a.y };
+    float d00 = v0.x * v0.x + v0.y * v0.y;
+    float d01 = v0.x * v1.x + v0.y * v1.y;
+    float d11 = v1.x * v1.x + v1.y * v1.y;
+    float d20 = v2.x * v0.x + v2.y * v0.y;
+    float d21 = v2.x * v1.x + v2.y * v1.y;
+    float denom = d00 * d11 - d01 * d01;
+    if (fabsf(denom) < 1e-5) return (Vec3) { -1.0f, -1.0f, -1.0f };
+
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+    return (Vec3) { u, v, w };
+}

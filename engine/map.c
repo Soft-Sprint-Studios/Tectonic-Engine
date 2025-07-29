@@ -828,6 +828,34 @@ static void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int inde
     }
 }
 
+static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {
+    BrushFace* face = &b->faces[face_index];
+    Vec3 pos = b->vertices[vertex_index].pos;
+
+    Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
+    Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
+    Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
+    Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+    vec3_normalize(&normal_vec);
+
+    float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
+    int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
+
+    float u, v;
+    if (dominant_axis == 0) { u = pos.y; v = pos.z; }
+    else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
+    else { u = pos.x; v = pos.y; }
+
+    float rad = face->uv_rotation * (M_PI / 180.0f);
+    float cos_r = cosf(rad); float sin_r = sinf(rad);
+
+    Vec2 final_uv;
+    final_uv.x = ((u * cos_r - v * sin_r) / face->uv_scale.x) + face->uv_offset.x;
+    final_uv.y = ((u * sin_r + v * cos_r) / face->uv_scale.y) + face->uv_offset.y;
+
+    return final_uv;
+}
+
 void Brush_CreateRenderData(Brush* b) {
     if (b->numFaces == 0 || b->numVertices == 0) {
         b->totalRenderVertexCount = 0;
@@ -896,36 +924,18 @@ void Brush_CreateRenderData(Brush* b) {
         BrushFace* face = &b->faces[i];
         if (face->numVertexIndices < 3) continue;
 
-        Vec3 face_v0 = b->vertices[face->vertexIndices[0]].pos;
-        Vec3 face_v1 = b->vertices[face->vertexIndices[1]].pos;
-        Vec3 face_v2 = b->vertices[face->vertexIndices[2]].pos;
-        Vec3 lightmap_face_normal = vec3_cross(vec3_sub(face_v1, face_v0), vec3_sub(face_v2, face_v0));
-        vec3_normalize(&lightmap_face_normal);
-
-        Vec3 u_axis, v_axis;
-        if (fabsf(lightmap_face_normal.x) > fabsf(lightmap_face_normal.y)) {
-            u_axis = (Vec3){ -lightmap_face_normal.z, 0, lightmap_face_normal.x };
-        }
-        else {
-            u_axis = (Vec3){ 0, lightmap_face_normal.z, -lightmap_face_normal.y };
-        }
-        vec3_normalize(&u_axis);
-        v_axis = vec3_cross(lightmap_face_normal, u_axis);
-
-        float min_u = FLT_MAX, max_u = -FLT_MAX;
-        float min_v = FLT_MAX, max_v = -FLT_MAX;
+        Vec2 min_uv = { FLT_MAX, FLT_MAX };
+        Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
         for (int k = 0; k < face->numVertexIndices; k++) {
-            Vec3 vert_pos = b->vertices[face->vertexIndices[k]].pos;
-            float u = vec3_dot(vert_pos, u_axis);
-            float v = vec3_dot(vert_pos, v_axis);
-            if (u < min_u) min_u = u; if (u > max_u) max_u = u;
-            if (v < min_v) min_v = v; if (v > max_v) max_v = v;
+            Vec2 uv = calculate_texture_uv_for_vertex(b, i, face->vertexIndices[k]);
+            min_uv.x = fminf(min_uv.x, uv.x);
+            min_uv.y = fminf(min_uv.y, uv.y);
+            max_uv.x = fmaxf(max_uv.x, uv.x);
+            max_uv.y = fmaxf(max_uv.y, uv.y);
         }
-
-        float u_range = max_u - min_u;
-        float v_range = max_v - min_v;
-        if (u_range < 0.001f) u_range = 1.0f;
-        if (v_range < 0.001f) v_range = 1.0f;
+        Vec2 uv_range = { max_uv.x - min_uv.x, max_uv.y - min_uv.y };
+        if (uv_range.x < 0.001f) uv_range.x = 1.0f;
+        if (uv_range.y < 0.001f) uv_range.y = 1.0f;
 
         int num_tris_in_face = face->numVertexIndices - 2;
         int num_verts_in_face = num_tris_in_face * 3;
@@ -973,10 +983,9 @@ void Brush_CreateRenderData(Brush* b) {
             float rad4 = face->uv_rotation4 * (M_PI / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
             uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
-            float lightmap_u_val = vec3_dot(vert.pos, u_axis);
-            float lightmap_v_val = vec3_dot(vert.pos, v_axis);
-            float local_u = (lightmap_u_val - min_u) / u_range;
-            float local_v = (lightmap_v_val - min_v) / v_range;
+            Vec2 current_tex_uv = calculate_texture_uv_for_vertex(b, i, vertex_index);
+            float local_u = (current_tex_uv.x - min_uv.x) / uv_range.x;
+            float local_v = (current_tex_uv.y - min_uv.y) / uv_range.y;
 
             float total_padded_width_uv = face->atlas_coords.z;
             float total_padded_height_uv = face->atlas_coords.w;
