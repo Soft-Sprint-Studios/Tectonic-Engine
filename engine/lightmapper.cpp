@@ -76,6 +76,12 @@ namespace
         fs::path output_dir;
     };
 
+    struct DecalJobData
+    {
+        int decal_index;
+        fs::path output_dir;
+    };
+
     struct ModelVertexJobData
     {
         int model_index;
@@ -84,7 +90,7 @@ namespace
         Vec4* output_direction_buffer;
     };
 
-    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData>;
+    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData>;
 
     class Lightmapper
     {
@@ -99,6 +105,7 @@ namespace
         void worker_main();
         void process_job(const JobPayload& job, std::mt19937& rng);
         void process_brush_face(const BrushFaceJobData& data, std::mt19937& rng);
+        void process_decal(const DecalJobData& data, std::mt19937& rng);
         void process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
@@ -778,6 +785,116 @@ namespace
         }
     }
 
+    void Lightmapper::process_decal(const DecalJobData& data, std::mt19937& rng)
+    {
+        const Decal& decal = m_scene->decals[data.decal_index];
+        int lightmap_res = std::max(4, m_resolution / 4);
+
+        Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
+        Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
+        Vec3 y_axis = { transform.m[4], transform.m[5], transform.m[6] };
+        Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
+        vec3_normalize(&x_axis);
+        vec3_normalize(&y_axis);
+        vec3_normalize(&normal);
+
+        std::vector<float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
+        std::vector<float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
+        std::vector<float> albedo_lightmap_data(lightmap_res * lightmap_res * 3);
+        std::vector<float> normal_lightmap_data(lightmap_res * lightmap_res * 3);
+        std::vector<float> direction_float_data(lightmap_res * lightmap_res * 3);
+
+        Vec4 decal_reflectivity = { 0.5f, 0.5f, 0.5f, 1.0f };
+        if (decal.material) {
+            auto it = m_material_reflectivity.find(decal.material);
+            if (it != m_material_reflectivity.end()) {
+                decal_reflectivity = it->second;
+            }
+        }
+
+        for (int y = 0; y < lightmap_res; ++y) {
+            for (int x = 0; x < lightmap_res; ++x) {
+                float u = (static_cast<float>(x) + 0.5f) / lightmap_res;
+                float v = (static_cast<float>(y) + 0.5f) / lightmap_res;
+
+                float local_x = u - 0.5f;
+                float local_y = v - 0.5f;
+
+                Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
+                Vec3 world_pos = vec3_add(decal.pos, local_pos_on_quad);
+
+                Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
+                Vec3 direct_light = calculate_direct_light(world_pos, normal, dominant_dir);
+                Vec3 indirect_light = calculate_indirect_light(world_pos, normal, rng, indirect_dir, 64);
+
+                int idx = (y * lightmap_res + x) * 3;
+
+                direct_lightmap_data[idx + 0] = direct_light.x;
+                direct_lightmap_data[idx + 1] = direct_light.y;
+                direct_lightmap_data[idx + 2] = direct_light.z;
+
+                indirect_lightmap_data[idx + 0] = indirect_light.x;
+                indirect_lightmap_data[idx + 1] = indirect_light.y;
+                indirect_lightmap_data[idx + 2] = indirect_light.z;
+
+                albedo_lightmap_data[idx + 0] = decal_reflectivity.x;
+                albedo_lightmap_data[idx + 1] = decal_reflectivity.y;
+                albedo_lightmap_data[idx + 2] = decal_reflectivity.z;
+
+                normal_lightmap_data[idx + 0] = normal.x;
+                normal_lightmap_data[idx + 1] = normal.y;
+                normal_lightmap_data[idx + 2] = normal.z;
+
+                Vec3 total_dir = vec3_add(dominant_dir, indirect_dir);
+                if (vec3_length_sq(total_dir) > 0.0001f) vec3_normalize(&total_dir);
+                direction_float_data[idx + 0] = total_dir.x;
+                direction_float_data[idx + 1] = total_dir.y;
+                direction_float_data[idx + 2] = total_dir.z;
+            }
+        }
+
+        std::vector<float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
+        float indirect_sum = 0.0f; for (float val : indirect_lightmap_data) indirect_sum += val;
+        if (indirect_sum > 0.0001f) {
+            OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
+            oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
+            oidnSetFilterBool(filter, "hdr", true);
+            oidnCommitFilter(filter);
+            oidnExecuteFilter(filter);
+            oidnReleaseFilter(filter);
+        }
+        else {
+            std::fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
+        }
+
+        std::vector<float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
+        for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
+            final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
+        }
+
+        std::vector<float> filtered_direction_data;
+        apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_res, lightmap_res, 4, 0.01f);
+
+        std::vector<unsigned char> dir_data_u8(lightmap_res * lightmap_res * 4);
+        for (int i = 0; i < lightmap_res * lightmap_res; ++i) {
+            Vec3 dir = { filtered_direction_data[i * 3], filtered_direction_data[i * 3 + 1], filtered_direction_data[i * 3 + 2] };
+            if (vec3_length_sq(dir) > 0.0001f) vec3_normalize(&dir); else dir = { 0,0,0 };
+            dir_data_u8[i * 4 + 0] = static_cast<unsigned char>((dir.x * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 1] = static_cast<unsigned char>((dir.y * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 2] = static_cast<unsigned char>((dir.z * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 3] = 255;
+        }
+
+        fs::path color_path = data.output_dir / "lightmap_color.hdr";
+        stbi_write_hdr(color_path.string().c_str(), lightmap_res, lightmap_res, 3, final_hdr_lightmap_data.data());
+
+        fs::path dir_path = data.output_dir / "lightmap_dir.png";
+        stbi_write_png(dir_path.string().c_str(), lightmap_res, lightmap_res, 4, dir_data_u8.data(), lightmap_res * 4);
+    }
+
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
@@ -810,6 +927,8 @@ namespace
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, BrushFaceJobData>)
                 process_brush_face(arg, rng);
+            else if constexpr (std::is_same_v<T, DecalJobData>)
+                process_decal(arg, rng);
             else if constexpr (std::is_same_v<T, ModelVertexJobData>)
                 process_model_vertex(arg, rng);
             }, job);
@@ -888,6 +1007,13 @@ namespace
             }
         }
 
+        for (int i = 0; i < m_scene->numDecals; ++i)
+        {
+            fs::path decal_dir = m_output_path / ("decal_" + std::to_string(i));
+            fs::create_directories(decal_dir);
+            m_jobs.emplace_back(DecalJobData{ i, decal_dir });
+        }
+
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
@@ -899,7 +1025,7 @@ namespace
                 }
             }
         }
-        Console_Printf("[Lightmapper] Baking %zu faces and %zu vertices.", total_brush_faces, total_model_vertices);
+        Console_Printf("[Lightmapper] Baking %zu faces, %zu vertices, and %d decals.", total_brush_faces, total_model_vertices, m_scene->numDecals);
     }
 
     void Lightmapper::precalculate_material_reflectivity()

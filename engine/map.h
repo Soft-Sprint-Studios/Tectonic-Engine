@@ -304,6 +304,8 @@ extern "C" {
         Vec3 size;
         Mat4 modelMatrix;
         Material* material;
+        GLuint lightmapAtlas;
+        GLuint directionalLightmapAtlas;
     } Decal;
 
     typedef struct {

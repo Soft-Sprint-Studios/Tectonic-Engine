@@ -1080,6 +1080,15 @@ void Scene_Clear(Scene* scene, Engine* engine) {
         VideoPlayer_Free(&scene->videoPlayers[i]);
     }
 
+    for (int i = 0; i < scene->numDecals; ++i) {
+        if (scene->decals[i].lightmapAtlas) {
+            glDeleteTextures(1, &scene->decals[i].lightmapAtlas);
+        }
+        if (scene->decals[i].directionalLightmapAtlas) {
+            glDeleteTextures(1, &scene->decals[i].directionalLightmapAtlas);
+        }
+    }
+
     for (int i = 0; i < scene->numParallaxRooms; ++i) {
         if (scene->parallaxRooms[i].cubemapTexture) {
             glDeleteTextures(1, &scene->parallaxRooms[i].cubemapTexture);
@@ -1562,6 +1571,51 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 sscanf(p, "%f %f %f %f %f %f %f %f %f", &d->pos.x, &d->pos.y, &d->pos.z, &d->rot.x, &d->rot.y, &d->rot.z, &d->size.x, &d->size.y, &d->size.z);
                 d->material = TextureManager_FindMaterial(mat_name);
                 Decal_UpdateMatrix(d);
+                char map_name_sanitized[128];
+                char* dot = strrchr(scene->mapPath, '.');
+                if (dot) {
+                    size_t len = dot - scene->mapPath;
+                    strncpy(map_name_sanitized, scene->mapPath, len);
+                    map_name_sanitized[len] = '\0';
+                }
+                else {
+                    strcpy(map_name_sanitized, scene->mapPath);
+                }
+
+                char lightmap_path[512];
+                snprintf(lightmap_path, sizeof(lightmap_path), "lightmaps/%s/decal_%d/lightmap_color.hdr", map_name_sanitized, scene->numDecals);
+                int width, height, nrComponents;
+                float* hdr_data = stbi_loadf(lightmap_path, &width, &height, &nrComponents, 3);
+                if (hdr_data) {
+                    glGenTextures(1, &d->lightmapAtlas);
+                    glBindTexture(GL_TEXTURE_2D, d->lightmapAtlas);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, hdr_data);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    stbi_image_free(hdr_data);
+                }
+                else {
+                    d->lightmapAtlas = 0;
+                }
+
+                char dir_lightmap_path[512];
+                snprintf(dir_lightmap_path, sizeof(dir_lightmap_path), "lightmaps/%s/decal_%d/lightmap_dir.png", map_name_sanitized, scene->numDecals);
+                SDL_Surface* dir_surface = IMG_Load(dir_lightmap_path);
+                if (dir_surface) {
+                    SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surface, SDL_PIXELFORMAT_RGBA32, 0);
+                    if (dir_converted) {
+                        glGenTextures(1, &d->directionalLightmapAtlas);
+                        glBindTexture(GL_TEXTURE_2D, d->directionalLightmapAtlas);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dir_converted->w, dir_converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                        SDL_FreeSurface(dir_converted);
+                    }
+                    SDL_FreeSurface(dir_surface);
+                }
+                else {
+                    d->directionalLightmapAtlas = 0;
+                }
                 scene->numDecals++;
             }
         }

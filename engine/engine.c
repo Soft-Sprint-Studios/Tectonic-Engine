@@ -1171,6 +1171,8 @@ void init_renderer() {
     glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, stride, (void*)(18 * sizeof(float)));
     glEnableVertexAttribArray(6);
     glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, stride, (void*)(20 * sizeof(float)));
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(8);
     glEnableVertexAttribArray(7);
     glGenVertexArrays(1, &g_renderer.parallaxRoomVAO); glGenBuffers(1, &g_renderer.parallaxRoomVBO);
     glBindVertexArray(g_renderer.parallaxRoomVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.parallaxRoomVBO);
@@ -2299,15 +2301,46 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         render_brush(g_renderer.mainShader, &g_scene.brushes[i], false, &frustum);
     }
     render_parallax_rooms(view, projection);
-    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE); glUseProgram(g_renderer.mainShader);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+    glUseProgram(g_renderer.mainShader);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
+
     for (int i = 0; i < g_scene.numDecals; ++i) {
-        Decal* d = &g_scene.decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
+        Decal* d = &g_scene.decals[i];
+
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
         glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap); glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap); glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
-        glBindVertexArray(g_renderer.decalVAO); glDrawArrays(GL_PATCHES, 0, 6);
+
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
+        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);
+        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
+
+        bool has_lightmap = d->lightmapAtlas != 0 && d->lightmapAtlas != missingTextureID;
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useLightmap"), has_lightmap);
+        if (has_lightmap) {
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_2D, d->lightmapAtlas);
+            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "lightmap"), 5);
+        }
+
+        bool has_dir_lightmap = d->directionalLightmapAtlas != 0 && d->directionalLightmapAtlas != missingTextureID;
+        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useDirectionalLightmap"), has_dir_lightmap);
+        if (has_dir_lightmap) {
+            glActiveTexture(GL_TEXTURE6);
+            glBindTexture(GL_TEXTURE_2D, d->directionalLightmapAtlas);
+            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "directionalLightmap"), 6);
+        }
+
+        glBindVertexArray(g_renderer.decalVAO);
+        glDrawArrays(GL_PATCHES, 0, 6);
     }
+
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useLightmap"), 0);
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useDirectionalLightmap"), 0);
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }
