@@ -1325,9 +1325,13 @@ namespace
         {
             const SceneObject& obj = m_scene->objects[i];
             if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i]) continue;
+
             std::string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + std::to_string(i);
             std::string sanitized_name = sanitize_filename(model_name_str);
-            fs::path vlm_path = m_output_path / (sanitized_name + ".vlm");
+            fs::path model_dir = m_output_path / sanitized_name;
+            fs::create_directories(model_dir);
+
+            fs::path vlm_path = model_dir / "vertex_colors.vlm";
             std::ofstream vlm_file(vlm_path, std::ios::binary);
             if (vlm_file)
             {
@@ -1342,7 +1346,7 @@ namespace
                 Console_Printf_Error("[Lightmapper] ERROR: Could not write to '%s'", vlm_path.string().c_str());
             }
 
-            fs::path vld_path = m_output_path / (sanitized_name + ".vld");
+            fs::path vld_path = model_dir / "vertex_directions.vld";
             std::ofstream vld_file(vld_path, std::ios::binary);
             if (vld_file)
             {

@@ -761,7 +761,7 @@ static void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const ch
     }
 
     char vlm_path[512];
-    snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s.vlm", map_name_sanitized, model_name_sanitized);
+    snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s/vertex_colors.vlm", map_name_sanitized, model_name_sanitized);
 
     FILE* file = fopen(vlm_path, "rb");
     if (file) {
@@ -806,7 +806,7 @@ static void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int inde
     }
 
     char vld_path[512];
-    snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s.vld", map_name_sanitized, model_name_sanitized);
+    snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s/vertex_directions.vld", map_name_sanitized, model_name_sanitized);
 
     FILE* file = fopen(vld_path, "rb");
     if (file) {
