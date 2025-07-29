@@ -75,12 +75,19 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Developer Console & CVars: A Quake-style dropdown console provides direct access to engine commands and tunable "CVars" for runtime configuration.
 
+# How to get running
+
+Build the engine or get files from github runner
+After that copy all files from x64/release (contains base game files) into directory with the compiled dlls and exe, and then paste the dlls from x64_dlls (or x86 dlls if on 32 bit and linux if you are on linux)
+Run launcher.exe
+
 # License
 
 Only the following folders are under the main project license (**MIT**):
 
 - `engine/`
 - `launcher/`
+- `x64/`
 - `Batchmodelimporter/`
 - `docs/`
 
