@@ -5393,265 +5393,232 @@ static void Editor_RenderReplaceTexturesUI(Scene* scene) {
 }
 static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
     UI_SetNextWindowSize(300, 450);
-    EditorSelection* primary = Editor_GetPrimarySelection();
     if (UI_Begin_NoClose("Face Edit Sheet")) {
-        if (!primary || primary->type != ENTITY_BRUSH || primary->face_index == -1) {
-            UI_Text("No brush face selected.");
+        if (g_EditorState.num_selections == 0) {
+            UI_Text("No selection.");
             UI_End();
             return;
         }
 
-        Brush* b = &scene->brushes[primary->index];
-        BrushFace* face = &b->faces[primary->face_index];
+        bool all_are_brush_faces = true;
+        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            if (g_EditorState.selections[i].type != ENTITY_BRUSH || g_EditorState.selections[i].face_index == -1) {
+                all_are_brush_faces = false;
+                break;
+            }
+        }
 
-        UI_Text("Brush %d, Face %d", primary->index, primary->face_index);
+        if (!all_are_brush_faces) {
+            UI_Text("Selection must contain only brush faces.");
+            UI_End();
+            return;
+        }
+
+        UI_Text("%d face(s) selected.", g_EditorState.num_selections);
+
+        EditorSelection* primary = Editor_GetPrimarySelection();
+        Brush* primary_brush = &scene->brushes[primary->index];
+        BrushFace* primary_face = &primary_brush->faces[primary->face_index];
 
         if (UI_CollapsingHeader("Materials", 1)) {
             char mat_label[128];
 
-            sprintf(mat_label, "Base: %s", face->material ? face->material->name : "None");
+            sprintf(mat_label, "Base: %s", primary_face->material ? primary_face->material->name : "None");
             if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 0; g_EditorState.show_texture_browser = true; }
             UI_SameLine();
-            UI_Image((void*)(intptr_t)(face->material ? face->material->diffuseMap : missingTextureID), 32, 32);
+            UI_Image((void*)(intptr_t)(primary_face->material ? primary_face->material->diffuseMap : missingTextureID), 32, 32);
 
-            sprintf(mat_label, "Blend R: %s", face->material2 ? face->material2->name : "None");
+            sprintf(mat_label, "Blend R: %s", primary_face->material2 ? primary_face->material2->name : "None");
             if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 1; g_EditorState.show_texture_browser = true; }
             UI_SameLine();
-            UI_Image((void*)(intptr_t)(face->material2 ? face->material2->diffuseMap : missingTextureID), 32, 32);
-            if (face->material2) { UI_SameLine(); if (UI_Button("[X]##mat2")) { face->material2 = NULL; } }
+            UI_Image((void*)(intptr_t)(primary_face->material2 ? primary_face->material2->diffuseMap : missingTextureID), 32, 32);
+            if (primary_face->material2) { UI_SameLine(); if (UI_Button("[X]##mat2")) { primary_face->material2 = NULL; } }
 
-            sprintf(mat_label, "Blend G: %s", face->material3 ? face->material3->name : "None");
+            sprintf(mat_label, "Blend G: %s", primary_face->material3 ? primary_face->material3->name : "None");
             if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 2; g_EditorState.show_texture_browser = true; }
             UI_SameLine();
-            UI_Image((void*)(intptr_t)(face->material3 ? face->material3->diffuseMap : missingTextureID), 32, 32);
-            if (face->material3) { UI_SameLine(); if (UI_Button("[X]##mat3")) { face->material3 = NULL; } }
+            UI_Image((void*)(intptr_t)(primary_face->material3 ? primary_face->material3->diffuseMap : missingTextureID), 32, 32);
+            if (primary_face->material3) { UI_SameLine(); if (UI_Button("[X]##mat3")) { primary_face->material3 = NULL; } }
 
-            sprintf(mat_label, "Blend B: %s", face->material4 ? face->material4->name : "None");
+            sprintf(mat_label, "Blend B: %s", primary_face->material4 ? primary_face->material4->name : "None");
             if (UI_Button(mat_label)) { g_EditorState.texture_browser_target = 3; g_EditorState.show_texture_browser = true; }
             UI_SameLine();
-            UI_Image((void*)(intptr_t)(face->material4 ? face->material4->diffuseMap : missingTextureID), 32, 32);
-            if (face->material4) { UI_SameLine(); if (UI_Button("[X]##mat4")) { face->material4 = NULL; } }
+            UI_Image((void*)(intptr_t)(primary_face->material4 ? primary_face->material4->diffuseMap : missingTextureID), 32, 32);
+            if (primary_face->material4) { UI_SameLine(); if (UI_Button("[X]##mat4")) { primary_face->material4 = NULL; } }
         }
 
         if (UI_Button("Apply Nodraw")) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            face->material = &g_NodrawMaterial;
-            Brush_CreateRenderData(b);
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Apply Nodraw");
-        }
-
-        UI_SameLine();
-        if (UI_Button("Apply to All Faces")) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            for (int i = 0; i < b->numFaces; ++i) {
-                b->faces[i].material = face->material;
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Brush* b = &scene->brushes[sel->index];
+                BrushFace* face = &b->faces[sel->face_index];
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                face->material = &g_NodrawMaterial;
+                Brush_CreateRenderData(b);
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Apply Nodraw");
             }
-            Brush_CreateRenderData(b);
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Apply to All Faces");
         }
 
         UI_Separator();
+
+        UI_BeginDisabled(g_EditorState.num_selections != 1);
         if (UI_Button("Copy Face Properties")) {
-            memcpy(&g_copiedFaceProperties, face, sizeof(BrushFace));
+            memcpy(&g_copiedFaceProperties, primary_face, sizeof(BrushFace));
             g_copiedFaceProperties.vertexIndices = NULL;
             g_copiedFaceProperties.numVertexIndices = 0;
             g_hasCopiedFace = true;
         }
-        UI_SameLine();
-        if (!g_hasCopiedFace) {
+        UI_EndDisabled();
 
-        }
+        UI_SameLine();
         if (UI_Button("Paste Face Properties") && g_hasCopiedFace) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            face->material = g_copiedFaceProperties.material;
-            face->material2 = g_copiedFaceProperties.material2;
-            face->material3 = g_copiedFaceProperties.material3;
-            face->material4 = g_copiedFaceProperties.material4;
-            face->uv_offset = g_copiedFaceProperties.uv_offset;
-            face->uv_scale = g_copiedFaceProperties.uv_scale;
-            face->uv_rotation = g_copiedFaceProperties.uv_rotation;
-            face->uv_offset2 = g_copiedFaceProperties.uv_offset2;
-            face->uv_scale2 = g_copiedFaceProperties.uv_scale2;
-            face->uv_rotation2 = g_copiedFaceProperties.uv_rotation2;
-            face->uv_offset3 = g_copiedFaceProperties.uv_offset3;
-            face->uv_scale3 = g_copiedFaceProperties.uv_scale3;
-            face->uv_rotation3 = g_copiedFaceProperties.uv_rotation3;
-            face->uv_offset4 = g_copiedFaceProperties.uv_offset4;
-            face->uv_scale4 = g_copiedFaceProperties.uv_scale4;
-            face->uv_rotation4 = g_copiedFaceProperties.uv_rotation4;
-            face->lightmap_scale = g_copiedFaceProperties.lightmap_scale;
-            Brush_CreateRenderData(b);
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Paste Face Properties");
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Brush* b = &scene->brushes[sel->index];
+                BrushFace* face = &b->faces[sel->face_index];
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                face->material = g_copiedFaceProperties.material;
+                face->material2 = g_copiedFaceProperties.material2;
+                face->material3 = g_copiedFaceProperties.material3;
+                face->material4 = g_copiedFaceProperties.material4;
+                face->uv_offset = g_copiedFaceProperties.uv_offset;
+                face->uv_scale = g_copiedFaceProperties.uv_scale;
+                face->uv_rotation = g_copiedFaceProperties.uv_rotation;
+                face->lightmap_scale = g_copiedFaceProperties.lightmap_scale;
+                Brush_CreateRenderData(b);
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Paste Face Properties");
+            }
         }
 
         UI_Separator();
         UI_Text("Justify");
-        if (UI_Button("Left")) { face->uv_offset.x = 0; Brush_CreateRenderData(b); } UI_SameLine();
-        if (UI_Button("Right")) { face->uv_offset.x = 1.0f - (face->uv_scale.x > 0 ? fmodf(1.0f, face->uv_scale.x) : 0); Brush_CreateRenderData(b); } UI_SameLine();
-        if (UI_Button("Top")) { face->uv_offset.y = 0; Brush_CreateRenderData(b); } UI_SameLine();
-        if (UI_Button("Bottom")) { face->uv_offset.y = 1.0f - (face->uv_scale.y > 0 ? fmodf(1.0f, face->uv_scale.y) : 0); Brush_CreateRenderData(b); } UI_SameLine();
-        if (UI_Button("Center")) { face->uv_offset.x = 0.5f - (face->uv_scale.x / 2.0f); face->uv_offset.y = 0.5f - (face->uv_scale.y / 2.0f); Brush_CreateRenderData(b); }
+
+        if (UI_Button("Left")) { for (int i = 0; i < g_EditorState.num_selections; ++i) { EditorSelection* sel = &g_EditorState.selections[i]; Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index); scene->brushes[sel->index].faces[sel->face_index].uv_offset.x = 0; Brush_CreateRenderData(&scene->brushes[sel->index]); Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Justify UV Left"); } } UI_SameLine();
+        if (UI_Button("Right")) { for (int i = 0; i < g_EditorState.num_selections; ++i) { EditorSelection* sel = &g_EditorState.selections[i]; Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index); BrushFace* f = &scene->brushes[sel->index].faces[sel->face_index]; f->uv_offset.x = 1.0f - (f->uv_scale.x > 0 ? fmodf(1.0f, f->uv_scale.x) : 0); Brush_CreateRenderData(&scene->brushes[sel->index]); Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Justify UV Right"); } } UI_SameLine();
+        if (UI_Button("Top")) { for (int i = 0; i < g_EditorState.num_selections; ++i) { EditorSelection* sel = &g_EditorState.selections[i]; Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index); scene->brushes[sel->index].faces[sel->face_index].uv_offset.y = 0; Brush_CreateRenderData(&scene->brushes[sel->index]); Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Justify UV Top"); } } UI_SameLine();
+        if (UI_Button("Bottom")) { for (int i = 0; i < g_EditorState.num_selections; ++i) { EditorSelection* sel = &g_EditorState.selections[i]; Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index); BrushFace* f = &scene->brushes[sel->index].faces[sel->face_index]; f->uv_offset.y = 1.0f - (f->uv_scale.y > 0 ? fmodf(1.0f, f->uv_scale.y) : 0); Brush_CreateRenderData(&scene->brushes[sel->index]); Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Justify UV Bottom"); } } UI_SameLine();
+        if (UI_Button("Center")) { for (int i = 0; i < g_EditorState.num_selections; ++i) { EditorSelection* sel = &g_EditorState.selections[i]; Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index); BrushFace* f = &scene->brushes[sel->index].faces[sel->face_index]; f->uv_offset.x = 0.5f - (f->uv_scale.x / 2.0f); f->uv_offset.y = 0.5f - (f->uv_scale.y / 2.0f); Brush_CreateRenderData(&scene->brushes[sel->index]); Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Justify UV Center"); } }
 
         UI_SameLine();
         if (UI_Button("Fit")) {
-            if (face->numVertexIndices >= 3) {
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-
-                Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
-                Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
-                Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
-
-                Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                vec3_normalize(&face_normal);
-
-                Vec3 u_axis = vec3_sub(p1, p0);
-                vec3_normalize(&u_axis);
-                Vec3 v_axis = vec3_cross(face_normal, u_axis);
-
-                float min_u = FLT_MAX, max_u = -FLT_MAX;
-                float min_v = FLT_MAX, max_v = -FLT_MAX;
-
-                for (int i = 0; i < face->numVertexIndices; ++i) {
-                    Vec3 vert_pos = b->vertices[face->vertexIndices[i]].pos;
-                    float u = vec3_dot(vert_pos, u_axis);
-                    float v = vec3_dot(vert_pos, v_axis);
-                    if (u < min_u) min_u = u;
-                    if (u > max_u) max_u = u;
-                    if (v < min_v) min_v = v;
-                    if (v > max_v) max_v = v;
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Brush* b = &scene->brushes[sel->index];
+                BrushFace* face = &b->faces[sel->face_index];
+                if (face->numVertexIndices >= 3) {
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                    Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
+                    Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
+                    Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
+                    Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+                    vec3_normalize(&face_normal);
+                    Vec3 u_axis = vec3_sub(p1, p0);
+                    vec3_normalize(&u_axis);
+                    Vec3 v_axis = vec3_cross(face_normal, u_axis);
+                    float min_u = FLT_MAX, max_u = -FLT_MAX;
+                    float min_v = FLT_MAX, max_v = -FLT_MAX;
+                    for (int j = 0; j < face->numVertexIndices; ++j) {
+                        Vec3 vert_pos = b->vertices[face->vertexIndices[j]].pos;
+                        float u = vec3_dot(vert_pos, u_axis);
+                        float v = vec3_dot(vert_pos, v_axis);
+                        if (u < min_u) min_u = u; if (u > max_u) max_u = u;
+                        if (v < min_v) min_v = v; if (v > max_v) max_v = v;
+                    }
+                    float u_range = max_u - min_u;
+                    float v_range = max_v - min_v;
+                    if (u_range > 1e-6 && v_range > 1e-6) {
+                        face->uv_scale.x = u_range;
+                        face->uv_scale.y = v_range;
+                        face->uv_offset.x = -min_u / u_range;
+                        face->uv_offset.y = -min_v / v_range;
+                        face->uv_rotation = 0;
+                    }
+                    Brush_CreateRenderData(b);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Fit Texture to Face");
                 }
-
-                float u_range = max_u - min_u;
-                float v_range = max_v - min_v;
-
-                if (u_range > 1e-6 && v_range > 1e-6) {
-                    face->uv_scale.x = u_range;
-                    face->uv_scale.y = v_range;
-                    face->uv_offset.x = -min_u / u_range;
-                    face->uv_offset.y = -min_v / v_range;
-                    face->uv_rotation = 0;
-                }
-
-                Brush_CreateRenderData(b);
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Fit Texture to Face");
             }
         }
 
         UI_Separator();
         if (UI_CollapsingHeader("UV Transforms", 1)) {
             UI_Text("Base Layer");
-            if (UI_DragFloat2("Scale", &face->uv_scale.x, 0.05f, 0, 0)) {}
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-            if (UI_DragFloat2("Shift", &face->uv_offset.x, 0.05f, 0, 0)) {}
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-            if (UI_DragFloat("Rotation", &face->uv_rotation, 1.0f, -360.0f, 360.0f)) {}
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-            if (face->material2) {
-                UI_Separator();
-                UI_Text("Blend Layer R");
-                if (UI_DragFloat2("Scale##2", &face->uv_scale2.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-                if (UI_DragFloat2("Shift##2", &face->uv_offset2.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-                if (UI_DragFloat("Rotation##2", &face->uv_rotation2, 1.0f, -360.0f, 360.0f)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
+            if (UI_DragFloat2("Scale", &primary_face->uv_scale.x, 0.05f, 0, 0)) {}
+            if (UI_IsItemDeactivatedAfterEdit()) {
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                    scene->brushes[sel->index].faces[sel->face_index].uv_scale = primary_face->uv_scale;
+                    Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Edit Face UVs");
+                }
             }
-            if (face->material3) {
-                UI_Separator();
-                UI_Text("Blend Layer G");
-                if (UI_DragFloat2("Scale##3", &face->uv_scale3.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
 
-                if (UI_DragFloat2("Shift##3", &face->uv_offset3.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-                if (UI_DragFloat("Rotation##3", &face->uv_rotation3, 1.0f, -360.0f, 360.0f)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
+            if (UI_DragFloat2("Shift", &primary_face->uv_offset.x, 0.05f, 0, 0)) {}
+            if (UI_IsItemDeactivatedAfterEdit()) {
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                    scene->brushes[sel->index].faces[sel->face_index].uv_offset = primary_face->uv_offset;
+                    Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Edit Face UVs");
+                }
             }
-            if (face->material4) {
-                UI_Separator();
-                UI_Text("Blend Layer B");
-                if (UI_DragFloat2("Scale##4", &face->uv_scale4.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
 
-                if (UI_DragFloat2("Shift##4", &face->uv_offset4.x, 0.05f, 0, 0)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
-
-                if (UI_DragFloat("Rotation##4", &face->uv_rotation4, 1.0f, -360.0f, 360.0f)) {}
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Face UVs"); }
+            if (UI_DragFloat("Rotation", &primary_face->uv_rotation, 1.0f, -360.0f, 360.0f)) {}
+            if (UI_IsItemDeactivatedAfterEdit()) {
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                    scene->brushes[sel->index].faces[sel->face_index].uv_rotation = primary_face->uv_rotation;
+                    Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Edit Face UVs");
+                }
             }
         }
 
         UI_Separator();
         UI_Text("Lighting");
-        if (UI_DragFloat("Lightmap Scale", &face->lightmap_scale, 0.125f, 0.125f, 16.0f)) {}
-        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Lightmap Scale"); }
+        if (UI_DragFloat("Lightmap Scale", &primary_face->lightmap_scale, 0.125f, 0.125f, 16.0f)) {}
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                scene->brushes[sel->index].faces[sel->face_index].lightmap_scale = primary_face->lightmap_scale;
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Edit Lightmap Scale");
+            }
+        }
 
         if (UI_Button("Flip Face Normal")) {
-            if (primary->face_index >= 0 && primary->face_index < b->numFaces) {
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-
-                BrushFace* face_to_flip = &b->faces[primary->face_index];
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Brush* b = &scene->brushes[sel->index];
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                BrushFace* face_to_flip = &b->faces[sel->face_index];
                 int num_indices = face_to_flip->numVertexIndices;
                 for (int k = 0; k < num_indices / 2; ++k) {
                     int temp = face_to_flip->vertexIndices[k];
                     face_to_flip->vertexIndices[k] = face_to_flip->vertexIndices[num_indices - 1 - k];
                     face_to_flip->vertexIndices[num_indices - 1 - k] = temp;
                 }
-
                 Brush_CreateRenderData(b);
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Flip Brush Face");
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Flip Brush Face");
             }
         }
 
         if (UI_Button("Delete Face")) {
-            if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
-                Brush* b = &scene->brushes[primary->index];
-                if (primary->face_index < b->numFaces) {
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                    free(b->faces[primary->face_index].vertexIndices);
-                    for (int i = primary->face_index; i < b->numFaces - 1; ++i) {
-                        b->faces[i] = b->faces[i + 1];
-                    }
-                    b->numFaces--;
-
-                    Brush_CreateRenderData(b);
-                    if (b->physicsBody) {
-                        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                        if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
-                            Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                            for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                            free(world_verts);
-                        }
-                        else {
-                            b->physicsBody = NULL;
-                        }
-                    }
-
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Delete Face");
-                    primary->face_index = -1;
-                    primary->vertex_index = -1;
+            for (int i = g_EditorState.num_selections - 1; i >= 0; --i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Brush* b = &scene->brushes[sel->index];
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
+                free(b->faces[sel->face_index].vertexIndices);
+                for (int j = sel->face_index; j < b->numFaces - 1; ++j) {
+                    b->faces[j] = b->faces[j + 1];
                 }
+                b->numFaces--;
+                Brush_CreateRenderData(b);
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Delete Face");
             }
+            Editor_ClearSelection();
         }
 
         static int subdivide_u = 2;
@@ -5659,11 +5626,12 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
         UI_DragInt("Subdivisions U", &subdivide_u, 1, 1, 16);
         UI_DragInt("Subdivisions V", &subdivide_v, 1, 1, 16);
 
-        if (UI_Button("Subdivide Selected Face")) {
-            if (primary->face_index != -1) {
-                Editor_SubdivideBrushFace(scene, engine, primary->index, primary->face_index, subdivide_u, subdivide_v);
-                primary->face_index = -1;
+        if (UI_Button("Subdivide Selected Faces")) {
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Editor_SubdivideBrushFace(scene, engine, sel->index, sel->face_index, subdivide_u, subdivide_v);
             }
+            Editor_ClearSelection();
         }
     }
     UI_End();

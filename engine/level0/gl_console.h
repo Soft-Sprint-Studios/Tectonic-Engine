@@ -154,6 +154,9 @@ extern "C" {
 	LEVEL0_API void UI_TableNextColumn();
 	LEVEL0_API void UI_TableHeadersRow();
 
+	LEVEL0_API void UI_BeginDisabled(bool disabled);
+	LEVEL0_API void UI_EndDisabled(void);
+
 #ifdef __cplusplus
 }
 #endif

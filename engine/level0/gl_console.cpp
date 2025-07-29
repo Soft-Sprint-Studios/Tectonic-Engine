@@ -428,4 +428,10 @@ extern "C" {
     float UI_GetWindowWidth() { return ImGui::GetWindowSize().x; }
     bool UI_WantCaptureMouse() { return ImGui::GetIO().WantCaptureMouse; }
     bool UI_WantCaptureKeyboard() { return ImGui::GetIO().WantCaptureKeyboard; }
+    void UI_BeginDisabled(bool disabled) {
+        ImGui::BeginDisabled(disabled);
+    }
+    void UI_EndDisabled(void) {
+        ImGui::EndDisabled();
+    }
 }
