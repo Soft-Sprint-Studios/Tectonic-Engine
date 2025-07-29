@@ -291,11 +291,21 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     int num_new_faces = u_divs * v_divs;
     BrushFace* new_faces = malloc(num_new_faces * sizeof(BrushFace));
 
+    if (b->lightmapAtlas != 0) {
+        glDeleteTextures(1, &b->lightmapAtlas);
+        b->lightmapAtlas = 0;
+    }
+    if (b->directionalLightmapAtlas != 0) {
+        glDeleteTextures(1, &b->directionalLightmapAtlas);
+        b->directionalLightmapAtlas = 0;
+    }
+
     for (int v = 0; v < v_divs; ++v) {
         for (int u = 0; u < u_divs; ++u) {
             int face_idx = v * u_divs + u;
             new_faces[face_idx] = *old_face;
 
+            new_faces[face_idx].atlas_coords = (Vec4){ 0.0f, 0.0f, 0.0f, 0.0f };
             new_faces[face_idx].numVertexIndices = 4;
             new_faces[face_idx].vertexIndices = malloc(4 * sizeof(int));
 
