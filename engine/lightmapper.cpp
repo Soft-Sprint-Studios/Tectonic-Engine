@@ -742,46 +742,27 @@ namespace
 
         apply_gaussian_blur(final_hdr_lightmap_data, lightmap_width, lightmap_height, 3);
 
-        const int padding = 1;
-        int padded_width = lightmap_width + padding * 2;
-        int padded_height = lightmap_height + padding * 2;
+        int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
+        int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
 
-        std::vector<float> padded_hdr_data(padded_width * padded_height * 3);
-        for (int y = 0; y < lightmap_height; ++y) {
-            for (int x = 0; x < lightmap_width; ++x) {
-                for (int c = 0; c < 3; ++c) {
-                    padded_hdr_data[((y + padding) * padded_width + (x + padding)) * 3 + c] = final_hdr_lightmap_data[(y * lightmap_width + x) * 3 + c];
-                }
-            }
-        }
+        std::vector<float> padded_hdr_data(padded_width* padded_height * 3);
         for (int y = 0; y < padded_height; ++y) {
             for (int x = 0; x < padded_width; ++x) {
-                int clamp_x = std::clamp(x, padding, padded_width - 1 - padding);
-                int clamp_y = std::clamp(y, padding, padded_height - 1 - padding);
-                if (x != clamp_x || y != clamp_y) {
-                    for (int c = 0; c < 3; ++c) {
-                        padded_hdr_data[(y * padded_width + x) * 3 + c] = padded_hdr_data[((clamp_y)*padded_width + (clamp_x)) * 3 + c];
-                    }
+                int src_x = std::clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                int src_y = std::clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                for (int c = 0; c < 3; ++c) {
+                    padded_hdr_data[(y * padded_width + x) * 3 + c] = final_hdr_lightmap_data[(src_y * lightmap_width + src_x) * 3 + c];
                 }
             }
         }
 
         std::vector<unsigned char> padded_dir_data(padded_width * padded_height * 4);
-        for (int y = 0; y < lightmap_height; ++y) {
-            for (int x = 0; x < lightmap_width; ++x) {
-                for (int c = 0; c < 4; ++c) {
-                    padded_dir_data[((y + padding) * padded_width + (x + padding)) * 4 + c] = dir_lightmap_data[(y * lightmap_width + x) * 4 + c];
-                }
-            }
-        }
         for (int y = 0; y < padded_height; ++y) {
             for (int x = 0; x < padded_width; ++x) {
-                int clamp_x = std::clamp(x, padding, padded_width - 1 - padding);
-                int clamp_y = std::clamp(y, padding, padded_height - 1 - padding);
-                if (x != clamp_x || y != clamp_y) {
-                    for (int c = 0; c < 4; ++c) {
-                        padded_dir_data[(y * padded_width + x) * 4 + c] = padded_dir_data[((clamp_y)*padded_width + (clamp_x)) * 4 + c];
-                    }
+                int src_x = std::clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                int src_y = std::clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                for (int c = 0; c < 4; ++c) {
+                    padded_dir_data[(y * padded_width + x) * 4 + c] = dir_lightmap_data[(src_y * lightmap_width + src_x) * 4 + c];
                 }
             }
         }
