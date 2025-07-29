@@ -618,7 +618,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         cap_face.numVertexIndices = cap_vert_count;
         cap_face.vertexIndices = (int*)malloc(cap_vert_count * sizeof(int));
         if (!cap_face.vertexIndices) {
-            fprintf(stderr, "Brush_Clip: Failed to allocate vertexIndices for cap face.\n");
+            Console_Printf_Error("Brush_Clip: Failed to allocate vertexIndices for cap face.\n");
             for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
             goto cleanup_and_return;
         }
@@ -632,7 +632,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
                 }
             }
             if (vert_idx == -1) {
-                fprintf(stderr, "Brush_Clip: Capping vertex not found in temp_new_verts.\n");
+                Console_Printf_Error("Brush_Clip: Capping vertex not found in temp_new_verts.\n");
                 free(cap_face.vertexIndices);
                 for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
                 goto cleanup_and_return;
@@ -652,7 +652,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     b->numVertices = new_vert_count;
     b->vertices = (BrushVertex*)malloc(new_vert_count * sizeof(BrushVertex));
     if (!b->vertices) {
-        fprintf(stderr, "Brush_Clip: Failed to allocate final brush vertices.\n");
+        Console_Printf_Error("Brush_Clip: Failed to allocate final brush vertices.\n");
         for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
         goto cleanup_and_return;
     }
@@ -661,7 +661,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     b->numFaces = current_new_face_count;
     b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
     if (!b->faces) {
-        fprintf(stderr, "Brush_Clip: Failed to allocate final brush faces.\n");
+        Console_Printf_Error("Brush_Clip: Failed to allocate final brush faces.\n");
         free(b->vertices); b->vertices = NULL;
         for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
         goto cleanup_and_return;
