@@ -44,6 +44,7 @@
 #include <map>
 #include <set>
 #include <random>
+#include <sstream>
 #include <SDL_image.h>
 #include <embree4/rtcore.h>
 #include "stb_image_write.h"
@@ -90,6 +91,12 @@ namespace
         Vec4* output_direction_buffer;
     };
 
+    struct EmissiveMaterial {
+        const Material* material;
+        Vec3 color;
+        float intensity;
+    };
+
     using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData>;
 
     class Lightmapper
@@ -101,6 +108,7 @@ namespace
 
     private:
         void build_embree_scene();
+        void load_emissive_materials();
         void prepare_jobs();
         void worker_main();
         void process_job(const JobPayload& job, std::mt19937& rng);
@@ -133,6 +141,7 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
+        std::vector<EmissiveMaterial> m_emissive_materials;
         std::map<const Material*, Vec4> m_material_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
         std::vector<const Brush*> m_primID_to_brush_map;
@@ -147,6 +156,7 @@ namespace
             throw std::runtime_error("Failed to create Embree device.");
         }
         rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
+        load_emissive_materials();
         build_embree_scene();
         m_oidn_device = oidnNewDevice(OIDN_DEVICE_TYPE_CPU);
         if (!m_oidn_device)
@@ -246,6 +256,45 @@ namespace
         rtcAttachGeometry(m_rtc_scene, geom);
         rtcReleaseGeometry(geom);
         rtcCommitScene(m_rtc_scene);
+    }
+
+    void Lightmapper::load_emissive_materials()
+    {
+        Console_Printf("[Lightmapper] Loading lights.rad...");
+        std::ifstream file("lights.rad");
+        if (!file.is_open()) {
+            Console_Printf("[Lightmapper] lights.rad not found. No emissive surfaces will be used.");
+            return;
+        }
+
+        std::string line;
+        int line_num = 0;
+        while (std::getline(file, line)) {
+            line_num++;
+
+            if (line.empty() || line[0] == '/' || line[0] == '#') {
+                continue;
+            }
+
+            std::istringstream iss(line);
+            std::string material_name;
+            float r, g, b, intensity;
+
+            if (!(iss >> material_name >> r >> g >> b >> intensity)) {
+                Console_Printf_Warning("[Lightmapper] Malformed line %d in lights.rad", line_num);
+                continue;
+            }
+
+            Material* mat = TextureManager_FindMaterial(material_name.c_str());
+            if (mat == &g_MissingMaterial || mat == &g_NodrawMaterial) {
+                Console_Printf_Warning("[Lightmapper] Material '%s' from lights.rad not found or is nodraw.", material_name.c_str());
+                continue;
+            }
+
+            m_emissive_materials.push_back({ mat, {r / 255.0f, g / 255.0f, b / 255.0f}, intensity });
+            Console_Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
+        }
+        Console_Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
     }
 
     bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
@@ -1237,6 +1286,28 @@ namespace
 
                 if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
                     break;
+
+                if (rayhit.hit.primID < m_primID_to_face_map.size()) {
+                    const BrushFace* hit_face = m_primID_to_face_map[rayhit.hit.primID];
+                    if (hit_face && hit_face->material) {
+                        const Material* hit_material = hit_face->material;
+                        bool is_emissive = false;
+                        Vec3 emission = { 0,0,0 };
+
+                        for (const auto& emissive_mat : m_emissive_materials) {
+                            if (emissive_mat.material == hit_material) {
+                                is_emissive = true;
+                                emission = vec3_muls(emissive_mat.color, emissive_mat.intensity);
+                                break;
+                            }
+                        }
+
+                        if (is_emissive) {
+                            path_radiance = vec3_add(path_radiance, vec3_mul(emission, throughput));
+                            break;
+                        }
+                    }
+                }
 
                 Vec3 hit_pos = {
                     trace_origin.x + rayhit.ray.tfar * bounce_dir.x,
