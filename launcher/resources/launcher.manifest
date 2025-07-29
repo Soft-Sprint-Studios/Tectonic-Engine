@@ -29,6 +29,7 @@
         <supportedOS Id="{a4df5659-0801-4a60-8e4b-62b146ef4d8b}"/>
         <supportedOS Id="{4f476546-937c-45ef-b838-6a8e1b776c86}"/>
         <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f2db268f}"/>
+        <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/> 
       </application>
     </compatibility>
 
