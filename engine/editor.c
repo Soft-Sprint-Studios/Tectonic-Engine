@@ -273,6 +273,33 @@ static void Editor_RemoveFromSelection(EntityType type, int index) {
     }
 }
 
+static bool Editor_IsFaceSelected(int brush_index, int face_index) {
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+        if (sel->type == ENTITY_BRUSH && sel->index == brush_index && sel->face_index == face_index) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void Editor_RemoveFaceFromSelection(int brush_index, int face_index) {
+    int found_at = -1;
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+        if (sel->type == ENTITY_BRUSH && sel->index == brush_index && sel->face_index == face_index) {
+            found_at = i;
+            break;
+        }
+    }
+    if (found_at != -1) {
+        for (int i = found_at; i < g_EditorState.num_selections - 1; ++i) {
+            g_EditorState.selections[i] = g_EditorState.selections[i + 1];
+        }
+        g_EditorState.num_selections--;
+    }
+}
+
 static void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index) {
     if (Editor_IsSelected(type, index)) return;
     g_EditorState.num_selections++;
@@ -1757,18 +1784,35 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
     }
 
     bool ctrl_held = (SDL_GetModState() & KMOD_CTRL);
+
     if (selected_type != ENTITY_NONE) {
-        if (ctrl_held) {
-            if (Editor_IsSelected(selected_type, selected_index)) {
-                Editor_RemoveFromSelection(selected_type, selected_index);
+        if (selected_type == ENTITY_BRUSH) {
+            if (ctrl_held) {
+                if (Editor_IsFaceSelected(selected_index, hit_face_index)) {
+                    Editor_RemoveFaceFromSelection(selected_index, hit_face_index);
+                }
+                else {
+                    Editor_AddToSelection(selected_type, selected_index, hit_face_index, -1);
+                }
             }
             else {
+                Editor_ClearSelection();
                 Editor_AddToSelection(selected_type, selected_index, hit_face_index, -1);
             }
         }
         else {
-            Editor_ClearSelection();
-            Editor_AddToSelection(selected_type, selected_index, hit_face_index, -1);
+            if (ctrl_held) {
+                if (Editor_IsSelected(selected_type, selected_index)) {
+                    Editor_RemoveFromSelection(selected_type, selected_index);
+                }
+                else {
+                    Editor_AddToSelection(selected_type, selected_index, -1, -1);
+                }
+            }
+            else {
+                Editor_ClearSelection();
+                Editor_AddToSelection(selected_type, selected_index, -1, -1);
+            }
         }
     }
     else {
@@ -4245,35 +4289,39 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (b->isWater) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
-    if (primary && primary->type == ENTITY_BRUSH) {
-        Brush* b = &scene->brushes[primary->index];
-        if (!b->isReflectionProbe && !b->isTrigger && primary->face_index >= 0 && primary->face_index < b->numFaces) {
-            BrushFace* face = &b->faces[primary->face_index];
-            if (face->numVertexIndices >= 3) {
-                int num_tris = face->numVertexIndices - 2;
-                int num_verts = num_tris * 3;
-                float* face_verts = malloc(num_verts * 3 * sizeof(float));
-                for (int i = 0; i < num_tris; ++i) {
-                    int tri_indices[3] = { face->vertexIndices[0], face->vertexIndices[i + 1], face->vertexIndices[i + 2] };
-                    for (int j = 0; j < 3; ++j) {
-                        Vec3 v = b->vertices[tri_indices[j]].pos;
-                        face_verts[(i * 3 + j) * 3 + 0] = v.x;
-                        face_verts[(i * 3 + j) * 3 + 1] = v.y;
-                        face_verts[(i * 3 + j) * 3 + 2] = v.z;
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+
+        if (sel->type == ENTITY_BRUSH) {
+            Brush* b = &scene->brushes[sel->index];
+            if (!b->isReflectionProbe && !b->isTrigger && sel->face_index >= 0 && sel->face_index < b->numFaces) {
+                BrushFace* face = &b->faces[sel->face_index];
+                if (face->numVertexIndices >= 3) {
+                    int num_tris = face->numVertexIndices - 2;
+                    int num_verts = num_tris * 3;
+                    float* face_verts = malloc(num_verts * 3 * sizeof(float));
+                    for (int tri = 0; tri < num_tris; ++tri) {
+                        int tri_indices[3] = { face->vertexIndices[0], face->vertexIndices[tri + 1], face->vertexIndices[tri + 2] };
+                        for (int j = 0; j < 3; ++j) {
+                            Vec3 v = b->vertices[tri_indices[j]].pos;
+                            face_verts[(tri * 3 + j) * 3 + 0] = v.x;
+                            face_verts[(tri * 3 + j) * 3 + 1] = v.y;
+                            face_verts[(tri * 3 + j) * 3 + 2] = v.z;
+                        }
                     }
+                    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_FALSE); glUseProgram(g_EditorState.debug_shader);
+                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+                    float color[] = { 1.0f, 0.5f, 0.0f, 0.4f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                    glBindVertexArray(g_EditorState.selected_face_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
+                    glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(float), face_verts, GL_DYNAMIC_DRAW);
+                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                    glEnableVertexAttribArray(0); glDrawArrays(GL_TRIANGLES, 0, num_verts);
+                    glBindVertexArray(0); glDisable(GL_BLEND); glDepthMask(GL_TRUE);
+                    free(face_verts);
                 }
-                glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glDepthMask(GL_FALSE); glUseProgram(g_EditorState.debug_shader);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-                float color[] = { 1.0f, 0.5f, 0.0f, 0.4f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-                glBindVertexArray(g_EditorState.selected_face_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
-                glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(float), face_verts, GL_DYNAMIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(0); glDrawArrays(GL_TRIANGLES, 0, num_verts);
-                glBindVertexArray(0); glDisable(GL_BLEND); glDepthMask(GL_TRUE);
-                free(face_verts);
             }
         }
     }
