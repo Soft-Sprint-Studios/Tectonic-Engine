@@ -63,7 +63,7 @@ extern "C" {
 #define MAX_LOGIC_ENTITIES 8192
 #define MAX_ENTITY_PROPERTIES 32
 
-#define MAP_VERSION 10
+#define MAP_VERSION 11
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -264,6 +264,7 @@ extern "C" {
         int* vertexIndices;
         int numVertexIndices;
         Vec4 atlas_coords;
+        float lightmap_scale;
     } BrushFace;
 
     typedef struct {

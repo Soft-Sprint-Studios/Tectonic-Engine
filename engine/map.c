@@ -274,6 +274,7 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
         b->faces[i].uv_offset4 = (Vec2){ 0,0 };
         b->faces[i].uv_scale4 = (Vec2){ 1,1 };
         b->faces[i].uv_rotation4 = 0;
+        b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].numVertexIndices = 4;
         b->faces[i].vertexIndices = malloc(4 * sizeof(int));
         for (int j = 0; j < 4; ++j) b->faces[i].vertexIndices[j] = face_defs[i][j];
@@ -309,6 +310,7 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
 
     for (int i = 0; i < num_sides; ++i) {
         b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1} };
+        b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].vertexIndices = malloc(4 * sizeof(int));
         b->faces[i].vertexIndices[0] = i;
         b->faces[i].vertexIndices[1] = (i + 1) % num_sides;
@@ -317,10 +319,12 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
     }
 
     b->faces[num_sides] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    b->faces[num_sides].lightmap_scale = 1.0f;
     b->faces[num_sides].vertexIndices = malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) b->faces[num_sides].vertexIndices[i] = i;
 
     b->faces[num_sides + 1] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    b->faces[num_sides + 1].lightmap_scale = 1.0f;
     b->faces[num_sides + 1].vertexIndices = malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) b->faces[num_sides + 1].vertexIndices[i] = (num_sides - 1 - i) + num_sides;
 }
@@ -357,6 +361,7 @@ void Brush_SetVerticesFromWedge(Brush* b, Vec3 size) {
 
     for (int i = 0; i < 5; ++i) {
         b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_indices_per_face[i], .uv_scale = {1,1} };
+        b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
         for (int j = 0; j < b->faces[i].numVertexIndices; ++j) {
             b->faces[i].vertexIndices[j] = face_defs[i][j];
@@ -394,12 +399,14 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides) {
     for (int i = 0; i < num_sides; ++i) {
         b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 3, .uv_scale = {1,1} };
         b->faces[i].vertexIndices = malloc(3 * sizeof(int));
+        b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].vertexIndices[0] = 0;
         b->faces[i].vertexIndices[1] = (i + 1) % num_sides + 1;
         b->faces[i].vertexIndices[2] = i + 1;
     }
 
     b->faces[num_sides] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    b->faces[num_sides].lightmap_scale = 1.0f;
     b->faces[num_sides].vertexIndices = malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) {
         b->faces[num_sides].vertexIndices[i] = (num_sides - i) + 0;
@@ -1374,16 +1381,25 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     for (int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
                         char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
+
+                        char* lightmap_scale_ptr = strstr(line, "lightmap_scale");
+                        if (lightmap_scale_ptr) {
+                            sscanf(lightmap_scale_ptr, "lightmap_scale %f", &b->faces[i].lightmap_scale);
+                            *lightmap_scale_ptr = '\0';
+                        }
+
                         sscanf(line, " f %*d %s %s %s %s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
                             mat_name, mat2_name, mat3_name, mat4_name, &b->faces[i].uv_offset.x, &b->faces[i].uv_offset.y, &b->faces[i].uv_rotation, &b->faces[i].uv_scale.x, &b->faces[i].uv_scale.y,
                             &b->faces[i].uv_offset2.x, &b->faces[i].uv_offset2.y, &b->faces[i].uv_rotation2, &b->faces[i].uv_scale2.x, &b->faces[i].uv_scale2.y,
                             &b->faces[i].uv_offset3.x, &b->faces[i].uv_offset3.y, &b->faces[i].uv_rotation3, &b->faces[i].uv_scale3.x, &b->faces[i].uv_scale3.y,
                             &b->faces[i].uv_offset4.x, &b->faces[i].uv_offset4.y, &b->faces[i].uv_rotation4, &b->faces[i].uv_scale4.x, &b->faces[i].uv_scale4.y,
                             &b->faces[i].numVertexIndices);
+
                         b->faces[i].material = TextureManager_FindMaterial(mat_name);
                         b->faces[i].material2 = strcmp(mat2_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat2_name);
                         b->faces[i].material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
                         b->faces[i].material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
+
                         b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
                         char* p = strchr(line, ':');
                         if (p) {
@@ -1865,6 +1881,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
                 face->uv_offset4.x, face->uv_offset4.y, face->uv_rotation4, face->uv_scale4.x, face->uv_scale4.y,
                 face->numVertexIndices);
             for (int k = 0; k < face->numVertexIndices; ++k) fprintf(file, " %d", face->vertexIndices[k]);
+            fprintf(file, " lightmap_scale %.4f", face->lightmap_scale);
             fprintf(file, "\n");
         }
         fprintf(file, "brush_end\n\n");

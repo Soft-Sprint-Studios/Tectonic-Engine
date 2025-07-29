@@ -4997,6 +4997,7 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
             face->uv_offset4 = g_copiedFaceProperties.uv_offset4;
             face->uv_scale4 = g_copiedFaceProperties.uv_scale4;
             face->uv_rotation4 = g_copiedFaceProperties.uv_rotation4;
+            face->lightmap_scale = g_copiedFaceProperties.lightmap_scale;
             Brush_CreateRenderData(b);
             Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Paste Face Properties");
         }
@@ -5115,6 +5116,12 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                 if (UI_IsItemDeactivatedAfterEdit()) { Brush_CreateRenderData(b); Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Face UVs"); }
             }
         }
+
+        UI_Separator();
+        UI_Text("Lighting");
+        if (UI_DragFloat("Lightmap Scale", &face->lightmap_scale, 0.125f, 0.125f, 16.0f)) {}
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, g_EditorState.selected_entity_index, "Edit Lightmap Scale"); }
 
         if (UI_Button("Flip Face Normal")) {
             if (g_EditorState.selected_face_index >= 0 && g_EditorState.selected_face_index < b->numFaces) {

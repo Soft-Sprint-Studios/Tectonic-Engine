@@ -594,8 +594,9 @@ namespace
         float u_range = uv_range.x * face.uv_scale.x;
         float v_range = uv_range.y * face.uv_scale.y;
 
-        int lightmap_width = std::clamp(static_cast<int>(ceilf(u_range * LUXELS_PER_UNIT)), 4, m_resolution);
-        int lightmap_height = std::clamp(static_cast<int>(ceilf(v_range * LUXELS_PER_UNIT)), 4, m_resolution);
+        float effective_luxels_per_unit = LUXELS_PER_UNIT / face.lightmap_scale;
+        int lightmap_width = std::clamp(static_cast<int>(ceilf(u_range * effective_luxels_per_unit)), 4, m_resolution);
+        int lightmap_height = std::clamp(static_cast<int>(ceilf(v_range * effective_luxels_per_unit)), 4, m_resolution);
 
         std::vector<float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
         std::vector<float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
