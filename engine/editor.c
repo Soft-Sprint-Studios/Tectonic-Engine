@@ -64,13 +64,6 @@ typedef enum {
 } PreviewBrushHandleType;
 
 typedef struct {
-    EntityType type;
-    int index;
-    int face_index;
-    int vertex_index;
-} EditorSelection;
-
-typedef struct {
     bool initialized; Camera editor_camera;
     bool is_in_z_mode;
     BrushCreationShapeType current_brush_shape;
@@ -687,168 +680,6 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_BRUSH, new_brush_index, 0, 0);
     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Create Brush");
-}
-
-void Editor_DeleteModel(Scene* scene, int index, Engine* engine) {
-    if (index < 0 || index >= scene->numObjects) return;
-    Undo_PushDeleteEntity(scene, ENTITY_MODEL, index, "Delete Model");
-    if (scene->objects[index].model) Model_Free(scene->objects[index].model);
-    if (scene->objects[index].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->objects[index].physicsBody);
-    if (scene->objects[index].bakedVertexColors) free(scene->objects[index].bakedVertexColors);
-    for (int i = index; i < scene->numObjects - 1; ++i) scene->objects[i] = scene->objects[i + 1];
-    scene->numObjects--;
-    if (scene->numObjects > 0) { scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject)); }
-    else { free(scene->objects); scene->objects = NULL; }
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_MODEL && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_MODEL, index);
-}
-
-void Editor_DeleteBrush(Scene* scene, Engine* engine, int index) {
-    if (index < 0 || index >= scene->numBrushes) return;
-    Undo_PushDeleteEntity(scene, ENTITY_BRUSH, index, "Delete Brush");
-    Brush_FreeData(&scene->brushes[index]);
-    if (scene->brushes[index].physicsBody) { Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody); scene->brushes[index].physicsBody = NULL; }
-    for (int i = index; i < scene->numBrushes - 1; ++i) scene->brushes[i] = scene->brushes[i + 1];
-    scene->numBrushes--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_BRUSH && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_BRUSH, index);
-}
-
-void Editor_DeleteLight(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numActiveLights) return;
-    Undo_PushDeleteEntity(scene, ENTITY_LIGHT, index, "Delete Light");
-    Light_DestroyShadowMap(&scene->lights[index]);
-    for (int i = index; i < scene->numActiveLights - 1; ++i) scene->lights[i] = scene->lights[i + 1];
-    scene->numActiveLights--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_LIGHT && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_LIGHT, index);
-}
-
-void Editor_DeleteDecal(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numDecals) return;
-    Undo_PushDeleteEntity(scene, ENTITY_DECAL, index, "Delete Decal");
-    for (int i = index; i < scene->numDecals - 1; ++i) scene->decals[i] = scene->decals[i + 1];
-    scene->numDecals--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_DECAL && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_DECAL, index);
-}
-
-void Editor_DeleteSoundEntity(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numSoundEntities) return;
-    Undo_PushDeleteEntity(scene, ENTITY_SOUND, index, "Delete Sound");
-    SoundSystem_DeleteSource(scene->soundEntities[index].sourceID);
-    for (int i = index; i < scene->numSoundEntities - 1; ++i) scene->soundEntities[i] = scene->soundEntities[i + 1];
-    scene->numSoundEntities--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_SOUND && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_SOUND, index);
-}
-
-void Editor_DeleteParticleEmitter(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numParticleEmitters) return;
-    Undo_PushDeleteEntity(scene, ENTITY_PARTICLE_EMITTER, index, "Delete Particle Emitter");
-    ParticleEmitter_Free(&scene->particleEmitters[index]);
-    ParticleSystem_Free(scene->particleEmitters[index].system);
-    for (int i = index; i < scene->numParticleEmitters - 1; ++i) { scene->particleEmitters[i] = scene->particleEmitters[i + 1]; }
-    scene->numParticleEmitters--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_PARTICLE_EMITTER && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_PARTICLE_EMITTER, index);
-}
-
-void Editor_DeleteVideoPlayer(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numVideoPlayers) return;
-    Undo_PushDeleteEntity(scene, ENTITY_VIDEO_PLAYER, index, "Delete Video Player");
-    VideoPlayer_Free(&scene->videoPlayers[index]);
-    for (int i = index; i < scene->numVideoPlayers - 1; ++i) {
-        scene->videoPlayers[i] = scene->videoPlayers[i + 1];
-    }
-    scene->numVideoPlayers--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_VIDEO_PLAYER && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_VIDEO_PLAYER, index);
-}
-void Editor_DeleteParallaxRoom(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numParallaxRooms) return;
-    Undo_PushDeleteEntity(scene, ENTITY_PARALLAX_ROOM, index, "Delete Parallax Room");
-    if (scene->parallaxRooms[index].cubemapTexture) {
-        glDeleteTextures(1, &scene->parallaxRooms[index].cubemapTexture);
-    }
-    for (int i = index; i < scene->numParallaxRooms - 1; ++i) {
-        scene->parallaxRooms[i] = scene->parallaxRooms[i + 1];
-    }
-    scene->numParallaxRooms--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_PARALLAX_ROOM && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_PARALLAX_ROOM, index);
-}
-
-void Editor_DeleteLogicEntity(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numLogicEntities) return;
-    Undo_PushDeleteEntity(scene, ENTITY_LOGIC, index, "Delete Logic Entity");
-    for (int i = index; i < scene->numLogicEntities - 1; ++i) {
-        scene->logicEntities[i] = scene->logicEntities[i + 1];
-    }
-    scene->numLogicEntities--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_LOGIC && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_LOGIC, index);
-}
-
-void Editor_DeleteSprite(Scene* scene, int index) {
-    if (index < 0 || index >= scene->numSprites) return;
-    Undo_PushDeleteEntity(scene, ENTITY_SPRITE, index, "Delete Sprite");
-    for (int i = index; i < scene->numSprites - 1; ++i) {
-        scene->sprites[i] = scene->sprites[i + 1];
-    }
-    scene->numSprites--;
-
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-        if (g_EditorState.selections[i].type == ENTITY_SPRITE && g_EditorState.selections[i].index > index) {
-            g_EditorState.selections[i].index--;
-        }
-    }
-    Editor_RemoveFromSelection(ENTITY_SPRITE, index);
 }
 
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
@@ -2213,13 +2044,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             return;
         }
         else if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
+            Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_active_axis = g_EditorState.gizmo_hovered_axis;
             g_EditorState.gizmo_drag_view = active_viewport;
-            // TODO: MULTI-ENTITY UNDO
-            // if (!g_EditorState.is_in_brush_creation_mode) {
-            //     Undo_BeginEntityModification(scene, g_EditorState.selected_entity_type, g_EditorState.selected_entity_index);
-            // }
 
             if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
             }
@@ -2451,22 +2279,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Editor_UpdatePreviewBrushFromWorldMinMax();
         }
         if (g_EditorState.is_manipulating_gizmo) {
-            if (!g_EditorState.is_in_brush_creation_mode) {
-                // TODO: MULTI-ENTITY UNDO
-                // if (g_EditorState.selected_entity_type == ENTITY_MODEL) {
-                //     SceneObject* obj = &scene->objects[g_EditorState.selected_entity_index];
-                //     if (obj->physicsBody) {
-                //         Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
-                //     }
-                // }
-                // else if (g_EditorState.selected_entity_type == ENTITY_BRUSH) {
-                //     Brush* b = &scene->brushes[g_EditorState.selected_entity_index];
-                //     if (b->physicsBody) {
-                //         Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
-                //     }
-                // }
-                // Undo_EndEntityModification(scene, g_EditorState.selected_entity_type, g_EditorState.selected_entity_index, "Transform Entity");
-            }
+            Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Transform Selection");
             g_EditorState.is_manipulating_gizmo = false; g_EditorState.gizmo_active_axis = GIZMO_AXIS_NONE;
         }
         if (g_EditorState.is_dragging_for_creation) {
@@ -2892,71 +2705,95 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_UpdateMatrix(&g_EditorState.preview_brush);
                 Brush_CreateRenderData(&g_EditorState.preview_brush);
             }
-            else if (primary) {
-                switch (primary->type) {
-                case ENTITY_MODEL: scene->objects[primary->index].pos = new_pos; scene->objects[primary->index].rot; scene->objects[primary->index].scale = new_scale; SceneObject_UpdateMatrix(&scene->objects[primary->index]); break;
-                case ENTITY_BRUSH: {
-                    Brush* b = &scene->brushes[primary->index];
-                    Vec3 pos_delta = vec3_sub(new_pos, b->pos);
-                    scene->brushes[primary->index].pos = new_pos; scene->brushes[primary->index].rot = new_rot; scene->brushes[primary->index].scale = new_scale;
-                    if (g_EditorState.texture_lock_enabled && g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
-                        for (int i = 0; i < b->numFaces; ++i) {
-                            BrushFace* face = &b->faces[i];
-                            if (face->numVertexIndices < 3) continue;
+            else {
+                Vec3 pos_delta = vec3_sub(new_pos, g_EditorState.gizmo_drag_object_start_pos);
+                Vec3 scale_delta = vec3_sub(new_scale, g_EditorState.gizmo_drag_object_start_scale);
 
-                            Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
-                            Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
-                            Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
-                            Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-
-                            float absX = fabsf(face_normal.x);
-                            float absY = fabsf(face_normal.y);
-                            float absZ = fabsf(face_normal.z);
-                            int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
-
-                            if (dominant_axis == 0) {
-                                face->uv_offset.x -= pos_delta.y / face->uv_scale.x;
-                                face->uv_offset.y -= pos_delta.z / face->uv_scale.y;
-                            }
-                            else if (dominant_axis == 1) {
-                                face->uv_offset.x -= pos_delta.x / face->uv_scale.x;
-                                face->uv_offset.y -= pos_delta.z / face->uv_scale.y;
-                            }
-                            else {
-                                face->uv_offset.x -= pos_delta.x / face->uv_scale.x;
-                                face->uv_offset.y -= pos_delta.y / face->uv_scale.y;
-                            }
-                        }
-                        Brush_CreateRenderData(b);
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+                    switch (sel->type) {
+                    case ENTITY_MODEL: {
+                        SceneObject* obj = &scene->objects[sel->index];
+                        obj->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        obj->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        obj->scale = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
+                        SceneObject_UpdateMatrix(obj);
+                        if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
+                        break;
                     }
-                    Brush_UpdateMatrix(&scene->brushes[primary->index]); if (scene->brushes[primary->index].physicsBody) Physics_SetWorldTransform(scene->brushes[primary->index].physicsBody, scene->brushes[primary->index].modelMatrix); break;
-                }
-                case ENTITY_LIGHT: scene->lights[primary->index].position = new_pos; scene->lights[primary->index].rot = new_rot; break;
-                case ENTITY_DECAL: scene->decals[primary->index].pos = new_pos; scene->decals[primary->index].rot = new_rot; scene->decals[primary->index].size = new_scale; Decal_UpdateMatrix(&scene->decals[primary->index]); break;
-                case ENTITY_SOUND: scene->soundEntities[primary->index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[primary->index].sourceID, new_pos); break;
-                case ENTITY_PARTICLE_EMITTER: scene->particleEmitters[primary->index].pos = new_pos; break;
-                case ENTITY_SPRITE:
-                    scene->sprites[primary->index].pos = new_pos;
-                    scene->sprites[primary->index].scale = new_scale.x;
-                    break;
-                case ENTITY_PLAYERSTART: scene->playerStart.position = new_pos; break;
-                case ENTITY_VIDEO_PLAYER:
-                    scene->videoPlayers[primary->index].pos = new_pos;
-                    scene->videoPlayers[primary->index].rot = new_rot;
-                    scene->videoPlayers[primary->index].size.x = new_scale.x;
-                    scene->videoPlayers[primary->index].size.y = new_scale.y;
-                    break;
-                case ENTITY_PARALLAX_ROOM:
-                    scene->parallaxRooms[primary->index].pos = new_pos;
-                    scene->parallaxRooms[primary->index].rot = new_rot;
-                    scene->parallaxRooms[primary->index].size.x = new_scale.x;
-                    scene->parallaxRooms[primary->index].size.y = new_scale.y;
-                    ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[primary->index]);
-                    break;
-                default: break;
+                    case ENTITY_BRUSH: {
+                        Brush* b = &scene->brushes[sel->index];
+                        b->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        b->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        b->scale = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
+                        Brush_UpdateMatrix(b);
+                        if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                        break;
+                    }
+                    case ENTITY_LIGHT: {
+                        Light* l = &scene->lights[sel->index];
+                        l->position = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        l->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        break;
+                    }
+                    case ENTITY_DECAL: {
+                        Decal* d = &scene->decals[sel->index];
+                        d->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        d->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        d->size = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
+                        Decal_UpdateMatrix(d);
+                        break;
+                    }
+                    case ENTITY_SOUND: {
+                        SoundEntity* s = &scene->soundEntities[sel->index];
+                        s->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        SoundSystem_SetSourcePosition(s->sourceID, s->pos);
+                        break;
+                    }
+                    case ENTITY_PARTICLE_EMITTER: {
+                        ParticleEmitter* p = &scene->particleEmitters[sel->index];
+                        p->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        break;
+                    }
+                    case ENTITY_SPRITE: {
+                        Sprite* s = &scene->sprites[sel->index];
+                        s->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        s->scale = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
+                        break;
+                    }
+                    case ENTITY_VIDEO_PLAYER: {
+                        VideoPlayer* vp = &scene->videoPlayers[sel->index];
+                        vp->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        vp->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        vp->size.x = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
+                        vp->size.y = g_EditorState.gizmo_drag_start_scales[i].y + scale_delta.y;
+                        break;
+                    }
+                    case ENTITY_PARALLAX_ROOM: {
+                        ParallaxRoom* p = &scene->parallaxRooms[sel->index];
+                        p->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        p->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        p->size.x = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
+                        p->size.y = g_EditorState.gizmo_drag_start_scales[i].y + scale_delta.y;
+                        ParallaxRoom_UpdateMatrix(p);
+                        break;
+                    }
+                    case ENTITY_LOGIC: {
+                        LogicEntity* l = &scene->logicEntities[sel->index];
+                        l->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        l->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
+                        break;
+                    }
+                    case ENTITY_PLAYERSTART: {
+                        scene->playerStart.position = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
+                        break;
+                    }
+                    default:
+                        break;
+                    }
                 }
             }
-            }
+        }
         else if (g_EditorState.is_dragging_for_creation) {
                 Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], (ViewportType)g_EditorState.brush_creation_view);
                 Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
@@ -3202,20 +3039,28 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.show_vertex_tools_window = g_EditorState.is_painting_mode_enabled;
             }
             if (event->key.keysym.sym == SDLK_DELETE) {
-                for (int i = g_EditorState.num_selections - 1; i >= 0; --i) {
-                    EditorSelection* sel = &g_EditorState.selections[i];
-                    switch (sel->type) {
-                    case ENTITY_MODEL: Editor_DeleteModel(scene, sel->index, engine); break;
-                    case ENTITY_BRUSH: Editor_DeleteBrush(scene, engine, sel->index); break;
-                    case ENTITY_LIGHT: Editor_DeleteLight(scene, sel->index); break;
-                    case ENTITY_DECAL: Editor_DeleteDecal(scene, sel->index); break;
-                    case ENTITY_SOUND: Editor_DeleteSoundEntity(scene, sel->index); break;
-                    case ENTITY_PARTICLE_EMITTER: Editor_DeleteParticleEmitter(scene, sel->index); break;
-                    case ENTITY_SPRITE: Editor_DeleteSprite(scene, sel->index); break;
-                    case ENTITY_VIDEO_PLAYER: Editor_DeleteVideoPlayer(scene, sel->index); break;
-                    case ENTITY_PARALLAX_ROOM: Editor_DeleteParallaxRoom(scene, sel->index); break;
-                    case ENTITY_LOGIC: Editor_DeleteLogicEntity(scene, sel->index); break;
-                    default: break;
+                if (g_EditorState.num_selections > 0) {
+                    EntityState* deleted_states = calloc(g_EditorState.num_selections, sizeof(EntityState));
+                    int num_deleted = 0;
+                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                        capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);
+                    }
+                    Undo_PushDeleteMultipleEntities(scene, deleted_states, num_deleted, "Delete Selection");
+                    for (int i = g_EditorState.num_selections - 1; i >= 0; --i) {
+                        EditorSelection* sel = &g_EditorState.selections[i];
+                        switch (sel->type) {
+                        case ENTITY_MODEL: _raw_delete_model(scene, sel->index, engine); break;
+                        case ENTITY_BRUSH: _raw_delete_brush(scene, engine, sel->index); break;
+                        case ENTITY_LIGHT: _raw_delete_light(scene, sel->index); break;
+                        case ENTITY_DECAL: _raw_delete_decal(scene, sel->index); break;
+                        case ENTITY_SOUND: _raw_delete_sound_entity(scene, sel->index); break;
+                        case ENTITY_PARTICLE_EMITTER: _raw_delete_particle_emitter(scene, sel->index); break;
+                        case ENTITY_SPRITE: _raw_delete_sprite(scene, sel->index); break;
+                        case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, sel->index); break;
+                        case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, sel->index); break;
+                        case ENTITY_LOGIC: _raw_delete_logic_entity(scene, sel->index); break;
+                        default: break;
+                        }
                     }
                 }
                 Editor_ClearSelection();
@@ -3549,7 +3394,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                             if (strcmp(scene->objects[i].modelPath, g_EditorState.sprinkle_model_path) == 0) {
                                 float dist_sq = vec3_length_sq(vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
                                 if (dist_sq < g_EditorState.sprinkle_radius * g_EditorState.sprinkle_radius / 10.0) {
-                                    Editor_DeleteModel(scene, i, engine);
+                                    Undo_PushDeleteEntity(scene, ENTITY_MODEL, i, "Erase Sprinkled Model");
+                                    _raw_delete_model(scene, i, engine);
+                                    Editor_RemoveFromSelection(ENTITY_MODEL, i);
                                 }
                             }
                         }
@@ -5644,6 +5491,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     static char add_particle_path[128] = "particles/fire.par";
     int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
     int sprite_to_delete = -1;
+    int logic_entity_to_delete = -1;
     float right_panel_width = 300.0f; float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w - right_panel_width, 22); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
@@ -5664,7 +5512,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; ScanModelFiles(); }
     }
-    if (model_to_delete != -1) { Editor_DeleteModel(scene, model_to_delete, engine); }
+    if (model_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_MODEL, model_to_delete, "Delete Model"); _raw_delete_model(scene, model_to_delete, engine); Editor_RemoveFromSelection(ENTITY_MODEL, model_to_delete); }
     if (UI_CollapsingHeader("Brushes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
             if (scene->brushes[i].isReflectionProbe || scene->brushes[i].isGlass || scene->brushes[i].isDSP || scene->brushes[i].isWater) continue;
@@ -5753,7 +5601,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##waterbrush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
-    if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
+    if (brush_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_BRUSH, brush_to_delete, "Delete Brush"); _raw_delete_brush(scene, engine, brush_to_delete); Editor_RemoveFromSelection(ENTITY_BRUSH, brush_to_delete); }
     if (UI_CollapsingHeader("Lights", 1)) {
         for (int i = 0; i < scene->numActiveLights; ++i) {
             char label[128];
@@ -5773,7 +5621,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light)); sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
-    if (light_to_delete != -1) { Editor_DeleteLight(scene, light_to_delete); }
+    if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
     if (UI_CollapsingHeader("Reflection Probes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
             if (!scene->brushes[i].isReflectionProbe) continue;
@@ -5815,7 +5663,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
     }
-    if (decal_to_delete != -1) { Editor_DeleteDecal(scene, decal_to_delete); }
+    if (decal_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_DECAL, decal_to_delete, "Delete Decal"); _raw_delete_decal(scene, decal_to_delete); Editor_RemoveFromSelection(ENTITY_DECAL, decal_to_delete); }
     if (UI_CollapsingHeader("Sounds", 1)) {
         for (int i = 0; i < scene->numSoundEntities; ++i) {
             char label[128];
@@ -5838,7 +5686,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             ScanSoundFiles();
         }
     }
-    if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
+    if (sound_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_SOUND, sound_to_delete, "Delete Sound"); _raw_delete_sound_entity(scene, sound_to_delete); Editor_RemoveFromSelection(ENTITY_SOUND, sound_to_delete); }
     if (UI_CollapsingHeader("Particle Emitters", 1)) {
         for (int i = 0; i < scene->numParticleEmitters; ++i) {
             char label[128];
@@ -5858,7 +5706,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
     }
-    if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
+    if (particle_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_PARTICLE_EMITTER, particle_to_delete, "Delete Emitter"); _raw_delete_particle_emitter(scene, particle_to_delete); Editor_RemoveFromSelection(ENTITY_PARTICLE_EMITTER, particle_to_delete); }
     if (UI_CollapsingHeader("Sprites", 1)) {
         for (int i = 0; i < scene->numSprites; ++i) {
             char label[128];
@@ -5893,7 +5741,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
-    if (sprite_to_delete != -1) { Editor_DeleteSprite(scene, sprite_to_delete); }
+    if (sprite_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_SPRITE, sprite_to_delete, "Delete Sprite"); _raw_delete_sprite(scene, sprite_to_delete); Editor_RemoveFromSelection(ENTITY_SPRITE, sprite_to_delete); }
     if (UI_CollapsingHeader("Video Players", 1)) {
         for (int i = 0; i < scene->numVideoPlayers; ++i) {
             char label[128];
@@ -5931,7 +5779,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
-    if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
+    if (video_player_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_VIDEO_PLAYER, video_player_to_delete, "Delete Video Player"); _raw_delete_video_player(scene, video_player_to_delete); Editor_RemoveFromSelection(ENTITY_VIDEO_PLAYER, video_player_to_delete); }
     if (UI_CollapsingHeader("Parallax Rooms", 1)) {
         for (int i = 0; i < scene->numParallaxRooms; ++i) {
             char label[128];
@@ -5971,7 +5819,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
-    int logic_entity_to_delete = -1;
+    if (parallax_room_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_PARALLAX_ROOM, parallax_room_to_delete, "Delete Parallax Room"); _raw_delete_parallax_room(scene, parallax_room_to_delete); Editor_RemoveFromSelection(ENTITY_PARALLAX_ROOM, parallax_room_to_delete); }
     if (UI_CollapsingHeader("Logic Entities", 1)) {
         for (int i = 0; i < scene->numLogicEntities; ++i) {
             char label[128];
@@ -6008,14 +5856,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
-    if (logic_entity_to_delete != -1) { Editor_DeleteLogicEntity(scene, logic_entity_to_delete); }
-    if (parallax_room_to_delete != -1) { Editor_DeleteParallaxRoom(scene, parallax_room_to_delete); }
-    if (brush_to_delete != -1) { Editor_DeleteBrush(scene, engine, brush_to_delete); }
-    if (light_to_delete != -1) { Editor_DeleteLight(scene, light_to_delete); }
-    if (decal_to_delete != -1) { Editor_DeleteDecal(scene, decal_to_delete); }
-    if (sound_to_delete != -1) { Editor_DeleteSoundEntity(scene, sound_to_delete); }
-    if (particle_to_delete != -1) { Editor_DeleteParticleEmitter(scene, particle_to_delete); }
-    if (video_player_to_delete != -1) { Editor_DeleteVideoPlayer(scene, video_player_to_delete); }
+    if (logic_entity_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LOGIC, logic_entity_to_delete, "Delete Logic Entity"); _raw_delete_logic_entity(scene, logic_entity_to_delete); Editor_RemoveFromSelection(ENTITY_LOGIC, logic_entity_to_delete); }
     if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
