@@ -81,6 +81,10 @@ Build the engine or get files from github runner
 After that copy all files from x64/release (contains base game files) into directory with the compiled dlls and exe, and then paste the dlls from x64_dlls (or x86 dlls if on 32 bit and linux if you are on linux)
 Run launcher.exe
 
+# Tech demos
+
+Are in the playlist at https://www.youtube.com/playlist?list=PLW7ec7Brk4oSenQSdZH5fZax2Hn5XUrUO
+
 # License
 
 Only the following folders are under the main project license (**MIT**):
