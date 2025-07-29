@@ -863,6 +863,7 @@ namespace
             oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
             oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
             oidnSetFilterBool(filter, "hdr", true);
+            oidnSetFilterBool(filter, "cleanAux", true);
             oidnCommitFilter(filter);
             oidnExecuteFilter(filter);
             oidnReleaseFilter(filter);
