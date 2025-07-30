@@ -39,6 +39,7 @@
 #include <thread>
 #include <mutex>
 #include <vector>
+#include <algorithm>
 
 #define CGLTF_IMPLEMENTATION
 #include "../../cgltf/cgltf.h"
