@@ -143,6 +143,7 @@ namespace
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
         std::vector<EmissiveMaterial> m_emissive_materials;
         std::map<const Material*, Vec4> m_material_reflectivity;
+        std::map<const BrushFace*, Vec4> m_face_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
         std::vector<const Brush*> m_primID_to_brush_map;
     };
@@ -1081,16 +1082,23 @@ namespace
 
     void Lightmapper::precalculate_material_reflectivity()
     {
-        Console_Printf("[Lightmapper] Pre-calculating material reflectivity...");
+        Console_Printf("[Lightmapper] Pre-calculating surface reflectivity...");
 
         std::set<const Material*> unique_materials;
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
             for (int j = 0; j < b.numFaces; ++j) {
                 const BrushFace& face = b.faces[j];
-                if (face.material && face.material != &g_NodrawMaterial) {
-                    unique_materials.insert(face.material);
-                }
+                if (face.material && face.material != &g_NodrawMaterial) unique_materials.insert(face.material);
+                if (face.material2) unique_materials.insert(face.material2);
+                if (face.material3) unique_materials.insert(face.material3);
+                if (face.material4) unique_materials.insert(face.material4);
+            }
+        }
+        for (int i = 0; i < m_scene->numDecals; ++i) {
+            const Decal& d = m_scene->decals[i];
+            if (d.material) {
+                unique_materials.insert(d.material);
             }
         }
 
@@ -1105,7 +1113,6 @@ namespace
             std::string full_path = "textures/" + std::string(mat->diffusePath);
             SDL_Surface* loaded_surface = IMG_Load(full_path.c_str());
             if (!loaded_surface) {
-                Console_Printf_Warning("[Lightmapper] Could not load texture for reflectivity: %s", full_path.c_str());
                 m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
                 continue;
             }
@@ -1114,16 +1121,12 @@ namespace
             SDL_FreeSurface(loaded_surface);
 
             if (!surface) {
-                Console_Printf_Error("[Lightmapper] Could not convert surface for: %s", full_path.c_str());
                 m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
                 continue;
             }
 
             long long total_r = 0, total_g = 0, total_b = 0, total_a = 0;
-            int width = surface->w;
-            int height = surface->h;
-            int texels = width * height;
-
+            int texels = surface->w * surface->h;
             Uint8* pixels = (Uint8*)surface->pixels;
             for (int i = 0; i < texels; ++i) {
                 total_r += pixels[i * 4 + 0];
@@ -1131,17 +1134,55 @@ namespace
                 total_b += pixels[i * 4 + 2];
                 total_a += pixels[i * 4 + 3];
             }
-
             SDL_FreeSurface(surface);
 
-            Vec4 reflectivity = {
+            m_material_reflectivity[mat] = {
                 static_cast<float>(total_r) / texels / 255.0f,
                 static_cast<float>(total_g) / texels / 255.0f,
                 static_cast<float>(total_b) / texels / 255.0f,
                 static_cast<float>(total_a) / texels / 255.0f
             };
+        }
 
-            m_material_reflectivity[mat] = reflectivity;
+        for (int i = 0; i < m_scene->numBrushes; ++i) {
+            const Brush& b = m_scene->brushes[i];
+            for (int j = 0; j < b.numFaces; ++j) {
+                const BrushFace& face = b.faces[j];
+                if (face.numVertexIndices == 0 || !face.material || face.material == &g_NodrawMaterial) {
+                    continue;
+                }
+
+                Vec4 avg_color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                for (int k = 0; k < face.numVertexIndices; ++k) {
+                    int vert_idx = face.vertexIndices[k];
+                    avg_color = vec4_add(avg_color, b.vertices[vert_idx].color);
+                }
+                avg_color = vec4_muls(avg_color, 1.0f / face.numVertexIndices);
+
+                Vec4 mat1_refl = m_material_reflectivity.count(face.material) ? m_material_reflectivity[face.material] : Vec4{ 0.5f, 0.5f, 0.5f, 1.0f };
+                Vec4 mat2_refl = face.material2 && m_material_reflectivity.count(face.material2) ? m_material_reflectivity[face.material2] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+                Vec4 mat3_refl = face.material3 && m_material_reflectivity.count(face.material3) ? m_material_reflectivity[face.material3] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+                Vec4 mat4_refl = face.material4 && m_material_reflectivity.count(face.material4) ? m_material_reflectivity[face.material4] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+
+                float weightR = avg_color.x;
+                float weightG = avg_color.y;
+                float weightB = avg_color.z;
+                float totalWeight = std::max(weightR + weightG + weightB, 0.0001f);
+                if (totalWeight > 1.0f) {
+                    weightR /= totalWeight;
+                    weightG /= totalWeight;
+                    weightB /= totalWeight;
+                }
+                float weightBase = 1.0f - (weightR + weightG + weightB);
+
+                Vec4 blended_refl;
+                blended_refl.x = mat1_refl.x * weightBase + mat2_refl.x * weightR + mat3_refl.x * weightG + mat4_refl.x * weightB;
+                blended_refl.y = mat1_refl.y * weightBase + mat2_refl.y * weightR + mat3_refl.y * weightG + mat4_refl.y * weightB;
+                blended_refl.z = mat1_refl.z * weightBase + mat2_refl.z * weightR + mat3_refl.z * weightG + mat4_refl.z * weightB;
+                blended_refl.w = mat1_refl.w * weightBase + mat2_refl.w * weightR + mat3_refl.w * weightG + mat4_refl.w * weightB;
+
+                m_face_reflectivity[&face] = blended_refl;
+            }
         }
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
@@ -1227,16 +1268,23 @@ namespace
         if (primID < m_primID_to_face_map.size())
         {
             const BrushFace* hit_face = m_primID_to_face_map[primID];
-            if (hit_face && hit_face->material)
+            if (hit_face)
             {
-                auto it = m_material_reflectivity.find(hit_face->material);
-                if (it != m_material_reflectivity.end())
+                auto face_it = m_face_reflectivity.find(hit_face);
+                if (face_it != m_face_reflectivity.end()) {
+                    return face_it->second;
+                }
+
+                if (hit_face->material)
                 {
-                    return it->second;
+                    auto mat_it = m_material_reflectivity.find(hit_face->material);
+                    if (mat_it != m_material_reflectivity.end())
+                    {
+                        return mat_it->second;
+                    }
                 }
             }
         }
-
         return { 0.5f, 0.5f, 0.5f, 1.0f };
     }
 
