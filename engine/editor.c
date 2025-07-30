@@ -49,7 +49,8 @@ typedef enum {
     BRUSH_SHAPE_BLOCK,
     BRUSH_SHAPE_CYLINDER,
     BRUSH_SHAPE_WEDGE,
-    BRUSH_SHAPE_SPIKE
+    BRUSH_SHAPE_SPIKE,
+    BRUSH_SHAPE_ARCH
 } BrushCreationShapeType;
 
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
@@ -219,6 +220,17 @@ typedef struct {
     bool show_bake_lighting_popup;
     int bake_resolution;
     int bake_bounces;
+    bool show_arch_properties_popup;
+    float arch_wall_width;
+    int arch_num_sides;
+    float arch_arc_degrees;
+    float arch_start_angle_degrees;
+    float arch_add_height;
+    Vec3 arch_creation_start_point;
+    Vec3 arch_creation_end_point;
+    ViewportType arch_creation_view;
+    GLuint arch_preview_fbo, arch_preview_texture, arch_preview_rbo;
+    int arch_preview_width, arch_preview_height;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -1260,6 +1272,13 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    g_EditorState.arch_preview_width = 200; g_EditorState.arch_preview_height = 150;
+    glGenFramebuffers(1, &g_EditorState.arch_preview_fbo); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.arch_preview_fbo);
+    glGenTextures(1, &g_EditorState.arch_preview_texture); glBindTexture(GL_TEXTURE_2D, g_EditorState.arch_preview_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.arch_preview_texture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     g_EditorState.model_preview_cam_dist = 5.0f; g_EditorState.model_preview_cam_angles = (Vec2){ 0.f, -0.5f };
     for (int i = 0; i < 3; i++) { g_EditorState.ortho_cam_pos[i] = (Vec3){ 0,0,0 }; g_EditorState.ortho_cam_zoom[i] = 10.0f; }
     Editor_InitDebugRenderer();
@@ -1331,6 +1350,12 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.recent_map_files = NULL;
     g_EditorState.num_recent_map_files = 0;
     g_EditorState.next_group_id = 1;
+    g_EditorState.show_arch_properties_popup = false;
+    g_EditorState.arch_wall_width = 32.0f;
+    g_EditorState.arch_num_sides = 8;
+    g_EditorState.arch_arc_degrees = 180.0f;
+    g_EditorState.arch_start_angle_degrees = 0.0f;
+    g_EditorState.arch_add_height = 0.0f;
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -1361,6 +1386,8 @@ void Editor_Shutdown() {
     glDeleteBuffers(1, &g_EditorState.gizmo_vbo);
     glDeleteVertexArrays(1, &g_EditorState.player_start_gizmo_vao);
     glDeleteBuffers(1, &g_EditorState.player_start_gizmo_vbo);
+    glDeleteFramebuffers(1, &g_EditorState.arch_preview_fbo);
+    glDeleteTextures(1, &g_EditorState.arch_preview_texture);
     if (g_EditorState.recent_map_files) {
         for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
             free(g_EditorState.recent_map_files[i]);
@@ -2493,10 +2520,22 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.is_manipulating_gizmo = false; g_EditorState.gizmo_active_axis = GIZMO_AXIS_NONE;
         }
         if (g_EditorState.is_dragging_for_creation) {
-            Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], g_EditorState.brush_creation_view);
-            Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
             g_EditorState.is_dragging_for_creation = false;
+            Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], (ViewportType)g_EditorState.brush_creation_view);
+
+            Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
             g_EditorState.is_in_brush_creation_mode = true;
+
+            if (g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH) {
+                g_EditorState.arch_creation_start_point = g_EditorState.brush_creation_start_point_2d_drag;
+                g_EditorState.arch_creation_end_point = current_point;
+                g_EditorState.arch_creation_view = g_EditorState.brush_creation_view;
+                g_EditorState.show_arch_properties_popup = true;
+            }
+            else {
+                Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
+                g_EditorState.is_in_brush_creation_mode = true;
+            }
         }
     }
     if (event->type == SDL_MOUSEMOTION) {
@@ -3020,8 +3059,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         else if (g_EditorState.is_dragging_for_creation) {
+                BrushCreationShapeType original_shape = g_EditorState.current_brush_shape;
+                if (original_shape == BRUSH_SHAPE_ARCH) {
+                    g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK;
+                }
                 Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], (ViewportType)g_EditorState.brush_creation_view);
                 Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
+                if (original_shape == BRUSH_SHAPE_ARCH) {
+                    g_EditorState.current_brush_shape = original_shape;
+                }
                 }
         else if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
                     if (g_EditorState.is_viewport_focused[VIEW_TOP_XZ]) { float ms = g_EditorState.ortho_cam_zoom[0] * 0.002f; g_EditorState.ortho_cam_pos[0].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[0].z -= event->motion.yrel * ms; }
@@ -5803,6 +5849,210 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
     }
     UI_End();
 }
+static void Editor_UpdatePreviewBrushForArch() {
+    Vec3 p1 = g_EditorState.arch_creation_start_point;
+    Vec3 p2 = g_EditorState.arch_creation_end_point;
+    ViewportType view = g_EditorState.arch_creation_view;
+
+    float width = 0.0f, height = g_EditorState.arch_add_height;
+    Vec3 center = { 0 };
+
+    if (view == VIEW_TOP_XZ) {
+        width = fabsf(p2.x - p1.x);
+        center = (Vec3){ (p1.x + p2.x) / 2.0f, p1.y, (p1.z + p2.z) / 2.0f };
+    }
+    else if (view == VIEW_FRONT_XY) {
+        width = fabsf(p2.x - p1.x);
+        center = (Vec3){ (p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f, p1.z };
+    }
+    else if (view == VIEW_SIDE_YZ) {
+        width = fabsf(p2.z - p1.z);
+        center = (Vec3){ p1.x, (p1.y + p2.y) / 2.0f, (p1.z + p2.z) / 2.0f };
+    }
+
+    float outer_radius = width / 2.0f;
+    float inner_radius = outer_radius - g_EditorState.arch_wall_width;
+    if (inner_radius < 0.01f) inner_radius = 0.01f;
+
+    int num_sides = g_EditorState.arch_num_sides;
+    float start_angle_rad = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
+    float arc_rad = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
+    float angle_step = arc_rad / num_sides;
+
+    Brush* b = &g_EditorState.preview_brush;
+    Brush_FreeData(b);
+
+    int verts_per_ring = num_sides + 1;
+    b->numVertices = verts_per_ring * 4;
+    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+
+    for (int i = 0; i <= num_sides; i++) {
+        float angle = start_angle_rad + i * angle_step;
+        float cos_a = cosf(angle);
+        float sin_a = sinf(angle);
+
+        int outer_bottom_idx = i;
+        int inner_bottom_idx = i + verts_per_ring;
+        int outer_top_idx = i + verts_per_ring * 2;
+        int inner_top_idx = i + verts_per_ring * 3;
+
+        b->vertices[outer_bottom_idx].pos = (Vec3){ cos_a * outer_radius, 0, sin_a * outer_radius };
+        b->vertices[inner_bottom_idx].pos = (Vec3){ cos_a * inner_radius, 0, sin_a * inner_radius };
+        b->vertices[outer_top_idx].pos = (Vec3){ cos_a * outer_radius, height, sin_a * outer_radius };
+        b->vertices[inner_top_idx].pos = (Vec3){ cos_a * inner_radius, height, sin_a * inner_radius };
+    }
+
+    b->numFaces = (num_sides * 4) + 2;
+    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+
+    for (int i = 0; i < num_sides; i++) {
+        int ob = i;
+        int ib = i + verts_per_ring;
+        int ot = i + verts_per_ring * 2;
+        int it = i + verts_per_ring * 3;
+
+        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[i].vertexIndices[0] = ob; b->faces[i].vertexIndices[1] = ot; b->faces[i].vertexIndices[2] = ot + 1; b->faces[i].vertexIndices[3] = ob + 1;
+
+        b->faces[num_sides + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides + i].vertexIndices[0] = ib + 1; b->faces[num_sides + i].vertexIndices[1] = it + 1; b->faces[num_sides + i].vertexIndices[2] = it; b->faces[num_sides + i].vertexIndices[3] = ib;
+
+        b->faces[num_sides * 2 + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides * 2 + i].vertexIndices[0] = ot; b->faces[num_sides * 2 + i].vertexIndices[1] = it; b->faces[num_sides * 2 + i].vertexIndices[2] = it + 1; b->faces[num_sides * 2 + i].vertexIndices[3] = ot + 1;
+
+        b->faces[num_sides * 3 + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides * 3 + i].vertexIndices[0] = ob + 1; b->faces[num_sides * 3 + i].vertexIndices[1] = ib + 1; b->faces[num_sides * 3 + i].vertexIndices[2] = ib; b->faces[num_sides * 3 + i].vertexIndices[3] = ob;
+
+        for (int j = 0; j < 4; ++j) b->faces[num_sides * j + i].numVertexIndices = 4;
+    }
+
+    b->faces[num_sides * 4].vertexIndices = malloc(4 * sizeof(int));
+    b->faces[num_sides * 4].vertexIndices[0] = 0; b->faces[num_sides * 4].vertexIndices[1] = verts_per_ring; b->faces[num_sides * 4].vertexIndices[2] = verts_per_ring * 3; b->faces[num_sides * 4].vertexIndices[3] = verts_per_ring * 2;
+
+    b->faces[num_sides * 4 + 1].vertexIndices = malloc(4 * sizeof(int));
+    b->faces[num_sides * 4 + 1].vertexIndices[0] = num_sides; b->faces[num_sides * 4 + 1].vertexIndices[1] = num_sides + verts_per_ring * 2; b->faces[num_sides * 4 + 1].vertexIndices[2] = num_sides + verts_per_ring * 3; b->faces[num_sides * 4 + 1].vertexIndices[3] = num_sides + verts_per_ring;
+
+    b->faces[num_sides * 4].numVertexIndices = 4;
+    b->faces[num_sides * 4 + 1].numVertexIndices = 4;
+
+    for (int i = 0; i < b->numFaces; i++) {
+        b->faces[i].material = TextureManager_GetMaterial(0);
+        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].lightmap_scale = 1.0f;
+    }
+
+    b->pos = center;
+    b->rot = (Vec3){ 0,0,0 };
+    b->scale = (Vec3){ 1,1,1 };
+    Brush_UpdateMatrix(b);
+    Brush_CreateRenderData(b);
+}
+
+static void Editor_RenderArchPreview() {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.arch_preview_fbo);
+    glViewport(0, 0, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(g_EditorState.debug_shader);
+    Mat4 projection = mat4_ortho(0, g_EditorState.arch_preview_width, 0, g_EditorState.arch_preview_height, -1, 1);
+    Mat4 view; mat4_identity(&view);
+    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, view.m);
+    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, projection.m);
+    Mat4 model; mat4_identity(&model);
+    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model.m);
+
+    float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+
+    float center_x = g_EditorState.arch_preview_width / 2.0f;
+    float center_y = 20.0f;
+    float outer_radius = fminf(g_EditorState.arch_preview_width, g_EditorState.arch_preview_height) * 0.4f;
+    float inner_radius = outer_radius - (g_EditorState.arch_wall_width / 8.0f);
+    if (inner_radius < 0) inner_radius = 0;
+
+    int num_sides = g_EditorState.arch_num_sides;
+    float start_angle = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
+    float arc = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
+    float angle_step = arc / num_sides;
+
+    Vec3* lines = malloc((num_sides * 4 + 4) * sizeof(Vec3));
+    int line_idx = 0;
+
+    for (int i = 0; i <= num_sides; ++i) {
+        float angle = start_angle + i * angle_step;
+        if (i > 0) {
+            float prev_angle = start_angle + (i - 1) * angle_step;
+            lines[line_idx++] = (Vec3){ center_x + cosf(prev_angle) * outer_radius, center_y + sinf(prev_angle) * outer_radius, 0 };
+            lines[line_idx++] = (Vec3){ center_x + cosf(angle) * outer_radius, center_y + sinf(angle) * outer_radius, 0 };
+            lines[line_idx++] = (Vec3){ center_x + cosf(prev_angle) * inner_radius, center_y + sinf(prev_angle) * inner_radius, 0 };
+            lines[line_idx++] = (Vec3){ center_x + cosf(angle) * inner_radius, center_y + sinf(angle) * inner_radius, 0 };
+        }
+    }
+
+    float start_cap_angle = start_angle;
+    lines[line_idx++] = (Vec3){ center_x + cosf(start_cap_angle) * outer_radius, center_y + sinf(start_cap_angle) * outer_radius, 0 };
+    lines[line_idx++] = (Vec3){ center_x + cosf(start_cap_angle) * inner_radius, center_y + sinf(start_cap_angle) * inner_radius, 0 };
+
+    float end_cap_angle = start_angle + arc;
+    lines[line_idx++] = (Vec3){ center_x + cosf(end_cap_angle) * outer_radius, center_y + sinf(end_cap_angle) * outer_radius, 0 };
+    lines[line_idx++] = (Vec3){ center_x + cosf(end_cap_angle) * inner_radius, center_y + sinf(end_cap_angle) * inner_radius, 0 };
+
+    glBindVertexArray(g_EditorState.vertex_points_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+    glBufferData(GL_ARRAY_BUFFER, line_idx * sizeof(Vec3), lines, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+    glEnableVertexAttribArray(0);
+    glDrawArrays(GL_LINES, 0, line_idx);
+    glBindVertexArray(0);
+
+    free(lines);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine) {
+    if (!g_EditorState.show_arch_properties_popup) return;
+
+    g_EditorState.is_in_brush_creation_mode = true;
+
+    UI_Begin("Arch Properties", &g_EditorState.show_arch_properties_popup);
+
+    Editor_UpdatePreviewBrushForArch();
+
+    bool values_changed = false;
+    values_changed |= UI_DragFloat("Wall width", &g_EditorState.arch_wall_width, 1.0f, 1.0f, 1024.0f);
+    values_changed |= UI_DragInt("Number of Sides", &g_EditorState.arch_num_sides, 1, 3, 64);
+    if (UI_Button("Circle")) { g_EditorState.arch_arc_degrees = 360.0f; values_changed = true; } UI_SameLine();
+    values_changed |= UI_DragFloat("Arc", &g_EditorState.arch_arc_degrees, 1.0f, 1.0f, 360.0f);
+    values_changed |= UI_DragFloat("Start Angle", &g_EditorState.arch_start_angle_degrees, 1.0f, -360.0f, 360.0f);
+    values_changed |= UI_DragFloat("Add Height", &g_EditorState.arch_add_height, 1.0f, 0.0f, 4096.0f);
+
+    if (values_changed) {
+        Editor_UpdatePreviewBrushForArch();
+    }
+
+    Editor_RenderArchPreview();
+    UI_Image((void*)(intptr_t)g_EditorState.arch_preview_texture, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height);
+
+    if (UI_Button("OK")) {
+        Editor_CreateBrushFromPreview(scene, engine, &g_EditorState.preview_brush);
+        g_EditorState.is_in_brush_creation_mode = false;
+        g_EditorState.show_arch_properties_popup = false;
+    }
+    UI_SameLine();
+    if (UI_Button("Cancel")) {
+        Brush_FreeData(&g_EditorState.preview_brush);
+        g_EditorState.is_in_brush_creation_mode = false;
+        g_EditorState.show_arch_properties_popup = false;
+    }
+
+    if (!g_EditorState.show_arch_properties_popup) {
+        Brush_FreeData(&g_EditorState.preview_brush);
+        g_EditorState.is_in_brush_creation_mode = false;
+    }
+
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -6749,6 +6999,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Wedge", g_EditorState.current_brush_shape == BRUSH_SHAPE_WEDGE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_WEDGE; }
     UI_SameLine();
     if (UI_RadioButton("Spike", g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SPIKE; }
+
+    if (UI_RadioButton("Arch", g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_ARCH; }
     if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER) {
         UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 3, 64);
     }
@@ -6885,6 +7137,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
     Editor_RenderBakeLightingWindow(scene, engine);
+    Editor_RenderArchPropertiesWindow(scene, engine);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
