@@ -1149,7 +1149,61 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->lightmapResolution = 128;
 }
 
-static void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
+void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index) {
+    if (!decal) return;
+
+    char decal_name_sanitized[128];
+    if (strlen(decal->targetname) > 0) {
+        sanitize_filename_map(decal->targetname, decal_name_sanitized, sizeof(decal_name_sanitized));
+    }
+    else {
+        sprintf(decal_name_sanitized, "decal_%d", decal_index);
+    }
+
+    char final_decal_dir[1024];
+    snprintf(final_decal_dir, sizeof(final_decal_dir), "lightmaps/%s/%s", map_name_sanitized, decal_name_sanitized);
+
+    char color_path[2048];
+    snprintf(color_path, sizeof(color_path), "%s/lightmap_color.hdr", final_decal_dir);
+
+    int width, height, channels;
+    float* color_data = stbi_loadf(color_path, &width, &height, &channels, 3);
+
+    if (color_data) {
+        glGenTextures(1, &decal->lightmapAtlas);
+        glBindTexture(GL_TEXTURE_2D, decal->lightmapAtlas);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, color_data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        stbi_image_free(color_data);
+    }
+    else {
+        decal->lightmapAtlas = 0;
+    }
+
+    char dir_path[2048];
+    snprintf(dir_path, sizeof(dir_path), "%s/lightmap_dir.png", final_decal_dir);
+
+    SDL_Surface* dir_surface = IMG_Load(dir_path);
+    if (dir_surface) {
+        SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surface, SDL_PIXELFORMAT_RGBA32, 0);
+        if (dir_converted) {
+            glGenTextures(1, &decal->directionalLightmapAtlas);
+            glBindTexture(GL_TEXTURE_2D, decal->directionalLightmapAtlas);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dir_converted->w, dir_converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            SDL_FreeSurface(dir_converted);
+        }
+        SDL_FreeSurface(dir_surface);
+    }
+    else {
+        decal->directionalLightmapAtlas = 0;
+    }
+}
+
+
+void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
     if (b->numFaces == 0) return;
 
     typedef struct {
