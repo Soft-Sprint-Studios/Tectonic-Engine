@@ -2046,6 +2046,79 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
             Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
             g_EditorState.is_manipulating_gizmo = true;
+            if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
+            if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
+            if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
+
+            g_EditorState.gizmo_drag_start_positions = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
+            g_EditorState.gizmo_drag_start_rotations = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
+            g_EditorState.gizmo_drag_start_scales = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
+
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                switch (sel->type) {
+                case ENTITY_MODEL:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->objects[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->objects[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = scene->objects[sel->index].scale;
+                    break;
+                case ENTITY_BRUSH:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->brushes[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->brushes[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = scene->brushes[sel->index].scale;
+                    break;
+                case ENTITY_LIGHT:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].position;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_DECAL:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->decals[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->decals[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = scene->decals[sel->index].size;
+                    break;
+                case ENTITY_SOUND:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_PARTICLE_EMITTER:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_SPRITE:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->sprites[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->sprites[sel->index].scale, scene->sprites[sel->index].scale, scene->sprites[sel->index].scale };
+                    break;
+                case ENTITY_VIDEO_PLAYER:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f };
+                    break;
+                case ENTITY_PARALLAX_ROOM:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f };
+                    break;
+                case ENTITY_LOGIC:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos;
+                    g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot;
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                case ENTITY_PLAYERSTART:
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.position;
+                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                default:
+                    g_EditorState.gizmo_drag_start_positions[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    break;
+                }
+            }
             g_EditorState.gizmo_active_axis = g_EditorState.gizmo_hovered_axis;
             g_EditorState.gizmo_drag_view = active_viewport;
 
