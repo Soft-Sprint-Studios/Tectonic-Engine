@@ -111,11 +111,12 @@ All other folders are third-party dependencies and fall under their respective o
 | `bullet/`                | Bullet Physics                             | zlib License                        |
 | `cgltf/`                 | GLTF Loader                                | MIT License                         |
 | `mikktspace/`            | Tangent Space Generator                    | zlib License                        |
-| `minimp3/`               | MP3 Decoder                                | Unlicense or MIT                   |
-| `minivorbis/`            | Ogg Vorbis Decoder                         | BSD-like                          |
+| `minimp3/`               | MP3 Decoder                                | Unlicense or MIT                    |
+| `minivorbis/`            | Ogg Vorbis Decoder                         | BSD-like                            |
 | `embree-4.4.0/`          | Ray Tracing Kernels (Intel Embree)         | Apache 2.0 License                  |
 | `oidn-2.3.3/`            | Intel Open Image Denoise                   | Apache 2.0 License                  |
 | `pl_mpeg/`               | MPEG1 Video Decoder                        | MIT License                         |
 | `openal-soft-1.24.3/`    | Audio Library                              | LGPL 2.1                            |
-| `stb/`                   | Image, Audio, and Font Utilities           | Public Domain or MIT               |
+| `stb/`                   | Image, Audio, and Font Utilities           | Public Domain or MIT                |
 | `sentry/`                | Crash Reporting SDK                        | MIT License                         |
+| `fltk/`                  | Fast Light Toolkit GUI Library             | LGPL                                |

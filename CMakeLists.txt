@@ -534,15 +534,26 @@ if(WIN32)
     target_link_options(launcher PRIVATE /subsystem:windows)
 endif()
 
-# Batchmodelimporter executable
-add_executable(Batchmodelimporter Batchmodelimporter/main.cpp)
-target_compile_definitions(Batchmodelimporter PRIVATE _CRT_SECURE_NO_WARNINGS)
-set_target_properties(Batchmodelimporter PROPERTIES
+# Tectonic Model Importer
+add_executable(TectonicModelImporter tools/ModelImporter/main.cpp)
+
+set_target_properties(TectonicModelImporter PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
+
+target_include_directories(TectonicModelImporter PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cgltf"
+)
+
 if(WIN32)
-    target_link_options(Batchmodelimporter PRIVATE /subsystem:console)
+    set_target_properties(TectonicModelImporter PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
+else()
+    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig dl pthread m)
 endif()
 
 # Patcher executable and post-build command on Windows

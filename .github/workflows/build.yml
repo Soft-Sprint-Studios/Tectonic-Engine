@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev libpango1.0-dev
 
       - name: Configure CMake
         run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
@@ -38,6 +38,7 @@ jobs:
           path: |
             build-linux-x64-release/launcher
             build-linux-x64-release/libengine.so
+            build-linux-x64-release/TectonicModelImporter
 
   build-linux-x64-relwithdebinfo:
     runs-on: ubuntu-latest
@@ -48,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev libpango1.0-dev
 
       - name: Configure CMake
         run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -77,6 +78,7 @@ jobs:
             build-linux-x64-relwithdebinfo/libengine.so
             build-linux-x64-relwithdebinfo/launcher.debugsymbols
             build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
+            build-linux-x64-relwithdebinfo/TectonicModelImporter
 
   build-windows-x64-release:
     runs-on: windows-latest
@@ -97,6 +99,7 @@ jobs:
           path: |
             build-windows-x64-release\Release\launcher.exe
             build-windows-x64-release\Release\*.dll
+            build-windows-x64-release\Release\TectonicModelImporter.exe
 
   build-windows-x64-relwithdebinfo:
     runs-on: windows-latest
@@ -119,6 +122,8 @@ jobs:
             build-windows-x64-relwithdebinfo\RelWithDebInfo\*.dll
             build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb
             build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.exe
+            build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.pdb
 
   build-windows-x86-release:
     runs-on: windows-latest
@@ -139,6 +144,7 @@ jobs:
           path: |
             build-windows-x86-release\Release\launcher.exe
             build-windows-x86-release\Release\*.dll
+            build-windows-x86-release\Release\TectonicModelImporter.exe
 
   build-windows-x86-relwithdebinfo:
     runs-on: windows-latest
@@ -161,3 +167,5 @@ jobs:
             build-windows-x86-relwithdebinfo\RelWithDebInfo\*.dll
             build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb
             build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.exe
+            build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.pdb
