@@ -5289,7 +5289,7 @@ static void Editor_RenderSprinkleToolWindow(void) {
     UI_SetNextWindowSize(300, 0);
     if (UI_Begin("Sprinkle Tool", &g_EditorState.show_sprinkle_tool_window)) {
         UI_Text("Entity to Sprinkle");
-        char model_button_label;
+        char model_button_label[256];
         sprintf(model_button_label, "Model: %s", g_EditorState.sprinkle_model_path);
         if (UI_Button(model_button_label)) {
             g_EditorState.texture_browser_target = MODEL_BROWSER_TARGET_SPRINKLE;
