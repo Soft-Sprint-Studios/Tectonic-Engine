@@ -2690,9 +2690,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             return;
         }
         else if (g_EditorState.is_manipulating_gizmo) {
-            Vec3 new_pos = g_EditorState.gizmo_drag_object_start_pos;
-            Vec3 new_rot = g_EditorState.gizmo_drag_object_start_rot;
-            Vec3 new_scale = g_EditorState.gizmo_drag_object_start_scale;
+            Vec3 pos_delta = { 0 };
+            Vec3 scale_delta = { 0 };
+            float rot_angle_delta = 0.0f;
+            Mat4 delta_rot_matrix;
+            mat4_identity(&delta_rot_matrix);
+
+            Vec3 current_intersect_point;
+            bool intersection_found = false;
 
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
@@ -2702,8 +2707,37 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                 Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
 
-                Vec3 current_intersect_point;
                 if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
+                    intersection_found = true;
+                }
+            }
+            else {
+                current_intersect_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view], g_EditorState.gizmo_drag_view);
+                intersection_found = true;
+            }
+
+            if (intersection_found) {
+                if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
+                    Vec3 object_pos_for_rotate = g_EditorState.gizmo_selection_centroid;
+                    Vec3 current_vec = vec3_sub(current_intersect_point, object_pos_for_rotate);
+                    vec3_normalize(&current_vec);
+                    float dot = vec3_dot(g_EditorState.gizmo_rotation_start_vec, current_vec);
+                    dot = fmaxf(-1.0f, fminf(1.0f, dot));
+                    float angle = acosf(dot) * (180.0f / M_PI);
+                    Vec3 cross_prod = vec3_cross(g_EditorState.gizmo_rotation_start_vec, current_vec);
+                    if (vec3_dot(g_EditorState.gizmo_drag_plane_normal, cross_prod) < 0) { angle = -angle; }
+
+                    if (g_EditorState.snap_to_grid) {
+                        angle = SnapAngle(angle, 15.0f);
+                    }
+                    rot_angle_delta = angle;
+
+                    float angle_rad = rot_angle_delta * (M_PI / 180.0f);
+                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) delta_rot_matrix = mat4_rotate_x(angle_rad);
+                    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) delta_rot_matrix = mat4_rotate_y(angle_rad);
+                    else delta_rot_matrix = mat4_rotate_z(angle_rad);
+                }
+                else {
                     Vec3 delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
                     Vec3 axis_dir = { 0 };
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
@@ -2713,157 +2747,99 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                     if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
                         if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
-                        Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
-                        projected_delta = vec3_muls(projected_delta, 0.01f);
-                        new_pos = vec3_add(g_EditorState.gizmo_drag_object_start_pos, projected_delta);
+                        pos_delta = vec3_muls(axis_dir, projection_len);
                     }
-                    else if (g_EditorState.current_gizmo_operation == GIZMO_OP_SCALE) {
+                    else {
                         if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, 0.25f);
-                        new_scale.x = g_EditorState.gizmo_drag_object_start_scale.x + axis_dir.x * projection_len;
-                        new_scale.y = g_EditorState.gizmo_drag_object_start_scale.y + axis_dir.y * projection_len;
-                        new_scale.z = g_EditorState.gizmo_drag_object_start_scale.z + axis_dir.z * projection_len;
-                    }
-                }
-                if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
-                    Vec3 object_pos_for_rotate = g_EditorState.is_in_brush_creation_mode ? g_EditorState.preview_brush.pos : g_EditorState.gizmo_selection_centroid;
-                    if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, -vec3_dot(g_EditorState.gizmo_drag_plane_normal, object_pos_for_rotate), &current_intersect_point)) {
-                        Vec3 current_vec = vec3_sub(current_intersect_point, object_pos_for_rotate);
-                        vec3_normalize(&current_vec);
-                        float dot = vec3_dot(g_EditorState.gizmo_rotation_start_vec, current_vec);
-                        dot = fmaxf(-1.0f, fminf(1.0f, dot));
-                        float angle = acosf(dot) * (180.0f / M_PI);
-                        Vec3 cross_prod = vec3_cross(g_EditorState.gizmo_rotation_start_vec, current_vec);
-                        if (vec3_dot(g_EditorState.gizmo_drag_plane_normal, cross_prod) < 0) { angle = -angle; }
-
-                        new_rot = g_EditorState.gizmo_drag_object_start_rot;
-                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) new_rot.x += angle;
-                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) new_rot.y += angle;
-                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) new_rot.z += angle;
-                        if (g_EditorState.snap_to_grid) {
-                            new_rot.x = SnapAngle(new_rot.x, 15.0f);
-                            new_rot.y = SnapAngle(new_rot.y, 15.0f);
-                            new_rot.z = SnapAngle(new_rot.z, 15.0f);
-                        }
+                        scale_delta = vec3_muls(axis_dir, projection_len);
                     }
                 }
             }
-            else {
-                Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view], g_EditorState.gizmo_drag_view);
-                Vec3 delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
-                if (g_EditorState.snap_to_grid) {
-                    delta.x = SnapValue(delta.x, g_EditorState.grid_size);
-                    delta.y = SnapValue(delta.y, g_EditorState.grid_size);
-                    delta.z = SnapValue(delta.z, g_EditorState.grid_size);
-                }
+
+            Vec3 centroid = g_EditorState.gizmo_selection_centroid;
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+
+                Vec3 start_pos = g_EditorState.gizmo_drag_start_positions[i];
+                Vec3 start_rot_eulers = g_EditorState.gizmo_drag_start_rotations[i];
+                Vec3 start_scale = g_EditorState.gizmo_drag_start_scales[i];
+
+                Vec3 new_pos = start_pos;
+                Vec3 new_rot = start_rot_eulers;
+                Vec3 new_scale = start_scale;
+
                 if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
-                    new_pos = vec3_add(g_EditorState.gizmo_drag_object_start_pos, delta);
+                    new_pos = vec3_add(start_pos, pos_delta);
                 }
                 else if (g_EditorState.current_gizmo_operation == GIZMO_OP_SCALE) {
-                    Vec3 axis_dir = { 0 };
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                    float projection_len = vec3_dot(delta, axis_dir);
-                    if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, 0.25f);
-                    new_scale.x = g_EditorState.gizmo_drag_object_start_scale.x + axis_dir.x * projection_len;
-                    new_scale.y = g_EditorState.gizmo_drag_object_start_scale.y + axis_dir.y * projection_len;
-                    new_scale.z = g_EditorState.gizmo_drag_object_start_scale.z + axis_dir.z * projection_len;
+                    new_scale = vec3_add(start_scale, scale_delta);
                 }
-            }
+                else if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
+                    Vec3 vec_to_object = vec3_sub(start_pos, centroid);
+                    Vec3 rotated_vec_to_object = mat4_mul_vec3_dir(&delta_rot_matrix, vec_to_object);
+                    new_pos = vec3_add(centroid, rotated_vec_to_object);
 
-            if (g_EditorState.is_in_brush_creation_mode) {
-                g_EditorState.preview_brush.pos = new_pos;
-                g_EditorState.preview_brush.rot = new_rot;
-                g_EditorState.preview_brush.scale = new_scale;
-                Brush_UpdateMatrix(&g_EditorState.preview_brush);
-                Brush_CreateRenderData(&g_EditorState.preview_brush);
-            }
-            else {
-                Vec3 pos_delta = vec3_sub(new_pos, g_EditorState.gizmo_drag_object_start_pos);
-                Vec3 scale_delta = vec3_sub(new_scale, g_EditorState.gizmo_drag_object_start_scale);
+                    Mat4 start_rot_matrix_x = mat4_rotate_x(start_rot_eulers.x * (M_PI / 180.0f));
+                    Mat4 start_rot_matrix_y = mat4_rotate_y(start_rot_eulers.y * (M_PI / 180.0f));
+                    Mat4 start_rot_matrix_z = mat4_rotate_z(start_rot_eulers.z * (M_PI / 180.0f));
+                    Mat4 start_rot_matrix;
+                    mat4_multiply(&start_rot_matrix, &start_rot_matrix_y, &start_rot_matrix_x);
+                    mat4_multiply(&start_rot_matrix, &start_rot_matrix_z, &start_rot_matrix);
 
-                for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                    EditorSelection* sel = &g_EditorState.selections[i];
-                    switch (sel->type) {
-                    case ENTITY_MODEL: {
-                        SceneObject* obj = &scene->objects[sel->index];
-                        obj->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        obj->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        obj->scale = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
-                        SceneObject_UpdateMatrix(obj);
-                        if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
-                        break;
-                    }
-                    case ENTITY_BRUSH: {
-                        Brush* b = &scene->brushes[sel->index];
-                        b->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        b->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        b->scale = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
-                        Brush_UpdateMatrix(b);
-                        if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
-                        break;
-                    }
-                    case ENTITY_LIGHT: {
-                        Light* l = &scene->lights[sel->index];
-                        l->position = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        l->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        break;
-                    }
-                    case ENTITY_DECAL: {
-                        Decal* d = &scene->decals[sel->index];
-                        d->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        d->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        d->size = vec3_add(g_EditorState.gizmo_drag_start_scales[i], scale_delta);
-                        Decal_UpdateMatrix(d);
-                        break;
-                    }
-                    case ENTITY_SOUND: {
-                        SoundEntity* s = &scene->soundEntities[sel->index];
-                        s->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        SoundSystem_SetSourcePosition(s->sourceID, s->pos);
-                        break;
-                    }
-                    case ENTITY_PARTICLE_EMITTER: {
-                        ParticleEmitter* p = &scene->particleEmitters[sel->index];
-                        p->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        break;
-                    }
-                    case ENTITY_SPRITE: {
-                        Sprite* s = &scene->sprites[sel->index];
-                        s->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        s->scale = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
-                        break;
-                    }
-                    case ENTITY_VIDEO_PLAYER: {
-                        VideoPlayer* vp = &scene->videoPlayers[sel->index];
-                        vp->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        vp->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        vp->size.x = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
-                        vp->size.y = g_EditorState.gizmo_drag_start_scales[i].y + scale_delta.y;
-                        break;
-                    }
-                    case ENTITY_PARALLAX_ROOM: {
-                        ParallaxRoom* p = &scene->parallaxRooms[sel->index];
-                        p->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        p->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        p->size.x = g_EditorState.gizmo_drag_start_scales[i].x + scale_delta.x;
-                        p->size.y = g_EditorState.gizmo_drag_start_scales[i].y + scale_delta.y;
-                        ParallaxRoom_UpdateMatrix(p);
-                        break;
-                    }
-                    case ENTITY_LOGIC: {
-                        LogicEntity* l = &scene->logicEntities[sel->index];
-                        l->pos = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        l->rot = vec3_add(g_EditorState.gizmo_drag_start_rotations[i], new_rot);
-                        break;
-                    }
-                    case ENTITY_PLAYERSTART: {
-                        scene->playerStart.position = vec3_add(g_EditorState.gizmo_drag_start_positions[i], pos_delta);
-                        break;
-                    }
-                    default:
-                        break;
-                    }
+                    Mat4 new_rot_matrix;
+                    mat4_multiply(&new_rot_matrix, &delta_rot_matrix, &start_rot_matrix);
+                    mat4_decompose(&new_rot_matrix, &(Vec3){0}, & new_rot, & (Vec3){0});
+                }
+
+                switch (sel->type) {
+                case ENTITY_MODEL: {
+                    SceneObject* obj = &scene->objects[sel->index];
+                    obj->pos = new_pos; obj->rot = new_rot; obj->scale = new_scale;
+                    SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); break;
+                }
+                case ENTITY_BRUSH: {
+                    Brush* b = &scene->brushes[sel->index];
+                    b->pos = new_pos; b->rot = new_rot; b->scale = new_scale;
+                    Brush_UpdateMatrix(b); if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); break;
+                }
+                case ENTITY_LIGHT: {
+                    Light* l = &scene->lights[sel->index];
+                    l->position = new_pos; l->rot = new_rot; break;
+                }
+                case ENTITY_DECAL: {
+                    Decal* d = &scene->decals[sel->index];
+                    d->pos = new_pos; d->rot = new_rot; d->size = new_scale;
+                    Decal_UpdateMatrix(d); break;
+                }
+                case ENTITY_SOUND: {
+                    SoundEntity* s = &scene->soundEntities[sel->index];
+                    s->pos = new_pos; SoundSystem_SetSourcePosition(s->sourceID, s->pos); break;
+                }
+                case ENTITY_PARTICLE_EMITTER: {
+                    ParticleEmitter* p = &scene->particleEmitters[sel->index];
+                    p->pos = new_pos; break;
+                }
+                case ENTITY_SPRITE: {
+                    Sprite* s = &scene->sprites[sel->index];
+                    s->pos = new_pos; s->scale = new_scale.x; break;
+                }
+                case ENTITY_VIDEO_PLAYER: {
+                    VideoPlayer* vp = &scene->videoPlayers[sel->index];
+                    vp->pos = new_pos; vp->rot = new_rot; vp->size.x = new_scale.x; vp->size.y = new_scale.y; break;
+                }
+                case ENTITY_PARALLAX_ROOM: {
+                    ParallaxRoom* p = &scene->parallaxRooms[sel->index];
+                    p->pos = new_pos; p->rot = new_rot; p->size.x = new_scale.x; p->size.y = new_scale.y;
+                    ParallaxRoom_UpdateMatrix(p); break;
+                }
+                case ENTITY_LOGIC: {
+                    LogicEntity* l = &scene->logicEntities[sel->index];
+                    l->pos = new_pos; l->rot = new_rot; break;
+                }
+                case ENTITY_PLAYERSTART: {
+                    scene->playerStart.position = new_pos; break;
+                }
+                default: break;
                 }
             }
         }
