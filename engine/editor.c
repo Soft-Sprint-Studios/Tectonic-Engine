@@ -214,6 +214,7 @@ typedef struct {
     Vec3* gizmo_drag_start_positions;
     Vec3* gizmo_drag_start_rotations;
     Vec3* gizmo_drag_start_scales;
+    int next_group_id;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -221,6 +222,8 @@ typedef struct {
 
 #define MAX_RECENT_FILES 10
 
+static void Editor_GroupSelection();
+static void Editor_UngroupSelection();
 static EditorState g_EditorState;
 static Scene* g_CurrentScene;
 static Mat4 g_view_matrix[VIEW_COUNT];
@@ -413,6 +416,13 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     b->numFaces += num_new_faces;
 
     free(new_grid_verts);
+    char group_name[64];
+    snprintf(group_name, sizeof(group_name), "subdiv_group_%d", g_EditorState.next_group_id++);
+    for (int i = old_face_count; i < b->numFaces; ++i) {
+        b->faces[i].isGrouped = true;
+        strncpy(b->faces[i].groupName, group_name, sizeof(b->faces[i].groupName) - 1);
+        b->faces[i].groupName[sizeof(b->faces[i].groupName) - 1] = '\0';
+    }
     free(new_faces);
 
     Brush_CreateRenderData(b);
@@ -1316,6 +1326,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.current_doc_content = NULL;
     g_EditorState.recent_map_files = NULL;
     g_EditorState.num_recent_map_files = 0;
+    g_EditorState.next_group_id = 1;
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -1650,7 +1661,52 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
             Editor_ClearSelection();
         }
     }
+    if (selected_type != ENTITY_NONE) {
+        const char* group_name = NULL;
+        bool is_grouped = false;
 
+        if (selected_type == ENTITY_BRUSH && hit_face_index != -1) {
+            is_grouped = g_CurrentScene->brushes[selected_index].faces[hit_face_index].isGrouped;
+            group_name = g_CurrentScene->brushes[selected_index].faces[hit_face_index].groupName;
+        }
+        else {
+            switch (selected_type) {
+            case ENTITY_MODEL: is_grouped = g_CurrentScene->objects[selected_index].isGrouped; group_name = g_CurrentScene->objects[selected_index].groupName; break;
+            case ENTITY_BRUSH: is_grouped = g_CurrentScene->brushes[selected_index].isGrouped; group_name = g_CurrentScene->brushes[selected_index].groupName; break;
+            case ENTITY_LIGHT: is_grouped = g_CurrentScene->lights[selected_index].isGrouped; group_name = g_CurrentScene->lights[selected_index].groupName; break;
+            case ENTITY_DECAL: is_grouped = g_CurrentScene->decals[selected_index].isGrouped; group_name = g_CurrentScene->decals[selected_index].groupName; break;
+            case ENTITY_SOUND: is_grouped = g_CurrentScene->soundEntities[selected_index].isGrouped; group_name = g_CurrentScene->soundEntities[selected_index].groupName; break;
+            case ENTITY_PARTICLE_EMITTER: is_grouped = g_CurrentScene->particleEmitters[selected_index].isGrouped; group_name = g_CurrentScene->particleEmitters[selected_index].groupName; break;
+            case ENTITY_SPRITE: is_grouped = g_CurrentScene->sprites[selected_index].isGrouped; group_name = g_CurrentScene->sprites[selected_index].groupName; break;
+            case ENTITY_VIDEO_PLAYER: is_grouped = g_CurrentScene->videoPlayers[selected_index].isGrouped; group_name = g_CurrentScene->videoPlayers[selected_index].groupName; break;
+            case ENTITY_PARALLAX_ROOM: is_grouped = g_CurrentScene->parallaxRooms[selected_index].isGrouped; group_name = g_CurrentScene->parallaxRooms[selected_index].groupName; break;
+            case ENTITY_LOGIC: is_grouped = g_CurrentScene->logicEntities[selected_index].isGrouped; group_name = g_CurrentScene->logicEntities[selected_index].groupName; break;
+            default: break;
+            }
+        }
+
+        if (is_grouped && group_name && strlen(group_name) > 0) {
+            if (selected_type == ENTITY_BRUSH && hit_face_index != -1) {
+                for (int i = 0; i < g_CurrentScene->brushes[selected_index].numFaces; ++i) {
+                    if (g_CurrentScene->brushes[selected_index].faces[i].isGrouped && strcmp(g_CurrentScene->brushes[selected_index].faces[i].groupName, group_name) == 0) {
+                        Editor_AddToSelection(ENTITY_BRUSH, selected_index, i, -1);
+                    }
+                }
+            }
+            else {
+                for (int i = 0; i < g_CurrentScene->numObjects; ++i) if (g_CurrentScene->objects[i].isGrouped && strcmp(g_CurrentScene->objects[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_MODEL, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numBrushes; ++i) if (g_CurrentScene->brushes[i].isGrouped && strcmp(g_CurrentScene->brushes[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numActiveLights; ++i) if (g_CurrentScene->lights[i].isGrouped && strcmp(g_CurrentScene->lights[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numDecals; ++i) if (g_CurrentScene->decals[i].isGrouped && strcmp(g_CurrentScene->decals[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_DECAL, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numSoundEntities; ++i) if (g_CurrentScene->soundEntities[i].isGrouped && strcmp(g_CurrentScene->soundEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SOUND, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) if (g_CurrentScene->particleEmitters[i].isGrouped && strcmp(g_CurrentScene->particleEmitters[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numSprites; ++i) if (g_CurrentScene->sprites[i].isGrouped && strcmp(g_CurrentScene->sprites[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SPRITE, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) if (g_CurrentScene->videoPlayers[i].isGrouped && strcmp(g_CurrentScene->videoPlayers[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_VIDEO_PLAYER, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) if (g_CurrentScene->parallaxRooms[i].isGrouped && strcmp(g_CurrentScene->parallaxRooms[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARALLAX_ROOM, i, -1, -1);
+                for (int i = 0; i < g_CurrentScene->numLogicEntities; ++i) if (g_CurrentScene->logicEntities[i].isGrouped && strcmp(g_CurrentScene->logicEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LOGIC, i, -1, -1);
+            }
+        }
+    }
     EditorSelection* primary = Editor_GetPrimarySelection();
     if (primary && primary->type == ENTITY_BRUSH) {
         primary->face_index = hit_face_index;
@@ -1742,6 +1798,75 @@ static bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal
         if (t >= 0) { *intersect_point = vec3_add(ray_origin, vec3_muls(ray_dir, t)); return true; }
     }
     return false;
+}
+static void Editor_GroupSelection() {
+    if (g_EditorState.num_selections < 2) return;
+
+    char group_name[64];
+    snprintf(group_name, sizeof(group_name), "group_%d", g_EditorState.next_group_id++);
+
+    Undo_BeginMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections);
+
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+        switch (sel->type) {
+        case ENTITY_MODEL: g_CurrentScene->objects[sel->index].isGrouped = true; strncpy(g_CurrentScene->objects[sel->index].groupName, group_name, 63); break;
+        case ENTITY_BRUSH:
+            if (sel->face_index != -1) {
+                g_CurrentScene->brushes[sel->index].faces[sel->face_index].isGrouped = true;
+                strncpy(g_CurrentScene->brushes[sel->index].faces[sel->face_index].groupName, group_name, 63);
+            }
+            else {
+                g_CurrentScene->brushes[sel->index].isGrouped = true;
+                strncpy(g_CurrentScene->brushes[sel->index].groupName, group_name, 63);
+            }
+            break;
+        case ENTITY_LIGHT: g_CurrentScene->lights[sel->index].isGrouped = true; strncpy(g_CurrentScene->lights[sel->index].groupName, group_name, 63); break;
+        case ENTITY_DECAL: g_CurrentScene->decals[sel->index].isGrouped = true; strncpy(g_CurrentScene->decals[sel->index].groupName, group_name, 63); break;
+        case ENTITY_SOUND: g_CurrentScene->soundEntities[sel->index].isGrouped = true; strncpy(g_CurrentScene->soundEntities[sel->index].groupName, group_name, 63); break;
+        case ENTITY_PARTICLE_EMITTER: g_CurrentScene->particleEmitters[sel->index].isGrouped = true; strncpy(g_CurrentScene->particleEmitters[sel->index].groupName, group_name, 63); break;
+        case ENTITY_SPRITE: g_CurrentScene->sprites[sel->index].isGrouped = true; strncpy(g_CurrentScene->sprites[sel->index].groupName, group_name, 63); break;
+        case ENTITY_VIDEO_PLAYER: g_CurrentScene->videoPlayers[sel->index].isGrouped = true; strncpy(g_CurrentScene->videoPlayers[sel->index].groupName, group_name, 63); break;
+        case ENTITY_PARALLAX_ROOM: g_CurrentScene->parallaxRooms[sel->index].isGrouped = true; strncpy(g_CurrentScene->parallaxRooms[sel->index].groupName, group_name, 63); break;
+        case ENTITY_LOGIC: g_CurrentScene->logicEntities[sel->index].isGrouped = true; strncpy(g_CurrentScene->logicEntities[sel->index].groupName, group_name, 63); break;
+        default: break;
+        }
+    }
+
+    Undo_EndMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections, "Group Selection");
+}
+
+static void Editor_UngroupSelection() {
+    if (g_EditorState.num_selections == 0) return;
+
+    Undo_BeginMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections);
+
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+        switch (sel->type) {
+        case ENTITY_MODEL: g_CurrentScene->objects[sel->index].isGrouped = false; g_CurrentScene->objects[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_BRUSH:
+            if (sel->face_index != -1) {
+                g_CurrentScene->brushes[sel->index].faces[sel->face_index].isGrouped = false;
+                g_CurrentScene->brushes[sel->index].faces[sel->face_index].groupName[0] = '\0';
+            }
+            else {
+                g_CurrentScene->brushes[sel->index].isGrouped = false;
+                g_CurrentScene->brushes[sel->index].groupName[0] = '\0';
+            }
+            break;
+        case ENTITY_LIGHT: g_CurrentScene->lights[sel->index].isGrouped = false; g_CurrentScene->lights[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_DECAL: g_CurrentScene->decals[sel->index].isGrouped = false; g_CurrentScene->decals[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_SOUND: g_CurrentScene->soundEntities[sel->index].isGrouped = false; g_CurrentScene->soundEntities[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_PARTICLE_EMITTER: g_CurrentScene->particleEmitters[sel->index].isGrouped = false; g_CurrentScene->particleEmitters[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_SPRITE: g_CurrentScene->sprites[sel->index].isGrouped = false; g_CurrentScene->sprites[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_VIDEO_PLAYER: g_CurrentScene->videoPlayers[sel->index].isGrouped = false; g_CurrentScene->videoPlayers[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_PARALLAX_ROOM: g_CurrentScene->parallaxRooms[sel->index].isGrouped = false; g_CurrentScene->parallaxRooms[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_LOGIC: g_CurrentScene->logicEntities[sel->index].isGrouped = false; g_CurrentScene->logicEntities[sel->index].groupName[0] = '\0'; break;
+        default: break;
+        }
+    }
+    Undo_EndMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections, "Ungroup Selection");
 }
 static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
     EditorSelection* primary = Editor_GetPrimarySelection();
@@ -2897,6 +3022,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             else {
                 Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
             }
+            return;
+        }
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_g) {
+            Editor_GroupSelection();
+            return;
+        }
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_u) {
+            Editor_UngroupSelection();
             return;
         }
         if (event->key.keysym.sym == SDLK_ESCAPE) {
@@ -6555,6 +6688,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         if (UI_BeginMenu("Edit", true)) { if (UI_MenuItem("Undo", "Ctrl+Z", false, true)) { Undo_PerformUndo(scene, engine); } if (UI_MenuItem("Redo", "Ctrl+Y", false, true)) { Undo_PerformRedo(scene, engine); } UI_EndMenu(); }
         if (UI_BeginMenu("Tools", true)) {
+            if (UI_MenuItem("Group", "Ctrl+G", false, g_EditorState.num_selections > 1)) { Editor_GroupSelection(); }
+            if (UI_MenuItem("Ungroup", "Ctrl+U", false, g_EditorState.num_selections > 0)) { Editor_UngroupSelection(); }
+            UI_Separator();
             if (UI_MenuItem("Replace Textures...", NULL, false, true)) {
                 g_EditorState.show_replace_textures_popup = true;
             }

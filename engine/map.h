@@ -103,6 +103,8 @@ extern "C" {
         int preset;
         float preset_time;
         int preset_index;
+        bool isGrouped;
+        char groupName[64];
     } Light;
 
     typedef struct {
@@ -237,6 +239,8 @@ extern "C" {
         Vec4* bakedVertexColors;
         Vec4* bakedVertexDirections;
         RigidBodyHandle physicsBody;
+        bool isGrouped;
+        char groupName[64];
     } SceneObject;
 
     typedef struct {
@@ -266,6 +270,8 @@ extern "C" {
         int numVertexIndices;
         Vec4 atlas_coords;
         float lightmap_scale;
+        bool isGrouped;
+        char groupName[64];
     } BrushFace;
 
     typedef struct {
@@ -297,6 +303,8 @@ extern "C" {
         bool isGlass;
         float refractionStrength;
         Material* glassNormalMap;
+        bool isGrouped;
+        char groupName[64];
     } Brush;
 
     typedef struct {
@@ -308,6 +316,8 @@ extern "C" {
         Material* material;
         GLuint lightmapAtlas;
         GLuint directionalLightmapAtlas;
+        bool isGrouped;
+        char groupName[64];
     } Decal;
 
     typedef struct {
@@ -327,6 +337,8 @@ extern "C" {
         float maxDistance;
         bool is_looping;
         bool play_on_start;
+        bool isGrouped;
+        char groupName[64];
     } SoundEntity;
 
     typedef enum {
@@ -356,6 +368,8 @@ extern "C" {
         uint8_t* rgb_buffer;
         double time;
         double nextFrameTime;
+        bool isGrouped;
+        char groupName[64];
     } VideoPlayer;
 
     typedef struct {
@@ -367,6 +381,8 @@ extern "C" {
         float roomDepth;
         Mat4 modelMatrix;
         GLuint cubemapTexture;
+        bool isGrouped;
+        char groupName[64];
     } ParallaxRoom;
 
     typedef struct ParticleEmitter {
@@ -381,6 +397,8 @@ extern "C" {
         float timeSinceLastSpawn;
         GLuint vao;
         GLuint vbo;
+        bool isGrouped;
+        char groupName[64];
     } ParticleEmitter;
 
     typedef struct {
@@ -389,6 +407,8 @@ extern "C" {
         float scale;
         Material* material;
         bool visible;
+        bool isGrouped;
+        char groupName[64];
     } Sprite;
 
     typedef struct {
@@ -407,6 +427,8 @@ extern "C" {
 
         bool runtime_active;
         float runtime_float_a;
+        bool isGrouped;
+        char groupName[64];
 
     } LogicEntity;
 

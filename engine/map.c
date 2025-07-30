@@ -1388,6 +1388,15 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                             *lightmap_scale_ptr = '\0';
                         }
 
+                        char* grouped_ptr = strstr(line, "is_grouped");
+                        if (grouped_ptr) {
+                            int grouped_int;
+                            if (sscanf(grouped_ptr, "is_grouped %d \"%63[^\"]\"", &grouped_int, b->faces[i].groupName) == 2) {
+                                b->faces[i].isGrouped = (bool)grouped_int;
+                            }
+                            *grouped_ptr = '\0';
+                        }
+
                         sscanf(line, " f %*d %s %s %s %s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
                             mat_name, mat2_name, mat3_name, mat4_name, &b->faces[i].uv_offset.x, &b->faces[i].uv_offset.y, &b->faces[i].uv_rotation, &b->faces[i].uv_scale.x, &b->faces[i].uv_scale.y,
                             &b->faces[i].uv_offset2.x, &b->faces[i].uv_offset2.y, &b->faces[i].uv_rotation2, &b->faces[i].uv_scale2.x, &b->faces[i].uv_scale2.y,
@@ -1413,34 +1422,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                         }
                     }
                 }
-                else if (sscanf(line, " is_reflection_probe %d", &dummy_int) == 1) {
-                    b->isReflectionProbe = (bool)dummy_int;
-                }
+                else if (sscanf(line, " is_reflection_probe %d", &dummy_int) == 1) { b->isReflectionProbe = (bool)dummy_int; }
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
-                else if (sscanf(line, " is_trigger %d", &dummy_int) == 1) {
-                    b->isTrigger = (bool)dummy_int;
-                }
-                else if (sscanf(line, " is_dsp %d", &dummy_int) == 1) {
-                    b->isDSP = (bool)dummy_int;
-                }
-                else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) {
-                    b->reverbPreset = (ReverbPreset)dummy_int;
-                }
-                else if (sscanf(line, " is_water %d", &dummy_int) == 1) {
-                    b->isWater = (bool)dummy_int;
-                }
+                else if (sscanf(line, " is_trigger %d", &dummy_int) == 1) { b->isTrigger = (bool)dummy_int; }
+                else if (sscanf(line, " is_dsp %d", &dummy_int) == 1) { b->isDSP = (bool)dummy_int; }
+                else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) { b->reverbPreset = (ReverbPreset)dummy_int; }
+                else if (sscanf(line, " is_water %d", &dummy_int) == 1) { b->isWater = (bool)dummy_int; }
                 else if (sscanf(line, " water_def \"%63[^\"]\"", water_def_name) == 1) {}
-                else if (sscanf(line, " is_glass %d", &dummy_int) == 1) {
-                    b->isGlass = (bool)dummy_int;
-                }
+                else if (sscanf(line, " is_glass %d", &dummy_int) == 1) { b->isGlass = (bool)dummy_int; }
                 else if (sscanf(line, " glass_normal_mat \"%63[^\"]\"", glass_normal_name) == 1) {}
-                else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {
-                }
+                else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
-                else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) {
-                    b->isPhysicsEnabled = (bool)dummy_int;
-                }
+                else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
+                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) { b->isGrouped = (bool)dummy_int; }
             }
             if (b->isReflectionProbe) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -1450,12 +1445,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
-            if (b->isWater) {
-                b->waterDef = WaterManager_FindWaterDef(water_def_name);
-            }
-            if (b->isGlass) {
-                b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name);
-            }
+            if (b->isWater) { b->waterDef = WaterManager_FindWaterDef(water_def_name); }
+            if (b->isGlass) { b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name); }
             Brush_UpdateMatrix(b);
             char map_name_sanitized[128];
             char* dot = strrchr(scene->mapPath, '.');
@@ -1464,17 +1455,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 strncpy(map_name_sanitized, scene->mapPath, len);
                 map_name_sanitized[len] = '\0';
             }
-            else {
-                strcpy(map_name_sanitized, scene->mapPath);
-            }
+            else { strcpy(map_name_sanitized, scene->mapPath); }
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             Brush_CreateRenderData(b);
             if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && !b->isDSP && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
                     b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
-                    if (!b->isPhysicsEnabled) {
-                        Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
-                    }
+                    if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
                 else {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
@@ -1486,92 +1473,47 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             scene->numBrushes++;
         }
         else if (strcmp(keyword, "gltf_model") == 0) {
-            if (scene->numObjects >= MAX_MODELS) {
-                continue;
-            }
+            if (scene->numObjects >= MAX_MODELS) continue;
             scene->numObjects++;
             scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
             memset(newObj, 0, sizeof(SceneObject));
-
             char* p = line + strlen(keyword);
             while (*p && isspace(*p)) p++;
-
             char* path_end = p;
             while (*path_end && !isspace(*path_end)) path_end++;
             size_t path_len = path_end - p;
-            if (path_len < sizeof(newObj->modelPath)) {
-                strncpy(newObj->modelPath, p, path_len);
-                newObj->modelPath[path_len] = '\0';
-            }
+            if (path_len < sizeof(newObj->modelPath)) { strncpy(newObj->modelPath, p, path_len); newObj->modelPath[path_len] = '\0'; }
             p = path_end;
             while (*p && isspace(*p)) p++;
-
-            if (*p == '"') {
-                p++;
-                char* quote_end = strchr(p, '"');
-                if (quote_end) {
-                    size_t name_len = quote_end - p;
-                    if (name_len < sizeof(newObj->targetname)) {
-                        strncpy(newObj->targetname, p, name_len);
-                        newObj->targetname[name_len] = '\0';
-                    }
-                    p = quote_end + 1;
-                }
-            }
-
-            int phys_enabled_int;
-            int sway_enabled_int = 0;
-            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z,
-                &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z,
-                &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist);
-            newObj->swayEnabled = (bool)sway_enabled_int;
-            newObj->isPhysicsEnabled = (bool)phys_enabled_int;
-
+            if (*p == '"') { p++; char* quote_end = strchr(p, '"'); if (quote_end) { size_t name_len = quote_end - p; if (name_len < sizeof(newObj->targetname)) { strncpy(newObj->targetname, p, name_len); newObj->targetname[name_len] = '\0'; } p = quote_end + 1; } }
+            int phys_enabled_int; int sway_enabled_int = 0;
+            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z, &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z, &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist);
+            newObj->swayEnabled = (bool)sway_enabled_int; newObj->isPhysicsEnabled = (bool)phys_enabled_int;
+            long current_pos = ftell(file); char next_line[256];
+            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, newObj->groupName); newObj->isGrouped = (bool)grouped_int; }
+            else { fseek(file, current_pos, SEEK_SET); }
             SceneObject_UpdateMatrix(newObj);
             newObj->model = Model_Load(newObj->modelPath);
             SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
             SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
-            if (!newObj->model) {
-                scene->numObjects--; continue;
-            }
-            if (newObj->mass > 0.0f) {
-                newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix);
-                if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false);
-            }
-            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f });
-                newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
-            }
+            if (!newObj->model) { scene->numObjects--; continue; }
+            if (newObj->mass > 0.0f) { newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
+            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
         }
         else if (strcmp(keyword, "light") == 0) {
             if (scene->numActiveLights >= MAX_LIGHTS) continue;
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
-            int type_int = 0;
-            int preset_int = 0;
-            int is_static_int = 0;
+            int type_int = 0; int preset_int = 0; int is_static_int = 0;
             int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
-            light->preset = preset_int;
-            light->type = (LightType)type_int;
-            light->is_on = (light->base_intensity > 0.0f);
-            light->is_static = (bool)is_static_int;
-            light->intensity = light->base_intensity;
-            if (items_scanned == 18 && strcmp(light->cookiePath, "none") != 0) {
-                Material* cookieMat = TextureManager_FindMaterial(light->cookiePath);
-                if (cookieMat && cookieMat != &g_MissingMaterial) {
-                    light->cookieMap = cookieMat->diffuseMap;
-                    light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
-                    glMakeTextureHandleResidentARB(light->cookieMapHandle);
-                }
-            }
-            else {
-                light->cookiePath[0] = '\0';
-                light->cookieMap = 0;
-                light->cookieMapHandle = 0;
-            }
-            Light_InitShadowMap(light);
-            scene->numActiveLights++;
+            light->preset = preset_int; light->type = (LightType)type_int; light->is_on = (light->base_intensity > 0.0f); light->is_static = (bool)is_static_int; light->intensity = light->base_intensity;
+            long current_pos = ftell(file); char next_line[256];
+            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, light->groupName); light->isGrouped = (bool)grouped_int; }
+            else { fseek(file, current_pos, SEEK_SET); }
+            if (items_scanned == 18 && strcmp(light->cookiePath, "none") != 0) { Material* cookieMat = TextureManager_FindMaterial(light->cookiePath); if (cookieMat && cookieMat != &g_MissingMaterial) { light->cookieMap = cookieMat->diffuseMap; light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap); glMakeTextureHandleResidentARB(light->cookieMapHandle); } }
+            else { light->cookiePath[0] = '\0'; light->cookieMap = 0; light->cookieMapHandle = 0; }
+            Light_InitShadowMap(light); scene->numActiveLights++;
         }
         else if (strcmp(keyword, "decal") == 0) {
             if (scene->numDecals < MAX_DECALS) {
@@ -1586,53 +1528,31 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { strncpy(d->targetname, p, end - p); d->targetname[end - p] = '\0'; p = end + 1; } }
                 sscanf(p, "%f %f %f %f %f %f %f %f %f", &d->pos.x, &d->pos.y, &d->pos.z, &d->rot.x, &d->rot.y, &d->rot.z, &d->size.x, &d->size.y, &d->size.z);
                 d->material = TextureManager_FindMaterial(mat_name);
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, d->groupName); d->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
                 Decal_UpdateMatrix(d);
-                char map_name_sanitized[128];
-                char* dot = strrchr(scene->mapPath, '.');
-                if (dot) {
-                    size_t len = dot - scene->mapPath;
-                    strncpy(map_name_sanitized, scene->mapPath, len);
-                    map_name_sanitized[len] = '\0';
-                }
-                else {
-                    strcpy(map_name_sanitized, scene->mapPath);
-                }
-
-                char lightmap_path[512];
-                snprintf(lightmap_path, sizeof(lightmap_path), "lightmaps/%s/decal_%d/lightmap_color.hdr", map_name_sanitized, scene->numDecals);
-                int width, height, nrComponents;
-                float* hdr_data = stbi_loadf(lightmap_path, &width, &height, &nrComponents, 3);
-                if (hdr_data) {
-                    glGenTextures(1, &d->lightmapAtlas);
-                    glBindTexture(GL_TEXTURE_2D, d->lightmapAtlas);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, hdr_data);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                    stbi_image_free(hdr_data);
-                }
-                else {
-                    d->lightmapAtlas = 0;
-                }
-
-                char dir_lightmap_path[512];
-                snprintf(dir_lightmap_path, sizeof(dir_lightmap_path), "lightmaps/%s/decal_%d/lightmap_dir.png", map_name_sanitized, scene->numDecals);
-                SDL_Surface* dir_surface = IMG_Load(dir_lightmap_path);
-                if (dir_surface) {
-                    SDL_Surface* dir_converted = SDL_ConvertSurfaceFormat(dir_surface, SDL_PIXELFORMAT_RGBA32, 0);
-                    if (dir_converted) {
-                        glGenTextures(1, &d->directionalLightmapAtlas);
-                        glBindTexture(GL_TEXTURE_2D, d->directionalLightmapAtlas);
-                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dir_converted->w, dir_converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dir_converted->pixels);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                        SDL_FreeSurface(dir_converted);
-                    }
-                    SDL_FreeSurface(dir_surface);
-                }
-                else {
-                    d->directionalLightmapAtlas = 0;
-                }
                 scene->numDecals++;
+            }
+        }
+        else if (strcmp(keyword, "sound_entity") == 0) {
+            if (scene->numSoundEntities < MAX_SOUNDS) {
+                SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
+                memset(s, 0, sizeof(SoundEntity));
+                int is_looping_int = 0, play_on_start_int = 0;
+                char* p = line + strlen(keyword); while (*p && isspace(*p)) p++;
+                if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { size_t len = end - p; if (len < sizeof(s->targetname)) { strncpy(s->targetname, p, len); s->targetname[len] = '\0'; } p = end + 1; } }
+                while (*p && isspace(*p)) p++;
+                char* path_end = p; while (*path_end && !isspace(*path_end)) path_end++; size_t path_len = path_end - p;
+                if (path_len < sizeof(s->soundPath)) { strncpy(s->soundPath, p, path_len); s->soundPath[path_len] = '\0'; } p = path_end;
+                sscanf(p, "%f %f %f %f %f %f %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
+                s->is_looping = (bool)is_looping_int; s->play_on_start = (bool)play_on_start_int;
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
+                s->bufferID = SoundSystem_LoadSound(s->soundPath);
+                if (s->play_on_start) s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
+                scene->numSoundEntities++;
             }
         }
         else if (strcmp(keyword, "particle_emitter") == 0) {
@@ -1642,39 +1562,25 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 int on_default_int = 1;
                 sscanf(line, "%*s \"%127[^\"]\" \"%63[^\"]\" %d %f %f %f", emitter->parFile, emitter->targetname, &on_default_int, &emitter->pos.x, &emitter->pos.y, &emitter->pos.z);
                 emitter->on_by_default = (bool)on_default_int;
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, emitter->groupName); emitter->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
                 ParticleSystem* ps = ParticleSystem_Load(emitter->parFile);
-                if (ps) {
-                    ParticleEmitter_Init(emitter, ps, emitter->pos);
-                    scene->numParticleEmitters++;
-                }
+                if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); scene->numParticleEmitters++; }
             }
         }
-        else if (strcmp(keyword, "sound_entity") == 0) {
-            if (scene->numSoundEntities < MAX_SOUNDS) {
-                SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
-                memset(s, 0, sizeof(SoundEntity));
-                int is_looping_int = 0, play_on_start_int = 0;
-                char* p = line + strlen(keyword);
-                while (*p && isspace(*p)) p++;
-                if (*p == '"') {
-                    p++; char* end_quote = strchr(p, '"');
-                    if (end_quote) {
-                        size_t len = end_quote - p;
-                        if (len < sizeof(s->targetname)) { strncpy(s->targetname, p, len); s->targetname[len] = '\0'; }
-                        p = end_quote + 1;
-                    }
-                }
-                while (*p && isspace(*p)) p++;
-                char* path_end = p;
-                while (*path_end && !isspace(*path_end)) path_end++;
-                size_t path_len = path_end - p;
-                if (path_len < sizeof(s->soundPath)) { strncpy(s->soundPath, p, path_len); s->soundPath[path_len] = '\0'; }
-                p = path_end;
-                sscanf(p, "%f %f %f %f %f %f %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
-                s->is_looping = (bool)is_looping_int; s->play_on_start = (bool)play_on_start_int;
-                s->bufferID = SoundSystem_LoadSound(s->soundPath);
-                if (s->play_on_start) s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
-                scene->numSoundEntities++;
+        else if (strcmp(keyword, "sprite") == 0) {
+            if (scene->numSprites < MAX_SPRITES) {
+                Sprite* s = &scene->sprites[scene->numSprites];
+                memset(s, 0, sizeof(Sprite));
+                char mat_name[64];
+                sscanf(line, "%*s \"%63[^\"]\" %f %f %f %f \"%63[^\"]\"", s->targetname, &s->pos.x, &s->pos.y, &s->pos.z, &s->scale, mat_name);
+                s->material = TextureManager_FindMaterial(mat_name);
+                s->visible = true;
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
+                scene->numSprites++;
             }
         }
         else if (strcmp(keyword, "video_player") == 0) {
@@ -1689,8 +1595,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { size_t len = end - p; if (len < sizeof(vp->targetname)) strncpy(vp->targetname, p, len), vp->targetname[len] = '\0'; p = end + 1; } }
                 sscanf(p, "%d %d %f %f %f %f %f %f %f %f", &play_on_start_int, &loop_int, &vp->pos.x, &vp->pos.y, &vp->pos.z, &vp->rot.x, &vp->rot.y, &vp->rot.z, &vp->size.x, &vp->size.y);
                 vp->playOnStart = (bool)play_on_start_int; vp->loop = (bool)loop_int;
-                VideoPlayer_Load(vp);
-                if (vp->playOnStart) VideoPlayer_Play(vp);
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, vp->groupName); vp->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
+                VideoPlayer_Load(vp); if (vp->playOnStart) VideoPlayer_Play(vp);
                 scene->numVideoPlayers++;
             }
         }
@@ -1704,102 +1612,62 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 while (*p && isspace(*p)) p++;
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { size_t len = end - p; if (len < sizeof(p_room->targetname)) strncpy(p_room->targetname, p, len), p_room->targetname[len] = '\0'; p = end + 1; } }
                 sscanf(p, "%f %f %f %f %f %f %f %f %f", &p_room->pos.x, &p_room->pos.y, &p_room->pos.z, &p_room->rot.x, &p_room->rot.y, &p_room->rot.z, &p_room->size.x, &p_room->size.y, &p_room->roomDepth);
+                long current_pos = ftell(file); char next_line[256];
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, p_room->groupName); p_room->isGrouped = (bool)grouped_int; }
+                else { fseek(file, current_pos, SEEK_SET); }
                 const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-                char face_paths[6][256];
-                const char* face_pointers[6];
+                char face_paths[6][256]; const char* face_pointers[6];
                 for (int i = 0; i < 6; ++i) { sprintf(face_paths[i], "%s%s", p_room->cubemapPath, suffixes[i]); face_pointers[i] = face_paths[i]; }
-                p_room->cubemapTexture = loadCubemap(face_pointers);
-                ParallaxRoom_UpdateMatrix(p_room);
+                p_room->cubemapTexture = loadCubemap(face_pointers); ParallaxRoom_UpdateMatrix(p_room);
                 scene->numParallaxRooms++;
-            }
-        }
-        else if (strcmp(keyword, "io_connection") == 0) {
-            if (g_num_io_connections < MAX_IO_CONNECTIONS) {
-                IOConnection* conn = &g_io_connections[g_num_io_connections];
-                conn->active = true;
-                conn->parameter[0] = '\0';
-                int type_int;
-                int fire_once_int;
-                int has_fired_int = 0;
-                int items_scanned = sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d %d \"%63[^\"]\"", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int, &has_fired_int, conn->parameter);
-                if (items_scanned < 8) {
-                    has_fired_int = 0;
-                }
-                conn->sourceType = (EntityType)type_int;
-                conn->fireOnce = (bool)fire_once_int;
-                conn->hasFired = (bool)has_fired_int;
-                g_num_io_connections++;
-            }
-        }
-        else if (strcmp(keyword, "sprite") == 0) {
-            if (scene->numSprites < MAX_SPRITES) {
-                Sprite* s = &scene->sprites[scene->numSprites];
-                memset(s, 0, sizeof(Sprite));
-                char mat_name[64];
-                sscanf(line, "%*s \"%63[^\"]\" %f %f %f %f \"%63[^\"]\"",
-                    s->targetname, &s->pos.x, &s->pos.y, &s->pos.z, &s->scale, mat_name);
-                s->material = TextureManager_FindMaterial(mat_name);
-                s->visible = true;
-                scene->numSprites++;
             }
         }
         else if (strcmp(keyword, "logic_entity_begin") == 0) {
             if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) continue;
             LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
             memset(ent, 0, sizeof(LogicEntity));
-
             while (fgets(line, sizeof(line), file) && strncmp(line, "logic_entity_end", 16) != 0) {
+                int dummy_int;
                 if (sscanf(line, " classname \"%63[^\"]\"", ent->classname) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", ent->targetname) == 1) {}
                 else if (sscanf(line, " pos %f %f %f", &ent->pos.x, &ent->pos.y, &ent->pos.z) == 3) {}
                 else if (sscanf(line, " rot %f %f %f", &ent->rot.x, &ent->rot.y, &ent->rot.z) == 3) {}
+                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, ent->groupName) == 2) { ent->isGrouped = (bool)dummy_int; }
                 else if (sscanf(line, " runtime_active %d", (int*)&ent->runtime_active) == 1) {}
                 else if (sscanf(line, " runtime_float_a %f", &ent->runtime_float_a) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
-                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
-                            if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) {
-                                ent->numProperties++;
-                            }
-                        }
+                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) { if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) { ent->numProperties++; } }
                     }
                 }
             }
-            if (strcmp(ent->classname, "logic_random") == 0) {
-                if (strcmp(LogicEntity_GetProperty(ent, "is_default_enabled", "0"), "1") == 0) {
-                    ent->runtime_active = true;
-                }
-            }
+            if (strcmp(ent->classname, "logic_random") == 0) { if (strcmp(LogicEntity_GetProperty(ent, "is_default_enabled", "0"), "1") == 0) { ent->runtime_active = true; } }
             scene->numLogicEntities++;
         }
-        else if (strcmp(keyword, "targetname") == 0) {
-            if (scene->numActiveLights > 0) {
-                Light* last_light = &scene->lights[scene->numActiveLights - 1];
-                sscanf(line, "%*s \"%63[^\"]\"", last_light->targetname);
+        else if (strcmp(keyword, "io_connection") == 0) {
+            if (g_num_io_connections < MAX_IO_CONNECTIONS) {
+                IOConnection* conn = &g_io_connections[g_num_io_connections];
+                conn->active = true; conn->parameter[0] = '\0';
+                int type_int, fire_once_int, has_fired_int = 0;
+                int items_scanned = sscanf(line, "%*s %d %d \"%63[^\"]\" \"%63[^\"]\" \"%63[^\"]\" %f %d %d \"%63[^\"]\"", &type_int, &conn->sourceIndex, conn->outputName, conn->targetName, conn->inputName, &conn->delay, &fire_once_int, &has_fired_int, conn->parameter);
+                if (items_scanned < 8) has_fired_int = 0;
+                conn->sourceType = (EntityType)type_int; conn->fireOnce = (bool)fire_once_int; conn->hasFired = (bool)has_fired_int;
+                g_num_io_connections++;
             }
         }
     }
     fclose(file);
-
     if (scene->use_cubemap_skybox && strlen(scene->skybox_path) > 0) {
         const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-        char face_paths[6][256];
-        const char* face_pointers[6];
-        for (int i = 0; i < 6; ++i) {
-            sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]);
-            face_pointers[i] = face_pointers[i];
-        }
+        char face_paths[6][256]; const char* face_pointers[6];
+        for (int i = 0; i < 6; ++i) { sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]); face_pointers[i] = face_paths[i]; }
         scene->skybox_cubemap = loadCubemap(face_pointers);
     }
-    else {
-        scene->skybox_cubemap = 0;
-    }
-
+    else { scene->skybox_cubemap = 0; }
     engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
     engine->camera.position = scene->playerStart.position;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;
-
     return true;
 }
 
@@ -1839,6 +1707,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
+        if (b->isGrouped) fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
         if (b->isTrigger) fprintf(file, "  is_trigger 1\n");
@@ -1882,6 +1751,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
                 face->numVertexIndices);
             for (int k = 0; k < face->numVertexIndices; ++k) fprintf(file, " %d", face->vertexIndices[k]);
             fprintf(file, " lightmap_scale %.4f", face->lightmap_scale);
+            if (face->isGrouped) fprintf(file, " is_grouped 1 \"%s\"", face->groupName);
             fprintf(file, "\n");
         }
         fprintf(file, "brush_end\n\n");
@@ -1893,6 +1763,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
             obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist);
+        if (obj->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", obj->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numActiveLights; ++i) {
@@ -1904,22 +1775,26 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
             light->preset, (int)light->is_static, cookiePathStr);
         if (strlen(light->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", light->targetname);
+        if (light->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", light->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numDecals; ++i) {
         Decal* d = &scene->decals[i];
         const char* mat_name = d->material ? d->material->name : "___MISSING___";
         fprintf(file, "decal \"%s\" \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f\n", mat_name, d->targetname, d->pos.x, d->pos.y, d->pos.z, d->rot.x, d->rot.y, d->rot.z, d->size.x, d->size.y, d->size.z);
+        if (d->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", d->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numParticleEmitters; ++i) {
         ParticleEmitter* emitter = &scene->particleEmitters[i];
         fprintf(file, "particle_emitter \"%s\" \"%s\" %d %.4f %.4f %.4f\n", emitter->parFile, emitter->targetname, (int)emitter->on_by_default, emitter->pos.x, emitter->pos.y, emitter->pos.z);
+        if (emitter->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", emitter->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundEntity* s = &scene->soundEntities[i];
         fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start);
+        if (s->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numVideoPlayers; ++i) {
@@ -1929,6 +1804,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             vp->pos.x, vp->pos.y, vp->pos.z,
             vp->rot.x, vp->rot.y, vp->rot.z,
             vp->size.x, vp->size.y);
+        if (vp->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", vp->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numParallaxRooms; ++i) {
@@ -1939,11 +1815,13 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             p->rot.x, p->rot.y, p->rot.z,
             p->size.x, p->size.y,
             p->roomDepth);
+        if (p->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", p->groupName);
     }
     for (int i = 0; i < scene->numSprites; ++i) {
         Sprite* s = &scene->sprites[i];
         fprintf(file, "sprite \"%s\" %.4f %.4f %.4f %.4f \"%s\"\n",
             s->targetname, s->pos.x, s->pos.y, s->pos.z, s->scale, s->material ? s->material->name : "___MISSING___");
+        if (s->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numLogicEntities; ++i) {
@@ -1951,6 +1829,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "logic_entity_begin\n");
         fprintf(file, "  classname \"%s\"\n", ent->classname);
         fprintf(file, "  targetname \"%s\"\n", ent->targetname);
+        if (ent->isGrouped) fprintf(file, "  is_grouped 1 \"%s\"\n", ent->groupName);
         fprintf(file, "  pos %.4f %.4f %.4f\n", ent->pos.x, ent->pos.y, ent->pos.z);
         fprintf(file, "  rot %.4f %.4f %.4f\n", ent->rot.x, ent->rot.y, ent->rot.z);
         fprintf(file, "  runtime_active %d\n", ent->runtime_active);
