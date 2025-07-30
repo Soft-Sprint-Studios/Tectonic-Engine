@@ -42,7 +42,7 @@ __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x000
 
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS*) {
     MessageBoxA(nullptr, "Engine crashed with an unhandled exception.", "Fatal Error", MB_ICONERROR);
-    return EXCEPTION_EXECUTE_HANDLER;
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 bool LoadEngineLibrary(HMODULE& engineLib) {
@@ -68,39 +68,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     SetUnhandledExceptionFilter(ExceptionHandler);
     HMODULE engineLib = nullptr;
     if (!LoadEngineLibrary(engineLib)) return -1;
-    int result = 0;
-    __try {
-        int argc = 0;
-        LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
-        char** argv = new char* [argc];
-
-        for (int i = 0; i < argc; ++i) {
-            int len = WideCharToMultiByte(CP_ACP, 0, wargv[i], -1, nullptr, 0, nullptr, nullptr);
-            argv[i] = new char[len];
-            WideCharToMultiByte(CP_ACP, 0, wargv[i], -1, argv[i], len, nullptr, nullptr);
-        }
-
-        int result = Engine_Main(argc, argv);
-
-        for (int i = 0; i < argc; ++i)
-            delete[] argv[i];
-        delete[] argv;
-        LocalFree(wargv);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-        MessageBoxA(nullptr, "Engine crashed unexpectedly.", "Runtime Crash", MB_ICONERROR);
-        result = -1;
+    int argc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    char** argv = new char* [argc];
+    for (int i = 0; i < argc; ++i) {
+        int len = WideCharToMultiByte(CP_ACP, 0, wargv[i], -1, nullptr, 0, nullptr, nullptr);
+        argv[i] = new char[len];
+        WideCharToMultiByte(CP_ACP, 0, wargv[i], -1, argv[i], len, nullptr, nullptr);
     }
+    int result = Engine_Main(argc, argv);
+    for (int i = 0; i < argc; ++i)
+        delete[] argv[i];
+    delete[] argv;
+    LocalFree(wargv);
     UnloadEngineLibrary(engineLib);
     return result;
 }
 
 #else
 
-#include <iostream>
-
 void SignalHandler(int signal) {
     std::cerr << "Engine crashed with signal: " << strsignal(signal) << std::endl;
-    std::exit(EXIT_FAILURE);
+    signal(signal, SIG_DFL);
+    raise(signal);
 }
 
 bool LoadEngineLibrary(void*& engineLib) {
@@ -129,13 +119,7 @@ int main(int argc, char* argv[]) {
     signal(SIGABRT, SignalHandler);
     void* engineLib = nullptr;
     if (!LoadEngineLibrary(engineLib)) return -1;
-    int result = 0;
-    try {
-        result = Engine_Main(argc, argv);
-    } catch (...) {
-        std::cerr << "Engine threw an exception." << std::endl;
-        result = -1;
-    }
+    int result = Engine_Main(argc, argv);
     UnloadEngineLibrary(engineLib);
     return result;
 }
