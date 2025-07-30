@@ -1786,18 +1786,36 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
         const float radius = 1.0f;
         const float pick_threshold = 0.1f;
         Vec3 intersect_point;
+        float closest_dist = FLT_MAX;
 
         if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 1, 0 }, -object_pos.y, & intersect_point)) {
-            float dist_from_center = vec3_length(vec3_sub(intersect_point, object_pos));
-            if (fabs(dist_from_center - radius) < pick_threshold) g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y;
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    closest_dist = dist_to_intersection;
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y;
+                }
+            }
         }
+
         if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 1, 0, 0 }, -object_pos.x, & intersect_point)) {
-            float dist_from_center = vec3_length(vec3_sub(intersect_point, object_pos));
-            if (fabs(dist_from_center - radius) < pick_threshold) g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X;
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    closest_dist = dist_to_intersection;
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X;
+                }
+            }
         }
+
+        // Test Z-axis ring (Blue, on XY plane with normal {0,0,1})
         if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 0, 1 }, -object_pos.z, & intersect_point)) {
-            float dist_from_center = vec3_length(vec3_sub(intersect_point, object_pos));
-            if (fabs(dist_from_center - radius) < pick_threshold) g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z;
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z;
+                }
+            }
         }
         break;
     }
