@@ -2721,11 +2721,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Vec3 object_pos_for_rotate = g_EditorState.gizmo_selection_centroid;
                     Vec3 current_vec = vec3_sub(current_intersect_point, object_pos_for_rotate);
                     vec3_normalize(&current_vec);
-                    float dot = vec3_dot(g_EditorState.gizmo_rotation_start_vec, current_vec);
-                    dot = fmaxf(-1.0f, fminf(1.0f, dot));
-                    float angle = acosf(dot) * (180.0f / M_PI);
-                    Vec3 cross_prod = vec3_cross(g_EditorState.gizmo_rotation_start_vec, current_vec);
-                    if (vec3_dot(g_EditorState.gizmo_drag_plane_normal, cross_prod) < 0) { angle = -angle; }
+                    Vec3 u_axis = g_EditorState.gizmo_rotation_start_vec;
+                    Vec3 v_axis = vec3_cross(g_EditorState.gizmo_drag_plane_normal, u_axis);
+
+                    float u_coord = vec3_dot(current_vec, u_axis);
+                    float v_coord = vec3_dot(current_vec, v_axis);
+
+                    float angle = atan2f(v_coord, u_coord) * (180.0f / M_PI);
 
                     if (g_EditorState.snap_to_grid) {
                         angle = SnapAngle(angle, 15.0f);
@@ -2775,20 +2777,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     new_scale = vec3_add(start_scale, scale_delta);
                 }
                 else if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
-                    Vec3 vec_to_object = vec3_sub(start_pos, centroid);
-                    Vec3 rotated_vec_to_object = mat4_mul_vec3_dir(&delta_rot_matrix, vec_to_object);
-                    new_pos = vec3_add(centroid, rotated_vec_to_object);
+                    new_rot = start_rot_eulers;
 
-                    Mat4 start_rot_matrix_x = mat4_rotate_x(start_rot_eulers.x * (M_PI / 180.0f));
-                    Mat4 start_rot_matrix_y = mat4_rotate_y(start_rot_eulers.y * (M_PI / 180.0f));
-                    Mat4 start_rot_matrix_z = mat4_rotate_z(start_rot_eulers.z * (M_PI / 180.0f));
-                    Mat4 start_rot_matrix;
-                    mat4_multiply(&start_rot_matrix, &start_rot_matrix_y, &start_rot_matrix_x);
-                    mat4_multiply(&start_rot_matrix, &start_rot_matrix_z, &start_rot_matrix);
-
-                    Mat4 new_rot_matrix;
-                    mat4_multiply(&new_rot_matrix, &delta_rot_matrix, &start_rot_matrix);
-                    mat4_decompose(&new_rot_matrix, &(Vec3){0}, & new_rot, & (Vec3){0});
+                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) {
+                        new_rot.x = start_rot_eulers.x + rot_angle_delta;
+                    }
+                    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) {
+                        new_rot.y = start_rot_eulers.y + rot_angle_delta;
+                    }
+                    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) {
+                        new_rot.z = start_rot_eulers.z + rot_angle_delta;
+                    }
                 }
 
                 switch (sel->type) {
