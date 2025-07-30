@@ -553,7 +553,7 @@ if(WIN32)
     target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
     target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
-    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender dl pthread m)
+    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
 # Patcher executable and post-build command on Windows
