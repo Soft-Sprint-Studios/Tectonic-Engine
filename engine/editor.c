@@ -1965,14 +1965,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 int original_brush_index = primary->index;
                 Brush* original_brush = &scene->brushes[original_brush_index];
 
-                Undo_PushDeleteEntity(scene, ENTITY_BRUSH, original_brush_index, "Clip Brush");
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, original_brush_index);
 
-                Brush brush_a = { 0 };
-                Brush brush_b = { 0 };
-                Brush_DeepCopy(&brush_a, original_brush);
-                Brush_DeepCopy(&brush_b, original_brush);
-
-                _raw_delete_brush(scene, engine, original_brush_index);
+                Brush brush_b_storage = { 0 };
+                Brush_DeepCopy(&brush_b_storage, original_brush);
 
                 Vec3 p1 = g_EditorState.clip_points[0];
                 Vec3 p2 = g_EditorState.clip_points[1];
@@ -1993,15 +1989,29 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 float plane_d_b = -plane_d_a;
                 Vec3 plane_normal_b = vec3_muls(plane_normal, -1.0f);
 
-                Brush_Clip(&brush_a, plane_normal, plane_d_a);
-                Brush_Clip(&brush_b, plane_normal_b, plane_d_b);
+                Brush_Clip(original_brush, plane_normal, plane_d_a);
+                Brush_CreateRenderData(original_brush);
+                if (original_brush->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, original_brush->physicsBody);
+                if (!original_brush->isTrigger && original_brush->numVertices > 0) {
+                    Vec3* world_verts = malloc(original_brush->numVertices * sizeof(Vec3));
+                    for (int k = 0; k < original_brush->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
+                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, original_brush->numVertices);
+                    free(world_verts);
+                }
+                else {
+                    original_brush->physicsBody = NULL;
+                }
 
-                if (brush_a.numVertices > 0) {
-                    scene->brushes[scene->numBrushes] = brush_a;
-                    Brush* new_b_ptr = &scene->brushes[scene->numBrushes];
+                Brush_Clip(&brush_b_storage, plane_normal_b, plane_d_b);
+
+                if (brush_b_storage.numVertices > 0) {
+                    int new_brush_index = scene->numBrushes;
+                    scene->brushes[new_brush_index] = brush_b_storage;
                     scene->numBrushes++;
+
+                    Brush* new_b_ptr = &scene->brushes[new_brush_index];
                     Brush_CreateRenderData(new_b_ptr);
-                    if (!new_b_ptr->isTrigger && !new_b_ptr->isWater && new_b_ptr->numVertices > 0) {
+                    if (!new_b_ptr->isTrigger && new_b_ptr->isWater && new_b_ptr->numVertices > 0) {
                         Vec3* world_verts = malloc(new_b_ptr->numVertices * sizeof(Vec3));
                         for (int k = 0; k < new_b_ptr->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
                         new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_b_ptr->numVertices);
@@ -2010,31 +2020,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     else {
                         new_b_ptr->physicsBody = NULL;
                     }
-                    Undo_PushCreateEntity(scene, ENTITY_BRUSH, scene->numBrushes - 1, "Clip Result A");
+                    Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Clip Brush (Create B)");
                 }
                 else {
-                    Brush_FreeData(&brush_a);
+                    Brush_FreeData(&brush_b_storage);
                 }
 
-                if (brush_b.numVertices > 0) {
-                    scene->brushes[scene->numBrushes] = brush_b;
-                    Brush* new_b_ptr = &scene->brushes[scene->numBrushes];
-                    scene->numBrushes++;
-                    Brush_CreateRenderData(new_b_ptr);
-                    if (!new_b_ptr->isTrigger && !new_b_ptr->isWater && new_b_ptr->numVertices > 0) {
-                        Vec3* world_verts = malloc(new_b_ptr->numVertices * sizeof(Vec3));
-                        for (int k = 0; k < new_b_ptr->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
-                        new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_b_ptr->numVertices);
-                        free(world_verts);
-                    }
-                    else {
-                        new_b_ptr->physicsBody = NULL;
-                    }
-                    Undo_PushCreateEntity(scene, ENTITY_BRUSH, scene->numBrushes - 1, "Clip Result B");
-                }
-                else {
-                    Brush_FreeData(&brush_b);
-                }
+                Undo_EndEntityModification(scene, ENTITY_BRUSH, original_brush_index, "Clip Brush (Modify A)");
                 Editor_ClearSelection();
             }
             g_EditorState.is_clipping = false;
