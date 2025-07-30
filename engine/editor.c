@@ -294,7 +294,6 @@ static void Editor_RemoveFaceFromSelection(int brush_index, int face_index) {
 }
 
 static void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index) {
-    if (Editor_IsSelected(type, index)) return;
     g_EditorState.num_selections++;
     g_EditorState.selections = realloc(g_EditorState.selections, g_EditorState.num_selections * sizeof(EditorSelection));
     g_EditorState.selections[g_EditorState.num_selections - 1] = (EditorSelection){ type, index, face_index, vertex_index };
