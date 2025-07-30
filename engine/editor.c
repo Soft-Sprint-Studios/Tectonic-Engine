@@ -5272,6 +5272,69 @@ static void Editor_RenderSprinkleToolWindow(void) {
     UI_End();
 }
 
+static void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
+    if (g_EditorState.show_bake_lighting_popup) {
+        UI_Begin("Bake Lighting", &g_EditorState.show_bake_lighting_popup);
+        UI_Text("Baking will save the current map file first.");
+        UI_Separator();
+
+        const char* resolutions[] = { "16", "32", "64", "128", "256", "512" };
+        UI_Combo("Resolution", &g_EditorState.bake_resolution, resolutions, 6, -1);
+
+        UI_DragInt("Bounces", &g_EditorState.bake_bounces, 1, 0, 4);
+
+        UI_Separator();
+
+        if (UI_Button("Bake")) {
+            Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
+
+            int resolution_values[] = { 16, 32, 64, 128, 256, 512 };
+            int resolution = resolution_values[g_EditorState.bake_resolution];
+
+            Lightmapper_Generate(scene, engine, resolution, g_EditorState.bake_bounces);
+
+            char map_name_sanitized[128];
+            const char* last_slash = strrchr(scene->mapPath, '/');
+            const char* last_bslash = strrchr(scene->mapPath, '\\');
+            const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+            const char* dot = strrchr(map_filename, '.');
+            if (dot) {
+                size_t len = dot - map_filename;
+                strncpy(map_name_sanitized, map_filename, len);
+                map_name_sanitized[len] = '\0';
+            }
+            else {
+                strcpy(map_name_sanitized, map_filename);
+            }
+
+            for (int i = 0; i < scene->numBrushes; ++i) {
+                Brush* b = &scene->brushes[i];
+                if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
+                if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
+                Brush_GenerateLightmapAtlas(b, map_name_sanitized, i, scene->lightmapResolution);
+                Brush_CreateRenderData(b);
+            }
+
+            for (int i = 0; i < scene->numDecals; ++i) {
+                Decal* d = &scene->decals[i];
+                if (d->lightmapAtlas != 0) { glDeleteTextures(1, &d->lightmapAtlas); d->lightmapAtlas = 0; }
+                if (d->directionalLightmapAtlas != 0) { glDeleteTextures(1, &d->directionalLightmapAtlas); d->directionalLightmapAtlas = 0; }
+                Decal_LoadLightmaps(d, map_name_sanitized, i);
+            }
+
+            scene->static_shadows_generated = true;
+            Console_Printf("Lightmap reload complete.");
+
+            g_EditorState.show_bake_lighting_popup = false;
+        }
+        UI_SameLine();
+        if (UI_Button("Cancel")) {
+            g_EditorState.show_bake_lighting_popup = false;
+        }
+        UI_End();
+    }
+}
+
 static void Editor_RenderAboutWindow() {
     if (!g_EditorState.show_about_window) {
         return;
@@ -6821,67 +6884,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderAboutWindow();
     Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
-
-    if (g_EditorState.show_bake_lighting_popup) {
-        UI_Begin("Bake Lighting", &g_EditorState.show_bake_lighting_popup);
-        UI_Text("Baking will save the current map file first.");
-        UI_Separator();
-
-        const char* resolutions[] = { "16", "32", "64", "128", "256", "512" };
-        UI_Combo("Resolution", &g_EditorState.bake_resolution, resolutions, 6, -1);
-
-        UI_DragInt("Bounces", &g_EditorState.bake_bounces, 1, 0, 4);
-
-        UI_Separator();
-
-        if (UI_Button("Bake")) {
-            Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
-
-            int resolution_values[] = { 16, 32, 64, 128, 256, 512 };
-            int resolution = resolution_values[g_EditorState.bake_resolution];
-
-            Lightmapper_Generate(scene, engine, resolution, g_EditorState.bake_bounces);
-
-            char map_name_sanitized[128];
-            const char* last_slash = strrchr(scene->mapPath, '/');
-            const char* last_bslash = strrchr(scene->mapPath, '\\');
-            const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
-            const char* dot = strrchr(map_filename, '.');
-            if (dot) {
-                size_t len = dot - map_filename;
-                strncpy(map_name_sanitized, map_filename, len);
-                map_name_sanitized[len] = '\0';
-            }
-            else {
-                strcpy(map_name_sanitized, map_filename);
-            }
-
-            for (int i = 0; i < scene->numBrushes; ++i) {
-                Brush* b = &scene->brushes[i];
-                if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
-                if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-                Brush_GenerateLightmapAtlas(b, map_name_sanitized, i, scene->lightmapResolution);
-                Brush_CreateRenderData(b);
-            }
-
-            for (int i = 0; i < scene->numDecals; ++i) {
-                Decal* d = &scene->decals[i];
-                if (d->lightmapAtlas != 0) { glDeleteTextures(1, &d->lightmapAtlas); d->lightmapAtlas = 0; }
-                if (d->directionalLightmapAtlas != 0) { glDeleteTextures(1, &d->directionalLightmapAtlas); d->directionalLightmapAtlas = 0; }
-                Decal_LoadLightmaps(d, map_name_sanitized, i);
-            }
-
-            scene->static_shadows_generated = true;
-            Console_Printf("Lightmap reload complete.");
-
-            g_EditorState.show_bake_lighting_popup = false;
-        }
-        UI_SameLine();
-        if (UI_Button("Cancel")) {
-            g_EditorState.show_bake_lighting_popup = false;
-        }
-        UI_End();
-    }
+    Editor_RenderBakeLightingWindow(scene, engine);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
