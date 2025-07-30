@@ -5203,6 +5203,42 @@ static void Editor_RenderVertexToolsWindow(Scene* scene) {
                     }
                 }
             }
+            UI_SameLine();
+            if (UI_Button("Invert Channel")) {
+                if (g_EditorState.num_selections > 0) {
+                    Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
+
+                    bool modified_brushes[MAX_BRUSHES] = { false };
+
+                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                        EditorSelection* sel = &g_EditorState.selections[i];
+                        if (sel->type == ENTITY_BRUSH && sel->face_index != -1) {
+                            Brush* b = &scene->brushes[sel->index];
+                            BrushFace* face = &b->faces[sel->face_index];
+
+                            for (int j = 0; j < face->numVertexIndices; j++) {
+                                int vert_idx = face->vertexIndices[j];
+                                BrushVertex* vert = &b->vertices[vert_idx];
+
+                                switch (g_EditorState.paint_channel) {
+                                case 0: vert->color.x = 1.0f - vert->color.x; break;
+                                case 1: vert->color.y = 1.0f - vert->color.y; break;
+                                case 2: vert->color.z = 1.0f - vert->color.z; break;
+                                }
+                            }
+                            modified_brushes[sel->index] = true;
+                        }
+                    }
+
+                    for (int i = 0; i < scene->numBrushes; i++) {
+                        if (modified_brushes[i]) {
+                            Brush_CreateRenderData(&scene->brushes[i]);
+                        }
+                    }
+
+                    Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Invert Vertex Paint");
+                }
+            }
         }
     }
     UI_End();
