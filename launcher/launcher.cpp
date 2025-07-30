@@ -87,10 +87,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #else
 
-void SignalHandler(int signal) {
-    std::cerr << "Engine crashed with signal: " << strsignal(signal) << std::endl;
-    signal(signal, SIG_DFL);
-    raise(signal);
+void SignalHandler(int signum) {
+    std::cerr << "Engine crashed with signal: " << strsignal(signum) << std::endl;
+    signal(signum, SIG_DFL);
+    raise(signum);
 }
 
 bool LoadEngineLibrary(void*& engineLib) {
