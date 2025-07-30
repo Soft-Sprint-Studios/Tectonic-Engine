@@ -535,7 +535,7 @@ if(WIN32)
 endif()
 
 # Tectonic Model Importer
-add_executable(TectonicModelImporter tools/ModelImporter/main.cpp)
+add_executable(TectonicModelImporter Tools/ModelImporter/main.cpp)
 
 set_target_properties(TectonicModelImporter PROPERTIES
     CXX_STANDARD 17
