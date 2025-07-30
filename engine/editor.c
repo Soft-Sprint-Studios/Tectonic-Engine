@@ -5293,18 +5293,47 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
             char btn_id[32];
             sprintf(btn_id, "##mat_btn_%d", i);
             if (UI_ImageButton(btn_id, (void*)(intptr_t)mat->diffuseMap, 64, 64)) {
-                if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
-                    Brush* b = &scene->brushes[primary->index];
-                    BrushFace* face = &b->faces[primary->face_index];
+                bool is_face_material_target = (g_EditorState.texture_browser_target >= 0 && g_EditorState.texture_browser_target <= 3);
 
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                    if (g_EditorState.texture_browser_target == 0) face->material = mat;
-                    else if (g_EditorState.texture_browser_target == 1) face->material2 = mat;
-                    else if (g_EditorState.texture_browser_target == 2) face->material3 = mat;
-                    else if (g_EditorState.texture_browser_target == 3) face->material4 = mat;
-                    Brush_CreateRenderData(b);
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Material");
+                if (g_EditorState.num_selections > 0 && is_face_material_target) {
+                    Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
 
+                    int* modified_brushes = malloc(g_EditorState.num_selections * sizeof(int));
+                    int num_modified_brushes = 0;
+
+                    for (int sel_idx = 0; sel_idx < g_EditorState.num_selections; ++sel_idx) {
+                        EditorSelection* sel = &g_EditorState.selections[sel_idx];
+                        if (sel->type == ENTITY_BRUSH && sel->face_index != -1) {
+                            Brush* b = &scene->brushes[sel->index];
+                            BrushFace* face = &b->faces[sel->face_index];
+
+                            switch (g_EditorState.texture_browser_target) {
+                            case 0: face->material = mat; break;
+                            case 1: face->material2 = mat; break;
+                            case 2: face->material3 = mat; break;
+                            case 3: face->material4 = mat; break;
+                            }
+
+                            bool already_added = false;
+                            for (int k = 0; k < num_modified_brushes; ++k) {
+                                if (modified_brushes[k] == sel->index) {
+                                    already_added = true;
+                                    break;
+                                }
+                            }
+                            if (!already_added) {
+                                modified_brushes[num_modified_brushes++] = sel->index;
+                            }
+                        }
+                    }
+
+                    for (int k = 0; k < num_modified_brushes; ++k) {
+                        Brush_CreateRenderData(&scene->brushes[modified_brushes[k]]);
+                    }
+
+                    free(modified_brushes);
+
+                    Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Change Face Materials");
                     g_EditorState.show_texture_browser = false;
                 }
                 else if (primary && primary->type == ENTITY_BRUSH && g_EditorState.texture_browser_target == 5) {
@@ -5314,27 +5343,20 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                 }
                 else if (primary && primary->type == ENTITY_DECAL) {
                     Decal* d = &scene->decals[primary->index];
-
                     Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
                     d->material = mat;
                     Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Change Decal Material");
-
                     g_EditorState.show_texture_browser = false;
                 }
                 else if (primary && primary->type == ENTITY_LIGHT && g_EditorState.texture_browser_target == 4) {
                     Light* light = &scene->lights[primary->index];
                     Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
-
                     strncpy(light->cookiePath, mat->name, sizeof(light->cookiePath) - 1);
                     light->cookiePath[sizeof(light->cookiePath) - 1] = '\0';
                     light->cookieMap = mat->diffuseMap;
-
-                    if (light->cookieMapHandle != 0) {
-                        glMakeTextureHandleNonResidentARB(light->cookieMapHandle);
-                    }
+                    if (light->cookieMapHandle != 0) { glMakeTextureHandleNonResidentARB(light->cookieMapHandle); }
                     light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap);
                     glMakeTextureHandleResidentARB(light->cookieMapHandle);
-
                     Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Set Light Cookie");
                     g_EditorState.show_texture_browser = false;
                 }
