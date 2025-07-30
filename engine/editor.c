@@ -1351,7 +1351,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.num_recent_map_files = 0;
     g_EditorState.next_group_id = 1;
     g_EditorState.show_arch_properties_popup = false;
-    g_EditorState.arch_wall_width = 32.0f;
+    g_EditorState.arch_wall_width = 0.1f;
     g_EditorState.arch_num_sides = 8;
     g_EditorState.arch_arc_degrees = 180.0f;
     g_EditorState.arch_start_angle_degrees = 0.0f;
@@ -5962,13 +5962,26 @@ static void Editor_RenderArchPreview() {
     Mat4 model; mat4_identity(&model);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model.m);
 
+    float world_width = 0.0f;
+    if (g_EditorState.arch_creation_view == VIEW_TOP_XZ || g_EditorState.arch_creation_view == VIEW_FRONT_XY) {
+        world_width = fabsf(g_EditorState.arch_creation_end_point.x - g_EditorState.arch_creation_start_point.x);
+    }
+    else if (g_EditorState.arch_creation_view == VIEW_SIDE_YZ) {
+        world_width = fabsf(g_EditorState.arch_creation_end_point.z - g_EditorState.arch_creation_start_point.z);
+    }
+    float world_outer_radius = world_width / 2.0f;
+
     float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
     float center_x = g_EditorState.arch_preview_width / 2.0f;
     float center_y = 20.0f;
     float outer_radius = fminf(g_EditorState.arch_preview_width, g_EditorState.arch_preview_height) * 0.4f;
-    float inner_radius = outer_radius - (g_EditorState.arch_wall_width / 8.0f);
+    float inner_radius = outer_radius;
+    if (world_outer_radius > 0.01f) {
+        float thickness_ratio = g_EditorState.arch_wall_width / world_outer_radius;
+        inner_radius = outer_radius * (1.0f - thickness_ratio);
+    }
     if (inner_radius < 0) inner_radius = 0;
 
     int num_sides = g_EditorState.arch_num_sides;
@@ -6020,7 +6033,7 @@ static void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine) {
     Editor_UpdatePreviewBrushForArch();
 
     bool values_changed = false;
-    values_changed |= UI_DragFloat("Wall width", &g_EditorState.arch_wall_width, 1.0f, 1.0f, 1024.0f);
+    values_changed |= UI_DragFloat("Wall width", &g_EditorState.arch_wall_width, 0.1f, 0.01f, 1024.0f);
     values_changed |= UI_DragInt("Number of Sides", &g_EditorState.arch_num_sides, 1, 3, 64);
     if (UI_Button("Circle")) { g_EditorState.arch_arc_degrees = 360.0f; values_changed = true; } UI_SameLine();
     values_changed |= UI_DragFloat("Arc", &g_EditorState.arch_arc_degrees, 1.0f, 1.0f, 360.0f);
