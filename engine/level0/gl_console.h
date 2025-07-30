@@ -158,6 +158,10 @@ extern "C" {
 	LEVEL0_API void UI_BeginDisabled(bool disabled);
 	LEVEL0_API void UI_EndDisabled(void);
 
+	LEVEL0_API void UI_BeginGroup(void);
+	LEVEL0_API void UI_EndGroup(void);
+	LEVEL0_API bool UI_ImageButton_Flip(const char* id, void* texture_id, float width, float height);
+
 #ifdef __cplusplus
 }
 #endif

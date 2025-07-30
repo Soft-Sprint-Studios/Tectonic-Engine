@@ -434,4 +434,14 @@ extern "C" {
     void UI_EndDisabled(void) {
         ImGui::EndDisabled();
     }
+    void UI_BeginGroup(void) {
+        ImGui::BeginGroup();
+    }
+
+    void UI_EndGroup(void) {
+        ImGui::EndGroup();
+    }
+    bool UI_ImageButton_Flip(const char* id, void* texture_id, float width, float height) {
+        return ImGui::ImageButton(id, reinterpret_cast<ImTextureID>(texture_id), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+    }
 }

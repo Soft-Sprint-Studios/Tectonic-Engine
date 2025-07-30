@@ -66,6 +66,11 @@ typedef enum {
 } PreviewBrushHandleType;
 
 typedef struct {
+    char* file_path;
+    GLuint thumbnail_texture;
+} ModelBrowserEntry;
+
+typedef struct {
     bool initialized; Camera editor_camera;
     bool is_in_z_mode;
     BrushCreationShapeType current_brush_shape;
@@ -118,10 +123,11 @@ typedef struct {
     Vec2 model_preview_cam_angles;
     LoadedModel* preview_model;
     char model_search_filter[64];
-    char** model_file_list;
+    ModelBrowserEntry* model_browser_entries;
     int num_model_files;
     int selected_model_file_index;
     bool is_manipulating_gizmo;
+    GLuint model_thumb_fbo, model_thumb_texture, model_thumb_rbo;
     GLuint gizmo_shader;
     GLuint gizmo_vao;
     GLuint gizmo_vbo;
@@ -508,18 +514,21 @@ static void Editor_AddRecentFile(const char* path) {
     Editor_SaveRecentFiles();
 }
 
-static void FreeModelFileList() {
-    if (g_EditorState.model_file_list) {
+static void FreeModelBrowserEntries() {
+    if (g_EditorState.model_browser_entries) {
         for (int i = 0; i < g_EditorState.num_model_files; ++i) {
-            free(g_EditorState.model_file_list[i]);
+            free(g_EditorState.model_browser_entries[i].file_path);
+            if (g_EditorState.model_browser_entries[i].thumbnail_texture != 0) {
+                glDeleteTextures(1, &g_EditorState.model_browser_entries[i].thumbnail_texture);
+            }
         }
-        free(g_EditorState.model_file_list);
-        g_EditorState.model_file_list = NULL;
+        free(g_EditorState.model_browser_entries);
+        g_EditorState.model_browser_entries = NULL;
         g_EditorState.num_model_files = 0;
     }
 }
 static void ScanModelFiles() {
-    FreeModelFileList();
+    FreeModelBrowserEntries();
     const char* dir_path = "models/";
 #ifdef PLATFORM_WINDOWS
     char search_path[256];
@@ -529,8 +538,9 @@ static void ScanModelFiles() {
     if (h_find == INVALID_HANDLE_VALUE) return;
     do {
         if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_EditorState.model_file_list = realloc(g_EditorState.model_file_list, (g_EditorState.num_model_files + 1) * sizeof(char*));
-            g_EditorState.model_file_list[g_EditorState.num_model_files] = _strdup(find_data.cFileName);
+            g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
+            g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = _strdup(find_data.cFileName);
+            g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
             g_EditorState.num_model_files++;
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
@@ -542,8 +552,9 @@ static void ScanModelFiles() {
     while ((dir = readdir(d)) != NULL) {
         const char* ext = strrchr(dir->d_name, '.');
         if (ext && (_stricmp(ext, ".gltf") == 0 || _stricmp(ext, ".glb") == 0)) {
-            g_EditorState.model_file_list = realloc(g_EditorState.model_file_list, (g_EditorState.num_model_files + 1) * sizeof(char*));
-            g_EditorState.model_file_list[g_EditorState.num_model_files] = strdup(dir->d_name);
+            g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
+            g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = strdup(dir->d_name);
+            g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
             g_EditorState.num_model_files++;
         }
     }
@@ -1271,6 +1282,19 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glGenRenderbuffers(1, &g_EditorState.model_preview_rbo); glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
+    int thumb_size = 128;
+    glGenFramebuffers(1, &g_EditorState.model_thumb_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_thumb_fbo);
+    glGenTextures(1, &g_EditorState.model_thumb_texture);
+    glBindTexture(GL_TEXTURE_2D, g_EditorState.model_thumb_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, thumb_size, thumb_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.model_thumb_texture, 0);
+    glGenRenderbuffers(1, &g_EditorState.model_thumb_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_thumb_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, thumb_size, thumb_size);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_EditorState.model_thumb_rbo);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     g_EditorState.arch_preview_width = 200; g_EditorState.arch_preview_height = 150;
     glGenFramebuffers(1, &g_EditorState.arch_preview_fbo); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.arch_preview_fbo);
@@ -1364,6 +1388,7 @@ void Editor_Shutdown() {
     Undo_Shutdown();
     for (int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
+    glDeleteFramebuffers(1, &g_EditorState.model_thumb_fbo); glDeleteTextures(1, &g_EditorState.model_thumb_texture); glDeleteRenderbuffers(1, &g_EditorState.model_thumb_rbo);
     if (g_EditorState.preview_model) Model_Free(g_EditorState.preview_model);
     if (g_EditorState.preview_sound_source != 0) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
     if (g_EditorState.preview_sound_buffer != 0) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
@@ -1373,7 +1398,7 @@ void Editor_Shutdown() {
         }
         free(g_EditorState.sound_file_list);
     }
-    FreeModelFileList();
+    FreeModelBrowserEntries();
     FreeMapFileList();
     glDeleteProgram(g_EditorState.debug_shader); glDeleteVertexArrays(1, &g_EditorState.light_gizmo_vao);
     Brush_FreeData(&g_EditorState.preview_brush);
@@ -4797,112 +4822,117 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
         }
     }
 }
-static void Editor_RenderModelBrowser(Scene* scene, Engine* engine) {
+static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer) {
     if (!g_EditorState.show_add_model_popup) return;
 
     UI_SetNextWindowSize(700, 500);
     if (UI_Begin("Model Browser", &g_EditorState.show_add_model_popup)) {
-        UI_BeginChild("model_list_child", 200, 0, true, 0);
-
         UI_InputText("Search", g_EditorState.model_search_filter, sizeof(g_EditorState.model_search_filter));
-        UI_Separator();
-
+        UI_SameLine();
         if (UI_Button("Refresh List")) {
             ScanModelFiles();
         }
         UI_Separator();
 
-        if (g_EditorState.num_model_files > 0) {
+        if (UI_BeginChild("model_grid_child", 0, 0, false, 0)) {
+            float window_visible_x2 = UI_GetWindowPos_X() + UI_GetWindowContentRegionMax_X();
+            float style_spacing_x = UI_GetStyle_ItemSpacing_X();
+            float item_size = 96.0f;
+
             for (int i = 0; i < g_EditorState.num_model_files; ++i) {
-                const char* model_name = g_EditorState.model_file_list[i];
-                if (g_EditorState.model_search_filter[0] == '\0' || _stristr(model_name, g_EditorState.model_search_filter) != NULL) {
-                    if (UI_Selectable(model_name, g_EditorState.selected_model_file_index == i)) {
-                        g_EditorState.selected_model_file_index = i;
+                ModelBrowserEntry* entry = &g_EditorState.model_browser_entries[i];
+                if (g_EditorState.model_search_filter[0] != '\0' && _stristr(entry->file_path, g_EditorState.model_search_filter) == NULL) {
+                    continue;
+                }
 
-                        if (g_EditorState.preview_model) {
-                            Model_Free(g_EditorState.preview_model);
-                            g_EditorState.preview_model = NULL;
+                if (entry->thumbnail_texture == 0) {
+                    char path_buffer[256];
+                    sprintf(path_buffer, "models/%s", entry->file_path);
+                    LoadedModel* temp_model = Model_Load(path_buffer);
+
+                    glGenTextures(1, &entry->thumbnail_texture);
+                    glBindTexture(GL_TEXTURE_2D, entry->thumbnail_texture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                    if (temp_model) {
+                        glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_thumb_fbo);
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, entry->thumbnail_texture, 0);
+                        glViewport(0, 0, 128, 128);
+                        glClearColor(0.2f, 0.2f, 0.25f, 1.0f);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                        Mat4 view = mat4_lookAt((Vec3) { 1, 1, 1 }, (Vec3) { 0, 0, 0 }, (Vec3) { 0, 1, 0 });
+                        Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
+
+                        glUseProgram(renderer->mainShader);
+                        glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 1);
+                        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view.m);
+                        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "projection"), 1, GL_FALSE, proj.m);
+
+                        SceneObject temp_obj;
+                        memset(&temp_obj, 0, sizeof(SceneObject));
+                        temp_obj.model = temp_model;
+                        mat4_identity(&temp_obj.modelMatrix);
+                        render_object(renderer->mainShader, &temp_obj, false, NULL);
+
+                        Model_Free(temp_model);
+                        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    }
+                }
+
+                UI_PushID(i);
+                UI_BeginGroup();
+
+                if (UI_ImageButton_Flip("##thumb", (void*)(intptr_t)entry->thumbnail_texture, item_size, item_size)) {
+                    if (g_EditorState.texture_browser_target == MODEL_BROWSER_TARGET_SPRINKLE) {
+                        char full_path[256];
+                        sprintf(full_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
+                        strncpy(g_EditorState.sprinkle_model_path, full_path, sizeof(g_EditorState.sprinkle_model_path) - 1);
+                        g_EditorState.show_add_model_popup = false;
+                    }
+                    else {
+                        if (scene->numObjects < MAX_MODELS) {
+                            scene->numObjects++;
+                            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+                            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
+                            memset(newObj, 0, sizeof(SceneObject));
+
+                            char full_model_path[256];
+                            sprintf(full_model_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
+                            strncpy(newObj->modelPath, full_model_path, sizeof(newObj->modelPath) - 1);
+
+                            Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
+                            vec3_normalize(&forward);
+                            newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
+                            newObj->scale = (Vec3){ 1,1,1 };
+                            SceneObject_UpdateMatrix(newObj);
+
+                            newObj->model = Model_Load(newObj->modelPath);
+
+                            if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
+                                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
+                                newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                            }
+                            Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
+                            g_EditorState.show_add_model_popup = false;
                         }
-                        char path_buffer[256];
-                        sprintf(path_buffer, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
-                        g_EditorState.preview_model = Model_Load(path_buffer);
+                        else {
+                            Console_Printf_Error("Cannot add model, MAX_MODELS limit reached.");
+                        }
                     }
                 }
-            }
-        }
-        UI_EndChild();
 
-        UI_SameLine();
+                UI_TextWrapped(entry->file_path);
+                UI_EndGroup();
 
-        UI_BeginChild("model_preview_child", 0, 0, false, 0);
-
-        float w, h;
-        UI_GetContentRegionAvail(&w, &h);
-        h -= 40;
-        if (w > 0 && h > 0 && (fabs(w - g_EditorState.model_preview_width) > 1 || fabs(h - g_EditorState.model_preview_height) > 1)) {
-            g_EditorState.model_preview_width = (int)w; g_EditorState.model_preview_height = (int)h;
-            glBindTexture(GL_TEXTURE_2D, g_EditorState.model_preview_texture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.model_preview_width, g_EditorState.model_preview_height, 0, GL_RGBA, GL_FLOAT, NULL);
-            glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
-        }
-        UI_Image((void*)(intptr_t)g_EditorState.model_preview_texture, w, h);
-        if (UI_IsItemHovered()) {
-            float dx, dy; UI_GetMouseDragDelta(1, 0.0f, &dx, &dy);
-            if (UI_IsMouseDragging(1)) {
-                g_EditorState.model_preview_cam_angles.x += dx * 0.01f;
-                g_EditorState.model_preview_cam_angles.y -= dy * 0.01f;
-            }
-            UI_ResetMouseDragDelta(1);
-            float wheel = UI_GetMouseWheel();
-            g_EditorState.model_preview_cam_dist -= wheel;
-            if (g_EditorState.model_preview_cam_dist < 1.0f) g_EditorState.model_preview_cam_dist = 1.0f;
-        }
-
-        if (g_EditorState.selected_model_file_index != -1) {
-            if (UI_Button("Select Model")) {
-                if (g_EditorState.texture_browser_target == MODEL_BROWSER_TARGET_SPRINKLE) {
-                    char full_path[256];
-                    sprintf(full_path, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
-                    strncpy(g_EditorState.sprinkle_model_path, full_path, sizeof(g_EditorState.sprinkle_model_path) - 1);
-                    g_EditorState.show_add_model_popup = false;
+                float last_button_x2 = UI_GetItemRectMax_X();
+                float next_button_x2 = last_button_x2 + style_spacing_x + item_size;
+                if (i + 1 < g_EditorState.num_model_files && next_button_x2 < window_visible_x2) {
+                    UI_SameLine();
                 }
-            }
-            UI_SameLine();
-            if (UI_Button("Add to Scene")) {
-                if (scene->numObjects < MAX_MODELS) {
-                    scene->numObjects++;
-                    scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
-                    SceneObject* newObj = &scene->objects[scene->numObjects - 1];
-                    memset(newObj, 0, sizeof(SceneObject));
-
-                    char full_model_path_for_scene_object[256];
-                    sprintf(full_model_path_for_scene_object, "models/%s", g_EditorState.model_file_list[g_EditorState.selected_model_file_index]);
-
-                    strncpy(newObj->modelPath, full_model_path_for_scene_object, sizeof(newObj->modelPath) - 1);
-                    newObj->modelPath[sizeof(newObj->modelPath) - 1] = '\0';
-
-                    Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-                    vec3_normalize(&forward);
-                    newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
-                    newObj->scale = (Vec3){ 1,1,1 };
-                    SceneObject_UpdateMatrix(newObj);
-
-                    newObj->model = Model_Load(newObj->modelPath);
-
-                    if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                        Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
-                        newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
-                    }
-                    else if (!newObj->model) {
-                        Console_Printf_Error("[error] Failed to load model for scene object: %s", newObj->modelPath);
-                    }
-                    Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
-                    g_EditorState.show_add_model_popup = false;
-                }
-                else {
-                    Console_Printf_Error("[error] Cannot add model, MAX_MODELS limit (%d) reached.", MAX_MODELS);
-                }
+                UI_PopID();
             }
         }
         UI_EndChild();
@@ -7177,7 +7207,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
 
     Editor_RenderTextureBrowser(scene);
-    Editor_RenderModelBrowser(scene, engine);
+    Editor_RenderModelBrowser(scene, engine, renderer);
     Editor_RenderSoundBrowser(scene);
     Editor_RenderReplaceTexturesUI(scene);
     Editor_RenderVertexToolsWindow(scene);
