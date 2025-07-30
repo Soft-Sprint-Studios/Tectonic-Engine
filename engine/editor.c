@@ -1932,7 +1932,6 @@ static void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir)
             }
         }
 
-        // Test Z-axis ring (Blue, on XY plane with normal {0,0,1})
         if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 0, 1 }, -object_pos.z, & intersect_point)) {
             float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
@@ -2558,39 +2557,79 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Brush* b = &scene->brushes[primary->index];
             bool needs_update = false;
 
-            Mat4 inv_model;
-            if (!mat4_inverse(&b->modelMatrix, &inv_model)) {
-                Console_Printf_Error("[error] Failed to invert brush model matrix for sculpting.");
-                return;
-            }
-
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
-                if (g_EditorState.is_viewport_hovered[i]) {
-                    Vec3 mouse_world_pos = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                    float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+            if (SDL_GetModState() & KMOD_SHIFT) {
+                Vec3* average_positions = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
+                if (average_positions) {
+                    Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                    Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                        local_min.x = fminf(local_min.x, b->vertices[v_idx].pos.x);
+                        local_min.y = fminf(local_min.y, b->vertices[v_idx].pos.y);
+                        local_min.z = fminf(local_min.z, b->vertices[v_idx].pos.z);
+                        local_max.x = fmaxf(local_max.x, b->vertices[v_idx].pos.x);
+                        local_max.y = fmaxf(local_max.y, b->vertices[v_idx].pos.y);
+                        local_max.z = fmaxf(local_max.z, b->vertices[v_idx].pos.z);
+                    }
 
                     for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                         Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float dist_sq = 0;
-                        if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
-                        if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
-                        if (i == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
+                        float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                        float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
-                        if (dist_sq < radius_sq) {
-                            float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
-                            float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->deltaTime * 10.0f;
-
-                            if (SDL_GetModState() & KMOD_SHIFT) {
-                                sculpt_amount = -sculpt_amount;
+                        if (dist_sq_from_brush < radius_sq) {
+                            Vec3 neighbor_sum = { 0,0,0 };
+                            int neighbor_count = 0;
+                            for (int n_idx = 0; n_idx < b->numVertices; ++n_idx) {
+                                if (v_idx == n_idx) continue;
+                                float dist_sq_verts = vec3_length_sq(vec3_sub(b->vertices[v_idx].pos, b->vertices[n_idx].pos));
+                                if (dist_sq_verts < (g_EditorState.grid_size * g_EditorState.grid_size * 2.0f)) {
+                                    neighbor_sum = vec3_add(neighbor_sum, b->vertices[n_idx].pos);
+                                    neighbor_count++;
+                                }
                             }
+                            if (neighbor_count > 0) average_positions[v_idx] = vec3_muls(neighbor_sum, 1.0f / neighbor_count);
+                            else average_positions[v_idx] = b->vertices[v_idx].pos;
+                        }
+                        else {
+                            average_positions[v_idx] = b->vertices[v_idx].pos;
+                        }
+                    }
 
-                            b->vertices[v_idx].pos.y += sculpt_amount;
-                            if (g_EditorState.snap_to_grid) {
-                                b->vertices[v_idx].pos.y = SnapValue(b->vertices[v_idx].pos.y, g_EditorState.grid_size);
-                            }
+                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                        float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                        float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
+                        if (dist_sq_from_brush < radius_sq) {
+                            float falloff = 1.0f - sqrtf(dist_sq_from_brush) / g_EditorState.sculpt_brush_radius;
+                            float smooth_strength = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 1.5f;
+
+                            Vec3 new_pos = vec3_add(vec3_muls(b->vertices[v_idx].pos, 1.0f - smooth_strength), vec3_muls(average_positions[v_idx], smooth_strength));
+
+                            new_pos.x = fmaxf(local_min.x, fminf(local_max.x, new_pos.x));
+                            new_pos.y = fmaxf(local_min.y, fminf(local_max.y, new_pos.y));
+                            new_pos.z = fmaxf(local_min.z, fminf(local_max.z, new_pos.z));
+
+                            b->vertices[v_idx].pos = new_pos;
                             needs_update = true;
                         }
+                    }
+                    free(average_positions);
+                }
+            }
+            else {
+                float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                    float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+
+                    if (dist_sq < radius_sq) {
+                        float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
+                        float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
+                        if (SDL_GetModState() & KMOD_CTRL) sculpt_amount = -sculpt_amount;
+
+                        b->vertices[v_idx].pos = vec3_add(b->vertices[v_idx].pos, vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
+                        needs_update = true;
                     }
                 }
             }
@@ -5081,6 +5120,8 @@ static void Editor_RenderVertexToolsWindow(Scene* scene) {
     if (UI_Begin("Vertex Tools", &g_EditorState.show_vertex_tools_window)) {
         if (g_EditorState.is_sculpting_mode_enabled) {
             UI_Text("Sculpting");
+            UI_Text("Hold Shift to Smooth");
+            UI_Text("Hold Ctrl to Lower");
             UI_Separator();
             UI_DragFloat("Radius##Sculpt", &g_EditorState.sculpt_brush_radius, 0.1f, 0.1f, 50.0f);
             UI_DragFloat("Strength##Sculpt", &g_EditorState.sculpt_brush_strength, 0.05f, 0.01f, 5.0f);
