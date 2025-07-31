@@ -88,6 +88,7 @@ extern "C" {
 	LEVEL0_API bool UI_DragFloat(const char* label, float* v, float v_speed, float v_min, float v_max);
 	LEVEL0_API bool UI_DragFloat2(const char* label, float v[2], float v_speed, float v_min, float v_max);
 	LEVEL0_API bool UI_DragInt(const char* label, int* v, float v_speed, int v_min, int v_max);
+	LEVEL0_API bool UI_InputFloat(const char* label, float* v, float step, float step_fast, const char* format);
 	LEVEL0_API bool UI_ColorEdit3(const char* label, float col[3]);
 	LEVEL0_API void UI_Image(void* user_texture_id, float width, float height);
 	LEVEL0_API bool UI_IsWindowFocused();

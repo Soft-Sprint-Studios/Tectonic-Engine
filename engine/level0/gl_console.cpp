@@ -325,6 +325,9 @@ extern "C" {
     bool UI_DragFloat2(const char* label, float v[2], float v_speed, float v_min, float v_max) { return ImGui::DragFloat2(label, v, v_speed, v_min, v_max); }
     bool UI_DragFloat(const char* label, float* v, float v_speed, float v_min, float v_max) { return ImGui::DragFloat(label, v, v_speed, v_min, v_max); }
     bool UI_DragInt(const char* label, int* v, float v_speed, int v_min, int v_max) { return ImGui::DragInt(label, v, v_speed, v_min, v_max); }
+    bool UI_InputFloat(const char* label, float* v, float step, float step_fast, const char* format) {
+        return ImGui::InputFloat(label, v, step, step_fast, format);
+    }
     bool UI_ColorEdit3(const char* label, float col[3]) { return ImGui::ColorEdit3(label, col); }
     void UI_Image(void* user_texture_id, float width, float height) { ImGui::Image((ImTextureID)user_texture_id, ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0)); }
     bool UI_IsWindowFocused() { return ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows); }
