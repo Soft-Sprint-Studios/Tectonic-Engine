@@ -50,7 +50,7 @@ void main()
     }
 
     float targetExposure = u_autoexposure_key / (avgSceneLuminance + 0.0001f);
-    targetExposure = max(0.1f, min(targetExposure, 10.0f));
+    targetExposure = max(0.25f, min(targetExposure, 4.0f));
 
     exposureValue = lerp_gpu(exposureValue, targetExposure, 1.0f - exp(-u_deltaTime * u_autoexposure_speed));
 }
