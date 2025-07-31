@@ -484,6 +484,7 @@ extern "C" {
     void Brush_SetVerticesFromWedge(Brush* b, Vec3 size);
     void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides);
     void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides);
+    void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides);
     void Brush_UpdateMatrix(Brush* b);
     void Brush_CreateRenderData(Brush* b);
     void Brush_FreeData(Brush* b);

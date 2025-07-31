@@ -51,6 +51,7 @@ typedef enum {
     BRUSH_SHAPE_WEDGE,
     BRUSH_SHAPE_SPIKE,
     BRUSH_SHAPE_SPHERE,
+    BRUSH_SHAPE_SEMI_SPHERE,
     BRUSH_SHAPE_ARCH
 } BrushCreationShapeType;
 
@@ -992,6 +993,9 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
         break;
     case BRUSH_SHAPE_SPHERE:
         Brush_SetVerticesFromSphere(b, local_size, g_EditorState.cylinder_creation_steps);
+        break;
+    case BRUSH_SHAPE_SEMI_SPHERE:
+        Brush_SetVerticesFromSemiSphere(b, local_size, g_EditorState.cylinder_creation_steps);
         break;
     }
     Brush_UpdateMatrix(b);
@@ -7200,11 +7204,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Wedge", g_EditorState.current_brush_shape == BRUSH_SHAPE_WEDGE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_WEDGE; }
     UI_SameLine();
     if (UI_RadioButton("Spike", g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SPIKE; }
-
     if (UI_RadioButton("Sphere", g_EditorState.current_brush_shape == BRUSH_SHAPE_SPHERE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SPHERE; }
     UI_SameLine();
+    if (UI_RadioButton("Semi-Sphere", g_EditorState.current_brush_shape == BRUSH_SHAPE_SEMI_SPHERE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SEMI_SPHERE; }
+    UI_SameLine();
     if (UI_RadioButton("Arch", g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_ARCH; }
-    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPHERE) {
+    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPHERE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SEMI_SPHERE) {
         UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 4, 64);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);

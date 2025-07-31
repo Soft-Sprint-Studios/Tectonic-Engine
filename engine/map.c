@@ -459,6 +459,86 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides) {
     }
 }
 
+void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
+    Brush_FreeData(b);
+
+    int stacks = sides / 2;
+    int ring_vertices = (sides + 1);
+    int num_dome_verts = ring_vertices * (stacks + 1);
+
+    b->numVertices = num_dome_verts + 1;
+    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+
+    Vec3 radius = vec3_muls(size, 0.5f);
+
+    for (int i = 0; i <= stacks; i++) {
+        float stack_angle = M_PI / 2 - i * (M_PI / 2) / stacks;
+        float xy = radius.x * cosf(stack_angle);
+        float z = radius.z * sinf(stack_angle);
+
+        for (int j = 0; j <= sides; j++) {
+            float sector_angle = j * 2 * M_PI / sides;
+            float x = xy * cosf(sector_angle);
+            float y = xy * sinf(sector_angle);
+            b->vertices[i * ring_vertices + j].pos = (Vec3){ x, y, z };
+        }
+    }
+
+    int bottom_center_index = b->numVertices - 1;
+    float bottom_z = b->vertices[stacks * ring_vertices].pos.z;
+    b->vertices[bottom_center_index].pos = (Vec3){ 0, 0, bottom_z };
+
+    b->numFaces = (sides * stacks) + sides;
+    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+
+    int face_index = 0;
+
+    for (int i = 0; i < stacks; i++) {
+        for (int j = 0; j < sides; j++) {
+            int p1 = i * ring_vertices + j;
+            int p2 = p1 + 1;
+            int p3 = (i + 1) * ring_vertices + j;
+            int p4 = p3 + 1;
+
+            b->faces[face_index].numVertexIndices = 4;
+            b->faces[face_index].vertexIndices = malloc(4 * sizeof(int));
+            b->faces[face_index].vertexIndices[0] = p1;
+            b->faces[face_index].vertexIndices[1] = p3;
+            b->faces[face_index].vertexIndices[2] = p4;
+            b->faces[face_index].vertexIndices[3] = p2;
+            face_index++;
+        }
+    }
+
+    int base_start = stacks * ring_vertices;
+    for (int j = 0; j < sides; j++) {
+        int p1 = base_start + j;
+        int p2 = base_start + (j + 1) % ring_vertices;
+
+        b->faces[face_index].numVertexIndices = 3;
+        b->faces[face_index].vertexIndices = malloc(3 * sizeof(int));
+        b->faces[face_index].vertexIndices[0] = bottom_center_index;
+        b->faces[face_index].vertexIndices[1] = p1;
+        b->faces[face_index].vertexIndices[2] = p2;
+
+        BrushFace* face_to_flip = &b->faces[face_index];
+        int num_indices = face_to_flip->numVertexIndices;
+        for (int k = 0; k < num_indices / 2; ++k) {
+            int temp = face_to_flip->vertexIndices[k];
+            face_to_flip->vertexIndices[k] = face_to_flip->vertexIndices[num_indices - 1 - k];
+            face_to_flip->vertexIndices[num_indices - 1 - k] = temp;
+        }
+
+        face_index++;
+    }
+
+    for (int i = 0; i < b->numFaces; i++) {
+        b->faces[i].material = TextureManager_GetMaterial(0);
+        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].lightmap_scale = 1.0f;
+    }
+}
+
 static int compare_cap_verts(const void* a, const void* b) {
     Vec3 va = *(const Vec3*)a;
     Vec3 vb = *(const Vec3*)b;
