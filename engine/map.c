@@ -413,6 +413,52 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides) {
     }
 }
 
+void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides) {
+    Brush_FreeData(b);
+    int stacks = sides / 2;
+    b->numVertices = (sides + 1) * (stacks + 1);
+    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+
+    Vec3 radius = vec3_muls(size, 0.5f);
+
+    for (int i = 0; i <= stacks; i++) {
+        float stack_angle = M_PI / 2 - i * M_PI / stacks;
+        float xy = radius.x * cosf(stack_angle);
+        float z = radius.z * sinf(stack_angle);
+
+        for (int j = 0; j <= sides; j++) {
+            float sector_angle = j * 2 * M_PI / sides;
+            float x = xy * cosf(sector_angle);
+            float y = xy * sinf(sector_angle);
+            b->vertices[i * (sides + 1) + j].pos = (Vec3){ x, y, z };
+        }
+    }
+
+    b->numFaces = sides * stacks;
+    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+    int face_index = 0;
+    for (int i = 0; i < stacks; i++) {
+        for (int j = 0; j < sides; j++) {
+            int p1 = i * (sides + 1) + j;
+            int p2 = p1 + 1;
+            int p3 = (i + 1) * (sides + 1) + j;
+            int p4 = p3 + 1;
+
+            b->faces[face_index].numVertexIndices = 4;
+            b->faces[face_index].vertexIndices = malloc(4 * sizeof(int));
+            b->faces[face_index].vertexIndices[0] = p1;
+            b->faces[face_index].vertexIndices[1] = p3;
+            b->faces[face_index].vertexIndices[2] = p4;
+            b->faces[face_index].vertexIndices[3] = p2;
+
+            b->faces[face_index].material = TextureManager_GetMaterial(0);
+            b->faces[face_index].uv_scale = (Vec2){ 1,1 };
+            b->faces[face_index].lightmap_scale = 1.0f;
+            face_index++;
+        }
+    }
+}
+
 static int compare_cap_verts(const void* a, const void* b) {
     Vec3 va = *(const Vec3*)a;
     Vec3 vb = *(const Vec3*)b;
