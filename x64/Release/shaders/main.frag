@@ -573,36 +573,14 @@ void main()
             Lo += (diffuseContrib + specular * radiance * NdotL * attenuation);
         }
     }
-
-    vec3 R_env = reflect(-V, N); 
-    if (useParallaxCorrection) {
-        R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
-    }
-    vec3 F_for_IBL_specular = fresnelSchlick(max(dot(N, V), 0.0), F0); 
-    vec3 ambient = vec3(0.0);
-    if (useEnvironmentMap)
-    {
-        vec3 irradiance = texture(environmentMap, N).rgb;
-        vec3 diffuse_ibl_contribution = vec3(0.0);
-        const float MAX_REFLECTION_LOD = 4.0; 
-        vec3 prefilteredColor = textureLod(environmentMap, R_env,  roughness * MAX_REFLECTION_LOD).rgb;
-        vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-        vec3 specular_ibl_contribution = prefilteredColor * (F_for_IBL_specular * envBRDF.x + envBRDF.y);
-		vec3 totalLightIntensity = totalDirectDiffuse;
-		specular_ibl_contribution *= totalLightIntensity;
-        vec3 kS_ibl = F_for_IBL_specular;
-        vec3 kD_ibl = vec3(1.0) - kS_ibl;
-        kD_ibl *= (1.0 - metallic);
-        ambient = (kD_ibl * diffuse_ibl_contribution + specular_ibl_contribution * 1.0) * ao;
-    }
 	
     out_Velocity = Velocity;
 
     vec3 bakedDiffuse = vec3(0.0);
 	vec3 bakedSpecular = vec3(0.0);
+	vec3 bakedRadiance = vec3(0.0);
     if (isBrush == 1) {
         if (useLightmap) {
-            vec3 bakedRadiance;
             if (r_lightmaps_bicubic) {
                 bakedRadiance = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
             } else {
@@ -636,7 +614,7 @@ void main()
         }
     } else {
         if (v_Color.a > 0.5) {
-            bakedDiffuse = v_Color.rgb * albedo;
+            bakedRadiance = v_Color.rgb;
         } else {
             bakedDiffuse = vec3(0.0);
         }
@@ -645,7 +623,7 @@ void main()
             vec3 L_baked = bakedLightDir;
             vec3 H_baked = normalize(V + L_baked);
             float NdotL_baked = max(dot(N, L_baked), 0.0);
-            bakedDiffuse = v_Color.rgb * albedo * NdotL_baked;
+            bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
             if (NdotL_baked > 0.0) {
                 float NDF = DistributionGGX(N, H_baked, roughness);
                 float G = GeometrySmith(N, V, L_baked, roughness);
@@ -653,12 +631,37 @@ void main()
                 vec3 numerator = NDF * G * F;
                 float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
                 vec3 specular = numerator / denominator;
-                vec3 bakedRadiance = v_Color.rgb;
                 bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
             }
         }
     }
 
+    vec3 ambient = vec3(0.0);
+    if (useEnvironmentMap)
+    {
+        vec3 R_env = reflect(-V, N); 
+        if (useParallaxCorrection) {
+            R_env = ParallaxCorrect(R_env, FragPos_world, probeBoxMin, probeBoxMax, probePosition);
+        }
+        vec3 F_for_IBL_specular = fresnelSchlick(max(dot(N, V), 0.0), F0);
+        vec3 irradiance = texture(environmentMap, N).rgb;
+        vec3 diffuse_ibl_contribution = irradiance * albedo;
+        const float MAX_REFLECTION_LOD = 4.0; 
+        vec3 prefilteredColor = textureLod(environmentMap, R_env,  roughness * MAX_REFLECTION_LOD).rgb;
+        vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        vec3 specular_ibl_contribution = prefilteredColor * (F_for_IBL_specular * envBRDF.x + envBRDF.y);
+        vec3 kS_ibl = F_for_IBL_specular;
+        vec3 kD_ibl = vec3(1.0) - kS_ibl;
+        kD_ibl *= (1.0 - metallic);
+
+        vec3 totalIllumination = totalDirectDiffuse + bakedRadiance;
+        float diffuseLuminance = dot(totalIllumination, vec3(0.2126, 0.7152, 0.0722));
+        float reflectionOcclusion = smoothstep(0.0, 0.2, diffuseLuminance);
+        float specularIBLStrength = 2.0 + (10.0 * diffuseLuminance);
+        
+        ambient = (kD_ibl * diffuse_ibl_contribution * reflectionOcclusion + specular_ibl_contribution * specularIBLStrength * reflectionOcclusion) * ao;
+    }
+	
     vec3 finalColor = Lo + ambient + bakedDiffuse + bakedSpecular;
 	
     if (r_debug_lightmaps) {
