@@ -306,6 +306,9 @@ extern "C" {
         ImGui::End();
     }
     bool UI_Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
+    bool UI_Begin_NoBringToFront(const char* name, bool* p_open) {
+        return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoBringToFrontOnFocus);
+    }
     bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
     void UI_OpenPopup(const char* str_id) { ImGui::OpenPopup(str_id); }
     bool UI_BeginPopupModal(const char* name, bool* p_open, int flags) { return ImGui::BeginPopupModal(name, p_open, (ImGuiWindowFlags)flags); }

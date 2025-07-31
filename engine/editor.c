@@ -7427,7 +7427,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_SetNextWindowPos(p[i].x, p[i].y);
         UI_SetNextWindowSize(half_w, half_h);
         UI_PushStyleVar_WindowPadding(0, 0);
-        UI_Begin(vp_names[i], NULL);
+        UI_Begin_NoBringToFront(vp_names[i], NULL);
         g_EditorState.is_viewport_focused[type] = UI_IsWindowFocused();
         g_EditorState.is_viewport_hovered[type] = UI_IsWindowHovered();
         float vp_w, vp_h;
