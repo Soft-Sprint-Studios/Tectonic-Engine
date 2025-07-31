@@ -6770,7 +6770,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 int px = (int)roundf(b->pos.x);
                 int py = (int)roundf(b->pos.y);
                 int pz = (int)roundf(b->pos.z);
-                sprintf(b->targetname, "Probe_%d_%d_%d", px, py, pz);
+                sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Reflection Probe");
         }
