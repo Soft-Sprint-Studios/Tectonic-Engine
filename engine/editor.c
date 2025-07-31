@@ -257,6 +257,49 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
+static const char* g_model_inputs[] = { "EnablePhysics", "DisablePhysics" };
+static const int g_num_model_inputs = sizeof(g_model_inputs) / sizeof(g_model_inputs[0]);
+
+static const char* g_brush_trigger_inputs[] = { "Enable", "Disable", "Toggle" };
+static const int g_num_brush_trigger_inputs = sizeof(g_brush_trigger_inputs) / sizeof(g_brush_trigger_inputs[0]);
+
+static const char* g_light_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
+static const int g_num_light_inputs = sizeof(g_light_inputs) / sizeof(g_light_inputs[0]);
+
+static const char* g_sound_inputs[] = { "PlaySound", "StopSound", "EnableLoop", "DisableLoop", "ToggleLoop" };
+static const int g_num_sound_inputs = sizeof(g_sound_inputs) / sizeof(g_sound_inputs[0]);
+
+static const char* g_particle_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
+static const int g_num_particle_inputs = sizeof(g_particle_inputs) / sizeof(g_particle_inputs[0]);
+
+static const char* g_video_inputs[] = { "startvideo", "stopvideo", "restartvideo" };
+static const int g_num_video_inputs = sizeof(g_video_inputs) / sizeof(g_video_inputs[0]);
+
+static const char* g_sprite_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
+static const int g_num_sprite_inputs = sizeof(g_sprite_inputs) / sizeof(g_sprite_inputs[0]);
+
+static const char* g_logic_timer_inputs[] = { "StartTimer", "StopTimer", "ToggleTimer" };
+static const int g_num_logic_timer_inputs = sizeof(g_logic_timer_inputs) / sizeof(g_logic_timer_inputs[0]);
+
+static const char* g_math_counter_inputs[] = { "Add", "Subtract", "Multiply", "Divide" };
+static const int g_num_math_counter_inputs = sizeof(g_math_counter_inputs) / sizeof(g_math_counter_inputs[0]);
+
+static const char* g_logic_random_inputs[] = { "Enable", "Disable" };
+static const int g_num_logic_random_inputs = sizeof(g_logic_random_inputs) / sizeof(g_logic_random_inputs[0]);
+
+static bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
+    if (name == NULL || *name == '\0') return false;
+    for (int i = 0; i < scene->numObjects; ++i) if (strcmp(scene->objects[i].targetname, name) == 0) { *out_type = ENTITY_MODEL; *out_index = i; return true; }
+    for (int i = 0; i < scene->numBrushes; ++i) if (strcmp(scene->brushes[i].targetname, name) == 0) { *out_type = ENTITY_BRUSH; *out_index = i; return true; }
+    for (int i = 0; i < scene->numActiveLights; ++i) if (strcmp(scene->lights[i].targetname, name) == 0) { *out_type = ENTITY_LIGHT; *out_index = i; return true; }
+    for (int i = 0; i < scene->numSoundEntities; ++i) if (strcmp(scene->soundEntities[i].targetname, name) == 0) { *out_type = ENTITY_SOUND; *out_index = i; return true; }
+    for (int i = 0; i < scene->numParticleEmitters; ++i) if (strcmp(scene->particleEmitters[i].targetname, name) == 0) { *out_type = ENTITY_PARTICLE_EMITTER; *out_index = i; return true; }
+    for (int i = 0; i < scene->numVideoPlayers; ++i) if (strcmp(scene->videoPlayers[i].targetname, name) == 0) { *out_type = ENTITY_VIDEO_PLAYER; *out_index = i; return true; }
+    for (int i = 0; i < scene->numSprites; ++i) if (strcmp(scene->sprites[i].targetname, name) == 0) { *out_type = ENTITY_SPRITE; *out_index = i; return true; }
+    for (int i = 0; i < scene->numLogicEntities; ++i) if (strcmp(scene->logicEntities[i].targetname, name) == 0) { *out_type = ENTITY_LOGIC; *out_index = i; return true; }
+    return false;
+}
+
 static EditorSelection* Editor_GetPrimarySelection() {
     if (g_EditorState.num_selections == 0) return NULL;
     return &g_EditorState.selections[g_EditorState.num_selections - 1];
@@ -4792,31 +4835,108 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
 }
 static void RenderIOEditor(EntityType type, int index, const char** valid_outputs, int num_valid_outputs) {
     if (num_valid_outputs == 0) return;
-    UI_Separator(); UI_Text("Outputs");
+    UI_Separator();
+    UI_Text("Outputs");
+
+    int total_target_names = 0;
+    char** all_target_names = NULL;
+
+    for (int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->objects[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->brushes[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->lights[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->soundEntities[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->particleEmitters[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->videoPlayers[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->sprites[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->logicEntities[i].targetname; }
+
     for (int i = 0; i < num_valid_outputs; ++i) {
         if (UI_CollapsingHeader(valid_outputs[i], 1)) {
             int conn_to_delete = -1;
             for (int k = 0; k < g_num_io_connections; k++) {
                 IOConnection* conn = &g_io_connections[k];
                 if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, valid_outputs[i]) == 0) {
-                    char header_label[128]; sprintf(header_label, "To '%s' -> '%s'##%d", conn->targetName, conn->inputName, k);
+                    char header_label[128];
+                    sprintf(header_label, "To '%s' -> '%s'##%d", conn->targetName, conn->inputName, k);
                     if (UI_CollapsingHeader(header_label, 1)) {
-                        char target_buf[64], input_buf[64];
-                        strcpy(target_buf, conn->targetName); strcpy(input_buf, conn->inputName);
-                        UI_InputText("Target Name##k", target_buf, 64); strcpy(conn->targetName, target_buf);
-                        UI_InputText("Input Name##k", input_buf, 64); strcpy(conn->inputName, input_buf);
-                        UI_InputText("Parameter##k", conn->parameter, 64);
-                        UI_DragFloat("Delay##k", &conn->delay, 0.1f, 0.0f, 300.0f);
-                        UI_Selectable("Fire Once##k", &conn->fireOnce);
-                        char delete_label[32]; sprintf(delete_label, "[X]##conn%d", k);
-                        if (UI_Button(delete_label)) { conn_to_delete = k; }
+                        int current_target_idx = -1;
+                        for (int j = 0; j < total_target_names; j++) {
+                            if (strcmp(all_target_names[j], conn->targetName) == 0) {
+                                current_target_idx = j;
+                                break;
+                            }
+                        }
+                        if (UI_Combo("Target", &current_target_idx, (const char* const*)all_target_names, total_target_names, -1)) {
+                            if (current_target_idx >= 0) {
+                                strncpy(conn->targetName, all_target_names[current_target_idx], sizeof(conn->targetName) - 1);
+                                conn->inputName[0] = '\0';
+                            }
+                        }
+
+                        EntityType target_type;
+                        int target_index;
+                        if (FindEntityInScene(g_CurrentScene, conn->targetName, &target_type, &target_index)) {
+                            const char** valid_inputs = NULL;
+                            int num_valid_inputs = 0;
+
+                            switch (target_type) {
+                            case ENTITY_MODEL: valid_inputs = g_model_inputs; num_valid_inputs = g_num_model_inputs; break;
+                            case ENTITY_BRUSH: if (g_CurrentScene->brushes[target_index].isTrigger) { valid_inputs = g_brush_trigger_inputs; num_valid_inputs = g_num_brush_trigger_inputs; } break;
+                            case ENTITY_LIGHT: valid_inputs = g_light_inputs; num_valid_inputs = g_num_light_inputs; break;
+                            case ENTITY_SOUND: valid_inputs = g_sound_inputs; num_valid_inputs = g_num_sound_inputs; break;
+                            case ENTITY_PARTICLE_EMITTER: valid_inputs = g_particle_inputs; num_valid_inputs = g_num_particle_inputs; break;
+                            case ENTITY_VIDEO_PLAYER: valid_inputs = g_video_inputs; num_valid_inputs = g_num_video_inputs; break;
+                            case ENTITY_SPRITE: valid_inputs = g_sprite_inputs; num_valid_inputs = g_num_sprite_inputs; break;
+                            case ENTITY_LOGIC: {
+                                LogicEntity* ent = &g_CurrentScene->logicEntities[target_index];
+                                if (strcmp(ent->classname, "logic_timer") == 0) { valid_inputs = g_logic_timer_inputs; num_valid_inputs = g_num_logic_timer_inputs; }
+                                else if (strcmp(ent->classname, "math_counter") == 0) { valid_inputs = g_math_counter_inputs; num_valid_inputs = g_num_math_counter_inputs; }
+                                else if (strcmp(ent->classname, "logic_random") == 0) { valid_inputs = g_logic_random_inputs; num_valid_inputs = g_num_logic_random_inputs; }
+                                break;
+                            }
+                            default: break;
+                            }
+
+                            if (valid_inputs) {
+                                int current_input_idx = -1;
+                                for (int j = 0; j < num_valid_inputs; j++) {
+                                    if (strcmp(valid_inputs[j], conn->inputName) == 0) {
+                                        current_input_idx = j;
+                                        break;
+                                    }
+                                }
+                                if (UI_Combo("Input", &current_input_idx, valid_inputs, num_valid_inputs, -1)) {
+                                    if (current_input_idx >= 0) {
+                                        strncpy(conn->inputName, valid_inputs[current_input_idx], sizeof(conn->inputName) - 1);
+                                    }
+                                }
+                            }
+                            else {
+                                UI_InputText("Input", conn->inputName, sizeof(conn->inputName));
+                            }
+                        }
+                        else {
+                            UI_InputText("Input (Unknown Target)", conn->inputName, sizeof(conn->inputName));
+                        }
+
+                        UI_InputText("Parameter", conn->parameter, 64);
+                        UI_DragFloat("Delay", &conn->delay, 0.1f, 0.0f, 300.0f);
+                        UI_Selectable("Fire Once", &conn->fireOnce);
+                        if (UI_Button("Delete Connection")) {
+                            conn_to_delete = k;
+                        }
                     }
                 }
             }
             if (conn_to_delete != -1) { IO_RemoveConnection(conn_to_delete); }
-            char add_label[64]; sprintf(add_label, "Add Connection##%d", i);
+            char add_label[64];
+            sprintf(add_label, "Add Connection##%d", i);
             if (UI_Button(add_label)) { IO_AddConnection(type, index, valid_outputs[i]); }
         }
+    }
+
+    if (all_target_names) {
+        free(all_target_names);
     }
 }
 static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer) {
