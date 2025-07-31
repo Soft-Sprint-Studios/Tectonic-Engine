@@ -176,7 +176,7 @@ static int ping_thread_func_win32(void* data) {
     else {
         QueryPerformanceCounter(&end);
         double time_ms = (double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
-        Console_Printf_Error("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
+        Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
     freeaddrinfo(result);
@@ -293,7 +293,7 @@ static int ping_thread_func_posix(void* data) {
     else {
         clock_gettime(CLOCK_MONOTONIC, &end);
         double time_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0;
-        Console_Printf_Error("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
+        Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
     freeaddrinfo(result);
