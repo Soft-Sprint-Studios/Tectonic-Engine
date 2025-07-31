@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 #include "main_menu.h"
+#include "video_player.h"
 #include <SDL_ttf.h>
 #include <GL/glew.h>
 #include <stdio.h>
@@ -32,6 +33,8 @@
 #include "gl_misc.h"
 #include "cvar.h"
 
+static VideoPlayer g_background_video;
+static bool g_has_background_video = false;
 bool g_show_options_menu = false;
 
 static TTF_Font* g_menu_font = NULL;
@@ -258,6 +261,15 @@ bool MainMenu_Init(int screen_width, int screen_height) {
         Console_Printf_Error("MainMenu ERROR: Failed to load font: %s", TTF_GetError());
         return false;
     }
+    VideoPlayer_InitSystem();
+    memset(&g_background_video, 0, sizeof(VideoPlayer));
+    strcpy(g_background_video.videoPath, "media/menu.mpg");
+    VideoPlayer_Load(&g_background_video);
+    if (g_background_video.plm) {
+        g_has_background_video = true;
+        g_background_video.loop = true;
+        VideoPlayer_Play(&g_background_video);
+    }
     SDL_Color white = { 255, 255, 255, 255 };
     SDL_Color title_color = { 255, 255, 0, 255 };
     const GameConfig* config = GameConfig_Get();
@@ -293,6 +305,10 @@ bool MainMenu_Init(int screen_width, int screen_height) {
 }
 
 void MainMenu_Shutdown() {
+    if (g_has_background_video) {
+        VideoPlayer_Free(&g_background_video);
+    }
+    VideoPlayer_ShutdownSystem();
     if (g_text_texture_start) glDeleteTextures(1, &g_text_texture_start);
     if (g_text_texture_options) glDeleteTextures(1, &g_text_texture_options);
     if (g_text_texture_quit) glDeleteTextures(1, &g_text_texture_quit);
@@ -390,14 +406,23 @@ MainMenuAction MainMenu_HandleEvent(SDL_Event* event) {
 }
 
 void MainMenu_Update(float deltaTime) {
+    if (g_has_background_video) {
+        VideoPlayer_Update(&g_background_video, deltaTime);
+    }
     g_animation_timer += deltaTime;
     g_button_hover_offset = sinf(g_animation_timer * 4.0f) * 10.0f;
     g_title_current_y_offset = g_title_y_offset_base + sinf(g_animation_timer * 2.0f) * 5.0f;
 }
 
 void MainMenu_Render() {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (g_has_background_video) {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+    else {
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -406,6 +431,10 @@ void MainMenu_Render() {
 
     glUseProgram(g_menu_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_menu_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
+
+    if (g_has_background_video) {
+        render_textured_quad(g_background_video.textureID, 0, 0, g_screen_width, g_screen_height, (SDL_Color) { 255, 255, 255, 255 }, 0.0f);
+    }
 
     if (!g_is_in_game_menu) {
         float title_x = (g_screen_width - g_text_width_game_title) / 2.0f;
