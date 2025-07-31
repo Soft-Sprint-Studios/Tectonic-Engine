@@ -2550,17 +2550,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
             Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
             g_EditorState.is_in_brush_creation_mode = true;
-
-            if (g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH) {
-                g_EditorState.arch_creation_start_point = g_EditorState.brush_creation_start_point_2d_drag;
-                g_EditorState.arch_creation_end_point = current_point;
-                g_EditorState.arch_creation_view = g_EditorState.brush_creation_view;
-                g_EditorState.show_arch_properties_popup = true;
-            }
-            else {
-                Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
-                g_EditorState.is_in_brush_creation_mode = true;
-            }
         }
     }
     if (event->type == SDL_MOUSEMOTION) {
@@ -3187,12 +3176,20 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if (g_EditorState.is_in_brush_creation_mode) {
             if (event->key.keysym.sym == SDLK_RETURN) {
-                Editor_CreateBrushFromPreview(scene, engine, &g_EditorState.preview_brush);
-                g_EditorState.is_in_brush_creation_mode = false;
-                g_EditorState.is_dragging_for_creation = false;
-                g_EditorState.is_dragging_preview_brush_handle = false;
-                g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
-                g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
+                if (g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH) {
+                    g_EditorState.arch_creation_start_point = g_EditorState.preview_brush_world_min;
+                    g_EditorState.arch_creation_end_point = g_EditorState.preview_brush_world_max;
+                    g_EditorState.arch_creation_view = g_EditorState.brush_creation_view;
+                    g_EditorState.show_arch_properties_popup = true;
+                }
+                else {
+                    Editor_CreateBrushFromPreview(scene, engine, &g_EditorState.preview_brush);
+                    g_EditorState.is_in_brush_creation_mode = false;
+                    g_EditorState.is_dragging_for_creation = false;
+                    g_EditorState.is_dragging_preview_brush_handle = false;
+                    g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
+                    g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
+                }
             }
         }
         else if (!g_EditorState.is_manipulating_gizmo && !g_EditorState.is_vertex_manipulating && !g_EditorState.is_manipulating_vertex_gizmo) {
