@@ -5834,11 +5834,35 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                 UI_Separator();
 
                 Material* target_material = NULL;
+                Vec2* target_scale = NULL;
+                Vec2* target_offset = NULL;
+                float* target_rotation = NULL;
+
                 switch (selected_material_layer) {
-                case 0: target_material = primary_face->material; break;
-                case 1: target_material = primary_face->material2; break;
-                case 2: target_material = primary_face->material3; break;
-                case 3: target_material = primary_face->material4; break;
+                case 0:
+                    target_material = primary_face->material;
+                    target_scale = &primary_face->uv_scale;
+                    target_offset = &primary_face->uv_offset;
+                    target_rotation = &primary_face->uv_rotation;
+                    break;
+                case 1:
+                    target_material = primary_face->material2;
+                    target_scale = &primary_face->uv_scale2;
+                    target_offset = &primary_face->uv_offset2;
+                    target_rotation = &primary_face->uv_rotation2;
+                    break;
+                case 2:
+                    target_material = primary_face->material3;
+                    target_scale = &primary_face->uv_scale3;
+                    target_offset = &primary_face->uv_offset3;
+                    target_rotation = &primary_face->uv_rotation3;
+                    break;
+                case 3:
+                    target_material = primary_face->material4;
+                    target_scale = &primary_face->uv_scale4;
+                    target_offset = &primary_face->uv_offset4;
+                    target_rotation = &primary_face->uv_rotation4;
+                    break;
                 }
 
                 UI_Image((void*)(intptr_t)(target_material ? target_material->diffuseMap : missingTextureID), 128, 128);
@@ -5853,60 +5877,92 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                 UI_EndGroup();
                 UI_Separator();
 
-                UI_Text("Texture Scale"); UI_SameLine(); UI_SetNextItemWidth(80);
-                if (UI_InputFloat("X##Scale", &primary_face->uv_scale.x, 0.01f, 0.1f, "%.2f")) {
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        scene->brushes[sel->index].faces[sel->face_index].uv_scale.x = primary_face->uv_scale.x;
-                        Brush_CreateRenderData(&scene->brushes[sel->index]);
+                if (target_scale && target_offset && target_rotation) {
+                    UI_Text("Texture Scale"); UI_SameLine(); UI_SetNextItemWidth(80);
+                    if (UI_InputFloat("X##Scale", &target_scale->x, 0.01f, 0.1f, "%.2f")) {
+                        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                            EditorSelection* sel = &g_EditorState.selections[i];
+                            BrushFace* face = &scene->brushes[sel->index].faces[sel->face_index];
+                            switch (selected_material_layer) {
+                            case 0: face->uv_scale.x = target_scale->x; break;
+                            case 1: face->uv_scale2.x = target_scale->x; break;
+                            case 2: face->uv_scale3.x = target_scale->x; break;
+                            case 3: face->uv_scale4.x = target_scale->x; break;
+                            }
+                            Brush_CreateRenderData(&scene->brushes[sel->index]);
+                        }
                     }
-                }
-                if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
+                    if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
+                    if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
 
-                UI_SameLine(); UI_SetNextItemWidth(80);
-                if (UI_InputFloat("Y##Scale", &primary_face->uv_scale.y, 0.01f, 0.1f, "%.2f")) {
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        scene->brushes[sel->index].faces[sel->face_index].uv_scale.y = primary_face->uv_scale.y;
-                        Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    UI_SameLine(); UI_SetNextItemWidth(80);
+                    if (UI_InputFloat("Y##Scale", &target_scale->y, 0.01f, 0.1f, "%.2f")) {
+                        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                            EditorSelection* sel = &g_EditorState.selections[i];
+                            BrushFace* face = &scene->brushes[sel->index].faces[sel->face_index];
+                            switch (selected_material_layer) {
+                            case 0: face->uv_scale.y = target_scale->y; break;
+                            case 1: face->uv_scale2.y = target_scale->y; break;
+                            case 2: face->uv_scale3.y = target_scale->y; break;
+                            case 3: face->uv_scale4.y = target_scale->y; break;
+                            }
+                            Brush_CreateRenderData(&scene->brushes[sel->index]);
+                        }
                     }
-                }
-                if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
+                    if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
+                    if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
 
-                UI_Text("Texture Shift"); UI_SameLine(); UI_SetNextItemWidth(80);
-                if (UI_InputFloat("X##Shift", &primary_face->uv_offset.x, 0.1f, 1.0f, "%.2f")) {
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        scene->brushes[sel->index].faces[sel->face_index].uv_offset.x = primary_face->uv_offset.x;
-                        Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    UI_Text("Texture Shift"); UI_SameLine(); UI_SetNextItemWidth(80);
+                    if (UI_InputFloat("X##Shift", &target_offset->x, 0.1f, 1.0f, "%.2f")) {
+                        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                            EditorSelection* sel = &g_EditorState.selections[i];
+                            BrushFace* face = &scene->brushes[sel->index].faces[sel->face_index];
+                            switch (selected_material_layer) {
+                            case 0: face->uv_offset.x = target_offset->x; break;
+                            case 1: face->uv_offset2.x = target_offset->x; break;
+                            case 2: face->uv_offset3.x = target_offset->x; break;
+                            case 3: face->uv_offset4.x = target_offset->x; break;
+                            }
+                            Brush_CreateRenderData(&scene->brushes[sel->index]);
+                        }
                     }
-                }
-                if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
+                    if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
+                    if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
 
-                UI_SameLine(); UI_SetNextItemWidth(80);
-                if (UI_InputFloat("Y##Shift", &primary_face->uv_offset.y, 0.1f, 1.0f, "%.2f")) {
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        scene->brushes[sel->index].faces[sel->face_index].uv_offset.y = primary_face->uv_offset.y;
-                        Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    UI_SameLine(); UI_SetNextItemWidth(80);
+                    if (UI_InputFloat("Y##Shift", &target_offset->y, 0.1f, 1.0f, "%.2f")) {
+                        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                            EditorSelection* sel = &g_EditorState.selections[i];
+                            BrushFace* face = &scene->brushes[sel->index].faces[sel->face_index];
+                            switch (selected_material_layer) {
+                            case 0: face->uv_offset.y = target_offset->y; break;
+                            case 1: face->uv_offset2.y = target_offset->y; break;
+                            case 2: face->uv_offset3.y = target_offset->y; break;
+                            case 3: face->uv_offset4.y = target_offset->y; break;
+                            }
+                            Brush_CreateRenderData(&scene->brushes[sel->index]);
+                        }
                     }
-                }
-                if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
+                    if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
+                    if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
 
-                UI_Text("Rotation"); UI_SameLine(); UI_SetNextItemWidth(172);
-                if (UI_DragFloat("##Rotation", &primary_face->uv_rotation, 1.0f, -360.0f, 360.0f)) {
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        scene->brushes[sel->index].faces[sel->face_index].uv_rotation = primary_face->uv_rotation;
-                        Brush_CreateRenderData(&scene->brushes[sel->index]);
+                    UI_Text("Rotation"); UI_SameLine(); UI_SetNextItemWidth(172);
+                    if (UI_DragFloat("##Rotation", target_rotation, 1.0f, -360.0f, 360.0f)) {
+                        for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                            EditorSelection* sel = &g_EditorState.selections[i];
+                            BrushFace* face = &scene->brushes[sel->index].faces[sel->face_index];
+                            switch (selected_material_layer) {
+                            case 0: face->uv_rotation = *target_rotation; break;
+                            case 1: face->uv_rotation2 = *target_rotation; break;
+                            case 2: face->uv_rotation3 = *target_rotation; break;
+                            case 3: face->uv_rotation4 = *target_rotation; break;
+                            }
+                            Brush_CreateRenderData(&scene->brushes[sel->index]);
+                        }
                     }
+                    if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
+                    if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
                 }
-                if (UI_IsItemActivated()) { Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Edit Face UVs"); }
 
                 UI_Separator();
                 UI_Text("Justify");
