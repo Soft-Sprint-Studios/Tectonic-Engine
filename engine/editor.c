@@ -6091,6 +6091,7 @@ static void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine) {
 
     g_EditorState.is_in_brush_creation_mode = true;
 
+    UI_SetNextWindowSize(370, 330);
     UI_Begin("Arch Properties", &g_EditorState.show_arch_properties_popup);
 
     Editor_UpdatePreviewBrushForArch();
