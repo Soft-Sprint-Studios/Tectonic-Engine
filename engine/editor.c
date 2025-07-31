@@ -3376,20 +3376,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.grid_size *= 2.0f;
                 if (g_EditorState.grid_size > 64.0f) g_EditorState.grid_size = 64.0f;
             }
-            if (event->key.keysym.sym == SDLK_9) {
-                g_EditorState.is_sculpting_mode_enabled = !g_EditorState.is_sculpting_mode_enabled;
-                if (g_EditorState.is_sculpting_mode_enabled) {
-                    g_EditorState.is_painting_mode_enabled = false;
-                }
-                g_EditorState.show_vertex_tools_window = g_EditorState.is_sculpting_mode_enabled;
-            }
-            if (event->key.keysym.sym == SDLK_0) {
-                g_EditorState.is_painting_mode_enabled = !g_EditorState.is_painting_mode_enabled;
-                if (g_EditorState.is_painting_mode_enabled) {
-                    g_EditorState.is_sculpting_mode_enabled = false;
-                }
-                g_EditorState.show_vertex_tools_window = g_EditorState.is_painting_mode_enabled;
-            }
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
                     EntityState* deleted_states = calloc(g_EditorState.num_selections, sizeof(EntityState));
@@ -6877,7 +6863,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         UI_Separator();
         UI_Text("Vertex Tools");
-        if (UI_Checkbox("Sculpt Mode (9)", &g_EditorState.is_sculpting_mode_enabled)) {
+        if (UI_Checkbox("Sculpt Mode", &g_EditorState.is_sculpting_mode_enabled)) {
             if (g_EditorState.is_sculpting_mode_enabled) {
                 g_EditorState.is_painting_mode_enabled = false;
                 g_EditorState.show_vertex_tools_window = true;
@@ -6887,7 +6873,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
         UI_SameLine();
-        if (UI_Checkbox("Paint Mode (0)", &g_EditorState.is_painting_mode_enabled)) {
+        if (UI_Checkbox("Paint Mode", &g_EditorState.is_painting_mode_enabled)) {
             if (g_EditorState.is_painting_mode_enabled) {
                 g_EditorState.is_sculpting_mode_enabled = false;
                 g_EditorState.show_vertex_tools_window = true;
