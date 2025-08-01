@@ -323,6 +323,9 @@ target_include_directories(game PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include"
+	    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"
+    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
 )
 target_compile_definitions(game PRIVATE
     $<$<BOOL:${WIN32}>:GAME_DLL_EXPORTS>
@@ -443,6 +446,15 @@ target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+    )
+   target_link_directories(game PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/${ARCH_DIR}"
     )
 
     target_link_directories(engine PRIVATE
