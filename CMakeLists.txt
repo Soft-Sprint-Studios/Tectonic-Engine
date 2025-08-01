@@ -440,7 +440,7 @@ if(WIN32)
 
     target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
     target_link_libraries(materials PRIVATE level0 math_lib SDL2 SDL2_image opengl32 glew32)
-target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32  OpenAL32 sound materials engine)
+
 
     target_link_directories(materials PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
@@ -481,6 +481,8 @@ target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl
         OpenAL32 discord-rpc ws2_32
         sentry
     )
+
+target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32  OpenAL32 sound materials engine)
     if(ARCH_DIR STREQUAL "x64")
         target_link_libraries(engine PRIVATE embree4 tbb12 OpenImageDenoise)
     else()
