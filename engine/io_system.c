@@ -24,6 +24,7 @@
 #include "io_system.h"
 #include "sound_system.h"
 #include "video_player.h"
+#include "cvar.h"
 #include "gl_console.h"
 #include <string.h>
 #include <stdio.h>
@@ -174,30 +175,16 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));
                 int value = (parameter && strlen(parameter) > 0) ? atoi(parameter) : 1;
 
-                if (strcmp(inputName, "Add") == 0) {
-                    ent->runtime_float_a += value;
-                }
-                else if (strcmp(inputName, "Subtract") == 0) {
-                    ent->runtime_float_a -= value;
-                }
-                else if (strcmp(inputName, "Multiply") == 0) {
-                    ent->runtime_float_a *= value;
-                }
+                if (strcmp(inputName, "Add") == 0) ent->runtime_float_a += value;
+                else if (strcmp(inputName, "Subtract") == 0) ent->runtime_float_a -= value;
+                else if (strcmp(inputName, "Multiply") == 0) ent->runtime_float_a *= value;
                 else if (strcmp(inputName, "Divide") == 0) {
-                    if (value != 0) {
-                        ent->runtime_float_a /= value;
-                    }
-                    else {
-                        Console_Printf_Error("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
-                    }
+                    if (value != 0) ent->runtime_float_a /= value;
+                    else Console_Printf_Error("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
                 }
 
-                if (max != 0 && ent->runtime_float_a >= max) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, NULL);
-                }
-                if (min != 0 && ent->runtime_float_a <= min) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0, NULL);
-                }
+                if (max != 0 && ent->runtime_float_a >= max) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, NULL);
+                if (min != 0 && ent->runtime_float_a <= min) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0, NULL);
             }
             else if (strcmp(ent->classname, "logic_random") == 0) {
                 if (strcmp(inputName, "Enable") == 0) {
@@ -208,8 +195,60 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     }
                     ent->runtime_active = true;
                 }
-                else if (strcmp(inputName, "Disable") == 0) {
-                    ent->runtime_active = false;
+                else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
+            }
+            else if (strcmp(ent->classname, "logic_relay") == 0) {
+                if (strcmp(inputName, "Trigger") == 0 && ent->runtime_active) IO_FireOutput(ENTITY_LOGIC, i, "OnTrigger", engine->lastFrame, NULL);
+                else if (strcmp(inputName, "Enable") == 0) ent->runtime_active = true;
+                else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
+                else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
+            }
+            else if (strcmp(ent->classname, "point_servercommand") == 0) {
+                if (strcmp(inputName, "Command") == 0) {
+                    if (parameter && strlen(parameter) > 0) {
+                        char cmd_copy[MAX_COMMAND_LENGTH];
+                        strncpy(cmd_copy, parameter, MAX_COMMAND_LENGTH - 1);
+                        cmd_copy[MAX_COMMAND_LENGTH - 1] = '\0';
+
+                        char* argv[16];
+                        int argc = 0;
+                        char* p = strtok(cmd_copy, " ");
+                        while (p != NULL && argc < 16) {
+                            argv[argc++] = p;
+                            p = strtok(NULL, " ");
+                        }
+                        if (argc > 0) {
+                            Commands_Execute(argc, argv);
+                        }
+                    }
+                }
+            }
+            else if (strcmp(ent->classname, "logic_compare") == 0) {
+                if (strcmp(inputName, "SetValue") == 0) {
+                    ent->runtime_float_a = atof(parameter);
+                }
+                else if (strcmp(inputName, "SetCompareValue") == 0) {
+                    for (int prop_idx = 0; prop_idx < ent->numProperties; ++prop_idx) {
+                        if (strcmp(ent->properties[prop_idx].key, "CompareValue") == 0) {
+                            strncpy(ent->properties[prop_idx].value, parameter, sizeof(ent->properties[prop_idx].value) - 1);
+                            break;
+                        }
+                    }
+                }
+                else if (strcmp(inputName, "Compare") == 0 || strcmp(inputName, "SetValueCompare") == 0) {
+                    if (strcmp(inputName, "SetValueCompare") == 0) {
+                        ent->runtime_float_a = atof(parameter);
+                    }
+
+                    float val_a = ent->runtime_float_a;
+                    float val_b = atof(LogicEntity_GetProperty(ent, "CompareValue", "0"));
+                    char param_out[32];
+                    sprintf(param_out, "%f", val_a);
+
+                    if (val_a < val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnLessThan", engine->lastFrame, param_out);
+                    if (val_a == val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnEqualTo", engine->lastFrame, param_out);
+                    if (val_a != val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnNotEqualTo", engine->lastFrame, param_out);
+                    if (val_a > val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnGreaterThan", engine->lastFrame, param_out);
                 }
             }
         }

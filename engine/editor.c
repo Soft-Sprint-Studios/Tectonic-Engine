@@ -256,8 +256,21 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
+
+static const char* g_logic_relay_inputs[] = { "Trigger", "Enable", "Disable", "Toggle" };
+static const int g_num_logic_relay_inputs = sizeof(g_logic_relay_inputs) / sizeof(g_logic_relay_inputs[0]);
+static const char* g_logic_relay_outputs[] = { "OnTrigger" };
+static const int g_num_logic_relay_outputs = sizeof(g_logic_relay_outputs) / sizeof(g_logic_relay_outputs[0]);
+
+static const char* g_point_servercommand_inputs[] = { "Command" };
+static const int g_num_point_servercommand_inputs = sizeof(g_point_servercommand_inputs) / sizeof(g_point_servercommand_inputs[0]);
+
+static const char* g_logic_compare_inputs[] = { "SetValue", "SetValueCompare", "SetCompareValue", "Compare" };
+static const int g_num_logic_compare_inputs = sizeof(g_logic_compare_inputs) / sizeof(g_logic_compare_inputs[0]);
+static const char* g_logic_compare_outputs[] = { "OnLessThan", "OnEqualTo", "OnNotEqualTo", "OnGreaterThan" };
+static const int g_num_logic_compare_outputs = sizeof(g_logic_compare_outputs) / sizeof(g_logic_compare_outputs[0]);
 
 static const char* g_model_inputs[] = { "EnablePhysics", "DisablePhysics" };
 static const int g_num_model_inputs = sizeof(g_model_inputs) / sizeof(g_model_inputs[0]);
@@ -1025,6 +1038,13 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
         strcpy(ent->properties[0].value, "1.0");
         strcpy(ent->properties[1].key, "max_time");
         strcpy(ent->properties[1].value, "5.0");
+    }
+    else if (strcmp(ent->classname, "logic_compare") == 0) {
+        ent->numProperties = 2;
+        strcpy(ent->properties[0].key, "InitialValue");
+        strcpy(ent->properties[0].value, "0");
+        strcpy(ent->properties[1].key, "CompareValue");
+        strcpy(ent->properties[1].value, "0");
     }
 }
 
@@ -4850,8 +4870,9 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
             for (int k = 0; k < g_num_io_connections; k++) {
                 IOConnection* conn = &g_io_connections[k];
                 if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, valid_outputs[i]) == 0) {
+                    UI_PushID(k);
                     char header_label[128];
-                    sprintf(header_label, "To '%s' -> '%s'##%d", conn->targetName, conn->inputName, k);
+                    sprintf(header_label, "To '%s' -> '%s'", conn->targetName, conn->inputName);
                     if (UI_CollapsingHeader(header_label, 1)) {
                         int current_target_idx = -1;
                         for (int j = 0; j < total_target_names; j++) {
@@ -4886,12 +4907,15 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                 if (strcmp(ent->classname, "logic_timer") == 0) { valid_inputs = g_logic_timer_inputs; num_valid_inputs = g_num_logic_timer_inputs; }
                                 else if (strcmp(ent->classname, "math_counter") == 0) { valid_inputs = g_math_counter_inputs; num_valid_inputs = g_num_math_counter_inputs; }
                                 else if (strcmp(ent->classname, "logic_random") == 0) { valid_inputs = g_logic_random_inputs; num_valid_inputs = g_num_logic_random_inputs; }
+                                else if (strcmp(ent->classname, "logic_relay") == 0) { valid_inputs = g_logic_relay_inputs; num_valid_inputs = g_num_logic_relay_inputs; }
+                                else if (strcmp(ent->classname, "point_servercommand") == 0) { valid_inputs = g_point_servercommand_inputs; num_valid_inputs = g_num_point_servercommand_inputs; }
+                                else if (strcmp(ent->classname, "logic_compare") == 0) { valid_inputs = g_logic_compare_inputs; num_valid_inputs = g_num_logic_compare_inputs; }
                                 break;
                             }
                             default: break;
                             }
 
-                            if (valid_inputs) {
+                            if (valid_inputs && num_valid_inputs > 0) {
                                 int current_input_idx = -1;
                                 for (int j = 0; j < num_valid_inputs; j++) {
                                     if (strcmp(valid_inputs[j], conn->inputName) == 0) {
@@ -4920,11 +4944,12 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                             conn_to_delete = k;
                         }
                     }
+                    UI_PopID();
                 }
             }
             if (conn_to_delete != -1) { IO_RemoveConnection(conn_to_delete); }
             char add_label[64];
-            sprintf(add_label, "Add Connection##%d", i);
+            sprintf(add_label, "Add Connection##%s", valid_outputs[i]);
             if (UI_Button(add_label)) { IO_AddConnection(type, index, valid_outputs[i]); }
         }
     }
@@ -7186,6 +7211,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         else if (strcmp(ent->classname, "logic_random") == 0) {
             const char* random_outputs[] = { "OnRandom" };
             RenderIOEditor(ENTITY_LOGIC, primary->index, random_outputs, 1);
+        }
+        else if (strcmp(ent->classname, "logic_relay") == 0) {
+            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_relay_outputs, g_num_logic_relay_outputs);
+        }
+        else if (strcmp(ent->classname, "point_servercommand") == 0) {
+        }
+        else if (strcmp(ent->classname, "logic_compare") == 0) {
+            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_compare_outputs, g_num_logic_compare_outputs);
         }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();

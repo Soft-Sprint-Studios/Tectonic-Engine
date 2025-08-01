@@ -1686,7 +1686,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
             int type_int = 0; int preset_int = 0; int is_static_int = 0;
-            int items_scanned = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
+            int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
             light->preset = preset_int; light->type = (LightType)type_int; light->is_on = (light->base_intensity > 0.0f); light->is_static = (bool)is_static_int; light->intensity = light->base_intensity;
             long current_pos = ftell(file); char next_line[256];
             if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, light->groupName); light->isGrouped = (bool)grouped_int; }
@@ -1848,6 +1848,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     engine->camera.position = scene->playerStart.position;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;
+
     return true;
 }
 
@@ -1949,12 +1950,11 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
-        fprintf(file, "light %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d \"%s\"\n",
-            (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z,
+        fprintf(file, "light \"%s\" %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d \"%s\"\n",
+            light->targetname, (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z,
             light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius,
             light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
             light->preset, (int)light->is_static, cookiePathStr);
-        if (strlen(light->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", light->targetname);
         if (light->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", light->groupName);
     }
     fprintf(file, "\n");
