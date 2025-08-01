@@ -218,7 +218,7 @@ static int FindReflectionProbeForPoint(Vec3 p) {
 void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum) {
     bool envMapEnabled = false;
 
-    if (!is_baking_pass && shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader && Cvar_GetInt("r_cubemaps")) {
         int reflection_brush_idx = FindReflectionProbeForPoint(obj->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -313,7 +313,7 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
     bool envMapEnabled = false;
-    if (!is_baking_pass && shader == g_renderer.mainShader) {
+    if (!is_baking_pass && shader == g_renderer.mainShader && Cvar_GetInt("r_cubemaps")) {
         int reflection_brush_idx = FindReflectionProbeForPoint(b->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[reflection_brush_idx];
@@ -836,6 +836,7 @@ void init_cvars() {
     Cvar_Register("r_shadow_distance_max", "100.0", "Max shadow casting distance", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Shadow map resolution", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_cubemaps", "1", "Enable environment mapping reflections (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable color correction (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vignette", "1", "Enable vignette (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_chromaticabberation", "1", "Enable chromatic aberration (0=off, 1=on)", CVAR_NONE);
@@ -1988,8 +1989,12 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useFlowMap"), 0);
         }
 
-        int probe_idx = FindReflectionProbeForPoint(b->pos);
-        GLuint reflectionTex;
+        int probe_idx = -1;
+        if (Cvar_GetInt("r_cubemaps")) {
+            probe_idx = FindReflectionProbeForPoint(b->pos);
+        }
+
+        GLuint reflectionTex = 0;
         if (probe_idx != -1) {
             Brush* reflection_brush = &g_scene.brushes[probe_idx];
             reflectionTex = reflection_brush->cubemapTexture;
