@@ -309,6 +309,21 @@ add_library(game SHARED
 game_dll/io_system.c
 game_dll/io_system.h
 )
+target_include_directories(game PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/physics"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/models"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include"
+)
 target_compile_definitions(game PRIVATE
     $<$<BOOL:${WIN32}>:GAME_DLL_EXPORTS>
 )
@@ -422,6 +437,7 @@ if(WIN32)
 
     target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
     target_link_libraries(materials PRIVATE level0 math_lib SDL2 SDL2_image opengl32 glew32)
+target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32)
 
     target_link_directories(materials PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
