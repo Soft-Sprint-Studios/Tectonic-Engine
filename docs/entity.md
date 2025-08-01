@@ -153,3 +153,49 @@ Logic entities are the foundation of the engine's scripting system. They are inv
 | Output Name | Parameter | Description |
 | :--- | :--- | :--- |
 | `OnRandom` | None | Fires after a random amount of time has passed (between `min_time` and `max_time`). |
+
+### `logic_relay`
+*   **Description:** A simple pass-through entity that can be enabled or disabled. When triggered, it fires its outputs. This is useful for grouping multiple outputs, or for creating a "kill switch" for events.
+*   **Properties:** None. Its state (`enabled`/`disabled`) is controlled via inputs.
+*   **Inputs:**
+| Input Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `Trigger` | None | Fires the `OnTrigger` output if the relay is enabled. |
+| `Enable` | None | Enables the relay, allowing it to fire outputs when `Trigger`ed. |
+| `Disable` | None | Disables the relay, preventing it from firing outputs. |
+| `Toggle` | None | Toggles the enabled/disabled state of the relay. |
+*   **Outputs:**
+| Output Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `OnTrigger` | None | Fires when the relay receives the `Trigger` input and is enabled. |
+
+### `point_servercommand`
+*   **Description:** Executes a server console command or cvar when it receives the `Command` input. This is a powerful debugging and scripting tool.
+*   **Properties:** None. The command to execute is provided by the *parameter* of the incoming input.
+*   **Inputs:**
+| Input Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `Command` | `string` | Executes the string provided in the parameter as a console command. E.g., `noclip 1`, `map mymap`. |
+*   **Outputs:** None.
+
+### `logic_compare`
+*   **Description:** Compares two internal floating-point values and fires an output based on the result of the comparison (`<`, `=`, `!=`, `>`).
+*   **Properties:**
+| Key | Default | Description |
+| :--- | :--- | :--- |
+| `InitialValue` | `0` | The starting value for the internal input value. |
+| `CompareValue` | `0` | The value to compare against. |
+*   **Inputs:**
+| Input Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `SetValue` | `float` | Sets the internal input value to the parameter and does not perform a comparison. |
+| `SetValueCompare` | `float` | Sets the internal input value to the parameter and immediately performs a comparison. |
+| `SetCompareValue` | `float` | Sets the internal compare value (property `CompareValue`) to the parameter. |
+| `Compare` | None | Forces a comparison of the current input value with the current compare value. |
+*   **Outputs:**
+| Output Name | Parameter | Description |
+| :--- | :--- | :--- |
+| `OnLessThan` | `float` | Fired when the input value is less than the compare value. Sends the input value as data. |
+| `OnEqualTo` | `float` | Fired when the input value is equal to the compare value. Sends the input value as data. |
+| `OnNotEqualTo` | `float` | Fired when the input value is not equal to the compare value. Sends the input value as data. |
+| `OnGreaterThan` | `float` | Fired when the input value is greater than the compare value. Sends the input value as data. |
