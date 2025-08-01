@@ -437,7 +437,7 @@ if(WIN32)
 
     target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
     target_link_libraries(materials PRIVATE level0 math_lib SDL2 SDL2_image opengl32 glew32)
-target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32)
+target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32  OpenAL32 sound materials)
 
     target_link_directories(materials PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
