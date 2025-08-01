@@ -304,6 +304,18 @@ else()
     )
 endif()
 
+# game dll
+add_library(game SHARED
+game_dll/io_system.c
+game_dll/io_system.h
+)
+target_compile_definitions(game PRIVATE
+    $<$<BOOL:${WIN32}>:GAME_DLL_EXPORTS>
+)
+target_compile_options(game PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
 # sound library
 add_library(sound SHARED
     engine/sound/sound_system.c
@@ -483,6 +495,7 @@ else()
             level0
             level1
             physics
+	    game_dll
             math_lib
             sound
             materials
