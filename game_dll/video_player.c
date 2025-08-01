@@ -1,0 +1,203 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025 Soft Sprint Studios
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#include "video_player.h"
+#include "gl_console.h"
+#include <stdio.h>
+#include <AL/al.h>
+#include "gl_misc.h"
+
+#include "pl_mpeg/pl_mpeg.h"
+
+#define NUM_AUDIO_BUFFERS 4
+
+static GLuint video_shader = 0;
+static GLuint video_vao = 0;
+static GLuint video_vbo = 0;
+
+void VideoPlayer_InitSystem(void) {
+    video_shader = createShaderProgram("shaders/video.vert", "shaders/video.frag");
+
+    float vertices[] = {
+        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+
+        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f, 1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &video_vao);
+    glGenBuffers(1, &video_vbo);
+    glBindVertexArray(video_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, video_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+}
+
+void VideoPlayer_ShutdownSystem(void) {
+    glDeleteProgram(video_shader);
+    glDeleteVertexArrays(1, &video_vao);
+    glDeleteBuffers(1, &video_vbo);
+}
+
+void VideoPlayer_Load(VideoPlayer* vp) {
+    if (vp->plm) {
+        VideoPlayer_Free(vp);
+    }
+    vp->plm = plm_create_with_filename(vp->videoPath);
+    if (!vp->plm) {
+        Console_Printf_Error("Error loading video: %s\n", vp->videoPath);
+        return;
+    }
+
+    plm_set_audio_enabled(vp->plm, false);
+    plm_set_loop(vp->plm, vp->loop);
+
+    int width = plm_get_width(vp->plm);
+    int height = plm_get_height(vp->plm);
+    vp->rgb_buffer = (uint8_t*)malloc(width * height * 3);
+
+    vp->time = 0;
+    vp->nextFrameTime = 0;
+
+    glGenTextures(1, &vp->textureID);
+    glBindTexture(GL_TEXTURE_2D, vp->textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, plm_get_width(vp->plm), plm_get_height(vp->plm), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    alGenSources(1, &vp->audioSource);
+    alGenBuffers(NUM_AUDIO_BUFFERS, vp->audioBuffers);
+    alSource3f(vp->audioSource, AL_POSITION, vp->pos.x, vp->pos.y, vp->pos.z);
+    alSourcef(vp->audioSource, AL_GAIN, 1.0f);
+    alSourcef(vp->audioSource, AL_PITCH, 1.0f);
+    alSourcei(vp->audioSource, AL_LOOPING, vp->loop ? AL_TRUE : AL_FALSE);
+}
+
+void VideoPlayer_Free(VideoPlayer* vp) {
+    if (vp->plm) {
+        plm_destroy(vp->plm);
+        vp->plm = NULL;
+    }
+    if (vp->rgb_buffer) {
+        free(vp->rgb_buffer);
+        vp->rgb_buffer = NULL;
+    }
+    if (vp->textureID) {
+        glDeleteTextures(1, &vp->textureID);
+        vp->textureID = 0;
+    }
+    if (vp->audioSource) {
+        alSourceStop(vp->audioSource);
+        alDeleteSources(1, &vp->audioSource);
+        alDeleteBuffers(NUM_AUDIO_BUFFERS, vp->audioBuffers);
+        vp->audioSource = 0;
+    }
+}
+
+void VideoPlayer_Play(VideoPlayer* vp) {
+    if (!vp->plm || vp->state == VP_PLAYING) return;
+
+    vp->state = VP_PLAYING;
+    vp->time = 0.0;
+    vp->nextFrameTime = 0.0;
+
+    plm_seek(vp->plm, 0.0, true);
+}
+
+void VideoPlayer_Stop(VideoPlayer* vp) {
+    if (!vp->plm || vp->state == VP_STOPPED) return;
+    vp->state = VP_STOPPED;
+    alSourceStop(vp->audioSource);
+    plm_seek(vp->plm, 0, true);
+}
+
+void VideoPlayer_Restart(VideoPlayer* vp) {
+    if (!vp->plm) return;
+    VideoPlayer_Stop(vp);
+    VideoPlayer_Play(vp);
+}
+
+void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
+    if (!vp->plm || vp->state != VP_PLAYING) return;
+
+    vp->time += deltaTime;
+
+    if (vp->time >= vp->nextFrameTime) {
+        plm_frame_t* vframe = plm_decode_video(vp->plm);
+        if (vframe) {
+            plm_frame_to_rgb(vframe, vp->rgb_buffer, vframe->width * 3);
+
+            glBindTexture(GL_TEXTURE_2D, vp->textureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width, vframe->height,
+                GL_RGB, GL_UNSIGNED_BYTE, vp->rgb_buffer);
+            glBindTexture(GL_TEXTURE_2D, 0);
+
+            double frameDuration = 1.0 / plm_get_framerate(vp->plm);
+            vp->nextFrameTime += frameDuration;
+        }
+        else {
+            if (vp->loop) {
+                plm_seek(vp->plm, 0.0, true);
+                vp->time = 0.0;
+                vp->nextFrameTime = 0.0;
+            }
+            else {
+                VideoPlayer_Stop(vp);
+            }
+        }
+    }
+}
+
+void VideoPlayer_UpdateAll(Scene* scene, float deltaTime) {
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        VideoPlayer_Update(&scene->videoPlayers[i], deltaTime);
+    }
+}
+
+void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
+    if (!vp || vp->state == VP_STOPPED || vp->textureID == 0) return;
+
+    glUseProgram(video_shader);
+
+    vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 1.0f });
+
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "projection"), 1, GL_FALSE, projection->m);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, vp->textureID);
+    glUniform1i(glGetUniformLocation(video_shader, "videoTexture"), 0);
+
+    glBindVertexArray(video_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}

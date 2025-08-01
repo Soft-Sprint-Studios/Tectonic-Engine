@@ -322,13 +322,14 @@ target_include_directories(game PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include"
 	    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"
     "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
+ "${CMAKE_CURRENT_SOURCE_DIR}/pl_mpeg"
 )
 target_compile_definitions(game PRIVATE
     $<$<BOOL:${WIN32}>:GAME_DLL_EXPORTS>
+  PL_MPEG_IMPLEMENTATION
 )
 target_compile_options(game PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
