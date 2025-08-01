@@ -304,37 +304,6 @@ else()
     )
 endif()
 
-# game dll
-add_library(game SHARED
-game_dll/io_system.c
-game_dll/io_system.h
-)
-target_include_directories(game PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/physics"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/sound"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/models"
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
-	    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"
-    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
- "${CMAKE_CURRENT_SOURCE_DIR}/pl_mpeg"
-)
-target_compile_definitions(game PRIVATE
-    $<$<BOOL:${WIN32}>:GAME_DLL_EXPORTS>
-  PL_MPEG_IMPLEMENTATION
-)
-target_compile_options(game PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-)
 # sound library
 add_library(sound SHARED
     engine/sound/sound_system.c
@@ -448,16 +417,6 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
     )
-   target_link_directories(game PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/${ARCH_DIR}"
-    )
-
     target_link_directories(engine PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
@@ -482,8 +441,6 @@ if(WIN32)
         OpenAL32 discord-rpc ws2_32
         sentry
     )
-
-target_link_libraries(game PRIVATE level0 level1 math_lib SDL2 SDL2_image opengl32 glew32  OpenAL32 sound materials engine)
     if(ARCH_DIR STREQUAL "x64")
         target_link_libraries(engine PRIVATE embree4 tbb12 OpenImageDenoise)
     else()
@@ -526,7 +483,6 @@ else()
             level0
             level1
             physics
-	    game_dll
             math_lib
             sound
             materials
