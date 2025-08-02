@@ -2,7 +2,7 @@
 out float FragColor;
 
 in vec2 TexCoords;
-uniform sampler2D gNormal;
+uniform sampler2D gGeometryNormal;
 uniform sampler2D gPosition;
 uniform vec2 screenSize;
 
@@ -13,7 +13,7 @@ const int radius = 3;
 
 void main() {
     vec2 texelSize = 1.0 / screenSize;
-    vec3 centerNormal = normalize(texture(gNormal, TexCoords).rgb);
+    vec3 centerNormal = normalize(texture(gGeometryNormal, TexCoords).rgb);
     float fragDepth = abs(texture(gPosition, TexCoords).z);
 
     float occlusion = 0.0;
@@ -24,7 +24,7 @@ void main() {
             if (x == 0 && y == 0) continue;
 
             vec2 offset = TexCoords + vec2(x, y) * texelSize;
-            vec3 sampleNormal = normalize(texture(gNormal, offset).rgb);
+            vec3 sampleNormal = normalize(texture(gGeometryNormal, offset).rgb);
             
             float diff = length(centerNormal - sampleNormal);
             if (diff > threshold) {

@@ -7,6 +7,7 @@ layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
 layout (location = 5) out vec2 out_Velocity;
+layout (location = 6) out vec3 out_GeometryNormal;
 
 in vec3 FragPos_view;
 in vec3 Normal_view;
@@ -701,7 +702,8 @@ void main()
         out_LitColor = vec4(finalColor, alpha);
     }
     out_Position = FragPos_view; 
-    out_Normal = normalize(TBN * vec3(0.5, 0.5, 1.0));
+    out_Normal = normalize(mat3(view) * N);
+	out_GeometryNormal = normalize(TBN * vec3(0.5, 0.5, 1.0));
     out_AlbedoSpec = vec4(albedo, 1.0);
     out_PBRParams = vec4(metallic, roughness, ao, alpha);
 }

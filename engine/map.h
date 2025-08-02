@@ -180,6 +180,7 @@ extern "C" {
         GLuint skyboxVAO, skyboxVBO;
         GLuint gBufferFBO;
         GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams, gVelocity;
+        GLuint gGeometryNormal;
         GLuint spriteShader;
         GLuint spriteVAO, spriteVBO;
         GLuint cloudTexture;
@@ -209,6 +210,7 @@ extern "C" {
         GLuint ssaoShader, ssaoBlurShader;
         GLuint postProcessFBO;
         GLuint postProcessTexture;
+        GLuint ssrShader, ssrFBO, ssrTexture;
         GLuint histogramShader;
         GLuint exposureShader;
         GLuint histogramSSBO;

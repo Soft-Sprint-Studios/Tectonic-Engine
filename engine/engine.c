@@ -827,6 +827,7 @@ void init_cvars() {
     Cvar_Register("r_autoexposure_speed", "0.5", "Auto-exposure adaptation speed", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.18", "Auto-exposure middle-grey value", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable SSAO (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_ssr", "0", "Enable Screen Space Reflections (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable bloom (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
@@ -1014,6 +1015,7 @@ void init_renderer() {
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
+    g_renderer.ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
@@ -1052,7 +1054,14 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, g_renderer.gVelocity, 0);
-    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 }; glDrawBuffers(6, attachments);
+    glGenTextures(1, &g_renderer.gGeometryNormal);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gGeometryNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, g_renderer.gGeometryNormal, 0);
+    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
+    glDrawBuffers(7, attachments);
     GLuint rboDepth; glGenRenderbuffers(1, &rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
@@ -1100,6 +1109,15 @@ void init_renderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.postProcessTexture, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Post Process Framebuffer not complete!\n");
+    glGenFramebuffers(1, &g_renderer.ssrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssrFBO);
+    glGenTextures(1, &g_renderer.ssrTexture);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.ssrTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssrTexture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("SSR Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.volumetricFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
@@ -1274,7 +1292,7 @@ void init_renderer() {
         Console_Printf("SSAO Blur Framebuffer not complete!\n");
     glUseProgram(g_renderer.ssaoShader);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gNormal"), 1);
+    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gGeometryNormal"), 1);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "texNoise"), 2);
     glUseProgram(g_renderer.ssaoBlurShader);
     glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
@@ -2215,8 +2233,8 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 }; 
-    glDrawBuffers(6, attachments);
+    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
+    glDrawBuffers(7, attachments);
 
     if (Cvar_GetInt("r_faceculling")) {
         glEnable(GL_CULL_FACE);
@@ -2593,7 +2611,7 @@ void render_ssao_pass(Mat4* projection) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gGeometryNormal);
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2606,6 +2624,48 @@ void render_ssao_pass(Mat4* projection) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* projection) {
+    if (!Cvar_GetInt("r_ssr")) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destFBO);
+        glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
+    glUseProgram(g_renderer.ssrShader);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssrShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssrShader, "view"), 1, GL_FALSE, view->m);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sourceTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "colorBuffer"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
+    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "gNormal"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gPBRParams);
+    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "ssrValuesMap"), 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
+    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "gPosition"), 3);
+
+    glBindVertexArray(g_renderer.quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
@@ -2763,6 +2823,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.ssaoShader);
     glDeleteProgram(g_renderer.ssaoBlurShader);
     glDeleteProgram(g_renderer.parallaxInteriorShader);
+    glDeleteProgram(g_renderer.ssrShader);
     glDeleteProgram(g_renderer.volumetricShader);
     glDeleteProgram(g_renderer.volumetricBlurShader);
     glDeleteProgram(g_renderer.histogramShader);
@@ -2776,12 +2837,15 @@ void cleanup() {
     glDeleteTextures(1, &g_renderer.gPosition);
     glDeleteTextures(1, &g_renderer.gNormal);
     glDeleteTextures(1, &g_renderer.gAlbedo);
+    glDeleteTextures(1, &g_renderer.gGeometryNormal);
     glDeleteTextures(1, &g_renderer.gPBRParams);
     glDeleteTextures(1, &g_renderer.gVelocity);
     glDeleteFramebuffers(1, &g_renderer.ssaoFBO);
     glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);
     glDeleteTextures(1, &g_renderer.ssaoColorBuffer);
     glDeleteTextures(1, &g_renderer.ssaoBlurColorBuffer);
+    glDeleteFramebuffers(1, &g_renderer.ssrFBO);
+    glDeleteTextures(1, &g_renderer.ssrTexture);
     glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
     glDeleteTextures(1, &g_renderer.finalRenderTexture);
     glDeleteTextures(1, &g_renderer.finalDepthTexture);
@@ -3303,6 +3367,11 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             glDisable(GL_BLEND);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
+            if (Cvar_GetInt("r_ssr")) {
+                render_ssr_pass(source_tex, g_renderer.postProcessFBO, &view, &projection);
+                source_fbo = g_renderer.postProcessFBO;
+                source_tex = g_renderer.postProcessTexture;
+            }
             if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
                 render_dof_pass(source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
                 source_fbo = g_renderer.postProcessFBO;
