@@ -9,7 +9,7 @@ uniform mat4 projection, view;
 
 uniform int binarySearchCount = 8;
 uniform int rayMarchCount = 64;
-uniform float rayStep = 0.05;
+uniform float rayStep = 0.015;
 uniform float thickness = 0.1;
 
 in vec2 TexCoords;
