@@ -251,6 +251,14 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     if (val_a > val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnGreaterThan", engine->lastFrame, param_out);
                 }
             }
+            else if (strcmp(ent->classname, "env_blackhole") == 0) {
+                if (strcmp(inputName, "Enable") == 0) {
+                    ent->runtime_active = true;
+                }
+                else if (strcmp(inputName, "Disable") == 0) {
+                    ent->runtime_active = false;
+                }
+            }
         }
     }
     for (int i = 0; i < scene->numObjects; ++i) {
@@ -382,6 +390,13 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                     const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                     ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
                 }
+            }
+        }
+        else if (strcmp(ent->classname, "env_blackhole") == 0) {
+            if (ent->runtime_active) {
+                const char* rot_speed_str = LogicEntity_GetProperty(ent, "rotationspeed", "10.0");
+                ent->rot.y += atof(rot_speed_str) * deltaTime;
+                if (ent->rot.y > 360.0f) ent->rot.y -= 360.0f;
             }
         }
     }

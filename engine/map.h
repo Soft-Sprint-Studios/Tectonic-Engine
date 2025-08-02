@@ -219,6 +219,7 @@ extern "C" {
         GLuint glassShader;
         GLuint lightSSBO;
         GLuint debugBufferShader;
+        GLuint blackholeShader;
         float currentExposure;
         Mat4 prevViewProjection;
     } Renderer;

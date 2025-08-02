@@ -1822,6 +1822,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
             }
             if (strcmp(ent->classname, "logic_random") == 0) { if (strcmp(LogicEntity_GetProperty(ent, "is_default_enabled", "0"), "1") == 0) { ent->runtime_active = true; } }
+            else if (strcmp(ent->classname, "env_blackhole") == 0) {
+                const char* starton_str = LogicEntity_GetProperty(ent, "starton", "1");
+                ent->runtime_active = (atoi(starton_str) == 1);
+            }
             scene->numLogicEntities++;
         }
         else if (strcmp(keyword, "io_connection") == 0) {
