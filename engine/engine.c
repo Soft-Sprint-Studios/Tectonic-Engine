@@ -736,7 +736,7 @@ void Cmd_Exec(int argc, char** argv) {
 }
 
 void Cmd_SaveGame(int argc, char** argv) {
-    if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR) {
+    if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR && g_current_mode != MODE_INGAMEMENU) {
         Console_Printf_Error("Can only save when a map is loaded.");
         return;
     }
@@ -1932,7 +1932,6 @@ static void render_blackholes(Mat4* view, Mat4* projection) {
                 float distance_to_cam = vec3_length(vec3_sub(g_engine->camera.position, ent->pos));
                 glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "distance_uniform"), distance_to_cam);
                 glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "size"), scale);
-                Console_Printf("DEBUG: Sending rotation_angle: %.2f radians", rotation_rad);
                 glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "rotation_angle"), rotation_rad);
 
                 glBindVertexArray(g_renderer.quadVAO);
