@@ -117,6 +117,7 @@ namespace
         void process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
+        Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
         Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir, int num_samples);
         Vec4 get_reflectivity_at_hit(unsigned int primID) const;
 
@@ -775,8 +776,45 @@ namespace
         }
 
         std::vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
-        for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
-            final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
+        for (int y = 0; y < lightmap_height; ++y) {
+            for (int x = 0; x < lightmap_width; ++x) {
+                int idx = (y * lightmap_width + x) * 3;
+                Vec3 direct_light = { direct_lightmap_data[idx], direct_lightmap_data[idx + 1], direct_lightmap_data[idx + 2] };
+                Vec3 indirect_light = { denoised_indirect_data[idx], denoised_indirect_data[idx + 1], denoised_indirect_data[idx + 2] };
+
+                float u_tex = (static_cast<float>(x) + 0.5f) / lightmap_width;
+                float v_tex = (static_cast<float>(y) + 0.5f) / lightmap_height;
+                float target_u = min_uv.x + u_tex * uv_range.x;
+                float target_v = min_uv.y + v_tex * uv_range.y;
+                Vec3 world_pos;
+                bool inside = false;
+                for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                {
+                    int idx0 = face.vertexIndices[0];
+                    int idx1 = face.vertexIndices[k + 1];
+                    int idx2 = face.vertexIndices[k + 2];
+                    Vec2 uv0 = calculate_texture_uv_for_vertex(&b, data.face_index, idx0);
+                    Vec2 uv1 = calculate_texture_uv_for_vertex(&b, data.face_index, idx1);
+                    Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
+                    Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
+                    Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
+                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) {
+                        inside = true;
+                        world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
+                        break;
+                    }
+                }
+
+                Vec3 direct_sun_light = { 0,0,0 };
+                if (inside) {
+                    direct_sun_light = calculate_direct_sun_light_only(world_pos, face_normal);
+                }
+
+                Vec3 final_light = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+                final_hdr_lightmap_data[idx] = final_light.x;
+                final_hdr_lightmap_data[idx + 1] = final_light.y;
+                final_hdr_lightmap_data[idx + 2] = final_light.z;
+            }
         }
 
         std::vector<float> filtered_direction_data;
@@ -804,7 +842,7 @@ namespace
         int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
         int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
 
-        std::vector<float> padded_hdr_data(padded_width* padded_height * 3);
+        std::vector<float> padded_hdr_data(padded_width * padded_height * 3);
         for (int y = 0; y < padded_height; ++y) {
             for (int x = 0; x < padded_width; ++x) {
                 int src_x = std::clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
@@ -924,8 +962,14 @@ namespace
         }
 
         std::vector<float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
-        for (size_t i = 0; i < final_hdr_lightmap_data.size(); ++i) {
-            final_hdr_lightmap_data[i] = direct_lightmap_data[i] + denoised_indirect_data[i];
+        for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
+            Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
+            Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
+            Vec3 direct_sun_light = calculate_direct_sun_light_only(decal.pos, normal);
+            Vec3 final_light = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+            final_hdr_lightmap_data[i * 3] = final_light.x;
+            final_hdr_lightmap_data[i * 3 + 1] = final_light.y;
+            final_hdr_lightmap_data[i * 3 + 2] = final_light.z;
         }
 
         std::vector<float> filtered_direction_data;
@@ -964,8 +1008,9 @@ namespace
         Vec3 indirect_dir = { 0,0,0 };
         Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
         Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
+        Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = vec3_add(direct_light, indirect_light);
+        Vec3 final_light_color = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
         direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
@@ -1188,11 +1233,42 @@ namespace
         Console_Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
+    Vec3 Lightmapper::calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const
+    {
+        if (m_scene->sun.enabled) {
+            Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
+            Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
+            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            if (NdotL > 0.0f) {
+                if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
+                    Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
+                    return vec3_muls(light_color, NdotL);
+                }
+            }
+        }
+        return { 0,0,0 };
+    }
+
     Vec3 Lightmapper::calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const
     {
         Vec3 direct_light = { 0,0,0 };
         out_dominant_dir = { 0,0,0 };
         Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
+
+        if (m_scene->sun.enabled) {
+            Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
+            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            if (NdotL > 0.0f) {
+                if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
+                    Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
+                    Vec3 light_contribution = vec3_muls(light_color, NdotL);
+                    direct_light = vec3_add(direct_light, light_contribution);
+
+                    float contribution_magnitude = vec3_length(light_contribution);
+                    out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
+                }
+            }
+        }
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
