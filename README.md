@@ -92,7 +92,7 @@ Only the following folders are under the main project license (**MIT**):
 - `engine/`
 - `launcher/`
 - `x64/`
-- `Batchmodelimporter/`
+- `Tools/`
 - `docs/`
 
 All other folders are third-party dependencies and fall under their respective open-source licenses.
