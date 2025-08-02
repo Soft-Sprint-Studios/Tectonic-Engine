@@ -1,0 +1,2 @@
+Some code taken from Pathos game engine
+Inspiration from classic fps shooters
