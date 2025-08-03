@@ -511,6 +511,7 @@ extern "C" {
     void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
     void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
     void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
+    void Scene_LoadAmbientProbes(Scene* scene);
 
 #ifdef __cplusplus
 }

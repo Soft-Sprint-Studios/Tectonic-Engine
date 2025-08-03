@@ -1333,6 +1333,51 @@ void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal
     }
 }
 
+void Scene_LoadAmbientProbes(Scene* scene) {
+    if (scene->ambient_probes) {
+        free(scene->ambient_probes);
+        scene->ambient_probes = NULL;
+    }
+    scene->num_ambient_probes = 0;
+
+    if (strlen(scene->mapPath) == 0) {
+        return;
+    }
+
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(scene->mapPath, '/');
+    const char* last_bslash = strrchr(scene->mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+
+    char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        size_t len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
+
+    char probe_path[512];
+    snprintf(probe_path, sizeof(probe_path), "lightmaps/%s/ambient_probes.amp", map_name_sanitized);
+
+    FILE* probe_file = fopen(probe_path, "rb");
+    if (probe_file) {
+        char header[4];
+        if (fread(header, 1, 4, probe_file) == 4 && strncmp(header, "AMBI", 4) == 0) {
+            fread(&scene->num_ambient_probes, sizeof(int), 1, probe_file);
+            if (scene->num_ambient_probes > 0) {
+                scene->ambient_probes = malloc(sizeof(AmbientProbe) * scene->num_ambient_probes);
+                fread(scene->ambient_probes, sizeof(AmbientProbe), scene->num_ambient_probes, probe_file);
+            }
+        }
+        else {
+            Console_Printf_Error("Invalid ambient probe file header: %s", probe_path);
+        }
+        fclose(probe_file);
+    }
+}
 
 void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
     if (b->numFaces == 0) return;
@@ -1869,24 +1914,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         strcpy(map_name_sanitized, scene->mapPath);
     }
 
-    char probe_path[512];
-    snprintf(probe_path, sizeof(probe_path), "lightmaps/%s/ambient_probes.amp", map_name_sanitized);
-
-    FILE* probe_file = fopen(probe_path, "rb");
-    if (probe_file) {
-        char header[4];
-        if (fread(header, 1, 4, probe_file) == 4 && strncmp(header, "AMBI", 4) == 0) {
-            fread(&scene->num_ambient_probes, sizeof(int), 1, probe_file);
-            if (scene->num_ambient_probes > 0) {
-                scene->ambient_probes = malloc(sizeof(AmbientProbe) * scene->num_ambient_probes);
-                fread(scene->ambient_probes, sizeof(AmbientProbe), scene->num_ambient_probes, probe_file);
-            }
-        }
-        else {
-            Console_Printf_Error("Invalid ambient probe file header: %s", probe_path);
-        }
-        fclose(probe_file);
-    }
+    Scene_LoadAmbientProbes(scene);
 
     return true;
 }

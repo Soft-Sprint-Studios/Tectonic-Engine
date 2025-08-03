@@ -5640,6 +5640,8 @@ static void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                 SceneObject_LoadVertexDirectionalLighting(obj, i, scene->mapPath);
             }
 
+            Scene_LoadAmbientProbes(scene);
+
             scene->static_shadows_generated = true;
             Console_Printf("Lightmap reload complete.");
 
