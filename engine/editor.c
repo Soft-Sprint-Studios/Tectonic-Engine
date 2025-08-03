@@ -1955,11 +1955,11 @@ static void Editor_GroupSelection() {
         case ENTITY_BRUSH:
             if (sel->face_index != -1) {
                 g_CurrentScene->brushes[sel->index].faces[sel->face_index].isGrouped = true;
-                strncpy(g_CurrentScene->brushes[sel->index].faces[sel->face_index].groupName, group_name, 63);
+                snprintf(g_CurrentScene->brushes[sel->index].faces[sel->face_index].groupName, sizeof(g_CurrentScene->brushes[sel->index].faces[sel->face_index].groupName), "%s", group_name);
             }
             else {
                 g_CurrentScene->brushes[sel->index].isGrouped = true;
-                strncpy(g_CurrentScene->brushes[sel->index].groupName, group_name, 63);
+                snprintf(g_CurrentScene->brushes[sel->index].groupName, sizeof(g_CurrentScene->brushes[sel->index].groupName), "%s", group_name);
             }
             break;
         case ENTITY_LIGHT: g_CurrentScene->lights[sel->index].isGrouped = true; strncpy(g_CurrentScene->lights[sel->index].groupName, group_name, 63); break;
@@ -6869,6 +6869,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 int py = (int)roundf(b->pos.y);
                 int pz = (int)roundf(b->pos.z);
                 sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
+                strcpy(b->targetname, b->name);
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Reflection Probe");
         }
