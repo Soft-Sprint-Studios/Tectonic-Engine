@@ -45,7 +45,11 @@ extern "C" {
 #ifdef BRANCH_PUBLIC
     #define BRANCH_NAME "PUBLIC"
 #else
-    #warning "You are building an engine branch not meant to be published on github, Please make sure you dont publish me :)"
+#ifdef _MSC_VER
+    #pragma message("WARNING: You are building an engine branch not meant to be published on github.")
+#else
+    #warning "You are building an engine branch not meant to be published on github."
+#endif
     #define BRANCH_NAME "???"
 #endif
 
