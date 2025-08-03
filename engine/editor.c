@@ -5539,8 +5539,8 @@ static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
         return;
     }
 
-    UI_Begin("Build Cubemaps", &g_EditorState.show_build_cubemaps_popup);
-    UI_Text("Building cubemaps will re-render reflections for all probes.");
+    UI_Begin("Build Environment probes", &g_EditorState.show_build_cubemaps_popup);
+    UI_Text("Building Environment probes will re-render reflections for all probes.");
     UI_Separator();
 
     const char* resolutions[] = { "64", "128", "256", "512", "1024" };
