@@ -2020,8 +2020,8 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glUniform1f(glGetUniformLocation(g_renderer.waterShader, "sun.intensity"), g_scene.sun.intensity);
 
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
-
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "numActiveLights"), g_scene.numActiveLights);
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "r_lightmaps_bicubic"), Cvar_GetInt("r_lightmaps_bicubic"));
 
     Mat4 lightSpaceMatrices[MAX_LIGHTS];
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
@@ -2075,6 +2075,26 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, b->waterDef->dudvMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, b->waterDef->normalMap);
+
+        if (b->lightmapAtlas != 0) {
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useLightmap"), 1);
+            glActiveTexture(GL_TEXTURE12);
+            glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "lightmap"), 12);
+        }
+        else {
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useLightmap"), 0);
+        }
+
+        if (b->directionalLightmapAtlas != 0) {
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useDirectionalLightmap"), 1);
+            glActiveTexture(GL_TEXTURE13);
+            glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "directionalLightmap"), 13);
+        }
+        else {
+            glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useDirectionalLightmap"), 0);
+        }
 
         if (b->waterDef->flowMap != 0) {
             glActiveTexture(GL_TEXTURE3);

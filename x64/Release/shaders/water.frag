@@ -12,12 +12,18 @@ in vec3 v_tangent;
 in vec2 v_texCoord;
 in vec4 FragPosSunLightSpace;
 in vec3 FragPos_world;
+in vec2 v_texCoordLightmap;
 
 uniform samplerCube reflectionMap;
 uniform sampler2D flowMap;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
 uniform sampler2D sunShadowMap;
+uniform sampler2D lightmap;
+uniform sampler2D directionalLightmap;
+uniform bool useLightmap;
+uniform bool useDirectionalLightmap;
+uniform bool r_lightmaps_bicubic;
 
 struct ShaderLight {
     vec4 position;
@@ -97,6 +103,63 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     return normalize((fragPos + R * t_far) - probePos);
 }
 
+// Bicubic filtering functions adapted from Godot Engine
+float w0(float a) {
+	return (1.0 / 6.0) * (a * (a * (-a + 3.0) - 3.0) + 1.0);
+}
+
+float w1(float a) {
+	return (1.0 / 6.0) * (a * a * (3.0 * a - 6.0) + 4.0);
+}
+
+float w2(float a) {
+	return (1.0 / 6.0) * (a * (a * (-3.0 * a + 3.0) + 3.0) + 1.0);
+}
+
+float w3(float a) {
+	return (1.0 / 6.0) * (a * a * a);
+}
+
+float g0(float a) {
+	return w0(a) + w1(a);
+}
+
+float g1(float a) {
+	return w2(a) + w3(a);
+}
+
+float h0(float a) {
+	return -1.0 + w1(a) / (w0(a) + w1(a));
+}
+
+float h1(float a) {
+	return 1.0 + w3(a) / (w2(a) + w3(a));
+}
+
+vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
+	vec2 texel_size = vec2(1.0) / texture_size;
+
+	uv = uv * texture_size + vec2(0.5);
+
+	vec2 iuv = floor(uv);
+	vec2 fuv = fract(uv);
+
+	float g0x = g0(fuv.x);
+	float g1x = g1(fuv.x);
+	float h0x = h0(fuv.x);
+	float h1x = h1(fuv.x);
+	float h0y = h0(fuv.y);
+	float h1y = h1(fuv.y);
+
+	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) - vec2(0.5)) * texel_size;
+	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) - vec2(0.5)) * texel_size;
+	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) - vec2(0.5)) * texel_size;
+	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) - vec2(0.5)) * texel_size;
+
+	return (g0(fuv.y) * (g0x * texture(tex, p0) + g1x * texture(tex, p1))) +
+		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
+}
+
 void main() {
     vec2 waterUv = (FragPos_world.xz - u_waterAabbMin.xz) / (u_waterAabbMax.xz - u_waterAabbMin.xz);
     vec2 flowDirection = vec2(0.0);
@@ -140,9 +203,39 @@ void main() {
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
+    vec3 bakedDiffuse = vec3(0.0);
+    vec3 bakedSpecular = vec3(0.0);
     float shininess = 128.0;
     float specularStrength = 3.0;
 
+    if (useLightmap) {
+        vec3 bakedRadiance;
+        if (r_lightmaps_bicubic) {
+            bakedRadiance = texture_bicubic(lightmap, v_texCoordLightmap, textureSize(lightmap, 0)).rgb;
+        } else {
+            bakedRadiance = texture(lightmap, v_texCoordLightmap).rgb;
+        }
+
+        if (useDirectionalLightmap) {
+            vec4 directionalData;
+            if (r_lightmaps_bicubic) {
+                directionalData = texture_bicubic(directionalLightmap, v_texCoordLightmap, textureSize(directionalLightmap, 0));
+            } else {
+                directionalData = texture(directionalLightmap, v_texCoordLightmap);
+            }
+            vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
+            float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
+            bakedDiffuse = bakedRadiance * NdotL_baked;
+            if (NdotL_baked > 0.0) {
+                vec3 H_baked = normalize(bakedLightDir + V);
+                float NdotH_baked = max(dot(N, H_baked), 0.0);
+                bakedSpecular = bakedRadiance * specularStrength * pow(NdotH_baked, shininess);
+            }
+        } else {
+            bakedDiffuse = bakedRadiance;
+        }
+    }
+    
     if (sun.enabled) {
         vec3 L = normalize(-sun.direction);
         float NdotL = max(dot(N, L), 0.0);
@@ -209,6 +302,6 @@ void main() {
         }
     }
 
-    vec3 finalColor = baseWaterColor + diffuse + specular + ambient;
+    vec3 finalColor = baseWaterColor + diffuse + specular + ambient + bakedDiffuse + bakedSpecular;
     fragColor = vec4(finalColor, 0.85);
 }

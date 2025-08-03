@@ -1095,7 +1095,7 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isWater || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
+            if (b.isTrigger || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
             std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
             fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
             fs::create_directories(brush_dir);
