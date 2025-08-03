@@ -5667,6 +5667,7 @@ static void Editor_RenderAboutWindow() {
         UI_Text("Version: D.E.V. (Build %d)", Compat_GetBuildNumber());
         UI_Text("Build Date: %s, %s", __DATE__, __TIME__);
         UI_Text("Architecture: %s", ARCH_STRING);
+        UI_Text("Engine branch: %s", BRANCH_NAME);
         UI_Separator();
         UI_Text("Copyright (c) 2025 Soft Sprint Studios");
         UI_Text("All rights reserved.");

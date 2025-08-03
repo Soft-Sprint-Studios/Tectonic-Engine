@@ -40,6 +40,15 @@ extern "C" {
 #define ENABLE_CHECKSUM 1
 //#define DISABLE_DEBUGGER 1
 
+#define BRANCH_PUBLIC
+
+#ifdef BRANCH_PUBLIC
+    #define BRANCH_NAME "PUBLIC"
+#else
+    #warning "You are building an engine branch not meant to be published on github, Please make sure you dont publish me :)"
+    #define BRANCH_NAME "???"
+#endif
+
 #ifndef M_PI
 #define M_PI	3.1415926535897932384626433832795
 #endif
@@ -271,6 +280,7 @@ static void GetCPUName(char out[49]) {
     }
     out[48] = '\0';
 }
+
 #ifdef __cplusplus
 }
 #endif

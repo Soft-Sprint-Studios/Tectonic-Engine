@@ -993,6 +993,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     PrintSystemInfo();
     Console_Printf("Tectonic Engine initialized.\n");
     Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
+    Console_Printf("Engine branch: %s\n", BRANCH_NAME);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
