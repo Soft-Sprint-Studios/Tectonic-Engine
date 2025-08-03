@@ -871,7 +871,7 @@ static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTan
     vbo_data[vbo_idx + 11] = fSign;
 }
 
-static void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath) {
+void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath) {
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
     char map_name_sanitized[128];
@@ -916,7 +916,7 @@ static void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const ch
     }
 }
 
-static void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath) {
+void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath) {
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
     char map_name_sanitized[128];

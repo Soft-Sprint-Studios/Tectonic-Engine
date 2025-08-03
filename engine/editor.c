@@ -5583,6 +5583,20 @@ static void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                 Decal_LoadLightmaps(d, map_name_sanitized, i);
             }
 
+            for (int i = 0; i < scene->numObjects; ++i) {
+                SceneObject* obj = &scene->objects[i];
+                if (obj->bakedVertexColors) {
+                    free(obj->bakedVertexColors);
+                    obj->bakedVertexColors = NULL;
+                }
+                if (obj->bakedVertexDirections) {
+                    free(obj->bakedVertexDirections);
+                    obj->bakedVertexDirections = NULL;
+                }
+                SceneObject_LoadVertexLighting(obj, i, scene->mapPath);
+                SceneObject_LoadVertexDirectionalLighting(obj, i, scene->mapPath);
+            }
+
             scene->static_shadows_generated = true;
             Console_Printf("Lightmap reload complete.");
 

@@ -199,7 +199,7 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isReflectionProbe || b.isDSP) continue;
+            if (b.isTrigger || b.isReflectionProbe || b.isDSP || b.isWater) continue;
 
             for (int j = 0; j < b.numFaces; ++j)
             {

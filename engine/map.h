@@ -500,6 +500,8 @@ extern "C" {
     bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
     bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath);
     void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution);
+    void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
+    void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
     void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
 
 #ifdef __cplusplus
