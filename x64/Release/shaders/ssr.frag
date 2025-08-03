@@ -99,7 +99,8 @@ void main() {
     vec3 finalColor;
 
     if (coords.x >= 0.0) {
-        vec3 reflectedColor = texture(colorBuffer, coords).rgb;
+        float lod = roughness * 4.0;
+        vec3 reflectedColor = textureLod(colorBuffer, coords, lod).rgb;
         
         float dist = length(texture(gPosition, coords).xyz - viewPos);
         float fade = clamp(1.0 - dist / 50.0, 0.0, 1.0);
