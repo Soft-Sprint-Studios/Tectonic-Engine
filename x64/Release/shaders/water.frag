@@ -24,6 +24,8 @@ uniform sampler2D directionalLightmap;
 uniform bool useLightmap;
 uniform bool useDirectionalLightmap;
 uniform bool r_lightmaps_bicubic;
+uniform bool r_debug_lightmaps;
+uniform bool r_debug_lightmaps_directional;
 
 struct ShaderLight {
     vec4 position;
@@ -138,7 +140,6 @@ float h1(float a) {
 
 vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
 	vec2 texel_size = vec2(1.0) / texture_size;
-
 	uv = uv * texture_size + vec2(0.5);
 
 	vec2 iuv = floor(uv);
@@ -159,6 +160,7 @@ vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
 	return (g0(fuv.y) * (g0x * texture(tex, p0) + g1x * texture(tex, p1))) +
 		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
 }
+
 
 void main() {
     vec2 waterUv = (FragPos_world.xz - u_waterAabbMin.xz) / (u_waterAabbMax.xz - u_waterAabbMin.xz);
@@ -235,7 +237,7 @@ void main() {
             bakedDiffuse = bakedRadiance;
         }
     }
-    
+
     if (sun.enabled) {
         vec3 L = normalize(-sun.direction);
         float NdotL = max(dot(N, L), 0.0);
@@ -270,7 +272,6 @@ void main() {
                 attenuation = cone_intensity * pow(1.0 - clamp(distance / radius, 0.0, 1.0), 2.0) / (distance * distance + 1.0);
             }
         }
-
         if (attenuation > 0.0) {
             vec3 lightColor = lights[i].color.rgb;
             float lightIntensity = lights[i].color.a;
@@ -303,5 +304,20 @@ void main() {
     }
 
     vec3 finalColor = baseWaterColor + diffuse + specular + ambient + bakedDiffuse + bakedSpecular;
+
+    if (r_debug_lightmaps && useLightmap) {
+        if (r_lightmaps_bicubic) {
+            finalColor = texture_bicubic(lightmap, v_texCoordLightmap, textureSize(lightmap, 0)).rgb;
+        } else {
+            finalColor = texture(lightmap, v_texCoordLightmap).rgb;
+        }
+    } else if (r_debug_lightmaps_directional && useDirectionalLightmap) {
+        if (r_lightmaps_bicubic) {
+            finalColor = texture_bicubic(directionalLightmap, v_texCoordLightmap, textureSize(directionalLightmap, 0)).rgb;
+        } else {
+            finalColor = texture(directionalLightmap, v_texCoordLightmap).rgb;
+        }
+    }
+
     fragColor = vec4(finalColor, 0.85);
 }

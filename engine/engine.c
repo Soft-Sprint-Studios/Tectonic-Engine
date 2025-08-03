@@ -2022,6 +2022,8 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.waterShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "numActiveLights"), g_scene.numActiveLights);
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "r_lightmaps_bicubic"), Cvar_GetInt("r_lightmaps_bicubic"));
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "r_debug_lightmaps"), Cvar_GetInt("r_debug_lightmaps"));
+    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "r_debug_lightmaps_directional"), Cvar_GetInt("r_debug_lightmaps_directional"));
 
     Mat4 lightSpaceMatrices[MAX_LIGHTS];
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
