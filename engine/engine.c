@@ -86,7 +86,7 @@ static char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
-static void BuildCubemaps();
+void BuildCubemaps();
 
 #ifdef PLATFORM_WINDOWS
 static HANDLE g_hMutex = NULL;
@@ -3067,7 +3067,7 @@ static void SaveScreenshotToPNG(const char* filepath) {
     }
     free(pixels);
 }
-static void BuildCubemaps(int resolution) {
+void BuildCubemaps(int resolution) {
     Console_Printf("Starting cubemap build with %dx%d resolution...", resolution, resolution);
     glFinish();
 

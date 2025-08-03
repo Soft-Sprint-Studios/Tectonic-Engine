@@ -229,6 +229,8 @@ typedef struct {
     int bake_resolution;
     int bake_bounces;
     bool show_arch_properties_popup;
+    bool show_build_cubemaps_popup;
+    int cubemap_resolution_index;
     float arch_wall_width;
     int arch_num_sides;
     float arch_arc_degrees;
@@ -5532,7 +5534,48 @@ static void Editor_RenderSprinkleToolWindow(void) {
     }
     UI_End();
 }
+static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
+    if (!g_EditorState.show_build_cubemaps_popup) {
+        return;
+    }
 
+    UI_Begin("Build Cubemaps", &g_EditorState.show_build_cubemaps_popup);
+    UI_Text("Building cubemaps will re-render reflections for all probes.");
+    UI_Separator();
+
+    const char* resolutions[] = { "64", "128", "256", "512", "1024" };
+    UI_Combo("Resolution", &g_EditorState.cubemap_resolution_index, resolutions, 5, -1);
+
+    UI_Separator();
+
+    if (UI_Button("Build")) {
+        int resolution_values[] = { 64, 128, 256, 512, 1024 };
+        int resolution = resolution_values[g_EditorState.cubemap_resolution_index];
+
+        BuildCubemaps(resolution);
+
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            Brush* b = &scene->brushes[i];
+            if (b->isReflectionProbe) {
+                const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+                char face_paths[6][256];
+                const char* face_pointers[6];
+                for (int k = 0; k < 6; ++k) {
+                    sprintf(face_paths[k], "cubemaps/%s_%s.png", b->name, suffixes[k]);
+                    face_pointers[k] = face_paths[k];
+                }
+                b->cubemapTexture = TextureManager_ReloadCubemap(face_pointers, b->cubemapTexture);
+            }
+        }
+
+        g_EditorState.show_build_cubemaps_popup = false;
+    }
+    UI_SameLine();
+    if (UI_Button("Cancel")) {
+        g_EditorState.show_build_cubemaps_popup = false;
+    }
+    UI_End();
+}
 static void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
     if (g_EditorState.show_bake_lighting_popup) {
         UI_Begin("Bake Lighting", &g_EditorState.show_bake_lighting_popup);
@@ -7407,6 +7450,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 g_EditorState.bake_resolution = 3;
                 g_EditorState.bake_bounces = 1;
             }
+            if (UI_MenuItem("Build Environment probes...", NULL, false, true)) {
+                g_EditorState.show_build_cubemaps_popup = true;
+                g_EditorState.cubemap_resolution_index = 2;
+            }
             UI_EndMenu();
         }
         if (UI_BeginMenu("Help", true)) {
@@ -7466,6 +7513,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
     Editor_RenderBakeLightingWindow(scene, engine);
+    Editor_RenderBuildCubemapsWindow(scene);
     Editor_RenderArchPropertiesWindow(scene, engine);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
