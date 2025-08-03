@@ -109,6 +109,7 @@ namespace
     private:
         void build_embree_scene();
         void load_emissive_materials();
+        void generate_ambient_probes();
         void prepare_jobs();
         void worker_main();
         void process_job(const JobPayload& job, std::mt19937& rng);
@@ -298,6 +299,84 @@ namespace
             Console_Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
         }
         Console_Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
+    }
+
+    void Lightmapper::generate_ambient_probes()
+    {
+        Console_Printf("[Lightmapper] Generating ambient probes...");
+
+        std::vector<Vec3> probe_positions;
+        const float probe_spacing = 2.0f;
+
+        for (int i = 0; i < m_scene->numBrushes; ++i) {
+            const Brush& b = m_scene->brushes[i];
+            if (b.isTrigger || b.isReflectionProbe || b.isDSP || b.isWater || b.numVertices == 0) continue;
+
+            Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
+            Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int j = 0; j < b.numVertices; ++j) {
+                Vec3 world_v = mat4_mul_vec3(&b.modelMatrix, b.vertices[j].pos);
+                min_aabb.x = std::min(min_aabb.x, world_v.x);
+                min_aabb.y = std::min(min_aabb.y, world_v.y);
+                min_aabb.z = std::min(min_aabb.z, world_v.z);
+                max_aabb.x = std::max(max_aabb.x, world_v.x);
+                max_aabb.y = std::max(max_aabb.y, world_v.y);
+                max_aabb.z = std::max(max_aabb.z, world_v.z);
+            }
+
+            for (float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
+                for (float y = min_aabb.y; y <= max_aabb.y; y += probe_spacing) {
+                    for (float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
+                        probe_positions.push_back({ x, y, z });
+                    }
+                }
+            }
+        }
+
+        if (probe_positions.empty()) {
+            Console_Printf("[Lightmapper] No suitable locations for ambient probes found.");
+            return;
+        }
+
+        m_scene->num_ambient_probes = probe_positions.size();
+        m_scene->ambient_probes = new AmbientProbe[m_scene->num_ambient_probes];
+
+        std::mt19937 rng(std::random_device{}());
+
+        for (size_t i = 0; i < probe_positions.size(); ++i) {
+            m_scene->ambient_probes[i].position = probe_positions[i];
+            Vec3 dominant_dir_total = { 0,0,0 };
+
+            Vec3 directions[6] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+            for (int j = 0; j < 6; ++j) {
+                Vec3 direct_dir, indirect_dir;
+                Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir);
+                Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], rng, indirect_dir, 1024);
+                m_scene->ambient_probes[i].colors[j] = vec3_muls(vec3_add(direct_light, indirect_light), 2.2f);
+                dominant_dir_total = vec3_add(dominant_dir_total, vec3_add(direct_dir, indirect_dir));
+            }
+
+            if (vec3_length_sq(dominant_dir_total) > 0.001f) {
+                vec3_normalize(&dominant_dir_total);
+            }
+            m_scene->ambient_probes[i].dominant_direction = dominant_dir_total;
+        }
+
+        fs::path probe_path = m_output_path / "ambient_probes.amp";
+        std::ofstream probe_file(probe_path, std::ios::binary);
+        if (probe_file) {
+            const char header[] = "AMBI";
+            probe_file.write(header, 4);
+            probe_file.write(reinterpret_cast<const char*>(&m_scene->num_ambient_probes), sizeof(int));
+            probe_file.write(reinterpret_cast<const char*>(m_scene->ambient_probes), sizeof(AmbientProbe) * m_scene->num_ambient_probes);
+            Console_Printf("[Lightmapper] Saved %d ambient probes.", m_scene->num_ambient_probes);
+        }
+        else {
+            Console_Printf_Error("[Lightmapper] Failed to save ambient probes file.");
+        }
+        delete[] m_scene->ambient_probes;
+        m_scene->ambient_probes = nullptr;
+        m_scene->num_ambient_probes = 0;
     }
 
     bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
@@ -1115,6 +1194,7 @@ namespace
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
+            if (obj.mass > 0.0f) continue;
             if (obj.model)
             {
                 for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
@@ -1518,6 +1598,8 @@ namespace
         {
             t.join();
         }
+
+        generate_ambient_probes();
 
         for (int i = 0; i < m_scene->numObjects; ++i)
         {

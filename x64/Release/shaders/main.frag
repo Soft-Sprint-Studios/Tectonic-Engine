@@ -108,6 +108,14 @@ uniform float u_metalness_override3;
 uniform float u_roughness_override4;
 uniform float u_metalness_override4;
 
+struct AmbientProbe {
+    vec3 position;
+    vec3 colors[6];
+    vec3 dominant_direction;
+};
+uniform AmbientProbe u_probes[8];
+uniform int u_numAmbientProbes;
+
 uniform bool useParallaxCorrection;
 uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
@@ -580,33 +588,20 @@ void main()
     vec3 bakedDiffuse = vec3(0.0);
 	vec3 bakedSpecular = vec3(0.0);
 	vec3 bakedRadiance = vec3(0.0);
-    if (isBrush == 1) {
+        if (isBrush == 1) {
         if (useLightmap) {
-            if (r_lightmaps_bicubic) {
-                bakedRadiance = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
-            } else {
-                bakedRadiance = texture(lightmap, TexCoordsLightmap).rgb;
-            }
-
+            bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb : texture(lightmap, TexCoordsLightmap).rgb;
             if (useDirectionalLightmap) {
-                vec4 directionalData;
-                if (r_lightmaps_bicubic) {
-                    directionalData = texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(directionalLightmap, 0));
-                } else {
-                    directionalData = texture(directionalLightmap, TexCoordsLightmap);
-                }
+                vec4 directionalData = r_lightmaps_bicubic ? texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(directionalLightmap, 0)) : texture(directionalLightmap, TexCoordsLightmap);
                 vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
-                vec3 L_baked = bakedLightDir;
-                vec3 H_baked = normalize(V + L_baked);
-                float NdotL_baked = max(dot(N, L_baked), 0.0);
+                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
                 bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
                 if (NdotL_baked > 0.0) {
+                    vec3 H_baked = normalize(bakedLightDir + V);
                     float NDF = DistributionGGX(N, H_baked, roughness);
-                    float G = GeometrySmith(N, V, L_baked, roughness);
+                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
                     vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
-                    vec3 numerator = NDF * G * F;
-                    float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
-                    vec3 specular = numerator / denominator;
+                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
                     bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
                 }
             } else {
@@ -614,25 +609,56 @@ void main()
             }
         }
     } else {
-        if (v_Color.a > 0.5) {
-            bakedRadiance = v_Color.rgb;
-        } else {
-            bakedDiffuse = vec3(0.0);
+        if (u_numAmbientProbes > 0 && v_Color.a < 0.5) {
+            vec3 total_color = vec3(0.0);
+            vec3 total_dir = vec3(0.0);
+            float total_weight = 0.0;
+            for (int i = 0; i < 8; i++) {
+                if (length(u_probes[i].position) < 0.01) continue;
+                float dist_sq = max(0.001, dot(FragPos_world - u_probes[i].position, FragPos_world - u_probes[i].position));
+                float weight = 1.0 / dist_sq;
+                vec3 probe_color = vec3(0.0);
+                probe_color += u_probes[i].colors[0] * max(0, dot(N, vec3(1, 0, 0)));
+                probe_color += u_probes[i].colors[1] * max(0, dot(N, vec3(-1, 0, 0)));
+                probe_color += u_probes[i].colors[2] * max(0, dot(N, vec3(0, 1, 0)));
+                probe_color += u_probes[i].colors[3] * max(0, dot(N, vec3(0, -1, 0)));
+                probe_color += u_probes[i].colors[4] * max(0, dot(N, vec3(0, 0, 1)));
+                probe_color += u_probes[i].colors[5] * max(0, dot(N, vec3(0, 0, -1)));
+                total_color += probe_color * weight;
+                total_dir += u_probes[i].dominant_direction * weight;
+                total_weight += weight;
+            }
+            if (total_weight > 0.0) {
+                bakedRadiance = total_color / total_weight;
+                vec3 bakedLightDir = normalize(total_dir / total_weight);
+                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
+                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
+
+                if (NdotL_baked > 0.0) {
+                    vec3 H_baked = normalize(bakedLightDir + V);
+                    float NDF = DistributionGGX(N, H_baked, roughness);
+                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
+                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+               }
         }
-        if (v_Color2.a > 0.0) {
-            vec3 bakedLightDir = normalize(v_Color2.rgb);
-            vec3 L_baked = bakedLightDir;
-            vec3 H_baked = normalize(V + L_baked);
-            float NdotL_baked = max(dot(N, L_baked), 0.0);
-            bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
-            if (NdotL_baked > 0.0) {
-                float NDF = DistributionGGX(N, H_baked, roughness);
-                float G = GeometrySmith(N, V, L_baked, roughness);
-                vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
-                vec3 numerator = NDF * G * F;
-                float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001;
-                vec3 specular = numerator / denominator;
-                bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+        } else if (v_Color.a > 0.5) {
+            bakedRadiance = v_Color.rgb;
+            if (v_Color2.a > 0.0) {
+                vec3 bakedLightDir = normalize(v_Color2.rgb);
+                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
+                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
+                if (NdotL_baked > 0.0) {
+                    vec3 H_baked = normalize(bakedLightDir + V);
+                    float NDF = DistributionGGX(N, H_baked, roughness);
+                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
+                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+                }
+            } else {
+                bakedDiffuse = bakedRadiance * albedo;
             }
         }
     }

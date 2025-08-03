@@ -1267,6 +1267,11 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->colorCorrection.enabled = false;
     memset(scene->colorCorrection.lutPath, 0, sizeof(scene->colorCorrection.lutPath));
     scene->colorCorrection.lutTexture = 0;
+    if (scene->ambient_probes) {
+        free(scene->ambient_probes);
+        scene->ambient_probes = NULL;
+    }
+    scene->num_ambient_probes = 0;
     scene->sun.enabled = true;
     scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
@@ -1852,6 +1857,36 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     engine->camera.position = scene->playerStart.position;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;
+
+    char map_name_sanitized[128];
+    char* dot = strrchr(scene->mapPath, '.');
+    if (dot) {
+        size_t len = dot - scene->mapPath;
+        strncpy(map_name_sanitized, scene->mapPath, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, scene->mapPath);
+    }
+
+    char probe_path[512];
+    snprintf(probe_path, sizeof(probe_path), "lightmaps/%s/ambient_probes.amp", map_name_sanitized);
+
+    FILE* probe_file = fopen(probe_path, "rb");
+    if (probe_file) {
+        char header[4];
+        if (fread(header, 1, 4, probe_file) == 4 && strncmp(header, "AMBI", 4) == 0) {
+            fread(&scene->num_ambient_probes, sizeof(int), 1, probe_file);
+            if (scene->num_ambient_probes > 0) {
+                scene->ambient_probes = malloc(sizeof(AmbientProbe) * scene->num_ambient_probes);
+                fread(scene->ambient_probes, sizeof(AmbientProbe), scene->num_ambient_probes, probe_file);
+            }
+        }
+        else {
+            Console_Printf_Error("Invalid ambient probe file header: %s", probe_path);
+        }
+        fclose(probe_file);
+    }
 
     return true;
 }

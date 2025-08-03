@@ -1787,6 +1787,7 @@ void update_state() {
                 memcpy(&physics_transform, phys_matrix_data, sizeof(Mat4));
                 Mat4 scale_transform = mat4_scale(obj->scale);
                 mat4_multiply(&obj->modelMatrix, &physics_transform, &scale_transform);
+                mat4_decompose(&obj->modelMatrix, &obj->pos, &obj->rot, &obj->scale);
             }
         }
         for (int i = 0; i < g_scene.numBrushes; ++i) {
@@ -2292,7 +2293,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glActiveTexture(GL_TEXTURE16);
     glBindTexture(GL_TEXTURE_2D, g_renderer.brdfLUTTexture);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "is_unlit"), unlit);
-
+    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "u_numAmbientProbes"), g_scene.num_ambient_probes);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "numActiveLights"), g_scene.numActiveLights);
 
     ShaderLight dynamic_lights[MAX_LIGHTS];
@@ -2375,6 +2376,40 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         SceneObject* obj = &g_scene.objects[i];
         glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
         if (obj->model) {
+            if (obj->mass > 0.0f && g_scene.num_ambient_probes > 0) {
+                AmbientProbe* nearest_probes[8] = { NULL };
+                float distances[8];
+                for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
+
+                for (int p_idx = 0; p_idx < g_scene.num_ambient_probes; ++p_idx) {
+                    float d = vec3_length_sq(vec3_sub(obj->pos, g_scene.ambient_probes[p_idx].position));
+                    for (int k = 0; k < 8; ++k) {
+                        if (d < distances[k]) {
+                            for (int l = 7; l > k; --l) {
+                                distances[l] = distances[l - 1];
+                                nearest_probes[l] = nearest_probes[l - 1];
+                            }
+                            distances[k] = d;
+                            nearest_probes[k] = &g_scene.ambient_probes[p_idx];
+                            break;
+                        }
+                    }
+                }
+
+                for (int k = 0; k < 8; ++k) {
+                    char buf[64];
+                    if (nearest_probes[k]) {
+                        sprintf(buf, "u_probes[%d].position", k);
+                        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, buf), 1, &nearest_probes[k]->position.x);
+                        for (int f = 0; f < 6; ++f) {
+                            sprintf(buf, "u_probes[%d].colors[%d]", k, f);
+                            glUniform3fv(glGetUniformLocation(g_renderer.mainShader, buf), 1, &nearest_probes[k]->colors[f].x);
+                        }
+                        sprintf(buf, "u_probes[%d].dominant_direction", k);
+                        glUniform3fv(glGetUniformLocation(g_renderer.mainShader, buf), 1, &nearest_probes[k]->dominant_direction.x);
+                    }
+                }
+            }
             Vec3 local_corners[8] = {
                 {obj->model->aabb_min.x, obj->model->aabb_min.y, obj->model->aabb_min.z},
                 {obj->model->aabb_max.x, obj->model->aabb_min.y, obj->model->aabb_min.z},

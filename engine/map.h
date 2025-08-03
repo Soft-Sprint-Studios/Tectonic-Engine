@@ -108,6 +108,12 @@ extern "C" {
     } Light;
 
     typedef struct {
+        Vec3 position;
+        Vec3 colors[6];
+        Vec3 dominant_direction;
+    } AmbientProbe;
+
+    typedef struct {
         Vec4 position;
         Vec4 direction;
         Vec4 color;
@@ -467,6 +473,8 @@ extern "C" {
         ColorCorrectionSettings colorCorrection;
         bool static_shadows_generated;
         int lightmapResolution;
+        AmbientProbe* ambient_probes;
+        int num_ambient_probes;
     } Scene;
 
     typedef struct {
