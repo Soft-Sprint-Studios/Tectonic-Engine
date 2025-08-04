@@ -1625,6 +1625,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                                 b->faces[i].isGrouped = (bool)grouped_int;
                             }
                             *grouped_ptr = '\0';
+                        } else {
+                            b->faces[i].isGrouped = false;
+                            b->faces[i].groupName[0] = '\0';
                         }
 
                         sscanf(line, " f %*d %s %s %s %s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
@@ -1665,7 +1668,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
-                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) { b->isGrouped = (bool)dummy_int; }
+                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) { 
+                    b->isGrouped = (bool)dummy_int; 
+                } else {
+                     b->groupName[0] = '\0';
+                }
             }
             if (b->isReflectionProbe) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -1727,8 +1734,14 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             newObj->bone_matrices = NULL;
             mat4_identity(&newObj->animated_local_transform);
             long current_pos = ftell(file); char next_line[256];
-            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, newObj->groupName); newObj->isGrouped = (bool)grouped_int; }
-            else { fseek(file, current_pos, SEEK_SET); }
+            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                int grouped_int;
+                sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, newObj->groupName);
+                newObj->isGrouped = (bool)grouped_int;
+            } else {
+                newObj->groupName[0] = '\0';
+                fseek(file, current_pos, SEEK_SET);
+            }
             SceneObject_UpdateMatrix(newObj);
             newObj->model = Model_Load(newObj->modelPath);
             if (newObj->model && newObj->model->num_animations > 0) {
@@ -1745,11 +1758,18 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
             int type_int = 0; int preset_int = 0; int is_static_int = 0;
-            int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
+            int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius,
+                &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
             light->preset = preset_int; light->type = (LightType)type_int; light->is_on = (light->base_intensity > 0.0f); light->is_static = (bool)is_static_int; light->intensity = light->base_intensity;
             long current_pos = ftell(file); char next_line[256];
-            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, light->groupName); light->isGrouped = (bool)grouped_int; }
-            else { fseek(file, current_pos, SEEK_SET); }
+            if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                int grouped_int;
+                sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, light->groupName);
+                light->isGrouped = (bool)grouped_int;
+            } else {
+                light->groupName[0] = '\0';
+                fseek(file, current_pos, SEEK_SET);
+            }
             if (items_scanned == 18 && strcmp(light->cookiePath, "none") != 0) { Material* cookieMat = TextureManager_FindMaterial(light->cookiePath); if (cookieMat && cookieMat != &g_MissingMaterial) { light->cookieMap = cookieMat->diffuseMap; light->cookieMapHandle = glGetTextureHandleARB(light->cookieMap); glMakeTextureHandleResidentARB(light->cookieMapHandle); } }
             else { light->cookiePath[0] = '\0'; light->cookieMap = 0; light->cookieMapHandle = 0; }
             Light_InitShadowMap(light); scene->numActiveLights++;
@@ -1768,8 +1788,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 sscanf(p, "%f %f %f %f %f %f %f %f %f", &d->pos.x, &d->pos.y, &d->pos.z, &d->rot.x, &d->rot.y, &d->rot.z, &d->size.x, &d->size.y, &d->size.z);
                 d->material = TextureManager_FindMaterial(mat_name);
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, d->groupName); d->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, d->groupName); d->isGrouped = (bool)grouped_int;
+                } else {
+                    d->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 Decal_UpdateMatrix(d);
                 scene->numDecals++;
             }
@@ -1787,8 +1811,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 sscanf(p, "%f %f %f %f %f %f %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
                 s->is_looping = (bool)is_looping_int; s->play_on_start = (bool)play_on_start_int;
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int;
+                } else {
+                    s->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 s->bufferID = SoundSystem_LoadSound(s->soundPath);
                 if (s->play_on_start) s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
                 scene->numSoundEntities++;
@@ -1802,8 +1830,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 sscanf(line, "%*s \"%127[^\"]\" \"%63[^\"]\" %d %f %f %f", emitter->parFile, emitter->targetname, &on_default_int, &emitter->pos.x, &emitter->pos.y, &emitter->pos.z);
                 emitter->on_by_default = (bool)on_default_int;
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, emitter->groupName); emitter->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, emitter->groupName); emitter->isGrouped = (bool)grouped_int;
+                } else {
+                    emitter->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 ParticleSystem* ps = ParticleSystem_Load(emitter->parFile);
                 if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); scene->numParticleEmitters++; }
             }
@@ -1817,8 +1849,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 s->material = TextureManager_FindMaterial(mat_name);
                 s->visible = true;
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, s->groupName); s->isGrouped = (bool)grouped_int;
+                } else {
+                    s->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 scene->numSprites++;
             }
         }
@@ -1835,8 +1871,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 sscanf(p, "%d %d %f %f %f %f %f %f %f %f", &play_on_start_int, &loop_int, &vp->pos.x, &vp->pos.y, &vp->pos.z, &vp->rot.x, &vp->rot.y, &vp->rot.z, &vp->size.x, &vp->size.y);
                 vp->playOnStart = (bool)play_on_start_int; vp->loop = (bool)loop_int;
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, vp->groupName); vp->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, vp->groupName); vp->isGrouped = (bool)grouped_int;
+                } else {
+                    vp->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 VideoPlayer_Load(vp); if (vp->playOnStart) VideoPlayer_Play(vp);
                 scene->numVideoPlayers++;
             }
@@ -1852,8 +1892,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { size_t len = end - p; if (len < sizeof(p_room->targetname)) strncpy(p_room->targetname, p, len), p_room->targetname[len] = '\0'; p = end + 1; } }
                 sscanf(p, "%f %f %f %f %f %f %f %f %f", &p_room->pos.x, &p_room->pos.y, &p_room->pos.z, &p_room->rot.x, &p_room->rot.y, &p_room->rot.z, &p_room->size.x, &p_room->size.y, &p_room->roomDepth);
                 long current_pos = ftell(file); char next_line[256];
-                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, p_room->groupName); p_room->isGrouped = (bool)grouped_int; }
-                else { fseek(file, current_pos, SEEK_SET); }
+                if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
+                    int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, p_room->groupName); p_room->isGrouped = (bool)grouped_int;
+                } else {
+                    p_room->groupName[0] = '\0';
+                    fseek(file, current_pos, SEEK_SET);
+                }
                 const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
                 char face_paths[6][256]; const char* face_pointers[6];
                 for (int i = 0; i < 6; ++i) { sprintf(face_paths[i], "%s%s", p_room->cubemapPath, suffixes[i]); face_pointers[i] = face_paths[i]; }
@@ -1871,8 +1915,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " targetname \"%63[^\"]\"", ent->targetname) == 1) {}
                 else if (sscanf(line, " pos %f %f %f", &ent->pos.x, &ent->pos.y, &ent->pos.z) == 3) {}
                 else if (sscanf(line, " rot %f %f %f", &ent->rot.x, &ent->rot.y, &ent->rot.z) == 3) {}
-                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, ent->groupName) == 2) { ent->isGrouped = (bool)dummy_int; }
-                else if (sscanf(line, " runtime_active %d", (int*)&ent->runtime_active) == 1) {}
+                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, ent->groupName) == 2) {
+                    ent->isGrouped = (bool)dummy_int;
+                } else {
+                    ent->groupName[0] = '\0';
+                }
+                if (sscanf(line, " runtime_active %d", (int*)&ent->runtime_active) == 1) {}
                 else if (sscanf(line, " runtime_float_a %f", &ent->runtime_float_a) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
@@ -1964,7 +2012,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
-        if (b->isGrouped) fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
+        if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
         if (b->isTrigger) fprintf(file, "  is_trigger 1\n");
@@ -2008,7 +2056,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
                 face->numVertexIndices);
             for (int k = 0; k < face->numVertexIndices; ++k) fprintf(file, " %d", face->vertexIndices[k]);
             fprintf(file, " lightmap_scale %.4f", face->lightmap_scale);
-            if (face->isGrouped) fprintf(file, " is_grouped 1 \"%s\"", face->groupName);
+            if (face->isGrouped && face->groupName[0] != '\0') fprintf(file, " is_grouped 1 \"%s\"", face->groupName);
             fprintf(file, "\n");
         }
         fprintf(file, "brush_end\n\n");
@@ -2020,7 +2068,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
             obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist);
-        if (obj->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", obj->groupName);
+        if (obj->isGrouped && obj->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", obj->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numActiveLights; ++i) {
@@ -2031,26 +2079,26 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius,
             light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
             light->preset, (int)light->is_static, cookiePathStr);
-        if (light->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", light->groupName);
+        if (light->isGrouped && light->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", light->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numDecals; ++i) {
         Decal* d = &scene->decals[i];
         const char* mat_name = d->material ? d->material->name : "___MISSING___";
         fprintf(file, "decal \"%s\" \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f\n", mat_name, d->targetname, d->pos.x, d->pos.y, d->pos.z, d->rot.x, d->rot.y, d->rot.z, d->size.x, d->size.y, d->size.z);
-        if (d->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", d->groupName);
+        if (d->isGrouped && d->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", d->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numParticleEmitters; ++i) {
         ParticleEmitter* emitter = &scene->particleEmitters[i];
         fprintf(file, "particle_emitter \"%s\" \"%s\" %d %.4f %.4f %.4f\n", emitter->parFile, emitter->targetname, (int)emitter->on_by_default, emitter->pos.x, emitter->pos.y, emitter->pos.z);
-        if (emitter->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", emitter->groupName);
+        if (emitter->isGrouped && emitter->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", emitter->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundEntity* s = &scene->soundEntities[i];
         fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start);
-        if (s->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
+        if (s->isGrouped && s->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numVideoPlayers; ++i) {
@@ -2060,7 +2108,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             vp->pos.x, vp->pos.y, vp->pos.z,
             vp->rot.x, vp->rot.y, vp->rot.z,
             vp->size.x, vp->size.y);
-        if (vp->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", vp->groupName);
+        if (vp->isGrouped && vp->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", vp->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numParallaxRooms; ++i) {
@@ -2071,13 +2119,13 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             p->rot.x, p->rot.y, p->rot.z,
             p->size.x, p->size.y,
             p->roomDepth);
-        if (p->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", p->groupName);
+        if (p->isGrouped && p->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", p->groupName);
     }
     for (int i = 0; i < scene->numSprites; ++i) {
         Sprite* s = &scene->sprites[i];
         fprintf(file, "sprite \"%s\" %.4f %.4f %.4f %.4f \"%s\"\n",
             s->targetname, s->pos.x, s->pos.y, s->pos.z, s->scale, s->material ? s->material->name : "___MISSING___");
-        if (s->isGrouped) fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
+        if (s->isGrouped && s->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
     }
     fprintf(file, "\n");
     for (int i = 0; i < scene->numLogicEntities; ++i) {
@@ -2085,7 +2133,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "logic_entity_begin\n");
         fprintf(file, "  classname \"%s\"\n", ent->classname);
         fprintf(file, "  targetname \"%s\"\n", ent->targetname);
-        if (ent->isGrouped) fprintf(file, "  is_grouped 1 \"%s\"\n", ent->groupName);
+        if (ent->isGrouped && ent->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", ent->groupName);
         fprintf(file, "  pos %.4f %.4f %.4f\n", ent->pos.x, ent->pos.y, ent->pos.z);
         fprintf(file, "  rot %.4f %.4f %.4f\n", ent->rot.x, ent->rot.y, ent->rot.z);
         fprintf(file, "  runtime_active %d\n", ent->runtime_active);
