@@ -47,7 +47,7 @@ void GameConfig_Init(void) {
             value = trim(value);
 
             if (_stricmp(key, "startmap") == 0) {
-                strncpy(g_GameConfig.startmap, value, sizeof(g_GameConfig.startmap) - 1);
+                snprintf(g_GameConfig.startmap, sizeof(g_GameConfig.startmap), "maps/%s", value);
             }
             else if (_stricmp(key, "gamename") == 0) {
                 strncpy(g_GameConfig.gamename, value, sizeof(g_GameConfig.gamename) - 1);

@@ -536,7 +536,7 @@ void Cmd_Map(int argc, char** argv) {
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         char map_path[256];
-        snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
+        snprintf(map_path, sizeof(map_path), "maps/%s.map", argv[1]);
         Console_Printf("Loading map: %s", map_path);
         if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
             g_current_mode = MODE_GAME;
@@ -552,7 +552,7 @@ void Cmd_Map(int argc, char** argv) {
 }
 
 void Cmd_Maps(int argc, char** argv) {
-    const char* dir_path = "./";
+    const char* dir_path = "maps/";
     Console_Printf("Available maps in root directory:");
 #ifdef PLATFORM_WINDOWS
     char search_path[256];
