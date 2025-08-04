@@ -730,7 +730,7 @@ static void FreeMapFileList() {
 
 static void ScanMapFiles() {
     FreeMapFileList();
-    const char* dir_path = "maps/";
+    const char* dir_path = "./";
 #ifdef PLATFORM_WINDOWS
     char search_path[256];
     sprintf(search_path, "%s*.map", dir_path);
@@ -1412,7 +1412,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
         strcpy(g_EditorState.currentMapPath, scene->mapPath);
     }
     else {
-        strcpy(g_EditorState.currentMapPath, "maps/untitled.map");
+        strcpy(g_EditorState.currentMapPath, "untitled.map");
     }
     g_EditorState.show_load_map_popup = false;
     g_EditorState.show_save_map_popup = false;
@@ -1474,7 +1474,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_arc_degrees = 180.0f;
     g_EditorState.arch_start_angle_degrees = 0.0f;
     g_EditorState.arch_add_height = 0.0f;
-    _mkdir("maps");
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -3206,7 +3205,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_z) { Undo_PerformUndo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_y) { Undo_PerformRedo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_s) {
-            if (strcmp(g_EditorState.currentMapPath, "maps/untitled.map") == 0) {
+            if (strcmp(g_EditorState.currentMapPath, "untitled.map") == 0) {
                 g_EditorState.show_save_map_popup = true;
             }
             else {
@@ -7537,15 +7536,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
     if (g_EditorState.show_save_map_popup) {
         UI_Begin("Save Map As", &g_EditorState.show_save_map_popup);
-        UI_Text("File will be saved in 'maps/' directory.");
         UI_InputText("Filename", g_EditorState.save_map_path, sizeof(g_EditorState.save_map_path));
         if (UI_Button("Save")) {
-            char final_save_path[256];
-            snprintf(final_save_path, sizeof(final_save_path), "maps/%s", g_EditorState.save_map_path);
-            Scene_SaveMap(scene, NULL, final_save_path);
-            strcpy(g_EditorState.currentMapPath, final_save_path);
+            Scene_SaveMap(scene, NULL, g_EditorState.save_map_path);
+            strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
             Editor_AddRecentFile(g_EditorState.currentMapPath);
-            Console_Printf("Map saved to %s", final_save_path);
+            Console_Printf("Map saved to %s", g_EditorState.currentMapPath);
             g_EditorState.show_save_map_popup = false;
         }
         UI_End();
@@ -7556,7 +7552,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_ListBox("Maps", &g_EditorState.selected_map_file_index, (const char* const*)g_EditorState.map_file_list, g_EditorState.num_map_files, 15);
             if (g_EditorState.selected_map_file_index != -1 && UI_Button("Load Selected Map")) {
                 char path_buffer[256];
-                sprintf(path_buffer, "maps/%s", g_EditorState.map_file_list[g_EditorState.selected_map_file_index]);
+                sprintf(path_buffer, "%s", g_EditorState.map_file_list[g_EditorState.selected_map_file_index]);
                 Scene_LoadMap(scene, renderer, path_buffer, engine);
                 strcpy(g_EditorState.currentMapPath, path_buffer);
                 Undo_Init();
