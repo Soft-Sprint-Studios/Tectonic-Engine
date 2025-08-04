@@ -1388,7 +1388,9 @@ namespace
                 }
             }
 
-            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f) * spotFactor;
+            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+            attenuation /= (dist * dist + 1.0f);
+            attenuation *= spotFactor;
             Vec3 light_color = vec3_muls(light.color, light.intensity);
             Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
             direct_light = vec3_add(direct_light, light_contribution);
