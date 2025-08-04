@@ -156,6 +156,26 @@ Vec4 mat4_mul_vec4(const Mat4* m, Vec4 v) {
     return res;
 }
 
+void mat4_compose(Mat4* result, Vec3 translation, Vec4 rotation, Vec3 scale) {
+    *result = quat_to_mat4(rotation);
+
+    result->m[0] *= scale.x;
+    result->m[1] *= scale.x;
+    result->m[2] *= scale.x;
+
+    result->m[4] *= scale.y;
+    result->m[5] *= scale.y;
+    result->m[6] *= scale.y;
+
+    result->m[8] *= scale.z;
+    result->m[9] *= scale.z;
+    result->m[10] *= scale.z;
+
+    result->m[12] = translation.x;
+    result->m[13] = translation.y;
+    result->m[14] = translation.z;
+}
+
 void mat4_identity(Mat4* m) {
     memset(m->m, 0, sizeof(float) * 16);
     m->m[0] = m->m[5] = m->m[10] = m->m[15] = 1.0f;

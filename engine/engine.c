@@ -3227,9 +3227,10 @@ void evaluate_animation(SceneObject* obj, float time) {
     if (!obj->model || obj->model->num_animations == 0 || obj->current_animation < 0) return;
 
     AnimationClip* clip = &obj->model->animations[obj->current_animation];
-    cgltf_node** nodes = (cgltf_node**)obj->model->nodes;
+    cgltf_node* nodes = (cgltf_node*)obj->model->nodes;
     cgltf_size num_nodes = obj->model->num_nodes;
     Skin* skin = (obj->model->num_skins > 0) ? &obj->model->skins[0] : NULL;
+
     if (!skin) return;
 
     if (!obj->bone_matrices) {
@@ -3241,17 +3242,11 @@ void evaluate_animation(SceneObject* obj, float time) {
     if (!local_transforms) return;
 
     for (size_t i = 0; i < num_nodes; ++i) {
-        cgltf_node* node = nodes[i];
+        cgltf_node* node = &nodes[i];
         Vec3 t = { node->translation[0], node->translation[1], node->translation[2] };
         Vec4 r = { node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] };
         Vec3 s = { node->scale[0], node->scale[1], node->scale[2] };
-
-        Mat4 trans_mat = mat4_translate(t);
-        Mat4 rot_mat = quat_to_mat4(r);
-        Mat4 scale_mat = mat4_scale(s);
-
-        mat4_multiply(&local_transforms[i], &trans_mat, &rot_mat);
-        mat4_multiply(&local_transforms[i], &local_transforms[i], &scale_mat);
+        mat4_compose(&local_transforms[i], t, r, s);
     }
 
     for (int i = 0; i < clip->num_channels; ++i) {
@@ -3268,26 +3263,24 @@ void evaluate_animation(SceneObject* obj, float time) {
                 break;
             }
         }
-        if (frame_idx >= sampler->num_keyframes - 1) frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
+        if (frame_idx >= sampler->num_keyframes - 1) {
+            frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
+        }
 
         float t0 = sampler->timestamps[frame_idx];
         float t1 = sampler->timestamps[frame_idx + 1];
         float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
 
-        Vec3 final_t = { nodes[joint_index]->translation[0], nodes[joint_index]->translation[1], nodes[joint_index]->translation[2] };
-        Vec4 final_r = { nodes[joint_index]->rotation[0], nodes[joint_index]->rotation[1], nodes[joint_index]->rotation[2], nodes[joint_index]->rotation[3] };
-        Vec3 final_s = { nodes[joint_index]->scale[0], nodes[joint_index]->scale[1], nodes[joint_index]->scale[2] };
+        cgltf_node* node = &nodes[joint_index];
+        Vec3 final_t = { node->translation[0], node->translation[1], node->translation[2] };
+        Vec4 final_r = { node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] };
+        Vec3 final_s = { node->scale[0], node->scale[1], node->scale[2] };
 
         if (sampler->translations) final_t = vec3_lerp(sampler->translations[frame_idx], sampler->translations[frame_idx + 1], factor);
         if (sampler->rotations) final_r = quat_slerp(sampler->rotations[frame_idx], sampler->rotations[frame_idx + 1], factor);
         if (sampler->scales) final_s = vec3_lerp(sampler->scales[frame_idx], sampler->scales[frame_idx + 1], factor);
 
-        Mat4 trans_mat = mat4_translate(final_t);
-        Mat4 rot_mat = quat_to_mat4(final_r);
-        Mat4 scale_mat = mat4_scale(final_s);
-
-        mat4_multiply(&local_transforms[joint_index], &trans_mat, &rot_mat);
-        mat4_multiply(&local_transforms[joint_index], &local_transforms[joint_index], &scale_mat);
+        mat4_compose(&local_transforms[joint_index], final_t, final_r, final_s);
     }
 
     Mat4* global_transforms = (Mat4*)malloc(sizeof(Mat4) * num_nodes);
@@ -3297,7 +3290,7 @@ void evaluate_animation(SceneObject* obj, float time) {
     }
 
     for (size_t i = 0; i < num_nodes; ++i) {
-        cgltf_node* node = nodes[i];
+        cgltf_node* node = &nodes[i];
         if (node->parent) {
             int parent_idx = node->parent - nodes;
             mat4_multiply(&global_transforms[i], &global_transforms[parent_idx], &local_transforms[i]);
@@ -3309,8 +3302,10 @@ void evaluate_animation(SceneObject* obj, float time) {
 
     for (int i = 0; i < skin->num_joints; ++i) {
         int joint_node_idx = skin->joints[i].joint_index;
-        Mat4 inv_bind = skin->joints[i].inverse_bind_matrix;
-        mat4_multiply(&obj->bone_matrices[i], &global_transforms[joint_node_idx], &inv_bind);
+        if (joint_node_idx >= 0 && joint_node_idx < num_nodes) {
+            Mat4 inv_bind = skin->joints[i].inverse_bind_matrix;
+            mat4_multiply(&obj->bone_matrices[i], &global_transforms[joint_node_idx], &inv_bind);
+        }
     }
 
     free(local_transforms);
@@ -3322,17 +3317,26 @@ static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
         SceneObject* obj = &scene->objects[i];
 
         if (!obj->model || obj->model->num_animations == 0) {
+            mat4_identity(&obj->animated_local_transform);
             continue;
         }
 
-        if (obj->animated_local_transform.m[0] == 0.0f) {
+        if (obj->current_animation == -1) {
+            obj->animation_playing = false;
+            obj->animation_looping = true;
+            obj->animation_time = 0.0f;
             mat4_identity(&obj->animated_local_transform);
+            obj->current_animation = 0;
         }
 
         mat4_identity(&obj->animated_local_transform);
 
-        if (obj->animation_playing && obj->current_animation != -1) {
+        if (obj->animation_playing) {
             AnimationClip* clip = &obj->model->animations[obj->current_animation];
+
+            if (clip->duration <= 0.0f) {
+                continue;
+            }
 
             obj->animation_time += deltaTime;
             if (obj->animation_time > clip->duration) {
@@ -3383,6 +3387,16 @@ static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
 
                 mat4_multiply(&obj->animated_local_transform, &trans_mat, &rot_mat);
                 mat4_multiply(&obj->animated_local_transform, &obj->animated_local_transform, &scale_mat);
+            }
+        }
+        else if (obj->model->num_skins > 0) {
+            if (!obj->bone_matrices) {
+                obj->bone_matrices = malloc(sizeof(Mat4) * obj->model->skins[0].num_joints);
+            }
+            if (obj->bone_matrices) {
+                for (int j = 0; j < obj->model->skins[0].num_joints; ++j) {
+                    mat4_identity(&obj->bone_matrices[j]);
+                }
             }
         }
     }

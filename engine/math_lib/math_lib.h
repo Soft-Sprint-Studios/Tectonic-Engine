@@ -72,6 +72,7 @@ extern "C" {
 	MATH_API Vec3 vec3_lerp(Vec3 a, Vec3 b, float t);
 	MATH_API Vec3 mat4_mul_vec3_dir(const Mat4* m, Vec3 v);
 	MATH_API Vec4 mat4_mul_vec4(const Mat4* m, Vec4 v);
+	MATH_API void mat4_compose(Mat4* result, Vec3 translation, Vec4 rotation, Vec3 scale);
 	MATH_API void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale);
 	MATH_API Mat4 create_trs_matrix(Vec3 pos, Vec3 rot_deg, Vec3 scale);
 	MATH_API bool RayIntersectsOBB(Vec3 rayOrigin, Vec3 rayDir, const Mat4* modelMatrix, Vec3 localAABBMin, Vec3 localAABBMax, float* t);
