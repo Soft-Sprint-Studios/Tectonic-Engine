@@ -1725,6 +1725,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             newObj->current_animation = -1;
             newObj->animation_time = 0.0f;
             newObj->bone_matrices = NULL;
+            mat4_identity(&newObj->animated_local_transform);
             long current_pos = ftell(file); char next_line[256];
             if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, newObj->groupName); newObj->isGrouped = (bool)grouped_int; }
             else { fseek(file, current_pos, SEEK_SET); }

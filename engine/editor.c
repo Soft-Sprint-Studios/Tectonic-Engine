@@ -796,6 +796,8 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     memcpy(new_obj, src_obj, sizeof(SceneObject));
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
     new_obj->bone_matrices = NULL;
+    mat4_identity(&new_obj->animated_local_transform);
+    new_obj->bone_matrices = NULL;
     new_obj->physicsBody = NULL;
     new_obj->pos.x += 1.0f;
     SceneObject_UpdateMatrix(new_obj);
@@ -3752,6 +3754,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                             memset(newObj, 0, sizeof(SceneObject));
 
+                            mat4_identity(&newObj->animated_local_transform);
+
                             strncpy(newObj->modelPath, g_EditorState.sprinkle_model_path, sizeof(newObj->modelPath) - 1);
                             newObj->pos = final_pos;
                             float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
@@ -5071,6 +5075,8 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* re
                             scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                             memset(newObj, 0, sizeof(SceneObject));
+
+                            mat4_identity(&newObj->animated_local_transform);
 
                             char full_model_path[256];
                             sprintf(full_model_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
