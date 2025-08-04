@@ -25,6 +25,59 @@
 #include "math_lib.h"
 #include <float.h>
 
+Vec3 vec3_lerp(Vec3 a, Vec3 b, float t) {
+    return (Vec3) { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t };
+}
+
+Vec4 quat_slerp(Vec4 q1, Vec4 q2, float t) {
+    float dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
+
+    if (dot < 0.0f) {
+        q2.x = -q2.x; q2.y = -q2.y; q2.z = -q2.z; q2.w = -q2.w;
+        dot = -dot;
+    }
+
+    if (dot > 0.9995f) {
+        Vec4 result = {
+            q1.x + t * (q2.x - q1.x),
+            q1.y + t * (q2.y - q1.y),
+            q1.z + t * (q2.z - q1.z),
+            q1.w + t * (q2.w - q1.w)
+        };
+        float len = sqrtf(result.x * result.x + result.y * result.y + result.z * result.z + result.w * result.w);
+        result.x /= len; result.y /= len; result.z /= len; result.w /= len;
+        return result;
+    }
+
+    float theta_0 = acosf(dot);
+    float theta = theta_0 * t;
+    float sin_theta = sinf(theta);
+    float sin_theta_0 = sinf(theta_0);
+
+    float s1 = cosf(theta) - dot * sin_theta / sin_theta_0;
+    float s2 = sin_theta / sin_theta_0;
+
+    return (Vec4) {
+        (q1.x * s1) + (q2.x * s2),
+            (q1.y * s1) + (q2.y * s2),
+            (q1.z * s1) + (q2.z * s2),
+            (q1.w * s1) + (q2.w * s2)
+    };
+}
+
+Mat4 quat_to_mat4(Vec4 q) {
+    Mat4 m;
+    float xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
+    float xy = q.x * q.y, xz = q.x * q.z, yz = q.y * q.z;
+    float wx = q.w * q.x, wy = q.w * q.y, wz = q.w * q.z;
+
+    m.m[0] = 1 - 2 * (yy + zz); m.m[4] = 2 * (xy - wz);     m.m[8] = 2 * (xz + wy);      m.m[12] = 0;
+    m.m[1] = 2 * (xy + wz);     m.m[5] = 1 - 2 * (xx + zz); m.m[9] = 2 * (yz - wx);      m.m[13] = 0;
+    m.m[2] = 2 * (xz - wy);     m.m[6] = 2 * (yz + wx);     m.m[10] = 1 - 2 * (xx + yy); m.m[14] = 0;
+    m.m[3] = 0;                 m.m[7] = 0;                 m.m[11] = 0;                 m.m[15] = 1;
+    return m;
+}
+
 Vec3 vec3_add(Vec3 a, Vec3 b) {
     return (Vec3) { a.x + b.x, a.y + b.y, a.z + b.z };
 }

@@ -53,6 +53,7 @@
 #include "video_player.h" 
 #include "lightmapper.h"
 #include "engine_api.h"
+#include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
@@ -96,6 +97,8 @@ static int g_lockFileFd = -1;
 
 static void init_renderer(void);
 static void init_scene(void);
+
+static void Scene_UpdateAnimations(Scene* scene, float deltaTime);
 
 typedef enum { MODE_GAME, MODE_EDITOR, MODE_MAINMENU, MODE_INGAMEMENU } EngineMode;
 
@@ -245,10 +248,23 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
 
+    if (shader == g_renderer.mainShader) {
+        bool is_skinnable = obj->model && obj->model->num_skins > 0;
+        glUniform1i(glGetUniformLocation(shader, "u_hasAnimation"), is_skinnable);
+        if (is_skinnable && obj->bone_matrices) {
+            glUniformMatrix4fv(glGetUniformLocation(shader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
+        }
+    }
+
     glUniform1f(glGetUniformLocation(shader, "u_fadeStartDist"), obj->fadeStartDist);
     glUniform1f(glGetUniformLocation(shader, "u_fadeEndDist"), obj->fadeEndDist);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+    Mat4 finalModelMatrix = obj->modelMatrix;
+    if (obj->model && obj->model->num_animations > 0 && obj->model->num_skins == 0) {
+        mat4_multiply(&finalModelMatrix, &obj->modelMatrix, &obj->animated_local_transform);
+    }
+    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, finalModelMatrix.m);
+
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), obj->swayEnabled);
     if (obj->model) {
         if (obj->bakedVertexColors || obj->bakedVertexDirections) {
@@ -1593,6 +1609,7 @@ void update_state() {
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
     LogicSystem_Update(&g_scene, g_engine->deltaTime);
+    Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
     Weapons_Update(g_engine->deltaTime);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
@@ -3204,6 +3221,171 @@ void BuildCubemaps(int resolution) {
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     Console_Printf("Cubemap build finished.");
+}
+
+void evaluate_animation(SceneObject* obj, float time) {
+    if (!obj->model || obj->model->num_animations == 0 || obj->current_animation < 0) return;
+
+    AnimationClip* clip = &obj->model->animations[obj->current_animation];
+    cgltf_node** nodes = (cgltf_node**)obj->model->nodes;
+    cgltf_size num_nodes = obj->model->num_nodes;
+    Skin* skin = (obj->model->num_skins > 0) ? &obj->model->skins[0] : NULL;
+    if (!skin) return;
+
+    if (!obj->bone_matrices) {
+        obj->bone_matrices = malloc(sizeof(Mat4) * skin->num_joints);
+        if (!obj->bone_matrices) return;
+    }
+
+    Mat4* local_transforms = (Mat4*)malloc(sizeof(Mat4) * num_nodes);
+    if (!local_transforms) return;
+
+    for (size_t i = 0; i < num_nodes; ++i) {
+        cgltf_node* node = nodes[i];
+        Vec3 t = { node->translation[0], node->translation[1], node->translation[2] };
+        Vec4 r = { node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] };
+        Vec3 s = { node->scale[0], node->scale[1], node->scale[2] };
+
+        Mat4 trans_mat = mat4_translate(t);
+        Mat4 rot_mat = quat_to_mat4(r);
+        Mat4 scale_mat = mat4_scale(s);
+
+        mat4_multiply(&local_transforms[i], &trans_mat, &rot_mat);
+        mat4_multiply(&local_transforms[i], &local_transforms[i], &scale_mat);
+    }
+
+    for (int i = 0; i < clip->num_channels; ++i) {
+        AnimationChannel* channel = &clip->channels[i];
+        AnimationSampler* sampler = &channel->sampler;
+        int joint_index = channel->target_joint;
+
+        if (joint_index < 0 || joint_index >= num_nodes) continue;
+
+        size_t frame_idx = 0;
+        for (size_t k = 0; k < sampler->num_keyframes - 1; ++k) {
+            if (time >= sampler->timestamps[k] && time <= sampler->timestamps[k + 1]) {
+                frame_idx = k;
+                break;
+            }
+        }
+        if (frame_idx >= sampler->num_keyframes - 1) frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
+
+        float t0 = sampler->timestamps[frame_idx];
+        float t1 = sampler->timestamps[frame_idx + 1];
+        float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
+
+        Vec3 final_t = { nodes[joint_index]->translation[0], nodes[joint_index]->translation[1], nodes[joint_index]->translation[2] };
+        Vec4 final_r = { nodes[joint_index]->rotation[0], nodes[joint_index]->rotation[1], nodes[joint_index]->rotation[2], nodes[joint_index]->rotation[3] };
+        Vec3 final_s = { nodes[joint_index]->scale[0], nodes[joint_index]->scale[1], nodes[joint_index]->scale[2] };
+
+        if (sampler->translations) final_t = vec3_lerp(sampler->translations[frame_idx], sampler->translations[frame_idx + 1], factor);
+        if (sampler->rotations) final_r = quat_slerp(sampler->rotations[frame_idx], sampler->rotations[frame_idx + 1], factor);
+        if (sampler->scales) final_s = vec3_lerp(sampler->scales[frame_idx], sampler->scales[frame_idx + 1], factor);
+
+        Mat4 trans_mat = mat4_translate(final_t);
+        Mat4 rot_mat = quat_to_mat4(final_r);
+        Mat4 scale_mat = mat4_scale(final_s);
+
+        mat4_multiply(&local_transforms[joint_index], &trans_mat, &rot_mat);
+        mat4_multiply(&local_transforms[joint_index], &local_transforms[joint_index], &scale_mat);
+    }
+
+    Mat4* global_transforms = (Mat4*)malloc(sizeof(Mat4) * num_nodes);
+    if (!global_transforms) {
+        free(local_transforms);
+        return;
+    }
+
+    for (size_t i = 0; i < num_nodes; ++i) {
+        cgltf_node* node = nodes[i];
+        if (node->parent) {
+            int parent_idx = node->parent - nodes;
+            mat4_multiply(&global_transforms[i], &global_transforms[parent_idx], &local_transforms[i]);
+        }
+        else {
+            global_transforms[i] = local_transforms[i];
+        }
+    }
+
+    for (int i = 0; i < skin->num_joints; ++i) {
+        int joint_node_idx = skin->joints[i].joint_index;
+        Mat4 inv_bind = skin->joints[i].inverse_bind_matrix;
+        mat4_multiply(&obj->bone_matrices[i], &global_transforms[joint_node_idx], &inv_bind);
+    }
+
+    free(local_transforms);
+    free(global_transforms);
+}
+
+static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
+    for (int i = 0; i < scene->numObjects; ++i) {
+        SceneObject* obj = &scene->objects[i];
+
+        if (!obj->model || obj->model->num_animations == 0) {
+            continue;
+        }
+
+        if (obj->animated_local_transform.m[0] == 0.0f) {
+            mat4_identity(&obj->animated_local_transform);
+        }
+
+        mat4_identity(&obj->animated_local_transform);
+
+        if (obj->animation_playing && obj->current_animation != -1) {
+            AnimationClip* clip = &obj->model->animations[obj->current_animation];
+
+            obj->animation_time += deltaTime;
+            if (obj->animation_time > clip->duration) {
+                if (obj->animation_looping) {
+                    obj->animation_time = fmod(obj->animation_time, clip->duration);
+                }
+                else {
+                    obj->animation_time = clip->duration;
+                    obj->animation_playing = false;
+                }
+            }
+
+            if (obj->model->num_skins > 0) {
+                evaluate_animation(obj, obj->animation_time);
+            }
+            else {
+                cgltf_node* target_node = &((cgltf_node*)obj->model->nodes)[0];
+
+                Vec3 anim_t = { target_node->translation[0], target_node->translation[1], target_node->translation[2] };
+                Vec4 anim_r = { target_node->rotation[0], target_node->rotation[1], target_node->rotation[2], target_node->rotation[3] };
+                Vec3 anim_s = { target_node->scale[0], target_node->scale[1], target_node->scale[2] };
+
+                for (int c = 0; c < clip->num_channels; ++c) {
+                    AnimationChannel* channel = &clip->channels[c];
+                    AnimationSampler* sampler = &channel->sampler;
+
+                    size_t frame_idx = 0;
+                    for (size_t k = 0; k < sampler->num_keyframes - 1; ++k) {
+                        if (obj->animation_time >= sampler->timestamps[k] && obj->animation_time <= sampler->timestamps[k + 1]) {
+                            frame_idx = k;
+                            break;
+                        }
+                    }
+                    if (frame_idx >= sampler->num_keyframes - 1) frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
+
+                    float t0 = sampler->timestamps[frame_idx];
+                    float t1 = sampler->timestamps[frame_idx + 1];
+                    float factor = (t1 > t0) ? (obj->animation_time - t0) / (t1 - t0) : 0.0f;
+
+                    if (sampler->translations) anim_t = vec3_lerp(sampler->translations[frame_idx], sampler->translations[frame_idx + 1], factor);
+                    if (sampler->rotations) anim_r = quat_slerp(sampler->rotations[frame_idx], sampler->rotations[frame_idx + 1], factor);
+                    if (sampler->scales) anim_s = vec3_lerp(sampler->scales[frame_idx], sampler->scales[frame_idx + 1], factor);
+                }
+
+                Mat4 trans_mat = mat4_translate(anim_t);
+                Mat4 rot_mat = quat_to_mat4(anim_r);
+                Mat4 scale_mat = mat4_scale(anim_s);
+
+                mat4_multiply(&obj->animated_local_transform, &trans_mat, &rot_mat);
+                mat4_multiply(&obj->animated_local_transform, &obj->animated_local_transform, &scale_mat);
+            }
+        }
+    }
 }
 
 static void render_debug_buffer(GLuint textureID, int viewMode) {

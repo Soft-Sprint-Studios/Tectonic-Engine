@@ -39,9 +39,49 @@
 extern "C" {
 #endif
 
+#define MAX_BONES_PER_VERTEX 4
+#define MAX_BONES_PER_MODEL 128
+
+    typedef struct {
+        float* timestamps;
+        Vec3* translations;
+        Vec4* rotations;
+        Vec3* scales;
+        size_t num_keyframes;
+    } AnimationSampler;
+
+    typedef struct {
+        int target_joint;
+        AnimationSampler sampler;
+    } AnimationChannel;
+
+    typedef struct {
+        char name[64];
+        float duration;
+        AnimationChannel* channels;
+        int num_channels;
+    } AnimationClip;
+
+    typedef struct {
+        int joint_index;
+        Mat4 inverse_bind_matrix;
+    } SkinJoint;
+
+    typedef struct {
+        char name[64];
+        SkinJoint* joints;
+        int num_joints;
+    } Skin;
+
+    typedef struct {
+        int bone_indices[MAX_BONES_PER_VERTEX];
+        float bone_weights[MAX_BONES_PER_VERTEX];
+    } SkinningVertexData;
+
     typedef struct {
         GLuint VAO;
         GLuint VBO;
+        GLuint skinningVBO;
         GLuint EBO;
         int indexCount;
         bool useEBO;
@@ -64,6 +104,12 @@ extern "C" {
         unsigned int* combinedIndexData;
         unsigned int totalVertexCount;
         unsigned int totalIndexCount;
+        AnimationClip* animations;
+        int num_animations;
+        Skin* skins;
+        int num_skins;
+        void* nodes;
+        size_t num_nodes;
     } LoadedModel;
 
     MODELS_API LoadedModel* Model_Load(const char* path);

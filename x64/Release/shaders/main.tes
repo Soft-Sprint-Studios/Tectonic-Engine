@@ -12,6 +12,8 @@ in TCS_OUT {
     mat3 tbn;
     vec4 color;
 	vec4 color2;
+	ivec4 boneIndices;
+    vec4 boneWeights;
     flat int isBrush;
 } tes_in[];
 

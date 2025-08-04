@@ -1720,11 +1720,19 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             int phys_enabled_int; int sway_enabled_int = 0;
             sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z, &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z, &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist);
             newObj->swayEnabled = (bool)sway_enabled_int; newObj->isPhysicsEnabled = (bool)phys_enabled_int;
+            newObj->animation_playing = false;
+            newObj->animation_looping = true;
+            newObj->current_animation = -1;
+            newObj->animation_time = 0.0f;
+            newObj->bone_matrices = NULL;
             long current_pos = ftell(file); char next_line[256];
             if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) { int grouped_int; sscanf(next_line, " is_grouped %d \"%63[^\"]\"", &grouped_int, newObj->groupName); newObj->isGrouped = (bool)grouped_int; }
             else { fseek(file, current_pos, SEEK_SET); }
             SceneObject_UpdateMatrix(newObj);
             newObj->model = Model_Load(newObj->modelPath);
+            if (newObj->model && newObj->model->num_animations > 0) {
+                newObj->current_animation = 0;
+            }
             SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
             SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
             if (!newObj->model) { scene->numObjects--; continue; }

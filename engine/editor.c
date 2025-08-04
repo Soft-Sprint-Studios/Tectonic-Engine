@@ -128,6 +128,9 @@ typedef struct {
     ModelBrowserEntry* model_browser_entries;
     int num_model_files;
     int selected_model_file_index;
+    int preview_animation_index;
+    float preview_animation_time;
+    bool preview_animation_playing;
     bool is_manipulating_gizmo;
     GLuint model_thumb_fbo, model_thumb_texture, model_thumb_rbo;
     GLuint gizmo_shader;
@@ -277,7 +280,7 @@ static const int g_num_logic_compare_inputs = sizeof(g_logic_compare_inputs) / s
 static const char* g_logic_compare_outputs[] = { "OnLessThan", "OnEqualTo", "OnNotEqualTo", "OnGreaterThan" };
 static const int g_num_logic_compare_outputs = sizeof(g_logic_compare_outputs) / sizeof(g_logic_compare_outputs[0]);
 
-static const char* g_model_inputs[] = { "EnablePhysics", "DisablePhysics" };
+static const char* g_model_inputs[] = { "EnablePhysics", "DisablePhysics", "PlayAnimation"};
 static const int g_num_model_inputs = sizeof(g_model_inputs) / sizeof(g_model_inputs[0]);
 
 static const char* g_brush_trigger_inputs[] = { "Enable", "Disable", "Toggle" };
@@ -792,6 +795,7 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     SceneObject* new_obj = &scene->objects[scene->numObjects - 1];
     memcpy(new_obj, src_obj, sizeof(SceneObject));
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
+    new_obj->bone_matrices = NULL;
     new_obj->physicsBody = NULL;
     new_obj->pos.x += 1.0f;
     SceneObject_UpdateMatrix(new_obj);
@@ -1397,6 +1401,9 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.grid_shader = createShaderProgram("shaders/grid.vert", "shaders/grid.frag");
     Undo_Init();
     g_EditorState.initialized = true;
+    g_EditorState.preview_animation_index = -1;
+    g_EditorState.preview_animation_time = 0.0f;
+    g_EditorState.preview_animation_playing = false;
     g_EditorState.is_clipping = false;
     g_EditorState.clip_point_count = 0;
     if (strlen(scene->mapPath) > 0) {
@@ -3512,6 +3519,21 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (state[SDL_SCANCODE_A]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(right, speed));
         if (state[SDL_SCANCODE_E]) g_EditorState.editor_camera.position.y += speed;
         if (state[SDL_SCANCODE_Q]) g_EditorState.editor_camera.position.y -= speed;
+    }
+
+    EditorSelection* primary_sel = Editor_GetPrimarySelection();
+    if (primary_sel && primary_sel->type == ENTITY_MODEL) {
+        SceneObject* obj = &scene->objects[primary_sel->index];
+        if (g_EditorState.preview_animation_playing && g_EditorState.preview_animation_index != -1) {
+            g_EditorState.preview_animation_time += engine->deltaTime;
+            AnimationClip* clip = &obj->model->animations[g_EditorState.preview_animation_index];
+            if (g_EditorState.preview_animation_time > clip->duration) {
+                g_EditorState.preview_animation_time = fmod(g_EditorState.preview_animation_time, clip->duration);
+            }
+        }
+        if (obj->model && obj->model->num_animations > 0 && g_EditorState.preview_animation_index != -1) {
+            evaluate_animation(obj, g_EditorState.preview_animation_time);
+        }
     }
 
     for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
@@ -6845,6 +6867,39 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat("Fade End", &obj->fadeEndDist, 1.0f, 0.0f, 1000.0f);
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Edit Fade Distance"); }
+
+        if (obj->model && obj->model->num_animations > 0) {
+            UI_Separator();
+            if (UI_CollapsingHeader("Animation", 1)) {
+                const char** anim_names = malloc(obj->model->num_animations * sizeof(const char*));
+                if (anim_names) {
+                    for (int i = 0; i < obj->model->num_animations; ++i) {
+                        anim_names[i] = obj->model->animations[i].name;
+                    }
+                    if (UI_Combo("Clip", &g_EditorState.preview_animation_index, anim_names, obj->model->num_animations, -1)) {
+                        g_EditorState.preview_animation_time = 0.0f;
+                        g_EditorState.preview_animation_playing = false;
+                    }
+                    free(anim_names);
+                }
+
+                if (g_EditorState.preview_animation_index != -1) {
+                    AnimationClip* clip = &obj->model->animations[g_EditorState.preview_animation_index];
+                    if (g_EditorState.preview_animation_playing) {
+                        if (UI_Button("Pause")) { g_EditorState.preview_animation_playing = false; }
+                    }
+                    else {
+                        if (UI_Button("Play")) { g_EditorState.preview_animation_playing = true; }
+                    }
+                    UI_SameLine();
+                    if (UI_Button("Stop")) {
+                        g_EditorState.preview_animation_playing = false;
+                        g_EditorState.preview_animation_time = 0.0f;
+                    }
+                    UI_DragFloat("Time", &g_EditorState.preview_animation_time, 0.01f, 0.0f, clip->duration);
+                }
+            }
+        }
     }
     else if (primary && primary->type == ENTITY_BRUSH) {
         Brush* b = &scene->brushes[primary->index];

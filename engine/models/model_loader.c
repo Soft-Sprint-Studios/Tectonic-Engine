@@ -212,6 +212,68 @@ LoadedModel* Model_Load(const char* path) {
     }
     memset(loadedModel, 0, sizeof(LoadedModel));
 
+    loadedModel->nodes = (void*)data->nodes;
+    loadedModel->num_nodes = data->nodes_count;
+
+    if (data->skins_count > 0) {
+        loadedModel->num_skins = data->skins_count;
+        loadedModel->skins = calloc(loadedModel->num_skins, sizeof(Skin));
+        for (size_t s = 0; s < data->skins_count; ++s) {
+            cgltf_skin* skin_data = &data->skins[s];
+            Skin* skin = &loadedModel->skins[s];
+            strncpy(skin->name, skin_data->name ? skin_data->name : "", sizeof(skin->name) - 1);
+            skin->num_joints = skin_data->joints_count;
+            skin->joints = calloc(skin->num_joints, sizeof(SkinJoint));
+
+            for (size_t j = 0; j < skin_data->joints_count; ++j) {
+                skin->joints[j].joint_index = skin_data->joints[j] - data->nodes;
+                cgltf_accessor_read_float(skin_data->inverse_bind_matrices, j, skin->joints[j].inverse_bind_matrix.m, 16);
+            }
+        }
+    }
+
+    if (data->animations_count > 0) {
+        loadedModel->num_animations = data->animations_count;
+        loadedModel->animations = calloc(loadedModel->num_animations, sizeof(AnimationClip));
+        for (size_t a = 0; a < data->animations_count; ++a) {
+            cgltf_animation* anim_data = &data->animations[a];
+            AnimationClip* clip = &loadedModel->animations[a];
+            strncpy(clip->name, anim_data->name ? anim_data->name : "", sizeof(clip->name) - 1);
+            clip->num_channels = anim_data->channels_count;
+            clip->channels = calloc(clip->num_channels, sizeof(AnimationChannel));
+            clip->duration = 0.0f;
+
+            for (size_t c = 0; c < anim_data->channels_count; ++c) {
+                cgltf_animation_channel* chan_data = &anim_data->channels[c];
+                AnimationChannel* channel = &clip->channels[c];
+                channel->target_joint = chan_data->target_node - data->nodes;
+
+                cgltf_animation_sampler* sampler_data = chan_data->sampler;
+                channel->sampler.num_keyframes = sampler_data->input->count;
+
+                channel->sampler.timestamps = malloc(channel->sampler.num_keyframes * sizeof(float));
+                cgltf_accessor_unpack_floats(sampler_data->input, channel->sampler.timestamps, channel->sampler.num_keyframes);
+
+                if (clip->duration < channel->sampler.timestamps[channel->sampler.num_keyframes - 1]) {
+                    clip->duration = channel->sampler.timestamps[channel->sampler.num_keyframes - 1];
+                }
+
+                if (chan_data->target_path == cgltf_animation_path_type_translation) {
+                    channel->sampler.translations = malloc(channel->sampler.num_keyframes * sizeof(Vec3));
+                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.translations, channel->sampler.num_keyframes * 3);
+                }
+                else if (chan_data->target_path == cgltf_animation_path_type_rotation) {
+                    channel->sampler.rotations = malloc(channel->sampler.num_keyframes * sizeof(Vec4));
+                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.rotations, channel->sampler.num_keyframes * 4);
+                }
+                else if (chan_data->target_path == cgltf_animation_path_type_scale) {
+                    channel->sampler.scales = malloc(channel->sampler.num_keyframes * sizeof(Vec3));
+                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.scales, channel->sampler.num_keyframes * 3);
+                }
+            }
+        }
+    }
+
     loadedModel->aabb_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
     loadedModel->aabb_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
     loadedModel->meshCount = 0;
@@ -237,6 +299,8 @@ LoadedModel* Model_Load(const char* path) {
             newMesh->material = (primitive->material && primitive->material->name) ? TextureManager_FindMaterial(primitive->material->name) : &g_MissingMaterial;
 
             float* positions = NULL, * normals = NULL, * texcoords = NULL, * tangents = NULL;
+            cgltf_accessor* joints_accessor = NULL;
+            cgltf_accessor* weights_accessor = NULL;
             cgltf_size vertexCount = 0;
 
             if (primitive->attributes_count == 0) {
@@ -270,6 +334,12 @@ LoadedModel* Model_Load(const char* path) {
                     tangents = malloc(vertexCount * 4 * sizeof(float));
                     cgltf_accessor_unpack_floats(attr->data, tangents, vertexCount * 4);
                 }
+                else if (attr->type == cgltf_attribute_type_joints) {
+                    joints_accessor = attr->data;
+                }
+                else if (attr->type == cgltf_attribute_type_weights) {
+                    weights_accessor = attr->data;
+                }
             }
 
             newMesh->vertexCount = (unsigned int)vertexCount;
@@ -284,6 +354,20 @@ LoadedModel* Model_Load(const char* path) {
             if (!normals) normals = calloc(vertexCount * 3, sizeof(float));
             if (!texcoords) texcoords = calloc(vertexCount * 2, sizeof(float));
             if (!tangents) tangents = calloc(vertexCount * 4, sizeof(float));
+
+            SkinningVertexData* skinning_data = NULL;
+            if (joints_accessor && weights_accessor) {
+                skinning_data = calloc(vertexCount, sizeof(SkinningVertexData));
+                for (cgltf_size v = 0; v < vertexCount; v++) {
+                    cgltf_uint joint_indices_u16[4] = { 0 };
+                    cgltf_accessor_read_uint(joints_accessor, v, joint_indices_u16, 4);
+                    skinning_data[v].bone_indices[0] = (int)joint_indices_u16[0];
+                    skinning_data[v].bone_indices[1] = (int)joint_indices_u16[1];
+                    skinning_data[v].bone_indices[2] = (int)joint_indices_u16[2];
+                    skinning_data[v].bone_indices[3] = (int)joint_indices_u16[3];
+                    cgltf_accessor_read_float(weights_accessor, v, skinning_data[v].bone_weights, 4);
+                }
+            }
 
             newMesh->final_vbo_data_size = vertexCount * MODEL_VERTEX_STRIDE_FLOATS * sizeof(float);
             newMesh->final_vbo_data = malloc(newMesh->final_vbo_data_size);
@@ -333,6 +417,9 @@ LoadedModel* Model_Load(const char* path) {
 
             glGenVertexArrays(1, &newMesh->VAO);
             glGenBuffers(1, &newMesh->VBO);
+            if (skinning_data) {
+                glGenBuffers(1, &newMesh->skinningVBO);
+            }
             if (newMesh->useEBO) {
                 glGenBuffers(1, &newMesh->EBO);
             }
@@ -340,6 +427,10 @@ LoadedModel* Model_Load(const char* path) {
             glBindVertexArray(newMesh->VAO);
             glBindBuffer(GL_ARRAY_BUFFER, newMesh->VBO);
             glBufferData(GL_ARRAY_BUFFER, newMesh->final_vbo_data_size, newMesh->final_vbo_data, GL_DYNAMIC_DRAW);
+            if (skinning_data) {
+                glBindBuffer(GL_ARRAY_BUFFER, newMesh->skinningVBO);
+                glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(SkinningVertexData), skinning_data, GL_STATIC_DRAW);
+            }
 
             if (newMesh->useEBO) {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newMesh->EBO);
@@ -364,6 +455,14 @@ LoadedModel* Model_Load(const char* path) {
             offset += 4 * sizeof(float);
             glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
             glEnableVertexAttribArray(9);
+            if (skinning_data) {
+                glBindBuffer(GL_ARRAY_BUFFER, newMesh->skinningVBO);
+                glEnableVertexAttribArray(10);
+                glVertexAttribIPointer(10, 4, GL_INT, sizeof(SkinningVertexData), (void*)offsetof(SkinningVertexData, bone_indices));
+                glEnableVertexAttribArray(11);
+                glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(SkinningVertexData), (void*)offsetof(SkinningVertexData, bone_weights));
+                free(skinning_data);
+            }
 
             currentMeshIndex++;
         }
@@ -379,9 +478,30 @@ void Model_Free(LoadedModel* model) {
     if (!model || model == g_ErrorModel) {
         return;
     }
+    if (model->animations) {
+        for (int i = 0; i < model->num_animations; ++i) {
+            for (int j = 0; j < model->animations[i].num_channels; ++j) {
+                if (model->animations[i].channels[j].sampler.timestamps) free(model->animations[i].channels[j].sampler.timestamps);
+                if (model->animations[i].channels[j].sampler.translations) free(model->animations[i].channels[j].sampler.translations);
+                if (model->animations[i].channels[j].sampler.rotations) free(model->animations[i].channels[j].sampler.rotations);
+                if (model->animations[i].channels[j].sampler.scales) free(model->animations[i].channels[j].sampler.scales);
+            }
+            free(model->animations[i].channels);
+        }
+        free(model->animations);
+    }
+    if (model->skins) {
+        for (int i = 0; i < model->num_skins; ++i) {
+            free(model->skins[i].joints);
+        }
+        free(model->skins);
+    }
     for (int i = 0; i < model->meshCount; ++i) {
         glDeleteVertexArrays(1, &model->meshes[i].VAO);
         glDeleteBuffers(1, &model->meshes[i].VBO);
+        if (model->meshes[i].skinningVBO) {
+            glDeleteBuffers(1, &model->meshes[i].skinningVBO);
+        }
         if (model->meshes[i].useEBO) {
             glDeleteBuffers(1, &model->meshes[i].EBO);
         }
@@ -400,6 +520,9 @@ void ModelLoader_Shutdown() {
         for (int i = 0; i < g_ErrorModel->meshCount; ++i) {
             glDeleteVertexArrays(1, &g_ErrorModel->meshes[i].VAO);
             glDeleteBuffers(1, &g_ErrorModel->meshes[i].VBO);
+            if (g_ErrorModel->meshes[i].skinningVBO) {
+                glDeleteBuffers(1, &g_ErrorModel->meshes[i].skinningVBO);
+            }
             if (g_ErrorModel->meshes[i].useEBO) {
                 glDeleteBuffers(1, &g_ErrorModel->meshes[i].EBO);
             }

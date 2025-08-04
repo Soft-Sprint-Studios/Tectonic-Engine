@@ -306,7 +306,7 @@ namespace
         Console_Printf("[Lightmapper] Generating ambient probes...");
 
         std::vector<Vec3> probe_positions;
-        const float probe_spacing = 2.0f;
+        const float probe_spacing = 1.0f;
 
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];

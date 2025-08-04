@@ -271,6 +271,33 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 scene->objects[i].isPhysicsEnabled = false;
                 Physics_ToggleCollision(engine->physicsWorld, scene->objects[i].physicsBody, false);
             }
+            SceneObject* obj = &scene->objects[i];
+            if (strcmp(inputName, "PlayAnimation") == 0) {
+                if (obj->model && obj->model->num_animations > 0) {
+                    int anim_index = -1;
+                    for (int j = 0; j < obj->model->num_animations; ++j) {
+                        if (strcmp(obj->model->animations[j].name, parameter) == 0) {
+                            anim_index = j;
+                            break;
+                        }
+                    }
+                    if (anim_index != -1) {
+                        obj->current_animation = anim_index;
+                        obj->animation_time = 0.0f;
+                        obj->animation_playing = true;
+                        if (strstr(parameter, "noloop") != NULL) {
+                            obj->animation_looping = false;
+                        }
+                        else {
+                            obj->animation_looping = true;
+                        }
+                    }
+                    else {
+                        Console_Printf_Warning("Animation '%s' not found for model '%s'", parameter, obj->targetname);
+                    }
+                }
+                return;
+            }
         }
     }
     for (int i = 0; i < scene->numActiveLights; ++i) {

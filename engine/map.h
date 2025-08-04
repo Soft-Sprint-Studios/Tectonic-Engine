@@ -248,6 +248,12 @@ extern "C" {
         Vec4* bakedVertexColors;
         Vec4* bakedVertexDirections;
         RigidBodyHandle physicsBody;
+        int current_animation;
+        float animation_time;
+        bool animation_playing;
+        bool animation_looping;
+        Mat4* bone_matrices;
+        Mat4 animated_local_transform;
         bool isGrouped;
         char groupName[64];
     } SceneObject;

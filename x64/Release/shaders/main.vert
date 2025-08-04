@@ -9,6 +9,8 @@ layout (location = 6) in vec2 aTexCoords3;
 layout (location = 7) in vec2 aTexCoords4;
 layout (location = 8) in vec2 aTexCoordsLightmap;
 layout (location = 9) in vec4 aColor2;
+layout (location = 10) in ivec4 aBoneIndices;
+layout (location = 11) in vec4 aBoneWeights;
 
 out VS_OUT {
     vec3 worldPos;
@@ -21,10 +23,14 @@ out VS_OUT {
     mat3 tbn;
     vec4 color;
 	vec4 color2;
+    ivec4 boneIndices;
+    vec4 boneWeights;
     flat int isBrush;
 } vs_out;
 
 uniform mat4 model;
+uniform bool u_hasAnimation;
+uniform mat4 u_boneMatrices[128];
 uniform bool isBrush;
 
 uniform bool u_swayEnabled;
@@ -34,6 +40,14 @@ uniform float u_windStrength;
 
 void main()
 {
+    mat4 boneTransform = mat4(1.0);
+    if(u_hasAnimation)
+    {
+        boneTransform  = aBoneWeights[0] * u_boneMatrices[aBoneIndices[0]];
+        boneTransform += aBoneWeights[1] * u_boneMatrices[aBoneIndices[1]];
+        boneTransform += aBoneWeights[2] * u_boneMatrices[aBoneIndices[2]];
+        boneTransform += aBoneWeights[3] * u_boneMatrices[aBoneIndices[3]];
+    }
     vec3 finalPos = aPos;
     if (u_swayEnabled) {
         float swayFrequency = 0.5;
@@ -49,7 +63,8 @@ void main()
         finalPos.z += (sway + flutter) * u_windDirection.z;
     }
 
-    vs_out.worldPos = vec3(model * vec4(finalPos, 1.0));
+    mat4 finalModelMatrix = model * boneTransform;
+    vs_out.worldPos = vec3(finalModelMatrix * vec4(finalPos, 1.0));
     vs_out.texCoords = aTexCoords;
     vs_out.texCoords2 = aTexCoords2;
     vs_out.texCoords3 = aTexCoords3;
@@ -57,9 +72,11 @@ void main()
 	vs_out.lightmapTexCoords = aTexCoordsLightmap;
     vs_out.color = aColor;
 	vs_out.color2 = aColor2;
+    vs_out.boneIndices = aBoneIndices;
+    vs_out.boneWeights = aBoneWeights;
     vs_out.isBrush = (isBrush ? 1 : 0);
 
-    mat3 normalMatrix = mat3(transpose(inverse(model)));
+    mat3 normalMatrix = mat3(transpose(inverse(finalModelMatrix)));
     vs_out.worldNormal = normalize(normalMatrix * aNormal);
     vec3 T_world = normalize(normalMatrix * aTangent.xyz);
     vec3 B_world = cross(vs_out.worldNormal, T_world) * aTangent.w;
