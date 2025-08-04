@@ -1607,7 +1607,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     }
                 }
                 else if (sscanf(line, " num_faces %d", &b->numFaces) == 1) {
-                    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+                    b->faces = calloc(b->numFaces, sizeof(BrushFace));
                     for (int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
                         char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
@@ -1725,7 +1725,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             while (*p && isspace(*p)) p++;
             if (*p == '"') { p++; char* quote_end = strchr(p, '"'); if (quote_end) { size_t name_len = quote_end - p; if (name_len < sizeof(newObj->targetname)) { strncpy(newObj->targetname, p, name_len); newObj->targetname[name_len] = '\0'; } p = quote_end + 1; } }
             int phys_enabled_int; int sway_enabled_int = 0;
-            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z, &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z, &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist);
+            int casts_shadows_int = 1;
+            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f %d", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z, &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z, &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist, &casts_shadows_int);
+            newObj->casts_shadows = (bool)casts_shadows_int;
             newObj->swayEnabled = (bool)sway_enabled_int; newObj->isPhysicsEnabled = (bool)phys_enabled_int;
             newObj->animation_playing = false;
             newObj->animation_looping = true;
@@ -2067,7 +2069,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d %.4f %.4f\n",
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
-            obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist);
+            obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist, (int)obj->casts_shadows);
         if (obj->isGrouped && obj->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", obj->groupName);
     }
     fprintf(file, "\n");

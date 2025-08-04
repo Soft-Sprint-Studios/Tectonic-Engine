@@ -1830,6 +1830,7 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
     for (int j = 0; j < g_scene.numObjects; ++j) {
+        if (!g_scene.objects[j].casts_shadows) continue;
         render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
@@ -1994,7 +1995,7 @@ void render_shadows() {
         Light* light = &g_scene.lights[i];
         if (light->intensity <= 0.0f) continue;
         if (vec3_length_sq(vec3_sub(light->position, g_engine->camera.position)) > max_shadow_dist_sq) continue;
-        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO); 
+        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         GLuint current_shader;
         if (light->type == LIGHT_POINT) {
@@ -2019,7 +2020,9 @@ void render_shadows() {
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
-        for (int j = 0; j < g_scene.numObjects; ++j) render_object(current_shader, &g_scene.objects[j], false, NULL);
+        for (int j = 0; j < g_scene.numObjects; ++j) {
+            if (!g_scene.objects[j].casts_shadows) continue; render_object(current_shader, &g_scene.objects[j], false, NULL);
+        }
         for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false, NULL);
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);

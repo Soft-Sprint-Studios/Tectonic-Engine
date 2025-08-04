@@ -5086,6 +5086,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* re
                             vec3_normalize(&forward);
                             newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
                             newObj->scale = (Vec3){ 1,1,1 };
+                            newObj->casts_shadows = true;
                             SceneObject_UpdateMatrix(newObj);
 
                             newObj->model = Model_Load(newObj->modelPath);
@@ -6859,6 +6860,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
             Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
             Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Physics");
+        }
+        if (UI_Checkbox("Casts Shadows", &obj->casts_shadows)) {
+            Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
+            Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Shadows");
         }
         UI_Separator();
         UI_Checkbox("Enable Tree Sway", &obj->swayEnabled);

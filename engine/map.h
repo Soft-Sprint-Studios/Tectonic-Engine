@@ -239,6 +239,7 @@ extern "C" {
         float fadeEndDist;
         bool isPhysicsEnabled;
         bool swayEnabled;
+        bool casts_shadows;
         char modelPath[270];
         Vec3 pos;
         Vec3 rot;

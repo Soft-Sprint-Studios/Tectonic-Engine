@@ -225,7 +225,7 @@ namespace
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
-            if (obj.mass > 0.0f) continue;
+            if (obj.mass > 0.0f || !obj.casts_shadows) continue;
             if (!obj.model || !obj.model->combinedIndexData) continue;
 
             for (unsigned int j = 0; j < obj.model->totalIndexCount; j += 3)
