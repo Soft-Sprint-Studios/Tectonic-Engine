@@ -101,6 +101,7 @@ extern "C" {
         float shadowBias;
         float volumetricIntensity;
         int preset;
+        char custom_style_string[256];
         float preset_time;
         int preset_index;
         bool isGrouped;

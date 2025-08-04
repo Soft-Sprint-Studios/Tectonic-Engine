@@ -78,7 +78,8 @@ static const char* g_light_styles[] = {
     "mmmaaammmaaammmabcdefaaaammmmabcdefmmmaaaa",
     "aaaaaaaazzzzzzzz",
     "mmamammmmammamamaaamammma",
-    "abcdefghijklmnopqrrqponmlkjihgfedcba"
+    "abcdefghijklmnopqrrqponmlkjihgfedcba",
+    "mmnnmmnnnmmnn"
 };
 const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 
@@ -1617,13 +1618,17 @@ void update_state() {
         if (!light->is_on) {
             light->intensity = 0.0f;
         }
-        else if (light->preset > 0 && light->preset < NUM_LIGHT_STYLES) {
-            const char* style = g_light_styles[light->preset];
-            int style_len = strlen(style);
-            if (style_len == 0) {
-                light->intensity = light->base_intensity;
+        else {
+            const char* style = NULL;
+            if (light->preset > 0 && light->preset <= 12) {
+                style = g_light_styles[light->preset];
             }
-            else {
+            else if (light->preset == 13) {
+                style = light->custom_style_string;
+            }
+
+            if (style && strlen(style) > 0) {
+                int style_len = strlen(style);
                 light->preset_time += g_engine->deltaTime;
                 while (light->preset_time >= 0.1f) {
                     light->preset_time -= 0.1f;
@@ -1634,9 +1639,9 @@ void update_state() {
                 float brightness = (float)(c - 'a') / (float)('m' - 'a');
                 light->intensity = light->base_intensity * brightness;
             }
-        }
-        else {
-            light->intensity = light->base_intensity;
+            else {
+                light->intensity = light->base_intensity;
+            }
         }
 
         if (light->type == LIGHT_SPOT) {
