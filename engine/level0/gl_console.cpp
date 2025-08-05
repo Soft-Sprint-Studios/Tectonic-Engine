@@ -310,6 +310,9 @@ extern "C" {
         return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoBringToFrontOnFocus);
     }
     bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
+    bool UI_Begin_NoTitlebar_NoResize_NoMove(const char* name, bool* p_open) {
+        return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    }
     bool UI_IsWindowOpen(const char* name) {
         ImGuiWindow* window = ImGui::FindWindowByName(name);
         return (window != NULL && window->WasActive);
@@ -325,6 +328,9 @@ extern "C" {
     bool UI_MenuItem(const char* label, const char* shortcut, bool selected, bool enabled) { return ImGui::MenuItem(label, shortcut, selected, enabled); }
     void UI_Text(const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextV(fmt, args); va_end(args); }
     void UI_Separator() { ImGui::Separator(); }
+    void UI_SeparatorEx(int flags) {
+        ImGui::SeparatorEx((ImGuiSeparatorFlags)flags);
+    }
     bool UI_CollapsingHeader(const char* label, int flags) { return ImGui::CollapsingHeader(label, (ImGuiTreeNodeFlags)flags); }
     bool UI_Selectable(const char* label, bool selected) { return ImGui::Selectable(label, selected); }
     bool UI_Button(const char* label) { return ImGui::Button(label); }

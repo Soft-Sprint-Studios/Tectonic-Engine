@@ -68,6 +68,7 @@ extern "C" {
 	LEVEL0_API bool UI_Begin(const char* name, bool* p_open);
 	LEVEL0_API bool UI_Begin_NoBringToFront(const char* name, bool* p_open);
 	LEVEL0_API bool UI_Begin_NoClose(const char* name);
+	LEVEL0_API bool UI_Begin_NoTitlebar_NoResize_NoMove(const char* name, bool* p_open);
 	LEVEL0_API bool UI_IsWindowOpen(const char* name);
 	LEVEL0_API void UI_OpenPopup(const char* str_id);
 	LEVEL0_API bool UI_BeginPopupModal(const char* name, bool* p_open, int flags);
@@ -83,6 +84,7 @@ extern "C" {
 	LEVEL0_API void UI_TextWrapped(const char* fmt, ...);
 	LEVEL0_API void UI_BulletText(const char* fmt, ...);
 	LEVEL0_API void UI_Separator();
+	LEVEL0_API void UI_SeparatorEx(int flags);
 	LEVEL0_API bool UI_CollapsingHeader(const char* label, int flags);
 	LEVEL0_API bool UI_Selectable(const char* label, bool selected);
 	LEVEL0_API bool UI_Button(const char* label);

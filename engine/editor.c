@@ -3202,6 +3202,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     }
     if (event->type == SDL_KEYDOWN && !event->key.repeat) {
         EditorSelection* primary = Editor_GetPrimarySelection();
+        if (event->key.keysym.sym == SDLK_F1) {
+            g_EditorState.show_help_window = !g_EditorState.show_help_window;
+            if (g_EditorState.show_help_window) {
+                ScanDocFiles();
+            }
+            return;
+        }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_z) { Undo_PerformUndo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_y) { Undo_PerformRedo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_s) {
@@ -6449,6 +6456,111 @@ static void Editor_UpdatePreviewBrushForArch() {
     Brush_CreateRenderData(b);
 }
 
+static void Editor_RenderStatusBar()
+{
+    const float STATUS_BAR_HEIGHT = 22.0f;
+    float screen_w, screen_h;
+    UI_GetDisplaySize(&screen_w, &screen_h);
+
+    UI_SetNextWindowPos(0, screen_h - STATUS_BAR_HEIGHT);
+    UI_SetNextWindowSize(screen_w, STATUS_BAR_HEIGHT);
+
+    UI_Begin_NoTitlebar_NoResize_NoMove("Status Bar", NULL);
+
+    UI_Text("For Help, press F1");
+    UI_SameLine(0, 20.0f);
+    UI_SeparatorEx(1 << 1);
+    UI_SameLine(0, 20.0f);
+
+    if (g_EditorState.num_selections > 0) {
+        char selection_text[128];
+        if (g_EditorState.num_selections == 1) {
+            EditorSelection* sel = Editor_GetPrimarySelection();
+            const char* type_name = "Object";
+            switch (sel->type) {
+            case ENTITY_BRUSH: type_name = "Brush"; break;
+            case ENTITY_MODEL: type_name = "Model"; break;
+            case ENTITY_LIGHT: type_name = "Light"; break;
+            case ENTITY_DECAL: type_name = "Decal"; break;
+            case ENTITY_SOUND: type_name = "Sound Entity"; break;
+            case ENTITY_PARTICLE_EMITTER: type_name = "Particle Emitter"; break;
+            case ENTITY_PLAYERSTART: type_name = "Player Start"; break;
+            case ENTITY_SPRITE: type_name = "Sprite"; break;
+            case ENTITY_VIDEO_PLAYER: type_name = "Video Player"; break;
+            case ENTITY_PARALLAX_ROOM: type_name = "Parallax Room"; break;
+            case ENTITY_LOGIC: type_name = "Logic Entity"; break;
+            default: break;
+            }
+            sprintf(selection_text, "1 %s selected.", type_name);
+        }
+        else {
+            sprintf(selection_text, "%d objects selected.", g_EditorState.num_selections);
+        }
+        UI_Text(selection_text);
+    }
+    else {
+        UI_Text("no selection.");
+    }
+    UI_SameLine(0, 20.0f);
+    UI_SeparatorEx(1 << 1);
+    UI_SameLine(0, 20.0f);
+
+    ViewportType active_2d_view = VIEW_COUNT;
+    for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        if (g_EditorState.is_viewport_hovered[i]) {
+            active_2d_view = (ViewportType)i;
+            break;
+        }
+    }
+    if (active_2d_view == VIEW_COUNT) {
+        active_2d_view = g_EditorState.last_active_2d_view;
+    }
+
+    if (active_2d_view >= VIEW_TOP_XZ && active_2d_view <= VIEW_SIDE_YZ) {
+        Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_2d_view], active_2d_view);
+        switch (active_2d_view) {
+        case VIEW_TOP_XZ: UI_Text("@%.0f, %.0f", mouse_world.x, mouse_world.z); break;
+        case VIEW_FRONT_XY: UI_Text("@%.0f, %.0f", mouse_world.x, mouse_world.y); break;
+        case VIEW_SIDE_YZ: UI_Text("@%.0f, %.0f", mouse_world.z, mouse_world.y); break;
+        default: break;
+        }
+    }
+
+    float right_align_pos = screen_w - 400.0f;
+    UI_SameLine(right_align_pos, 0);
+
+    float zoom_level = 0.0f;
+    int hovered_2d_view_index = -1;
+    for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        if (g_EditorState.is_viewport_hovered[i]) {
+            hovered_2d_view_index = i;
+            break;
+        }
+    }
+
+    if (hovered_2d_view_index != -1) {
+        zoom_level = g_EditorState.ortho_cam_zoom[hovered_2d_view_index - 1];
+    }
+    else {
+        zoom_level = g_EditorState.ortho_cam_zoom[g_EditorState.last_active_2d_view - 1];
+    }
+
+    UI_Text("Zoom: %.2f", zoom_level);
+    UI_SameLine(0, 20.0f);
+    UI_SeparatorEx(1 << 1);
+    UI_SameLine(0, 20.0f);
+
+    UI_Text("Snap: %s", g_EditorState.snap_to_grid ? "On" : "Off");
+    UI_SameLine(0, 20.0f);
+    UI_SeparatorEx(1 << 1);
+    UI_SameLine(0, 20.0f);
+
+    UI_Text("Grid: %g", g_EditorState.grid_size);
+    UI_SameLine(0, 20.0f);
+
+    UI_End();
+}
+
 static void Editor_RenderArchPreview() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.arch_preview_fbo);
     glViewport(0, 0, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height);
@@ -7745,6 +7857,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_PopStyleVar(1);
     }
     Editor_RenderFaceEditSheet(scene, engine);
+    Editor_RenderStatusBar();
 }
 static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view) {
     if (g_EditorState.selected_brush_active_handle == PREVIEW_BRUSH_HANDLE_NONE) return;
