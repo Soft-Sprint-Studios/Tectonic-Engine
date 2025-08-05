@@ -167,6 +167,10 @@ extern "C" {
 	LEVEL0_API void UI_EndGroup(void);
 	LEVEL0_API bool UI_ImageButton_Flip(const char* id, void* texture_id, float width, float height);
 
+	LEVEL0_API void* UI_GetWindowDrawList();
+	LEVEL0_API void UI_DrawList_AddText(void* draw_list, float pos_x, float pos_y, unsigned int col, const char* text);
+	LEVEL0_API unsigned int UI_GetColorU32(int r, int g, int b, int a);
+
 #ifdef __cplusplus
 }
 #endif

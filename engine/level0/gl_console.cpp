@@ -460,4 +460,18 @@ extern "C" {
     bool UI_ImageButton_Flip(const char* id, void* texture_id, float width, float height) {
         return ImGui::ImageButton(id, reinterpret_cast<ImTextureID>(texture_id), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
     }
+    void* UI_GetWindowDrawList() {
+        return (void*)ImGui::GetWindowDrawList();
+    }
+
+    void UI_DrawList_AddText(void* draw_list, float pos_x, float pos_y, unsigned int col, const char* text) {
+        if (draw_list) {
+            ImDrawList* list = (ImDrawList*)draw_list;
+            list->AddText(ImVec2(pos_x, pos_y), col, text);
+        }
+    }
+
+    unsigned int UI_GetColorU32(int r, int g, int b, int a) {
+        return IM_COL32(r, g, b, a);
+    }
 }

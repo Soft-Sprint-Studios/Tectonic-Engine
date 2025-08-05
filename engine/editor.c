@@ -395,6 +395,7 @@ static void Editor_AddToSelection(EntityType type, int index, int face_index, in
 static Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
 static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
+static Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport);
 float SnapValue(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
 float SnapAngle(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
 static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
@@ -7946,6 +7947,77 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
         }
         UI_Image((void*)(intptr_t)g_EditorState.viewport_texture[type], vp_w, vp_h);
+
+        bool show_dims = false;
+        Vec3 b_min, b_max;
+
+        bool is_actively_creating = g_EditorState.is_dragging_for_creation || g_EditorState.is_in_brush_creation_mode;
+        bool is_single_brush_selected = (g_EditorState.num_selections == 1 && Editor_GetPrimarySelection()->type == ENTITY_BRUSH);
+
+        if (is_actively_creating) {
+            show_dims = true;
+            b_min = g_EditorState.preview_brush_world_min;
+            b_max = g_EditorState.preview_brush_world_max;
+        }
+        else if (is_single_brush_selected) {
+            show_dims = true;
+            EditorSelection* sel = Editor_GetPrimarySelection();
+            Brush* b = &scene->brushes[sel->index];
+            if (b->numVertices > 0) {
+                b_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+                b_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                    b_min.x = fminf(b_min.x, world_v.x);
+                    b_min.y = fminf(b_min.y, world_v.y);
+                    b_min.z = fminf(b_min.z, world_v.z);
+                    b_max.x = fmaxf(b_max.x, world_v.x);
+                    b_max.y = fmaxf(b_max.y, world_v.y);
+                    b_max.z = fmaxf(b_max.z, world_v.z);
+                }
+            }
+            else {
+                b_min = b->pos;
+                b_max = b->pos;
+            }
+        }
+
+        if (show_dims && type >= VIEW_TOP_XZ) {
+            void* draw_list = UI_GetWindowDrawList();
+            unsigned int text_color = UI_GetColorU32(255, 255, 255, 255);
+            Vec3 size = vec3_sub(b_max, b_min);
+
+            Vec3 top_mid_world, left_mid_world;
+            char horizontal_text[32], vertical_text[32];
+
+            if (type == VIEW_TOP_XZ) {
+                top_mid_world = (Vec3){ (b_min.x + b_max.x) / 2.0f, b_min.y, b_max.z };
+                left_mid_world = (Vec3){ b_min.x, b_min.y, (b_min.z + b_max.z) / 2.0f };
+                sprintf(horizontal_text, "%.0f", fabsf(size.x));
+                sprintf(vertical_text, "%.0f", fabsf(size.z));
+            }
+            else if (type == VIEW_FRONT_XY) {
+                top_mid_world = (Vec3){ (b_min.x + b_max.x) / 2.0f, b_max.y, b_min.z };
+                left_mid_world = (Vec3){ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
+                sprintf(horizontal_text, "%.0f", fabsf(size.x));
+                sprintf(vertical_text, "%.0f", fabsf(size.y));
+            }
+            else {
+                top_mid_world = (Vec3){ b_min.x, b_max.y, (b_min.z + b_max.z) / 2.0f };
+                left_mid_world = (Vec3){ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
+                sprintf(horizontal_text, "%.0f", fabsf(size.z));
+                sprintf(vertical_text, "%.0f", fabsf(size.y));
+            }
+
+            Vec2 top_mid_screen = WorldToScreen(top_mid_world, type);
+            Vec2 left_mid_screen = WorldToScreen(left_mid_world, type);
+
+            float h_text_offset = strlen(horizontal_text) * 4.0f;
+            UI_DrawList_AddText(draw_list, win_x + top_mid_screen.x - h_text_offset, win_y + top_mid_screen.y - 20.0f, text_color, horizontal_text);
+
+            float v_text_offset = strlen(vertical_text) * 8.0f;
+            UI_DrawList_AddText(draw_list, win_x + left_mid_screen.x - v_text_offset - 10.0f, win_y + left_mid_screen.y - 8.0f, text_color, vertical_text);
+        }
         UI_End();
         UI_PopStyleVar(1);
     }
@@ -8120,4 +8192,22 @@ static Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
         world_pos.z = SnapValue(world_pos.z, g_EditorState.grid_size);
     }
     return world_pos;
+}
+static Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
+    if (viewport >= VIEW_COUNT) return (Vec2) { 0, 0 };
+
+    Vec4 clip_pos = { world_pos.x, world_pos.y, world_pos.z, 1.0f };
+
+    clip_pos = mat4_mul_vec4(&g_view_matrix[viewport], clip_pos);
+    clip_pos = mat4_mul_vec4(&g_proj_matrix[viewport], clip_pos);
+
+    if (clip_pos.w != 0.0f) {
+        clip_pos.x /= clip_pos.w;
+        clip_pos.y /= clip_pos.w;
+    }
+
+    float screen_x = ((clip_pos.x + 1.0f) / 2.0f) * g_EditorState.viewport_width[viewport];
+    float screen_y = ((1.0f - clip_pos.y) / 2.0f) * g_EditorState.viewport_height[viewport];
+
+    return (Vec2) { screen_x, screen_y };
 }
