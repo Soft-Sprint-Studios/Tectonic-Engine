@@ -150,45 +150,55 @@ mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     );
 }
 
-float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias) {
+float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias)
+{
     sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-
     if(projCoords.z > 1.0)
         return 0.0;
-
     float currentDepth = projCoords.z;
+    float final_bias = max(bias * (1.0 - dot(normal, lightDir)), 0.0005);
+    float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
-
-    float shadow = currentDepth > texture(shadowSampler, projCoords.xy).r + bias ? 1.0 : 0.0;
-    shadow += (currentDepth > texture(shadowSampler, projCoords.xy + vec2(texelSize.x, 0)).r + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, projCoords.xy - vec2(texelSize.x, 0)).r + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, projCoords.xy + vec2(0, texelSize.y)).r + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, projCoords.xy - vec2(0, texelSize.y)).r + bias ? 1.0 : 0.0) * 0.5;
-
-    shadow /= 3.0;
-    return shadow;
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowSampler, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth > pcfDepth + final_bias ? 1.0 : 0.0;
+        }
+    }
+    return shadow / 9.0;
 }
 
-float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias) {
+float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias)
+{
     samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
-
-    if(currentDepth > farPlane)
+    if(currentDepth > farPlane) {
         return 0.0;
-
-    float diskRadius = 0.01;
-
-    float shadow = currentDepth > texture(shadowSampler, fragToLight).r * farPlane + bias ? 1.0 : 0.0;
-    shadow += (currentDepth > texture(shadowSampler, fragToLight + vec3(diskRadius, 0, 0)).r * farPlane + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, fragToLight - vec3(diskRadius, 0, 0)).r * farPlane + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, fragToLight + vec3(0, diskRadius, 0)).r * farPlane + bias ? 1.0 : 0.0) * 0.5;
-    shadow += (currentDepth > texture(shadowSampler, fragToLight - vec3(0, diskRadius, 0)).r * farPlane + bias ? 1.0 : 0.0) * 0.5;
-
-    shadow /= 3.0;
-    return shadow;
+    }
+    float shadow = 0.0;
+    float closestDepth = 0.0;
+    vec3 sampleOffsetDirections[20] = vec3[](
+       vec3( 1, 1, 1), vec3( 1,-1, 1), vec3(-1,-1, 1), vec3(-1, 1, 1), 
+       vec3( 1, 1,-1), vec3( 1,-1,-1), vec3(-1,-1,-1), vec3(-1, 1,-1),
+       vec3( 1, 1, 0), vec3( 1,-1, 0), vec3(-1,-1, 0), vec3(-1, 1, 0),
+       vec3( 1, 0, 1), vec3(-1, 0, 1), vec3( 1, 0,-1), vec3(-1, 0,-1),
+       vec3( 0, 1, 1), vec3( 0,-1, 1), vec3( 0,-1,-1), vec3( 0, 1,-1)
+    );
+    float viewDistance = length(viewPos - fragPos);
+    float diskRadius = (1.0 + viewDistance / farPlane) * 0.02;
+    for(int i = 0; i < 20; ++i)
+    {
+        closestDepth = texture(shadowSampler, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
+        closestDepth *= farPlane; 
+        if(currentDepth > closestDepth + bias)
+            shadow += 1.0;
+    }
+    return shadow / 20.0;
 }
 
 float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
