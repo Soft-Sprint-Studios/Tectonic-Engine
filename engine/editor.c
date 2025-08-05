@@ -3120,19 +3120,46 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
                 else {
                     Vec3 delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
-                    Vec3 axis_dir = { 0 };
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                    float projection_len = vec3_dot(delta, axis_dir);
 
-                    if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
-                        if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
-                        pos_delta = vec3_muls(axis_dir, projection_len);
+                    if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
+                        Vec3 axis_dir = { 0 };
+                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
+                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
+                        if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
+                        float projection_len = vec3_dot(delta, axis_dir);
+
+                        if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
+                            if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
+                            pos_delta = vec3_muls(axis_dir, projection_len);
+                        }
+                        else {
+                            if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, 0.25f);
+                            scale_delta = vec3_muls(axis_dir, projection_len);
+                        }
                     }
                     else {
-                        if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, 0.25f);
-                        scale_delta = vec3_muls(axis_dir, projection_len);
+                        pos_delta = delta;
+                        scale_delta = delta;
+
+                        switch (g_EditorState.gizmo_drag_view) {
+                        case VIEW_TOP_XZ:   pos_delta.y = 0; scale_delta.y = 0; break;
+                        case VIEW_FRONT_XY: pos_delta.z = 0; scale_delta.z = 0; break;
+                        case VIEW_SIDE_YZ:  pos_delta.x = 0; scale_delta.x = 0; break;
+                        default: break;
+                        }
+
+                        if (g_EditorState.snap_to_grid) {
+                            if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
+                                pos_delta.x = SnapValue(pos_delta.x, g_EditorState.grid_size);
+                                pos_delta.y = SnapValue(pos_delta.y, g_EditorState.grid_size);
+                                pos_delta.z = SnapValue(pos_delta.z, g_EditorState.grid_size);
+                            }
+                            else {
+                                scale_delta.x = SnapValue(scale_delta.x, 0.25f);
+                                scale_delta.y = SnapValue(scale_delta.y, 0.25f);
+                                scale_delta.z = SnapValue(scale_delta.z, 0.25f);
+                            }
+                        }
                     }
                 }
             }
