@@ -237,6 +237,7 @@ typedef struct {
     int cubemap_resolution_index;
     float arch_wall_width;
     int arch_num_sides;
+    float autosave_timer;
     float arch_arc_degrees;
     float arch_start_angle_degrees;
     float arch_add_height;
@@ -1474,6 +1475,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_arc_degrees = 180.0f;
     g_EditorState.arch_start_angle_degrees = 0.0f;
     g_EditorState.arch_add_height = 0.0f;
+    g_EditorState.autosave_timer = 0.0f;
     g_EditorState.gizmo_drag_has_cloned = false;
     Editor_LoadRecentFiles();
 }
@@ -4255,6 +4257,15 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
     }
     for (int i = 0; i < scene->numParticleEmitters; ++i) { ParticleEmitter_Update(&scene->particleEmitters[i], engine->deltaTime); }
+    g_EditorState.autosave_timer += engine->unscaledDeltaTime;
+    if (g_EditorState.autosave_timer >= 300.0f) {
+        if (strcmp(g_EditorState.currentMapPath, "untitled.map") != 0) {
+            char autosave_path[256];
+            sprintf(autosave_path, "_autosave_%s", g_EditorState.currentMapPath);
+            Scene_SaveMap(scene, NULL, autosave_path);
+        }
+        g_EditorState.autosave_timer = 0.0f;
+    }
 }
 
 static void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {

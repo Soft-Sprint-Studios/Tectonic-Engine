@@ -2010,6 +2010,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 }
 
 bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
+    char backup_path[256];
+    sprintf(backup_path, "%s.bak", mapPath);
+    rename(mapPath, backup_path);
+
     FILE* file = fopen(mapPath, "w");
     if (!file) {
         Console_Printf_Error("Failed to open %s for writing.", mapPath);
