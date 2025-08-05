@@ -228,6 +228,7 @@ typedef struct {
     Vec3* gizmo_drag_start_rotations;
     Vec3* gizmo_drag_start_scales;
     int next_group_id;
+    bool gizmo_drag_has_cloned;
     bool show_bake_lighting_popup;
     int bake_resolution;
     int bake_bounces;
@@ -806,7 +807,6 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
         Mat4 physics_transform = create_trs_matrix(new_obj->pos, new_obj->rot, (Vec3) { 1, 1, 1 });
         new_obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
     }
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_MODEL, scene->numObjects - 1, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Duplicate Model");
 }
@@ -1474,6 +1474,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_arc_degrees = 180.0f;
     g_EditorState.arch_start_angle_degrees = 0.0f;
     g_EditorState.arch_add_height = 0.0f;
+    g_EditorState.gizmo_drag_has_cloned = false;
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -2329,6 +2330,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (g_EditorState.gizmo_hovered_axis != GIZMO_AXIS_NONE && active_viewport != VIEW_COUNT) {
             Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
             g_EditorState.is_manipulating_gizmo = true;
+            g_EditorState.gizmo_drag_has_cloned = false;
             if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
             if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
             if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
@@ -3014,6 +3016,59 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             return;
         }
         else if (g_EditorState.is_manipulating_gizmo) {
+            if ((SDL_GetModState() & KMOD_SHIFT) && !g_EditorState.gizmo_drag_has_cloned) {
+                g_EditorState.gizmo_drag_has_cloned = true;
+
+                int num_original_selections = g_EditorState.num_selections;
+                EditorSelection* original_selections = malloc(num_original_selections * sizeof(EditorSelection));
+                if (original_selections) {
+                    memcpy(original_selections, g_EditorState.selections, num_original_selections * sizeof(EditorSelection));
+                    Editor_ClearSelection();
+
+                    for (int i = 0; i < num_original_selections; ++i) {
+                        EditorSelection* sel = &original_selections[i];
+                        switch (sel->type) {
+                        case ENTITY_MODEL: Editor_DuplicateModel(scene, engine, sel->index); break;
+                        case ENTITY_BRUSH: Editor_DuplicateBrush(scene, engine, sel->index); break;
+                        case ENTITY_LIGHT: Editor_DuplicateLight(scene, sel->index); break;
+                        case ENTITY_DECAL: Editor_DuplicateDecal(scene, sel->index); break;
+                        case ENTITY_SOUND: Editor_DuplicateSoundEntity(scene, sel->index); break;
+                        case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, sel->index); break;
+                        case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, sel->index); break;
+                        case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, sel->index); break;
+                        case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, sel->index); break;
+                        case ENTITY_SPRITE: Editor_DuplicateSprite(scene, sel->index); break;
+                        default: break;
+                        }
+                    }
+                    free(original_selections);
+
+                    free(g_EditorState.gizmo_drag_start_positions);
+                    free(g_EditorState.gizmo_drag_start_rotations);
+                    free(g_EditorState.gizmo_drag_start_scales);
+                    g_EditorState.gizmo_drag_start_positions = malloc(g_EditorState.num_selections * sizeof(Vec3));
+                    g_EditorState.gizmo_drag_start_rotations = malloc(g_EditorState.num_selections * sizeof(Vec3));
+                    g_EditorState.gizmo_drag_start_scales = malloc(g_EditorState.num_selections * sizeof(Vec3));
+
+                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                        EditorSelection* sel = &g_EditorState.selections[i];
+                        switch (sel->type) {
+                        case ENTITY_MODEL: g_EditorState.gizmo_drag_start_positions[i] = scene->objects[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->objects[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->objects[sel->index].scale; break;
+                        case ENTITY_BRUSH: g_EditorState.gizmo_drag_start_positions[i] = scene->brushes[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->brushes[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->brushes[sel->index].scale; break;
+                        case ENTITY_LIGHT: g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].position; g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_DECAL: g_EditorState.gizmo_drag_start_positions[i] = scene->decals[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->decals[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->decals[sel->index].size; break;
+                        case ENTITY_SOUND: g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_PARTICLE_EMITTER: g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_SPRITE: g_EditorState.gizmo_drag_start_positions[i] = scene->sprites[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->sprites[sel->index].scale,1,1 }; break;
+                        case ENTITY_VIDEO_PLAYER: g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f }; break;
+                        case ENTITY_PARALLAX_ROOM: g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f }; break;
+                        case ENTITY_LOGIC: g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.position; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        default: g_EditorState.gizmo_drag_start_positions[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        }
+                    }
+                }
+            }
             Vec3 pos_delta = { 0 };
             Vec3 scale_delta = { 0 };
             float rot_angle_delta = 0.0f;
