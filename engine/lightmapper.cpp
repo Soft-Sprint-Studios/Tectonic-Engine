@@ -148,6 +148,7 @@ namespace
         std::map<const BrushFace*, Vec4> m_face_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
         std::vector<const Brush*> m_primID_to_brush_map;
+        std::vector<const Material*> m_primID_to_material_map;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
@@ -227,6 +228,13 @@ namespace
             const SceneObject& obj = m_scene->objects[i];
             if (obj.mass > 0.0f || !obj.casts_shadows) continue;
             if (!obj.model || !obj.model->combinedIndexData) continue;
+            for (int mesh_idx = 0; mesh_idx < obj.model->meshCount; ++mesh_idx) {
+                const Mesh& mesh = obj.model->meshes[mesh_idx];
+                size_t num_primitives = mesh.indexCount / 3;
+                for (size_t k = 0; k < num_primitives; ++k) {
+                    m_primID_to_material_map.push_back(mesh.material);
+                }
+            }
 
             for (unsigned int j = 0; j < obj.model->totalIndexCount; j += 3)
             {
@@ -1227,6 +1235,17 @@ namespace
                 unique_materials.insert(d.material);
             }
         }
+        for (int i = 0; i < m_scene->numObjects; ++i) {
+            const SceneObject& obj = m_scene->objects[i];
+            if (obj.model) {
+                for (int j = 0; j < obj.model->meshCount; ++j) {
+                    const Mesh& mesh = obj.model->meshes[j];
+                    if (mesh.material) {
+                        unique_materials.insert(mesh.material);
+                    }
+                }
+            }
+        }
 
         Console_Printf("[Lightmapper] Found %zu unique materials to analyze.", unique_materials.size());
 
@@ -1437,6 +1456,18 @@ namespace
                 if (hit_face->material)
                 {
                     auto mat_it = m_material_reflectivity.find(hit_face->material);
+                    if (mat_it != m_material_reflectivity.end())
+                    {
+                        return mat_it->second;
+                    }
+                }
+            }
+            else if (primID < m_primID_to_material_map.size())
+            {
+                const Material* hit_material = m_primID_to_material_map[primID];
+                if (hit_material)
+                {
+                    auto mat_it = m_material_reflectivity.find(hit_material);
                     if (mat_it != m_material_reflectivity.end())
                     {
                         return mat_it->second;
