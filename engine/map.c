@@ -2172,7 +2172,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
 
     for (int i = 0; i < scene->numObjects; ++i) {
         SceneObject* obj = &scene->objects[i];
-        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d %.4f %.4f\n",
+        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d %.4f %.4f %d\n",
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
             obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist, (int)obj->casts_shadows);
