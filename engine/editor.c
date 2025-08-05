@@ -3111,7 +3111,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                     float angle = atan2f(v_coord, u_coord) * (180.0f / M_PI);
 
-                    if (g_EditorState.snap_to_grid) {
+                    if (SDL_GetModState() & KMOD_CTRL) {
                         angle = SnapAngle(angle, 15.0f);
                     }
                     rot_angle_delta = angle;
