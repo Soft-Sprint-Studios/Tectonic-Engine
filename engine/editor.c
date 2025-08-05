@@ -6073,6 +6073,41 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                     g_EditorState.texture_browser_target = selected_material_layer;
                     g_EditorState.show_texture_browser = true;
                 }
+                if (UI_Button("Apply to All Faces")) {
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+
+                    for (int i = 0; i < primary_brush->numFaces; ++i) {
+                        BrushFace* dest_face = &primary_brush->faces[i];
+                        switch (selected_material_layer) {
+                        case 0:
+                            dest_face->material = target_material;
+                            dest_face->uv_scale = *target_scale;
+                            dest_face->uv_offset = *target_offset;
+                            dest_face->uv_rotation = *target_rotation;
+                            break;
+                        case 1:
+                            dest_face->material2 = target_material;
+                            dest_face->uv_scale2 = *target_scale;
+                            dest_face->uv_offset2 = *target_offset;
+                            dest_face->uv_rotation2 = *target_rotation;
+                            break;
+                        case 2:
+                            dest_face->material3 = target_material;
+                            dest_face->uv_scale3 = *target_scale;
+                            dest_face->uv_offset3 = *target_offset;
+                            dest_face->uv_rotation3 = *target_rotation;
+                            break;
+                        case 3:
+                            dest_face->material4 = target_material;
+                            dest_face->uv_scale4 = *target_scale;
+                            dest_face->uv_offset4 = *target_offset;
+                            dest_face->uv_rotation4 = *target_rotation;
+                            break;
+                        }
+                    }
+                    Brush_CreateRenderData(primary_brush);
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Apply Material to All Faces");
+                }
                 UI_EndGroup();
                 UI_Separator();
 
