@@ -4565,6 +4565,21 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i], false, NULL); }
         for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false, NULL); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        float selected_fill_color[] = { 1.0f, 1.0f, 0.0f, 0.2f };
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, selected_fill_color);
+
+        for (int i = 0; i < scene->numBrushes; i++) {
+            if (Editor_IsSelected(ENTITY_BRUSH, i)) {
+                render_brush(g_EditorState.debug_shader, &scene->brushes[i], false, NULL);
+            }
+        }
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
