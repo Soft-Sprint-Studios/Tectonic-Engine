@@ -48,6 +48,7 @@
 typedef enum {
     BRUSH_SHAPE_BLOCK,
     BRUSH_SHAPE_CYLINDER,
+    BRUSH_SHAPE_TUBE,
     BRUSH_SHAPE_WEDGE,
     BRUSH_SHAPE_SPIKE,
     BRUSH_SHAPE_SPHERE,
@@ -77,6 +78,7 @@ typedef struct {
     bool is_in_z_mode;
     BrushCreationShapeType current_brush_shape;
     int cylinder_creation_steps;
+    float tube_wall_thickness;
     ViewportType captured_viewport;
     GLuint viewport_fbo[VIEW_COUNT], viewport_texture[VIEW_COUNT], viewport_rbo[VIEW_COUNT];
     int viewport_width[VIEW_COUNT], viewport_height[VIEW_COUNT];
@@ -1011,6 +1013,9 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     case BRUSH_SHAPE_CYLINDER:
         Brush_SetVerticesFromCylinder(b, local_size, g_EditorState.cylinder_creation_steps);
         break;
+    case BRUSH_SHAPE_TUBE:
+        Brush_SetVerticesFromTube(b, local_size, g_EditorState.cylinder_creation_steps, g_EditorState.tube_wall_thickness);
+        break;
     case BRUSH_SHAPE_WEDGE:
         Brush_SetVerticesFromWedge(b, local_size);
         break;
@@ -1344,6 +1349,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
     g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK;
     g_EditorState.cylinder_creation_steps = 16;
+    g_EditorState.tube_wall_thickness = 0.5f;
     g_EditorState.is_dragging_preview_brush_handle = false;
     g_EditorState.is_hovering_preview_brush_body = false;
     g_EditorState.is_dragging_preview_brush_body = false;
@@ -7786,6 +7792,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Block", g_EditorState.current_brush_shape == BRUSH_SHAPE_BLOCK)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK; }
     UI_SameLine();
     if (UI_RadioButton("Cylinder", g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_CYLINDER; }
+    if (UI_RadioButton("Tube", g_EditorState.current_brush_shape == BRUSH_SHAPE_TUBE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_TUBE; }
     UI_SameLine();
     if (UI_RadioButton("Wedge", g_EditorState.current_brush_shape == BRUSH_SHAPE_WEDGE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_WEDGE; }
     UI_SameLine();
@@ -7795,8 +7802,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_RadioButton("Semi-Sphere", g_EditorState.current_brush_shape == BRUSH_SHAPE_SEMI_SPHERE)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_SEMI_SPHERE; }
     UI_SameLine();
     if (UI_RadioButton("Arch", g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH)) { g_EditorState.current_brush_shape = BRUSH_SHAPE_ARCH; }
-    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPHERE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SEMI_SPHERE) {
+    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_CYLINDER || g_EditorState.current_brush_shape == BRUSH_SHAPE_TUBE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPIKE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SPHERE || g_EditorState.current_brush_shape == BRUSH_SHAPE_SEMI_SPHERE) {
         UI_DragInt("Sides", &g_EditorState.cylinder_creation_steps, 1, 4, 64);
+    }
+    if (g_EditorState.current_brush_shape == BRUSH_SHAPE_TUBE) {
+        UI_DragFloat("Wall Thickness", &g_EditorState.tube_wall_thickness, 0.05f, 0.1f, 16.0f);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
     UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
