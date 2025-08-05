@@ -310,6 +310,10 @@ extern "C" {
         return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoBringToFrontOnFocus);
     }
     bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
+    bool UI_IsWindowOpen(const char* name) {
+        ImGuiWindow* window = ImGui::FindWindowByName(name);
+        return (window != NULL && window->WasActive);
+    }
     void UI_OpenPopup(const char* str_id) { ImGui::OpenPopup(str_id); }
     bool UI_BeginPopupModal(const char* name, bool* p_open, int flags) { return ImGui::BeginPopupModal(name, p_open, (ImGuiWindowFlags)flags); }
     void UI_CloseCurrentPopup(void) { ImGui::CloseCurrentPopup(); }

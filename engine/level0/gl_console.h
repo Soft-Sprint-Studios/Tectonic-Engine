@@ -68,6 +68,7 @@ extern "C" {
 	LEVEL0_API bool UI_Begin(const char* name, bool* p_open);
 	LEVEL0_API bool UI_Begin_NoBringToFront(const char* name, bool* p_open);
 	LEVEL0_API bool UI_Begin_NoClose(const char* name);
+	LEVEL0_API bool UI_IsWindowOpen(const char* name);
 	LEVEL0_API void UI_OpenPopup(const char* str_id);
 	LEVEL0_API bool UI_BeginPopupModal(const char* name, bool* p_open, int flags);
 	LEVEL0_API void UI_CloseCurrentPopup(void);

@@ -3449,6 +3449,92 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
     }
     if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_RIGHT && !g_EditorState.is_in_z_mode) {
+        if (UI_IsWindowOpen("Face Edit Sheet")) {
+            EditorSelection* primary = Editor_GetPrimarySelection();
+            if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
+                ViewportType active_viewport = VIEW_COUNT;
+                for (int i = 0; i < VIEW_COUNT; ++i) {
+                    if (g_EditorState.is_viewport_hovered[i]) {
+                        active_viewport = (ViewportType)i;
+                        break;
+                    }
+                }
+
+                if (active_viewport == VIEW_PERSPECTIVE) {
+                    float ndc_x = (g_EditorState.mouse_pos_in_viewport[active_viewport].x / g_EditorState.viewport_width[active_viewport]) * 2.0f - 1.0f;
+                    float ndc_y = 1.0f - (g_EditorState.mouse_pos_in_viewport[active_viewport].y / g_EditorState.viewport_height[active_viewport]) * 2.0f;
+                    Mat4 inv_proj, inv_view;
+                    mat4_inverse(&g_proj_matrix[active_viewport], &inv_proj);
+                    mat4_inverse(&g_view_matrix[active_viewport], &inv_view);
+                    Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
+                    Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+                    ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+                    Vec3 ray_dir_world = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
+                    vec3_normalize(&ray_dir_world);
+                    Vec3 ray_origin_world = g_EditorState.editor_camera.position;
+
+                    float closest_t = FLT_MAX;
+                    int hit_brush_index = -1;
+                    int hit_face_index = -1;
+
+                    for (int i = 0; i < g_CurrentScene->numBrushes; ++i) {
+                        Brush* brush = &g_CurrentScene->brushes[i];
+                        Mat4 inv_brush_model_matrix;
+                        if (!mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) continue;
+                        Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
+                        Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
+
+                        for (int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
+                            BrushFace* face = &brush->faces[face_idx];
+                            if (face->numVertexIndices < 3) continue;
+
+                            for (int k = 0; k < face->numVertexIndices - 2; ++k) {
+                                Vec3 v0 = brush->vertices[face->vertexIndices[0]].pos;
+                                Vec3 v1 = brush->vertices[face->vertexIndices[k + 1]].pos;
+                                Vec3 v2 = brush->vertices[face->vertexIndices[k + 2]].pos;
+                                float t;
+                                if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0, v1, v2, &t) && t < closest_t) {
+                                    closest_t = t;
+                                    hit_brush_index = i;
+                                    hit_face_index = face_idx;
+                                }
+                            }
+                        }
+                    }
+
+                    if (hit_brush_index != -1 && hit_face_index != -1) {
+                        BrushFace* src_face = &scene->brushes[primary->index].faces[primary->face_index];
+                        Brush* dest_brush = &scene->brushes[hit_brush_index];
+                        BrushFace* dest_face = &dest_brush->faces[hit_face_index];
+
+                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, hit_brush_index);
+
+                        dest_face->material = src_face->material;
+                        dest_face->material2 = src_face->material2;
+                        dest_face->material3 = src_face->material3;
+                        dest_face->material4 = src_face->material4;
+                        dest_face->uv_scale = src_face->uv_scale;
+                        dest_face->uv_offset = src_face->uv_offset;
+                        dest_face->uv_rotation = src_face->uv_rotation;
+                        dest_face->uv_scale2 = src_face->uv_scale2;
+                        dest_face->uv_offset2 = src_face->uv_offset2;
+                        dest_face->uv_rotation2 = src_face->uv_rotation2;
+                        dest_face->uv_scale3 = src_face->uv_scale3;
+                        dest_face->uv_offset3 = src_face->uv_offset3;
+                        dest_face->uv_rotation3 = src_face->uv_rotation3;
+                        dest_face->uv_scale4 = src_face->uv_scale4;
+                        dest_face->uv_offset4 = src_face->uv_offset4;
+                        dest_face->uv_rotation4 = src_face->uv_rotation4;
+                        dest_face->lightmap_scale = src_face->lightmap_scale;
+
+                        Brush_CreateRenderData(dest_brush);
+                        Undo_EndEntityModification(scene, ENTITY_BRUSH, hit_brush_index, "Apply Face Properties");
+                        return;
+                    }
+                }
+            }
+        }
         EditorSelection* primary = Editor_GetPrimarySelection();
         for (int i = 0; i < VIEW_COUNT; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
