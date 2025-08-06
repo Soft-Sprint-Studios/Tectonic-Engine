@@ -853,7 +853,6 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     }
     int new_brush_index = scene->numBrushes;
     scene->numBrushes++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_BRUSH, new_brush_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Duplicate Brush");
 }
@@ -869,7 +868,6 @@ void Editor_DuplicateLight(Scene* scene, int index) {
     Light_InitShadowMap(new_light);
     int new_light_index = scene->numActiveLights;
     scene->numActiveLights++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_LIGHT, new_light_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_LIGHT, new_light_index, "Duplicate Light");
 }
@@ -884,7 +882,6 @@ void Editor_DuplicateDecal(Scene* scene, int index) {
     Decal_UpdateMatrix(new_decal);
     int new_decal_index = scene->numDecals;
     scene->numDecals++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_DECAL, new_decal_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_DECAL, new_decal_index, "Duplicate Decal");
 }
@@ -900,7 +897,6 @@ void Editor_DuplicateSoundEntity(Scene* scene, int index) {
     new_sound->bufferID = SoundSystem_LoadSound(new_sound->soundPath);
     int new_sound_index = scene->numSoundEntities;
     scene->numSoundEntities++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_SOUND, new_sound_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_SOUND, new_sound_index, "Duplicate Sound");
 }
@@ -917,7 +913,6 @@ void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
         int new_emitter_index = scene->numParticleEmitters;
         ParticleEmitter_Init(new_emitter, ps, new_emitter->pos);
         scene->numParticleEmitters++;
-        Editor_ClearSelection();
         Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, new_emitter_index, -1, -1);
         Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, new_emitter_index, "Duplicate Emitter");
     }
@@ -939,7 +934,6 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     }
     int new_vp_index = scene->numVideoPlayers;
     scene->numVideoPlayers++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_VIDEO_PLAYER, new_vp_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, new_vp_index, "Duplicate Video Player");
 }
@@ -963,7 +957,6 @@ void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
     new_p->cubemapTexture = loadCubemap(face_pointers);
     int new_p_index = scene->numParallaxRooms;
     scene->numParallaxRooms++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_PARALLAX_ROOM, new_p_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, new_p_index, "Duplicate Parallax Room");
 }
@@ -976,7 +969,6 @@ void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index) {
     new_ent->pos.x += 1.0f;
     int new_ent_index = scene->numLogicEntities;
     scene->numLogicEntities++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_LOGIC, new_ent_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_LOGIC, new_ent_index, "Duplicate Logic Entity");
 }
@@ -990,7 +982,6 @@ void Editor_DuplicateSprite(Scene* scene, int index) {
     new_sprite->pos.x += 1.0f;
     int new_sprite_index = scene->numSprites;
     scene->numSprites++;
-    Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_SPRITE, new_sprite_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_SPRITE, new_sprite_index, "Duplicate Sprite");
 }
@@ -3365,19 +3356,29 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             return;
         }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_d) {
-            if (primary) {
-                switch (primary->type) {
-                case ENTITY_MODEL: Editor_DuplicateModel(scene, engine, primary->index); break;
-                case ENTITY_BRUSH: Editor_DuplicateBrush(scene, engine, primary->index); break;
-                case ENTITY_LIGHT: Editor_DuplicateLight(scene, primary->index); break;
-                case ENTITY_DECAL: Editor_DuplicateDecal(scene, primary->index); break;
-                case ENTITY_SOUND: Editor_DuplicateSoundEntity(scene, primary->index); break;
-                case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, primary->index); break;
-                case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, primary->index); break;
-                case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, primary->index); break;
-                case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, primary->index); break;
-                default: Console_Printf("Duplication not implemented for this entity type yet."); break;
+            if (g_EditorState.num_selections > 0) {
+                int num_to_duplicate = g_EditorState.num_selections;
+                EditorSelection* original_selections = malloc(num_to_duplicate * sizeof(EditorSelection));
+                memcpy(original_selections, g_EditorState.selections, num_to_duplicate * sizeof(EditorSelection));
+
+                Editor_ClearSelection();
+
+                for (int i = 0; i < num_to_duplicate; ++i) {
+                    EditorSelection* sel = &original_selections[i];
+                    switch (sel->type) {
+                    case ENTITY_MODEL: Editor_DuplicateModel(scene, engine, sel->index); break;
+                    case ENTITY_BRUSH: Editor_DuplicateBrush(scene, engine, sel->index); break;
+                    case ENTITY_LIGHT: Editor_DuplicateLight(scene, sel->index); break;
+                    case ENTITY_DECAL: Editor_DuplicateDecal(scene, sel->index); break;
+                    case ENTITY_SOUND: Editor_DuplicateSoundEntity(scene, sel->index); break;
+                    case ENTITY_PARTICLE_EMITTER: Editor_DuplicateParticleEmitter(scene, sel->index); break;
+                    case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, sel->index); break;
+                    case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, sel->index); break;
+                    case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, sel->index); break;
+                    default: Console_Printf("Duplication not implemented for this entity type yet."); break;
+                    }
                 }
+                free(original_selections);
             }
             return;
         }
