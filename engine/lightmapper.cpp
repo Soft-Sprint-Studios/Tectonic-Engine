@@ -56,8 +56,8 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
-    constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 128;
-    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 2048;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 1024;
     constexpr float LUXELS_PER_UNIT = 16.0f;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
