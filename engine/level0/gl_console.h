@@ -106,6 +106,7 @@ extern "C" {
 	LEVEL0_API void UI_PushStyleVar_WindowPadding(float val_x, float val_y);
 	LEVEL0_API void UI_PopStyleVar(int count);
 	LEVEL0_API void UI_InputText(const char* label, char* buf, size_t buf_size);
+	LEVEL0_API bool UI_InputText_Flags(const char* label, char* buf, size_t buf_size, int flags);
 
 	LEVEL0_API bool UI_BeginChild(const char* str_id, float width, float height, bool border, int flags);
 	LEVEL0_API bool UI_RadioButton(const char* label, bool active);

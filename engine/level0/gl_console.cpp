@@ -358,7 +358,9 @@ extern "C" {
     void UI_PushStyleVar_WindowPadding(float val_x, float val_y) { ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(val_x, val_y)); }
     void UI_PopStyleVar(int count) { ImGui::PopStyleVar(count); }
     void UI_InputText(const char* label, char* buf, size_t buf_size) { ImGui::InputText(label, buf, buf_size); }
-
+    bool UI_InputText_Flags(const char* label, char* buf, size_t buf_size, int flags) {
+        return ImGui::InputText(label, buf, buf_size, (ImGuiInputTextFlags)flags);
+    }
     void UI_EndChild() { ImGui::EndChild(); }
     bool UI_BeginChild(const char* str_id, float width, float height, bool border, int flags) { return ImGui::BeginChild(str_id, ImVec2(width, height), border, (ImGuiWindowFlags)flags); }
     void UI_SameLine() { ImGui::SameLine(); }

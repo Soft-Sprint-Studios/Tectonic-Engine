@@ -258,6 +258,8 @@ typedef struct {
     bool show_transform_window;
     TransformWindowMode transform_window_mode;
     Vec3 transform_window_values;
+    bool show_goto_coord_window;
+    char goto_coord_input[64];
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -1492,6 +1494,8 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_arc_degrees = 180.0f;
     g_EditorState.arch_start_angle_degrees = 0.0f;
     g_EditorState.arch_add_height = 0.0f;
+    g_EditorState.show_goto_coord_window = false;
+    memset(g_EditorState.goto_coord_input, 0, sizeof(g_EditorState.goto_coord_input));
     g_EditorState.autosave_timer = 0.0f;
     g_EditorState.gizmo_drag_has_cloned = false;
     g_EditorState.show_map_info_window = false;
@@ -7010,6 +7014,34 @@ static void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
     }
     UI_End();
 }
+static void Editor_RenderGoToCoordinatesWindow(void) {
+    if (!g_EditorState.show_goto_coord_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(300, 150);
+    if (UI_Begin("Go to coordinates", &g_EditorState.show_goto_coord_window)) {
+        UI_Text("Coordinates to go to (x y z), ex:");
+        UI_Text("1 2 3");
+
+        UI_InputText_Flags("##coord_input", g_EditorState.goto_coord_input, sizeof(g_EditorState.goto_coord_input), 0);
+
+        if (UI_Button("OK")) {
+            float x, y, z;
+            if (sscanf(g_EditorState.goto_coord_input, "%f %f %f", &x, &y, &z) == 3) {
+                g_EditorState.editor_camera.position.x = x;
+                g_EditorState.editor_camera.position.y = y;
+                g_EditorState.editor_camera.position.z = z;
+                g_EditorState.show_goto_coord_window = false;
+            }
+        }
+        UI_SameLine();
+        if (UI_Button("Cancel")) {
+            g_EditorState.show_goto_coord_window = false;
+        }
+    }
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -8089,6 +8121,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
                 }
             }
+            if (UI_MenuItem("Go to Coordinates...", NULL, false, true)) {
+                g_EditorState.show_goto_coord_window = true;
+                g_EditorState.goto_coord_input[0] = '\0';
+            }
             UI_Separator();
             if (UI_MenuItem("Map Information", NULL, false, true)) {
                 g_EditorState.show_map_info_window = true;
@@ -8173,6 +8209,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderArchPropertiesWindow(scene, engine);
     Editor_RenderMapInfoWindow(scene);
     Editor_RenderTransformWindow(scene, engine);
+    Editor_RenderGoToCoordinatesWindow();
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
