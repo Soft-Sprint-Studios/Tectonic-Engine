@@ -618,6 +618,27 @@ else()
     target_link_libraries(TectonicParticleEditor PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
+# Tectonic SDK Launcher
+add_executable(SDKLauncher Tools/SDKLauncher/main.cpp)
+
+set_target_properties(SDKLauncher PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+target_include_directories(SDKLauncher PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+)
+
+if(WIN32)
+    set_target_properties(SDKLauncher PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_libraries(SDKLauncher PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
+else()
+    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_libraries(SDKLauncher PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
+endif()
+
 # Patcher executable and post-build command on Windows
 add_executable(Patcher engine/checksumpatcher.cpp)
 set_target_properties(Patcher PROPERTIES
