@@ -315,6 +315,7 @@ namespace
 
         std::vector<Vec3> probe_positions;
         const float probe_spacing = 1.0f;
+        std::mt19937 rng(std::random_device{}());
 
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
@@ -335,7 +336,48 @@ namespace
             for (float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
                 for (float y = min_aabb.y; y <= max_aabb.y; y += probe_spacing) {
                     for (float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
-                        probe_positions.push_back({ x, y, z });
+
+                        Vec3 probe_pos = { x, y, z };
+
+                        const int validation_rays = 16;
+                        const float validation_distance = 0.5f;
+                        int hits = 0;
+
+                        for (int k = 0; k < validation_rays; ++k)
+                        {
+                            std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+                            Vec3 ray_dir = { dist(rng), dist(rng), dist(rng) };
+                            vec3_normalize(&ray_dir);
+
+                            RTCRay ray;
+                            ray.org_x = probe_pos.x;
+                            ray.org_y = probe_pos.y;
+                            ray.org_z = probe_pos.z;
+                            ray.dir_x = ray_dir.x;
+                            ray.dir_y = ray_dir.y;
+                            ray.dir_z = ray_dir.z;
+                            ray.tnear = 0.01f;
+                            ray.tfar = validation_distance;
+                            ray.mask = -1;
+                            ray.flags = 0;
+
+                            RTCOccludedArguments args;
+                            rtcInitOccludedArguments(&args);
+
+                            rtcOccluded1(m_rtc_scene, &ray, &args);
+
+                            if (ray.tfar < 0.0f)
+                            {
+                                hits++;
+                            }
+                        }
+
+                        if (static_cast<float>(hits) / validation_rays > 0.25f)
+                        {
+                            continue;
+                        }
+
+                        probe_positions.push_back(probe_pos);
                     }
                 }
             }
@@ -346,10 +388,10 @@ namespace
             return;
         }
 
+        Console_Printf("[Lightmapper] Placing %zu validated ambient probes.", probe_positions.size());
+
         m_scene->num_ambient_probes = probe_positions.size();
         m_scene->ambient_probes = new AmbientProbe[m_scene->num_ambient_probes];
-
-        std::mt19937 rng(std::random_device{}());
 
         for (size_t i = 0; i < probe_positions.size(); ++i) {
             m_scene->ambient_probes[i].position = probe_positions[i];
@@ -359,7 +401,7 @@ namespace
             for (int j = 0; j < 6; ++j) {
                 Vec3 direct_dir, indirect_dir;
                 Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir);
-                Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], rng, indirect_dir, 1024);
+                Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], rng, indirect_dir, 128);
                 m_scene->ambient_probes[i].colors[j] = vec3_muls(vec3_add(direct_light, indirect_light), 2.2f);
                 dominant_dir_total = vec3_add(dominant_dir_total, vec3_add(direct_dir, indirect_dir));
             }
