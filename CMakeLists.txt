@@ -103,6 +103,23 @@ target_compile_options(math_lib PRIVATE
     $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
+# IPC library
+add_library(ipc_lib SHARED
+    engine/ipc_lib/ipc_system.c
+    engine/ipc_lib/ipc_system.h
+    engine/ipc_lib/ipc_api.h
+)
+target_compile_definitions(ipc_lib PRIVATE
+    $<$<BOOL:${WIN32}>:IPC_DLL_EXPORTS>
+)
+target_include_directories(ipc_lib PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+)
+target_compile_options(ipc_lib PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 # level0 library (core utilities)
 add_library(level0 SHARED
     engine/level0/gl_console.cpp
@@ -127,6 +144,7 @@ target_compile_definitions(level0 PRIVATE
 target_include_directories(level0 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/ipc_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
@@ -386,11 +404,15 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
     )
 
-    target_link_libraries(level0 PRIVATE math_lib SDL2 opengl32 glew32) 
+    target_link_libraries(level0 PRIVATE math_lib SDL2 opengl32 glew32 ipc_lib) 
 
     set_target_properties(engine PROPERTIES
         COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
         COMPILE_PDB_NAME engine
+    )
+    set_target_properties(ipc_lib PROPERTIES
+        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
+        COMPILE_PDB_NAME ipc_lib
     )
 
     set_target_properties(sound PROPERTIES
@@ -432,6 +454,7 @@ if(WIN32)
     target_link_libraries(engine PRIVATE
         level0
         level1
+        ipc_lib
         physics
         math_lib
         sound
@@ -532,6 +555,24 @@ target_compile_options(launcher PRIVATE
 )
 if(WIN32)
     target_link_options(launcher PRIVATE /subsystem:windows)
+endif()
+
+# Tectonic Console
+add_executable(TConsole Tools/TConsole/main.cpp)
+set_target_properties(TConsole PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+target_include_directories(TConsole PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+)
+if(WIN32)
+    set_target_properties(TConsole PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_libraries(TConsole PRIVATE fltk ws2_32 comctl32 gdiplus)
+else()
+    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_libraries(TConsole PRIVATE fltk X11)
 endif()
 
 # Tectonic Model Importer

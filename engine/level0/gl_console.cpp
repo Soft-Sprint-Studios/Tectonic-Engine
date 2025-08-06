@@ -34,6 +34,7 @@
 #include <time.h>
 
 #include "gl_console.h"
+#include "ipc_system.h"
 #include "cvar.h"
 #include "commands.h"
 
@@ -58,6 +59,8 @@ struct Console {
         char buf[1024];
         vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
         buf[IM_ARRAYSIZE(buf) - 1] = 0;
+
+        IPC_SendMessage(buf);
 
         if (g_log_file) {
             fprintf(g_log_file, "%s\n", buf);

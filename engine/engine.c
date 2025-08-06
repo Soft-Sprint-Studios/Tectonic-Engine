@@ -52,6 +52,7 @@
 #include "water_manager.h"
 #include "video_player.h" 
 #include "lightmapper.h"
+#include "ipc_system.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -968,6 +969,7 @@ void PrintSystemInfo() {
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
+    IPC_Init();
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
     GameConfig_Init();
     UI_Init(window, context);
@@ -2976,6 +2978,7 @@ void cleanup() {
     Sentry_Shutdown();
     Discord__Shutdown();
     Log_Shutdown();
+    IPC_Shutdown();
 #ifdef PLATFORM_WINDOWS
     if (g_hMutex) {
         ReleaseMutex(g_hMutex);
@@ -3539,6 +3542,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             g_fps_frame_count = 0;
         }
         UI_BeginFrame();
+        IPC_ReceiveCommands(Commands_Execute);
         process_input(); update_state();
         if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
             const GameConfig* config = GameConfig_Get();
