@@ -56,6 +56,12 @@ typedef enum {
     BRUSH_SHAPE_ARCH
 } BrushCreationShapeType;
 
+typedef enum {
+    TRANSFORM_MODE_MOVE,
+    TRANSFORM_MODE_ROTATE,
+    TRANSFORM_MODE_SCALE
+} TransformWindowMode;
+
 typedef enum { VIEW_PERSPECTIVE, VIEW_TOP_XZ, VIEW_FRONT_XY, VIEW_SIDE_YZ, VIEW_COUNT } ViewportType;
 typedef enum { GIZMO_AXIS_NONE, GIZMO_AXIS_X, GIZMO_AXIS_Y, GIZMO_AXIS_Z } GizmoAxis;
 typedef enum { GIZMO_OP_TRANSLATE, GIZMO_OP_ROTATE, GIZMO_OP_SCALE } GizmoOperation;
@@ -249,6 +255,9 @@ typedef struct {
     GLuint arch_preview_fbo, arch_preview_texture, arch_preview_rbo;
     int arch_preview_width, arch_preview_height;
     bool show_map_info_window;
+    bool show_transform_window;
+    TransformWindowMode transform_window_mode;
+    Vec3 transform_window_values;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -1486,6 +1495,9 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.autosave_timer = 0.0f;
     g_EditorState.gizmo_drag_has_cloned = false;
     g_EditorState.show_map_info_window = false;
+    g_EditorState.show_transform_window = false;
+    g_EditorState.transform_window_mode = TRANSFORM_MODE_MOVE;
+    g_EditorState.transform_window_values = (Vec3){ 0,0,0 };
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -3295,6 +3307,18 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     }
     if (event->type == SDL_KEYDOWN && !event->key.repeat) {
         EditorSelection* primary = Editor_GetPrimarySelection();
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_m) {
+            if (g_EditorState.num_selections > 0) {
+                g_EditorState.show_transform_window = true;
+                if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
+                    g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+                }
+                else {
+                    g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+                }
+            }
+            return;
+        }
         if (event->key.keysym.sym == SDLK_F1) {
             g_EditorState.show_help_window = !g_EditorState.show_help_window;
             if (g_EditorState.show_help_window) {
@@ -6849,6 +6873,143 @@ static void Editor_RenderMapInfoWindow(Scene* scene) {
     }
     UI_End();
 }
+static void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
+    if (!g_EditorState.show_transform_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(300, 220);
+    if (UI_Begin("Transformation", &g_EditorState.show_transform_window)) {
+        UI_BeginGroup();
+        UI_Text("Mode:");
+        if (UI_RadioButton_Int("Rotate", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_ROTATE)) {
+            g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+        }
+        if (UI_RadioButton_Int("Scale", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_SCALE)) {
+            g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+        }
+        if (UI_RadioButton_Int("Move", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_MOVE)) {
+            g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+        }
+        UI_EndGroup();
+
+        UI_SameLine(0, 40);
+
+        UI_BeginGroup();
+        UI_Text("Values:");
+        UI_SetNextItemWidth(120);
+        UI_InputFloat("X:", &g_EditorState.transform_window_values.x, 0.0f, 0.0f, "%.3f");
+        UI_SetNextItemWidth(120);
+        UI_InputFloat("Y:", &g_EditorState.transform_window_values.y, 0.0f, 0.0f, "%.3f");
+        UI_SetNextItemWidth(120);
+        UI_InputFloat("Z:", &g_EditorState.transform_window_values.z, 0.0f, 0.0f, "%.3f");
+        UI_EndGroup();
+
+        UI_Separator();
+
+        if (UI_Button("OK")) {
+            if (g_EditorState.num_selections > 0) {
+                Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
+
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+
+                    switch (sel->type) {
+                    case ENTITY_MODEL: {
+                        SceneObject* obj = &scene->objects[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) obj->pos = vec3_add(obj->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) obj->rot = vec3_add(obj->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) obj->scale = vec3_mul(obj->scale, g_EditorState.transform_window_values);
+                        SceneObject_UpdateMatrix(obj);
+                        if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
+                        break;
+                    }
+                    case ENTITY_BRUSH: {
+                        Brush* b = &scene->brushes[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) b->pos = vec3_add(b->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) b->rot = vec3_add(b->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) b->scale = vec3_mul(b->scale, g_EditorState.transform_window_values);
+                        Brush_UpdateMatrix(b);
+                        if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                        break;
+                    }
+                    case ENTITY_LIGHT: {
+                        Light* l = &scene->lights[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->position = vec3_add(l->position, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = vec3_add(l->rot, g_EditorState.transform_window_values);
+                        break;
+                    }
+                    case ENTITY_DECAL: {
+                        Decal* d = &scene->decals[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) d->pos = vec3_add(d->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) d->rot = vec3_add(d->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) d->size = vec3_mul(d->size, g_EditorState.transform_window_values);
+                        Decal_UpdateMatrix(d);
+                        break;
+                    }
+                    case ENTITY_SOUND: {
+                        SoundEntity* s = &scene->soundEntities[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = vec3_add(s->pos, g_EditorState.transform_window_values);
+                        break;
+                    }
+                    case ENTITY_PARTICLE_EMITTER: {
+                        ParticleEmitter* p = &scene->particleEmitters[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = vec3_add(p->pos, g_EditorState.transform_window_values);
+                        break;
+                    }
+                    case ENTITY_SPRITE: {
+                        Sprite* s = &scene->sprites[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = vec3_add(s->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) s->scale *= g_EditorState.transform_window_values.x;
+                        break;
+                    }
+                    case ENTITY_VIDEO_PLAYER: {
+                        VideoPlayer* vp = &scene->videoPlayers[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) vp->pos = vec3_add(vp->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) vp->rot = vec3_add(vp->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
+                            vp->size.x *= g_EditorState.transform_window_values.x;
+                            vp->size.y *= g_EditorState.transform_window_values.y;
+                        }
+                        break;
+                    }
+                    case ENTITY_PARALLAX_ROOM: {
+                        ParallaxRoom* p = &scene->parallaxRooms[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = vec3_add(p->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) p->rot = vec3_add(p->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
+                            p->size.x *= g_EditorState.transform_window_values.x;
+                            p->size.y *= g_EditorState.transform_window_values.y;
+                            p->roomDepth *= g_EditorState.transform_window_values.z;
+                        }
+                        ParallaxRoom_UpdateMatrix(p);
+                        break;
+                    }
+                    case ENTITY_LOGIC: {
+                        LogicEntity* l = &scene->logicEntities[sel->index];
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = vec3_add(l->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = vec3_add(l->rot, g_EditorState.transform_window_values);
+                        break;
+                    }
+                    case ENTITY_PLAYERSTART: {
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.position = vec3_add(scene->playerStart.position, g_EditorState.transform_window_values);
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+                Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Transform Selection");
+            }
+            g_EditorState.show_transform_window = false;
+        }
+        UI_SameLine();
+        if (UI_Button("Cancel")) {
+            g_EditorState.show_transform_window = false;
+        }
+    }
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -7919,6 +8080,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_BeginMenu("Tools", true)) {
             if (UI_MenuItem("Group", "Ctrl+G", false, g_EditorState.num_selections > 1)) { Editor_GroupSelection(); }
             if (UI_MenuItem("Ungroup", "Ctrl+U", false, g_EditorState.num_selections > 0)) { Editor_UngroupSelection(); }
+            if (UI_MenuItem("Transform", "Ctrl+M", false, g_EditorState.num_selections > 0)) {
+                g_EditorState.show_transform_window = true;
+                if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
+                    g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+                }
+                else {
+                    g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+                }
+            }
             UI_Separator();
             if (UI_MenuItem("Map Information", NULL, false, true)) {
                 g_EditorState.show_map_info_window = true;
@@ -8002,6 +8172,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderBuildCubemapsWindow(scene);
     Editor_RenderArchPropertiesWindow(scene, engine);
     Editor_RenderMapInfoWindow(scene);
+    Editor_RenderTransformWindow(scene, engine);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
