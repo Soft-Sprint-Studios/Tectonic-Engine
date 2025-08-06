@@ -572,7 +572,7 @@ if(WIN32)
     target_link_libraries(TConsole PRIVATE fltk ws2_32 comctl32 gdiplus)
 else()
     target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
-    target_link_libraries(TConsole PRIVATE fltk X11)
+    target_link_libraries(TConsole PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
 # Tectonic Model Importer
