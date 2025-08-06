@@ -41,7 +41,7 @@
 #pragma comment(lib, "ws2_32.lib")
 typedef SOCKET socket_t;
 #else
-#include <sys/socket.hh>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
