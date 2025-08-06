@@ -117,6 +117,7 @@ The Tectonic Engine can be controlled and configured at runtime through its powe
 | `r_debug_lightmaps`          | 0       | Show lightmap buffer.                       |
 | `r_debug_lightmaps_directional` | 0    | Show directional lightmap buffer.           |
 | `r_debug_vertex_light`       | 0       | Show baked vertex lighting buffer.          |
+| `r_debug_vertex_light_directional`     | 0       | Show baked directional vertex lighting buffer          |
 
 ---
 
