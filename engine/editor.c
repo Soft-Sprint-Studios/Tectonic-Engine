@@ -248,6 +248,7 @@ typedef struct {
     ViewportType arch_creation_view;
     GLuint arch_preview_fbo, arch_preview_texture, arch_preview_rbo;
     int arch_preview_width, arch_preview_height;
+    bool show_map_info_window;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -1484,6 +1485,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_add_height = 0.0f;
     g_EditorState.autosave_timer = 0.0f;
     g_EditorState.gizmo_drag_has_cloned = false;
+    g_EditorState.show_map_info_window = false;
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -4767,7 +4769,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-                    float color[] = { 1.0f, 0.5f, 0.0f, 0.4f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                    float color[] = { 0.835f, 0.333f, 0.0f, 0.4f };
+                    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
                     glBindVertexArray(g_EditorState.selected_face_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
                     glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(float), face_verts, GL_DYNAMIC_DRAW);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -6795,6 +6798,57 @@ static void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine) {
 
     UI_End();
 }
+static void Editor_RenderMapInfoWindow(Scene* scene) {
+    if (!g_EditorState.show_map_info_window) {
+        return;
+    }
+
+    UI_SetNextWindowSize(250, 180);
+    if (UI_Begin("Map Information", &g_EditorState.show_map_info_window)) {
+        int solid_count = scene->numBrushes;
+        int face_count = 0;
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            face_count += scene->brushes[i].numFaces;
+        }
+        int entity_count = scene->numObjects + scene->numActiveLights + scene->numDecals +
+            scene->numSoundEntities + scene->numParticleEmitters + scene->numSprites +
+            scene->numVideoPlayers + scene->numParallaxRooms + scene->numLogicEntities;
+
+        Material* unique_materials[MAX_MATERIALS];
+        int unique_count = 0;
+
+        for (int i = 0; i < scene->numBrushes; ++i) {
+            for (int j = 0; j < scene->brushes[i].numFaces; ++j) {
+                Material* mats[] = { scene->brushes[i].faces[j].material, scene->brushes[i].faces[j].material2, scene->brushes[i].faces[j].material3, scene->brushes[i].faces[j].material4 };
+                for (int k = 0; k < 4; ++k) {
+                    if (mats[k] != NULL && mats[k] != &g_NodrawMaterial) {
+                        bool found = false;
+                        for (int l = 0; l < unique_count; ++l) {
+                            if (unique_materials[l] == mats[k]) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found && unique_count < MAX_MATERIALS) {
+                            unique_materials[unique_count++] = mats[k];
+                        }
+                    }
+                }
+            }
+        }
+
+        UI_Text("Solids: %d", solid_count);
+        UI_Text("Faces: %d", face_count);
+        UI_Text("Entities: %d", entity_count);
+        UI_Text("Unique textures: %d", unique_count);
+
+        UI_Separator();
+        if (UI_Button("Close")) {
+            g_EditorState.show_map_info_window = false;
+        }
+    }
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -7866,6 +7920,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Group", "Ctrl+G", false, g_EditorState.num_selections > 1)) { Editor_GroupSelection(); }
             if (UI_MenuItem("Ungroup", "Ctrl+U", false, g_EditorState.num_selections > 0)) { Editor_UngroupSelection(); }
             UI_Separator();
+            if (UI_MenuItem("Map Information", NULL, false, true)) {
+                g_EditorState.show_map_info_window = true;
+            }
             if (UI_MenuItem("Replace Textures...", NULL, false, true)) {
                 g_EditorState.show_replace_textures_popup = true;
             }
@@ -7944,6 +8001,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderBakeLightingWindow(scene, engine);
     Editor_RenderBuildCubemapsWindow(scene);
     Editor_RenderArchPropertiesWindow(scene, engine);
+    Editor_RenderMapInfoWindow(scene);
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
