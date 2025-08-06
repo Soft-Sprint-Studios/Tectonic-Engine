@@ -28,6 +28,7 @@
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Menu_Bar.H>
+#include <FL/fl_ask.H>
 #include <FL/Fl_Box.H>
 #include <string>
 #include <vector>
@@ -147,6 +148,7 @@ public:
         menuBar = new Fl_Menu_Bar(0, 0, W, 25);
         menuBar->add("File/Quit", FL_CTRL + 'q', on_quit_cb, this);
         menuBar->add("Edit/Clear", FL_CTRL + 'l', on_clear_cb, this);
+        menuBar->add("Help/About", 0, on_about_cb, this);
 
         app_data.logBuffer = new Fl_Text_Buffer();
         app_data.logDisplay = new Fl_Text_Display(0, 25, W, H - 75, "");
@@ -194,6 +196,12 @@ private:
     static void on_clear_cb(Fl_Widget*, void* data) {
         TConsoleWindow* win = (TConsoleWindow*)data;
         win->app_data.logBuffer->text("");
+    }
+
+    static void on_about_cb(Fl_Widget*, void*) {
+        fl_message_title("About Tectonic Console");
+        fl_message("A remote console for the Tectonic Engine.\n\n"
+            "Copyright (c) 2025 Soft Sprint Studios");
     }
 
     static void on_idle_cb(void* data) {
