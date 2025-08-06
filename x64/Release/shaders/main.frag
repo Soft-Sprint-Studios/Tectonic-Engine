@@ -124,6 +124,7 @@ uniform vec3 probePosition;
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 uniform bool r_debug_vertex_light;
+uniform bool r_debug_vertex_light_directional;
 uniform bool r_lightmaps_bicubic;
 
 const float PI = 3.14159265359;
@@ -726,6 +727,13 @@ void main()
 	else if (r_debug_vertex_light) {
         if (isBrush == 0 && v_Color.a > 0.5) {
             finalColor = v_Color.rgb;
+        } else {
+            finalColor = vec3(0.0);
+        }
+    }
+    else if (r_debug_vertex_light_directional) {
+        if (isBrush == 0 && v_Color2.a > 0.0) {
+            finalColor = normalize(v_Color2.rgb * 2.0 - 1.0) * 0.5 + 0.5;
         } else {
             finalColor = vec3(0.0);
         }
