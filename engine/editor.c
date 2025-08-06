@@ -413,6 +413,7 @@ static Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport);
 float SnapValue(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
 float SnapAngle(float value, float snap_interval) { if (snap_interval == 0.0f) return value; return roundf(value / snap_interval) * snap_interval; }
 static void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
+static void Editor_FlipSelection(Scene* scene, Engine* engine, int axis);
 
 void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs) {
     if (brush_index < 0 || brush_index >= scene->numBrushes) return;
@@ -3321,6 +3322,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
                 }
             }
+            return;
+        }
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_l) {
+            Editor_FlipSelection(scene, engine, 1);
+            return;
+        }
+        if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_i) {
+            Editor_FlipSelection(scene, engine, 0);
             return;
         }
         if (event->key.keysym.sym == SDLK_F1) {
@@ -7042,6 +7051,74 @@ static void Editor_RenderGoToCoordinatesWindow(void) {
     }
     UI_End();
 }
+static void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
+    if (g_EditorState.num_selections == 0) {
+        return;
+    }
+
+    Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
+
+    Vec3 centroid = g_EditorState.gizmo_selection_centroid;
+
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        EditorSelection* sel = &g_EditorState.selections[i];
+
+        Vec3* pos = NULL;
+        Vec3* rot = NULL;
+
+        switch (sel->type) {
+        case ENTITY_MODEL: pos = &scene->objects[sel->index].pos; rot = &scene->objects[sel->index].rot; break;
+        case ENTITY_BRUSH: pos = &scene->brushes[sel->index].pos; rot = &scene->brushes[sel->index].rot; break;
+        case ENTITY_LIGHT: pos = &scene->lights[sel->index].position; rot = &scene->lights[sel->index].rot; break;
+        case ENTITY_DECAL: pos = &scene->decals[sel->index].pos; rot = &scene->decals[sel->index].rot; break;
+        case ENTITY_SOUND: pos = &scene->soundEntities[sel->index].pos; break;
+        case ENTITY_PARTICLE_EMITTER: pos = &scene->particleEmitters[sel->index].pos; break;
+        case ENTITY_SPRITE: pos = &scene->sprites[sel->index].pos; break;
+        case ENTITY_VIDEO_PLAYER: pos = &scene->videoPlayers[sel->index].pos; rot = &scene->videoPlayers[sel->index].rot; break;
+        case ENTITY_PARALLAX_ROOM: pos = &scene->parallaxRooms[sel->index].pos; rot = &scene->parallaxRooms[sel->index].rot; break;
+        case ENTITY_LOGIC: pos = &scene->logicEntities[sel->index].pos; rot = &scene->logicEntities[sel->index].rot; break;
+        case ENTITY_PLAYERSTART: pos = &scene->playerStart.position; break;
+        default: continue;
+        }
+
+        if (pos) {
+            Vec3 relative_pos = vec3_sub(*pos, centroid);
+            if (axis == 1) {
+                relative_pos.x *= -1.0f;
+                relative_pos.z *= -1.0f;
+            }
+            else {
+                relative_pos.y *= -1.0f;
+                relative_pos.z *= -1.0f;
+            }
+            *pos = vec3_add(centroid, relative_pos);
+        }
+
+        if (rot) {
+            if (axis == 1) {
+                rot->y = fmodf(rot->y + 180.0f, 360.0f);
+                rot->x *= -1.0f;
+                rot->z *= -1.0f;
+            }
+            else {
+                rot->x = fmodf(rot->x + 180.0f, 360.0f);
+                rot->y *= -1.0f;
+                rot->z *= -1.0f;
+            }
+        }
+
+        switch (sel->type) {
+        case ENTITY_MODEL: { SceneObject* obj = &scene->objects[sel->index]; SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); break; }
+        case ENTITY_BRUSH: { Brush* b = &scene->brushes[sel->index]; Brush_UpdateMatrix(b); if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); break; }
+        case ENTITY_DECAL: Decal_UpdateMatrix(&scene->decals[sel->index]); break;
+        case ENTITY_PARALLAX_ROOM: ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[sel->index]); break;
+        case ENTITY_SOUND: SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, scene->soundEntities[sel->index].pos); break;
+        default: break;
+        }
+    }
+
+    Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Flip Selection");
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -8120,6 +8197,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 else {
                     g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
                 }
+            }
+            UI_Separator();
+            if (UI_MenuItem("Flip Horizontal", "Ctrl+L", false, g_EditorState.num_selections > 0)) {
+                Editor_FlipSelection(scene, engine, 1);
+            }
+            if (UI_MenuItem("Flip Vertical", "Ctrl+I", false, g_EditorState.num_selections > 0)) {
+                Editor_FlipSelection(scene, engine, 0);
             }
             if (UI_MenuItem("Go to Coordinates...", NULL, false, true)) {
                 g_EditorState.show_goto_coord_window = true;
