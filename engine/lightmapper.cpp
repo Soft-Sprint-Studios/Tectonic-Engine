@@ -143,7 +143,7 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
-        std::vector<EmissiveMaterial> m_emissive_materials;
+        std::map<const Material*, std::pair<Vec3, float>> m_emissive_materials;
         std::map<const Material*, Vec4> m_material_reflectivity;
         std::map<const BrushFace*, Vec4> m_face_reflectivity;
         std::vector<const BrushFace*> m_primID_to_face_map;
@@ -303,7 +303,7 @@ namespace
                 continue;
             }
 
-            m_emissive_materials.push_back({ mat, {r / 255.0f, g / 255.0f, b / 255.0f}, intensity });
+            m_emissive_materials[mat] = { {r / 255.0f, g / 255.0f, b / 255.0f}, intensity };
             Console_Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
         }
         Console_Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
@@ -1571,18 +1571,11 @@ namespace
                     const BrushFace* hit_face = m_primID_to_face_map[rayhit.hit.primID];
                     if (hit_face && hit_face->material) {
                         const Material* hit_material = hit_face->material;
-                        bool is_emissive = false;
-                        Vec3 emission = { 0,0,0 };
-
-                        for (const auto& emissive_mat : m_emissive_materials) {
-                            if (emissive_mat.material == hit_material) {
-                                is_emissive = true;
-                                emission = vec3_muls(emissive_mat.color, emissive_mat.intensity);
-                                break;
-                            }
-                        }
-
-                        if (is_emissive) {
+                        auto it = m_emissive_materials.find(hit_material);
+                        if (it != m_emissive_materials.end()) {
+                            const Vec3& color = it->second.first;
+                            const float intensity = it->second.second;
+                            Vec3 emission = vec3_muls(color, intensity);
                             path_radiance = vec3_add(path_radiance, vec3_mul(emission, throughput));
                             break;
                         }
