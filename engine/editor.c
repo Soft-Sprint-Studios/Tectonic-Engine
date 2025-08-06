@@ -3298,7 +3298,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         bool hovered_any_viewport = false;
         for (int i = 1; i < VIEW_COUNT; i++) {
-            if (g_EditorState.is_viewport_hovered[i]) { g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true; }
+            if (g_EditorState.is_viewport_hovered[i]) { g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true;  if (g_EditorState.ortho_cam_zoom[i - 1] > 64.0f) {
+                g_EditorState.ortho_cam_zoom[i - 1] = 64.0f;
+            }
+            if (g_EditorState.ortho_cam_zoom[i - 1] < 0.5f) {
+                g_EditorState.ortho_cam_zoom[i - 1] = 0.5f;
+            }
+            }
         }
     }
     if (event->type == SDL_KEYDOWN && !event->key.repeat) {
