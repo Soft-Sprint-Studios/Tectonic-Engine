@@ -4307,7 +4307,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
     if (g_EditorState.autosave_timer >= 300.0f) {
         if (strcmp(g_EditorState.currentMapPath, "untitled.map") != 0) {
             char autosave_path[256];
-            sprintf(autosave_path, "_autosave_%s", g_EditorState.currentMapPath);
+            sprintf(autosave_path, "autosaves/_autosave_%s", g_EditorState.currentMapPath);
             Scene_SaveMap(scene, NULL, autosave_path);
         }
         g_EditorState.autosave_timer = 0.0f;
