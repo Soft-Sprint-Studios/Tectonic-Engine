@@ -10,12 +10,16 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 # Compiler-specific optimization flags
 if(MSVC)
     message(STATUS "Applying MSVC optimization settings")
-    foreach(config RELEASE RELWITHDEBINFO)
-        set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /O2 /GL /Zi")
-        set(CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}} /O2 /GL /Zi")
-        set(CMAKE_SHARED_LINKER_FLAGS_${config} "${CMAKE_SHARED_LINKER_FLAGS_${config}} /LTCG /DEBUG")
-        set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /LTCG /DEBUG")
-    endforeach()
+
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /GL")
+    set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} /O2 /GL")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE    "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG")
+
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /GL /Zi")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO   "${CMAKE_C_FLAGS_RELWITHDEBINFO} /O2 /GL /Zi")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} /LTCG /DEBUG")
+    set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO    "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /LTCG /DEBUG")
 
     foreach(config DEBUG MINSIZEREL)
         set(CMAKE_CXX_FLAGS_${config} "${CMAKE_CXX_FLAGS_${config}} /Zi")
@@ -406,24 +410,15 @@ if(WIN32)
 
     target_link_libraries(level0 PRIVATE math_lib SDL2 opengl32 glew32 ipc_lib) 
 
-    set_target_properties(engine PROPERTIES
-        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
-        COMPILE_PDB_NAME engine
-    )
-    set_target_properties(ipc_lib PROPERTIES
-        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
-        COMPILE_PDB_NAME ipc_lib
-    )
-
-    set_target_properties(sound PROPERTIES
-        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
-        COMPILE_PDB_NAME sound
-    )
-
-    set_target_properties(materials PROPERTIES
-        COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
-        COMPILE_PDB_NAME materials
-    )
+    set_target_properties(engine PROPERTIES COMPILE_PDB_NAME engine)
+    set_target_properties(ipc_lib PROPERTIES COMPILE_PDB_NAME ipc_lib)
+    set_target_properties(sound PROPERTIES COMPILE_PDB_NAME sound)
+    set_target_properties(materials PROPERTIES COMPILE_PDB_NAME materials)
+    set_target_properties(models PROPERTIES COMPILE_PDB_NAME models)
+    set_target_properties(physics PROPERTIES COMPILE_PDB_NAME physics)
+    set_target_properties(level0 PROPERTIES COMPILE_PDB_NAME level0)
+    set_target_properties(level1 PROPERTIES COMPILE_PDB_NAME level1)
+    set_target_properties(math_lib PROPERTIES COMPILE_PDB_NAME math_lib)
 
     target_link_directories(sound PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"

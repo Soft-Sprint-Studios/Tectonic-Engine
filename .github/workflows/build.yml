@@ -6,166 +6,157 @@ permissions:
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
 
 jobs:
   build-linux-x64-release:
+    name: Build - Linux x64 (Release)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev libpango1.0-dev
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev
 
       - name: Configure CMake
-        run: cmake -S . -B build-linux-x64-release -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build with CMake
-        run: cmake --build build-linux-x64-release --config Release -- -j$(($(nproc)/2))
-
-      - name: Patch engine library
-        run: build-linux-x64-release/Patcher build-linux-x64-release/libengine.so
+        run: cmake --build build --config Release -- -j$(nproc)
 
       - name: Upload Linux Release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-x64-release
           path: |
-            build-linux-x64-release/launcher
-            build-linux-x64-release/libengine.so
-            build-linux-x64-release/TectonicModelImporter
+            build/launcher
+            build/lib*.so
+            build/T* # Upload all Tectonic tools
 
   build-linux-x64-relwithdebinfo:
+    name: Build - Linux x64 (RelWithDebInfo)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev libpango1.0-dev
+          sudo apt-get install -y cmake build-essential libsdl2-dev libglew-dev libopenal-dev libbullet-dev libfreetype6-dev binutils libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev libxfixes-dev
 
       - name: Configure CMake
-        run: cmake -S . -B build-linux-x64-relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
       - name: Build with CMake
-        run: cmake --build build-linux-x64-relwithdebinfo --config RelWithDebInfo -- -j$(($(nproc)/2))
+        run: cmake --build build --config RelWithDebInfo -- -j$(nproc)
 
       - name: Create and strip debug symbols
         run: |
-          cp build-linux-x64-relwithdebinfo/launcher build-linux-x64-relwithdebinfo/launcher.debug
-          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/launcher.debug build-linux-x64-relwithdebinfo/launcher.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/launcher.debugsymbols build-linux-x64-relwithdebinfo/launcher
-          cp build-linux-x64-relwithdebinfo/libengine.so build-linux-x64-relwithdebinfo/libengine.so.debug
-          objcopy --only-keep-debug build-linux-x64-relwithdebinfo/libengine.so.debug build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
-          objcopy --strip-debug --add-gnu-debuglink=build-linux-x64-relwithdebinfo/libengine.so.debugsymbols build-linux-x64-relwithdebinfo/libengine.so
-
-      - name: Patch engine library
-        run: build-linux-x64-relwithdebinfo/Patcher build-linux-x64-relwithdebinfo/libengine.so
+          objcopy --only-keep-debug build/libengine.so build/libengine.so.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build/libengine.so.debugsymbols build/libengine.so
+          
+          objcopy --only-keep-debug build/launcher build/launcher.debugsymbols
+          objcopy --strip-debug --add-gnu-debuglink=build/launcher.debugsymbols build/launcher
 
       - name: Upload Linux RelWithDebInfo artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-x64-relwithdebinfo
           path: |
-            build-linux-x64-relwithdebinfo/launcher
-            build-linux-x64-relwithdebinfo/libengine.so
-            build-linux-x64-relwithdebinfo/launcher.debugsymbols
-            build-linux-x64-relwithdebinfo/libengine.so.debugsymbols
-            build-linux-x64-relwithdebinfo/TectonicModelImporter
+            build/launcher
+            build/lib*.so
+            build/launcher.debugsymbols
+            build/libengine.so.debugsymbols
+            build/T* # Upload all Tectonic tools
 
   build-windows-x64-release:
+    name: Build - Windows x64 (Release)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -S . -B build-windows-x64-release -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
       - name: Build with CMake
-        run: cmake --build build-windows-x64-release --config Release
+        run: cmake --build build --config Release
 
       - name: Upload Windows x64 Release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64-release
           path: |
-            build-windows-x64-release\Release\launcher.exe
-            build-windows-x64-release\Release\*.dll
-            build-windows-x64-release\Release\TectonicModelImporter.exe
+            build/Release/*.exe
+            build/Release/*.dll
 
   build-windows-x64-relwithdebinfo:
+    name: Build - Windows x64 (RelWithDebInfo)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -S . -B build-windows-x64-relwithdebinfo -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
       - name: Build with CMake
-        run: cmake --build build-windows-x64-relwithdebinfo --config RelWithDebInfo
+        run: cmake --build build --config RelWithDebInfo
 
       - name: Upload Windows x64 RelWithDebInfo artifacts (with pdbs)
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64-relwithdebinfo
           path: |
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.exe
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\*.dll
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\launcher.pdb
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\engine.pdb
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.exe
-            build-windows-x64-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.pdb
+            build/RelWithDebInfo/*.exe
+            build/RelWithDebInfo/*.dll
+            build/RelWithDebInfo/*.pdb
 
   build-windows-x86-release:
+    name: Build - Windows x86 (Release)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -S . -B build-windows-x86-release -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
 
       - name: Build with CMake
-        run: cmake --build build-windows-x86-release --config Release
+        run: cmake --build build --config Release
 
       - name: Upload Windows x86 Release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-x86-release
           path: |
-            build-windows-x86-release\Release\launcher.exe
-            build-windows-x86-release\Release\*.dll
-            build-windows-x86-release\Release\TectonicModelImporter.exe
+            build/Release/*.exe
+            build/Release/*.dll
 
   build-windows-x86-relwithdebinfo:
+    name: Build - Windows x86 (RelWithDebInfo)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure CMake
-        run: cmake -S . -B build-windows-x86-relwithdebinfo -G "Visual Studio 17 2022" -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
 
       - name: Build with CMake
-        run: cmake --build build-windows-x86-relwithdebinfo --config RelWithDebInfo
+        run: cmake --build build --config RelWithDebInfo
 
       - name: Upload Windows x86 RelWithDebInfo artifacts (with pdbs)
         uses: actions/upload-artifact@v4
         with:
           name: windows-x86-relwithdebinfo
           path: |
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.exe
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\*.dll
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\launcher.pdb
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\engine.pdb
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.exe
-            build-windows-x86-relwithdebinfo\RelWithDebInfo\TectonicModelImporter.pdb
+            build/RelWithDebInfo/*.exe
+            build/RelWithDebInfo/*.dll
+            build/RelWithDebInfo/*.pdb
