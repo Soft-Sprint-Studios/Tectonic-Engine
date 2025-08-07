@@ -64,6 +64,7 @@ The Tectonic Engine can be controlled and configured at runtime through its powe
 | `r_black_white`          | 1       | Enable black and white effect (0=off, 1=on).             |
 | `r_sharpening`           | 1       | Enable sharpening (0=off, 1=on).                         |
 | `r_fxaa`                 | 1       | Enable depth-based anti-aliasing (0=off, 1=on).          |
+| `r_clear`                 | 0       | Clear the screen every frame (0=off, 1=on).          |
 | `r_skybox`               | 1       | Enable skybox rendering (0=off, 1=on).                   |
 | `r_particles`            | 1       | Enable particles (0=off, 1=on).                          |
 | `r_particles_cull_dist`  | 75.0    | Particle culling distance.                              |

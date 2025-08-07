@@ -869,6 +869,7 @@ void init_cvars() {
     Cvar_Register("r_vsync", "1", "Enable vertical sync (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable motion blur (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_fxaa", "1", "Enable depth-based anti-aliasing (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_clear", "0", "Clear the screen every frame (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_skybox", "1", "Enable skybox (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles", "1", "Enable particles (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
@@ -2791,7 +2792,9 @@ void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* pro
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glClear(GL_COLOR_BUFFER_BIT);
+    if (Cvar_GetInt("r_clear")) {
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
     glUseProgram(g_renderer.postProcessShader);
     glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->scaledTime);
@@ -3228,7 +3231,9 @@ void BuildCubemaps(int resolution) {
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
             glViewport(0, 0, resolution, resolution);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            if (Cvar_GetInt("r_clear")) {
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
 
             glEnable(GL_FRAMEBUFFER_SRGB);
 
