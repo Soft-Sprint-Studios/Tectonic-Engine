@@ -178,9 +178,9 @@ private:
 
     static void on_send_btn_cb(Fl_Widget* w, void* data) {
         TConsoleWindow* win = (TConsoleWindow*)data;
-        if (win->app_data.is_connected) {
-            const char* command = win->commandInput->value();
-            if (command && strlen(command) > 0) {
+        const char* command = win->commandInput->value();
+        if (command && strlen(command) > 0) {
+            if (win->app_data.is_connected) {
                 std::string cmd_with_newline = std::string(command) + "\n";
                 send(win->app_data.client_socket, cmd_with_newline.c_str(), cmd_with_newline.length(), 0);
 
@@ -189,6 +189,11 @@ private:
                 win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
 
                 win->commandInput->value("");
+            }
+            else {
+                std::string log_entry = "[!] Engine not connected. Command not sent: " + std::string(command) + "\n";
+                win->app_data.logBuffer->append(log_entry.c_str());
+                win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
             }
         }
     }
