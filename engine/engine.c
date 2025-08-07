@@ -2004,6 +2004,7 @@ void render_shadows() {
     glViewport(0, 0, shadow_map_size, shadow_map_size);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
+        if (light->is_static) continue;
         if (light->intensity <= 0.0f) continue;
         if (vec3_length_sq(vec3_sub(light->position, g_engine->camera.position)) > max_shadow_dist_sq) continue;
         glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
