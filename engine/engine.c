@@ -2181,6 +2181,8 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 }
 
 void render_zprepass(const Mat4* view, const Mat4* projection) {
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
+    glViewport(0, 0, WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(g_renderer.zPrepassShader);
