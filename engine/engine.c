@@ -850,6 +850,7 @@ void init_cvars() {
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_zprepass", "1", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_physics_shadows", "1", "Enable Basic realtime shadows for physics props (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render in wireframe mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadows", "1", "Enable dynamic shadows (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_shadow_distance_max", "100.0", "Max shadow casting distance", CVAR_NONE);
@@ -1036,6 +1037,7 @@ void init_renderer() {
     g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
+    g_renderer.modelShadowShader = createShaderProgram("shaders/shadow_model.vert", "shaders/shadow_model.frag");
     g_renderer.ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
@@ -2531,6 +2533,37 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useLightmap"), 0);
     glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useDirectionalLightmap"), 0);
+
+    if (Cvar_GetInt("r_physics_shadows")) {
+        glUseProgram(g_renderer.modelShadowShader);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.modelShadowShader, "view"), 1, GL_FALSE, view->m);
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.modelShadowShader, "projection"), 1, GL_FALSE, projection->m);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        for (int i = 0; i < g_scene.numObjects; i++) {
+            SceneObject* obj = &g_scene.objects[i];
+            if (obj->mass > 0.0f && obj->model) {
+                glUniformMatrix4fv(glGetUniformLocation(g_renderer.modelShadowShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                    Mesh* mesh = &obj->model->meshes[meshIdx];
+                    glBindVertexArray(mesh->VAO);
+                    if (mesh->useEBO) {
+                        glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+                    }
+                    else {
+                        glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount);
+                    }
+                }
+            }
+        }
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
+
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }
@@ -2915,6 +2948,7 @@ void cleanup() {
     glDeleteProgram(g_renderer.volumetricBlurShader);
     glDeleteProgram(g_renderer.histogramShader);
     glDeleteProgram(g_renderer.exposureShader);
+    glDeleteProgram(g_renderer.modelShadowShader);
     glDeleteProgram(g_renderer.motionBlurShader);
     glDeleteProgram(g_renderer.waterShader);
     glDeleteProgram(g_renderer.glassShader);
