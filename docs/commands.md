@@ -47,6 +47,7 @@ The Tectonic Engine can be controlled and configured at runtime through its powe
 | `r_volumetrics`          | 1       | Enable volumetric lighting (0=off, 1=on).                |
 | `r_faceculling`          | 1       | Enable back-face culling (0=off, 1=on).                  |
 | `r_zprepass`             | 1       | Enable Z-prepass (0=off, 1=on).                          |
+| `r_physics_shadows`             | 1       | Enable Basic realtime shadows for physics props (0=off, 1=on).                          |
 | `r_wireframe`            | 0       | Render geometry in wireframe mode (0=off, 1=on).         |
 | `r_shadows`              | 1       | Enable dynamic shadows (0=off, 1=on).                    |
 | `r_shadow_distance_max`  | 100.0   | Max shadow casting distance.                            |
