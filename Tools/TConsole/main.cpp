@@ -183,6 +183,11 @@ private:
             if (command && strlen(command) > 0) {
                 std::string cmd_with_newline = std::string(command) + "\n";
                 send(win->app_data.client_socket, cmd_with_newline.c_str(), cmd_with_newline.length(), 0);
+
+                std::string log_entry = "> " + std::string(command) + "\n";
+                win->app_data.logBuffer->append(log_entry.c_str());
+                win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
+
                 win->commandInput->value("");
             }
         }
