@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
@@ -29,6 +30,7 @@
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_File_Chooser.H>
+#include <FL/Fl_Box.H>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -38,7 +40,6 @@
 #include <cstring>
 #include <thread>
 #include <mutex>
-#include <vector>
 #include <algorithm>
 
 #define CGLTF_IMPLEMENTATION
@@ -48,8 +49,7 @@ namespace fs = std::filesystem;
 
 struct ThreadData {
     std::string input_path;
-    std::string materials_def_path;
-    std::string textures_path;
+    std::string output_path;
     std::vector<std::string>* messages;
     std::mutex* mtx;
     bool* is_running;
@@ -107,7 +107,7 @@ bool saveImageData(cgltf_image* image, const std::string& base_filename, const s
     return false;
 }
 
-void processGltf(const fs::path& gltf_path, const fs::path& materials_def_path, const fs::path& textures_path, ThreadData* data) {
+void processGltf(const fs::path& gltf_path, const fs::path& output_path, ThreadData* data) {
     post_message(data, "------------------------------------------");
     post_message(data, "Processing file: " + gltf_path.filename().string());
 
@@ -123,6 +123,9 @@ void processGltf(const fs::path& gltf_path, const fs::path& materials_def_path, 
         cgltf_free(cdata);
         return;
     }
+
+    fs::path textures_path = output_path / "textures";
+    fs::path materials_def_path = output_path / "materials.def";
 
     ensureDirectoryExists(textures_path, data);
     std::ofstream mat_file(materials_def_path, std::ios::app);
@@ -158,6 +161,7 @@ void processGltf(const fs::path& gltf_path, const fs::path& materials_def_path, 
         }
         mat_file << "}\n\n";
     }
+
     mat_file.close();
     cgltf_free(cdata);
 }
@@ -171,12 +175,18 @@ bool isGltfFile(const fs::path& path) {
 
 void import_thread_func(ThreadData* data) {
     fs::path input_path(data->input_path);
+    fs::path output_path(data->output_path);
+
+    if (!fs::exists(output_path)) {
+        fs::create_directories(output_path);
+    }
+
     if (fs::is_directory(input_path)) {
         bool found = false;
         for (const auto& entry : fs::directory_iterator(input_path)) {
             if (isGltfFile(entry.path())) {
                 found = true;
-                processGltf(entry.path(), data->materials_def_path, data->textures_path, data);
+                processGltf(entry.path(), output_path, data);
             }
         }
         if (!found) {
@@ -184,8 +194,9 @@ void import_thread_func(ThreadData* data) {
         }
     }
     else if (fs::is_regular_file(input_path)) {
-        processGltf(input_path, data->materials_def_path, data->textures_path, data);
+        processGltf(input_path, output_path, data);
     }
+
     post_message(data, "======= Import Finished =======");
     *(data->is_running) = false;
     Fl::awake();
@@ -195,6 +206,8 @@ class ModelImporterWindow : public Fl_Window {
 public:
     Fl_Input* inputPath;
     Fl_Button* browseBtn;
+    Fl_Input* outputPath;
+    Fl_Button* browseOutBtn;
     Fl_Button* importBtn;
     Fl_Text_Display* logDisplay;
     Fl_Text_Buffer* logBuffer;
@@ -209,15 +222,18 @@ public:
         begin();
         inputPath = new Fl_Input(80, 10, 400, 25, "Input:");
         browseBtn = new Fl_Button(490, 10, 80, 25, "Browse...");
-        importBtn = new Fl_Button(10, 45, 560, 30, "Import");
+        outputPath = new Fl_Input(80, 45, 400, 25, "Output:");
+        browseOutBtn = new Fl_Button(490, 45, 80, 25, "Browse...");
+        importBtn = new Fl_Button(10, 80, 560, 30, "Import");
         logBuffer = new Fl_Text_Buffer();
-        logDisplay = new Fl_Text_Display(10, 85, 560, 375, "");
+        logDisplay = new Fl_Text_Display(10, 120, 560, 340, "");
         logDisplay->buffer(logBuffer);
         statusBar = new Fl_Box(10, 465, 560, 25, "Ready.");
         statusBar->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
         end();
 
         browseBtn->callback(on_browse_cb, this);
+        browseOutBtn->callback(on_browse_output_cb, this);
         importBtn->callback(on_import_cb, this);
 
         Fl::add_idle(on_idle_cb, this);
@@ -232,7 +248,7 @@ public:
 private:
     static void on_browse_cb(Fl_Widget* w, void* data) {
         ModelImporterWindow* win = (ModelImporterWindow*)data;
-        Fl_File_Chooser chooser(".", "*", Fl_File_Chooser::DIRECTORY, "Select a folder containing GLTF/GLB files");
+        Fl_File_Chooser chooser(".", "*", Fl_File_Chooser::DIRECTORY, "Select Input Folder or File");
         chooser.show();
         while (chooser.shown()) { Fl::wait(); }
         if (chooser.value()) {
@@ -240,13 +256,25 @@ private:
         }
     }
 
+    static void on_browse_output_cb(Fl_Widget* w, void* data) {
+        ModelImporterWindow* win = (ModelImporterWindow*)data;
+        Fl_File_Chooser chooser(".", "*", Fl_File_Chooser::DIRECTORY, "Select Output Folder");
+        chooser.show();
+        while (chooser.shown()) { Fl::wait(); }
+        if (chooser.value()) {
+            win->outputPath->value(chooser.value());
+        }
+    }
+
     static void on_import_cb(Fl_Widget* w, void* data) {
         ModelImporterWindow* win = (ModelImporterWindow*)data;
         if (win->is_running) return;
 
-        const char* path = win->inputPath->value();
-        if (!path || strlen(path) == 0) {
-            fl_alert("Please select an input path first.");
+        const char* in_path = win->inputPath->value();
+        const char* out_path = win->outputPath->value();
+
+        if (!in_path || strlen(in_path) == 0 || !out_path || strlen(out_path) == 0) {
+            fl_alert("Please select both input and output paths.");
             return;
         }
 
@@ -256,9 +284,8 @@ private:
         win->statusBar->label("Importing...");
 
         ThreadData* t_data = new ThreadData{
-            path,
-            "materials.def",
-            "textures",
+            in_path,
+            out_path,
             &win->messages,
             &win->mtx,
             &win->is_running
@@ -267,6 +294,7 @@ private:
         if (win->worker_thread.joinable()) {
             win->worker_thread.join();
         }
+
         win->worker_thread = std::thread(import_thread_func, t_data);
     }
 
