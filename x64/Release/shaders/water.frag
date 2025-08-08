@@ -220,11 +220,7 @@ void main() {
 
         if (useDirectionalLightmap) {
             vec4 directionalData;
-            if (r_lightmaps_bicubic) {
-                directionalData = texture_bicubic(directionalLightmap, v_texCoordLightmap, textureSize(directionalLightmap, 0));
-            } else {
-                directionalData = texture(directionalLightmap, v_texCoordLightmap);
-            }
+            directionalData = texture(directionalLightmap, v_texCoordLightmap);
             vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
             float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
             bakedDiffuse = bakedRadiance * NdotL_baked;
