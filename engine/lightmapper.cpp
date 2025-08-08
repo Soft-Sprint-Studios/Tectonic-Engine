@@ -57,7 +57,7 @@ namespace
     constexpr float SHADOW_BIAS = 0.01f;
     constexpr int BLUR_RADIUS = 2;
     constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64;
-    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 1024;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 768;
     constexpr int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
     constexpr int INDIRECT_SAMPLES_PER_POINT_DECALS = 64;
     constexpr float LUXELS_PER_UNIT = 16.0f;
