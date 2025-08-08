@@ -101,6 +101,15 @@ namespace
 
     using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData>;
 
+    uint32_t generate_seed_from_pos(const Vec3& pos)
+    {
+        std::hash<float> hasher;
+        uint32_t seed = hasher(pos.x);
+        seed ^= hasher(pos.y) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hasher(pos.z) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+
     class Lightmapper
     {
     public:
@@ -114,10 +123,10 @@ namespace
         void generate_ambient_probes();
         void prepare_jobs();
         void worker_main();
-        void process_job(const JobPayload& job, std::mt19937& rng);
-        void process_brush_face(const BrushFaceJobData& data, std::mt19937& rng);
-        void process_decal(const DecalJobData& data, std::mt19937& rng);
-        void process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng);
+        void process_job(const JobPayload& job);
+        void process_brush_face(const BrushFaceJobData& data);
+        void process_decal(const DecalJobData& data);
+        void process_model_vertex(const ModelVertexJobData& data);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
         Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
@@ -317,7 +326,6 @@ namespace
 
         std::vector<Vec3> probe_positions;
         const float probe_spacing = 1.0f;
-        std::mt19937 rng(std::random_device{}());
 
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
@@ -340,6 +348,7 @@ namespace
                     for (float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
 
                         Vec3 probe_pos = { x, y, z };
+                        std::mt19937 validation_rng(generate_seed_from_pos(probe_pos));
 
                         const int validation_rays = 16;
                         const float validation_distance = 0.5f;
@@ -348,7 +357,7 @@ namespace
                         for (int k = 0; k < validation_rays; ++k)
                         {
                             std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-                            Vec3 ray_dir = { dist(rng), dist(rng), dist(rng) };
+                            Vec3 ray_dir = { dist(validation_rng), dist(validation_rng), dist(validation_rng) };
                             vec3_normalize(&ray_dir);
 
                             RTCRay ray;
@@ -398,12 +407,13 @@ namespace
         for (size_t i = 0; i < probe_positions.size(); ++i) {
             m_scene->ambient_probes[i].position = probe_positions[i];
             Vec3 dominant_dir_total = { 0,0,0 };
+            std::mt19937 lighting_rng(generate_seed_from_pos(probe_positions[i]));
 
             Vec3 directions[6] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
             for (int j = 0; j < 6; ++j) {
                 Vec3 direct_dir, indirect_dir;
                 Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir);
-                Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES);
+                Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], lighting_rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES);
                 m_scene->ambient_probes[i].colors[j] = vec3_muls(vec3_add(direct_light, indirect_light), 2.2f);
                 dominant_dir_total = vec3_add(dominant_dir_total, vec3_add(direct_dir, indirect_dir));
             }
@@ -745,7 +755,7 @@ namespace
         return final_uv;
     }
 
-    void Lightmapper::process_brush_face(const BrushFaceJobData& data, std::mt19937& rng)
+    void Lightmapper::process_brush_face(const BrushFaceJobData& data)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
         const BrushFace& face = b.faces[data.face_index];
@@ -836,6 +846,7 @@ namespace
 
                 if (inside)
                 {
+                    std::mt19937 rng(generate_seed_from_pos(world_pos));
                     direct_light_color = calculate_direct_light(world_pos, face_normal, accumulated_direction);
                     indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
@@ -1006,7 +1017,7 @@ namespace
         }
     }
 
-    void Lightmapper::process_decal(const DecalJobData& data, std::mt19937& rng)
+    void Lightmapper::process_decal(const DecalJobData& data)
     {
         const Decal& decal = m_scene->decals[data.decal_index];
         int lightmap_res = std::max(4, m_resolution / 4);
@@ -1044,6 +1055,7 @@ namespace
                 Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
                 Vec3 world_pos = vec3_add(decal.pos, local_pos_on_quad);
 
+                std::mt19937 rng(generate_seed_from_pos(world_pos));
                 Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
                 Vec3 direct_light = calculate_direct_light(world_pos, normal, dominant_dir);
                 Vec3 indirect_light = calculate_indirect_light(world_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
@@ -1123,7 +1135,7 @@ namespace
         stbi_write_png(dir_path.string().c_str(), lightmap_res, lightmap_res, 4, dir_data_u8.data(), lightmap_res * 4);
     }
 
-    void Lightmapper::process_model_vertex(const ModelVertexJobData& data, std::mt19937& rng)
+    void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
         unsigned int v_idx = data.vertex_index;
@@ -1135,6 +1147,7 @@ namespace
         Vec3 world_normal = mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
         vec3_normalize(&world_normal);
 
+        std::mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
         Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
@@ -1150,24 +1163,21 @@ namespace
         data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
 
-    void Lightmapper::process_job(const JobPayload& job, std::mt19937& rng)
+    void Lightmapper::process_job(const JobPayload& job)
     {
-        std::visit([this, &rng](auto&& arg) {
+        std::visit([this](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, BrushFaceJobData>)
-                process_brush_face(arg, rng);
+                process_brush_face(arg);
             else if constexpr (std::is_same_v<T, DecalJobData>)
-                process_decal(arg, rng);
+                process_decal(arg);
             else if constexpr (std::is_same_v<T, ModelVertexJobData>)
-                process_model_vertex(arg, rng);
+                process_model_vertex(arg);
             }, job);
     }
 
     void Lightmapper::worker_main()
     {
-        std::random_device rd;
-        std::mt19937 rng(rd() ^ std::hash<std::thread::id>{}(std::this_thread::get_id()));
-
         while (true)
         {
             size_t job_index = m_next_job_index.fetch_add(1);
@@ -1175,7 +1185,7 @@ namespace
             {
                 break;
             }
-            process_job(m_jobs[job_index], rng);
+            process_job(m_jobs[job_index]);
         }
     }
 
