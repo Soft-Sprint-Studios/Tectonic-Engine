@@ -2339,6 +2339,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
         if (light->is_static) continue;
+        if (light->intensity <= 0.0f) continue;
 
         ShaderLight* shader_light = &dynamic_lights[num_dynamic_lights];
 
