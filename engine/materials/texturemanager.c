@@ -257,7 +257,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Warning("TextureManager WARNING: Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Error("TextureManager WARNING: Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -266,7 +266,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Warning("TextureManager ERROR: Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Error("TextureManager ERROR: Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
