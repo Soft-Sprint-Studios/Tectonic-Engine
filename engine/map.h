@@ -317,7 +317,6 @@ extern "C" {
         RigidBodyHandle physicsBody;
         float mass;
         bool isPhysicsEnabled;
-        bool isWater;
         WaterDef* waterDef;
         GLuint cubemapTexture;
         char name[64];

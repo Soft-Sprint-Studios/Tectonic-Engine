@@ -196,7 +196,6 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->modelMatrix = src->modelMatrix;
     strcpy(dest->targetname, src->targetname);
     dest->refractionStrength = src->refractionStrength;
-    dest->isWater = src->isWater;
     dest->cubemapTexture = src->cubemapTexture;
     strcpy(dest->name, src->name);
     strcpy(dest->classname, src->classname);
@@ -882,7 +881,6 @@ cleanup_and_return:
 
 bool Brush_IsSolid(const Brush* b) {
     if (!b) return false;
-    if (b->isWater) return false;
 
     if (strlen(b->classname) > 0) {
         if (strcmp(b->classname, "func_glass") == 0) {
@@ -1747,7 +1745,6 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
                 else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) { b->reverbPreset = (ReverbPreset)dummy_int; }
-                else if (sscanf(line, " is_water %d", &dummy_int) == 1) { b->isWater = (bool)dummy_int; }
                 else if (sscanf(line, " water_def \"%63[^\"]\"", water_def_name) == 1) {}
                 else if (sscanf(line, " glass_normal_mat \"%63[^\"]\"", glass_normal_name) == 1) {}
                 else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {}
@@ -1778,7 +1775,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
-            if (b->isWater) { b->waterDef = WaterManager_FindWaterDef(water_def_name); }
+            if (strcmp(b->classname, "func_water") == 0) { b->waterDef = WaterManager_FindWaterDef(water_def_name); }
             if (strcmp(b->classname, "func_glass") == 0) { b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name); }
             Brush_UpdateMatrix(b);
             char map_name_sanitized[128];
@@ -2163,8 +2160,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         if (strcmp(b->classname, "func_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }
-        if (b->isWater) fprintf(file, "  is_water 1\n");
-        if (b->isWater && b->waterDef) {
+        if (strcmp(b->classname, "func_water") == 0 && b->waterDef) {
             fprintf(file, "  water_def \"%s\"\n", b->waterDef->name);
         }
         if (strcmp(b->classname, "func_glass") == 0) {

@@ -1789,7 +1789,7 @@ void update_state() {
     if (g_engine->physicsWorld) {
         for (int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* b = &g_scene.brushes[i];
-            if (b->isWater && b->numVertices > 0) {
+            if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
                 Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
             }
         }
@@ -1803,7 +1803,7 @@ void update_state() {
     g_scene.post.isUnderwater = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isWater) continue;
+        if (strcmp(b->classname, "func_water") != 0) continue;
 
         Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -2111,7 +2111,7 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isWater || !b->waterDef) continue;
+        if (strcmp(b->classname, "func_water") != 0 || !b->waterDef) continue;
 
         Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -2502,7 +2502,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
         glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
-        if (b->isWater) continue;
+        if(strcmp(b->classname, "func_water") == 0) continue;
         if (b->numVertices > 0) {
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };

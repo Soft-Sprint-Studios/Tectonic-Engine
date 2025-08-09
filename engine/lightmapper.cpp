@@ -120,6 +120,9 @@ namespace
                 strcmp(b.classname, "func_reflectionprobe") == 0) {
                 return false;
             }
+            if (strcmp(b.classname, "func_water") == 0) {
+                return true;
+            }
         }
     }
 
