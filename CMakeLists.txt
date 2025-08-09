@@ -528,7 +528,7 @@ else()
 endif()
 
 # launcher executable
-add_executable(launcher launcher/launcher.cpp)
+add_executable(launcher launcher/launcher.c)
 
 if(UNIX AND NOT APPLE)
     target_link_options(launcher PRIVATE "-Wl,-rpath,'$ORIGIN'")
