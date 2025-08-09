@@ -1333,6 +1333,9 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.chromaticAberrationStrength = 0.005f;
     scene->post.sharpenEnabled = false;
     scene->post.sharpenAmount = 0.15f;
+    scene->post.fade_active = false;
+    scene->post.fade_alpha = 0.0f;
+    scene->post.fade_color = (Vec3){ 0, 0, 0 };
     scene->post.bwEnabled = false;
     scene->post.bwStrength = 1.0f;
     scene->colorCorrection.enabled = false;
@@ -2026,6 +2029,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
                 if (sscanf(line, " runtime_active %d", (int*)&ent->runtime_active) == 1) {}
                 else if (sscanf(line, " runtime_float_a %f", &ent->runtime_float_a) == 1) {}
+                else if (sscanf(line, " runtime_int_a %d", &ent->runtime_int_a) == 1) {}
+                else if (sscanf(line, " runtime_float_b %f", &ent->runtime_float_b) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
                         if (ent->numProperties < MAX_ENTITY_PROPERTIES) { if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) { ent->numProperties++; } }
@@ -2246,6 +2251,10 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "  rot %.4f %.4f %.4f\n", ent->rot.x, ent->rot.y, ent->rot.z);
         fprintf(file, "  runtime_active %d\n", ent->runtime_active);
         fprintf(file, "  runtime_float_a %.4f\n", ent->runtime_float_a);
+        fprintf(file, "  runtime_active %d\n", ent->runtime_active);
+        fprintf(file, "  runtime_float_a %.4f\n", ent->runtime_float_a);
+        fprintf(file, "  runtime_int_a %d\n", ent->runtime_int_a);
+        fprintf(file, "  runtime_float_b %.4f\n", ent->runtime_float_b);
         fprintf(file, "  properties\n");
         fprintf(file, "  {\n");
         for (int j = 0; j < ent->numProperties; ++j) {

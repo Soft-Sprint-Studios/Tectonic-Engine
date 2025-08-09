@@ -599,7 +599,7 @@ void main()
     vec3 bakedDiffuse = vec3(0.0);
 	vec3 bakedSpecular = vec3(0.0);
 	vec3 bakedRadiance = vec3(0.0);
-        if (isBrush == 1) {
+    if (isBrush == 1) {
         if (useLightmap) {
             bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb : texture(lightmap, TexCoordsLightmap).rgb;
             if (useDirectionalLightmap) {

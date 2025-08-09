@@ -277,11 +277,14 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
 static const int g_num_env_blackhole_inputs = sizeof(g_env_blackhole_inputs) / sizeof(g_env_blackhole_inputs[0]);
+
+static const char* g_env_fade_inputs[] = { "FadeIn", "FadeOut", "Fade" };
+static const int g_num_env_fade_inputs = sizeof(g_env_fade_inputs) / sizeof(g_env_fade_inputs[0]);
 
 static const char* g_logic_relay_inputs[] = { "Trigger", "Enable", "Disable", "Toggle" };
 static const int g_num_logic_relay_inputs = sizeof(g_logic_relay_inputs) / sizeof(g_logic_relay_inputs[0]);
@@ -1175,6 +1178,15 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
         strcpy(ent->properties[1].value, "1.0");
         strcpy(ent->properties[2].key, "starton");
         strcpy(ent->properties[2].value, "1");
+    }
+    else if (strcmp(ent->classname, "env_fade") == 0) {
+        ent->numProperties = 3;
+        strcpy(ent->properties[0].key, "duration");
+        strcpy(ent->properties[0].value, "2.0");
+        strcpy(ent->properties[1].key, "holdtime");
+        strcpy(ent->properties[1].value, "1.0");
+        strcpy(ent->properties[2].key, "renderamt");
+        strcpy(ent->properties[2].value, "255");
     }
 }
 
@@ -5305,6 +5317,7 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                 else if (strcmp(ent->classname, "point_servercommand") == 0) { valid_inputs = g_point_servercommand_inputs; num_valid_inputs = g_num_point_servercommand_inputs; }
                                 else if (strcmp(ent->classname, "logic_compare") == 0) { valid_inputs = g_logic_compare_inputs; num_valid_inputs = g_num_logic_compare_inputs; }
                                 else if (strcmp(ent->classname, "env_blackhole") == 0) { valid_inputs = g_env_blackhole_inputs; num_valid_inputs = g_num_env_blackhole_inputs; }
+                                else if (strcmp(ent->classname, "env_fade") == 0) { valid_inputs = g_env_fade_inputs; num_valid_inputs = g_num_env_fade_inputs; }
                                 break;
                             }
                             default: break;

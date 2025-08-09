@@ -259,6 +259,20 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     ent->runtime_active = false;
                 }
             }
+            else if (strcmp(ent->classname, "env_fade") == 0) {
+                if (strcmp(inputName, "FadeIn") == 0) {
+                    ent->runtime_int_a = 1;
+                    ent->runtime_float_a = 0.0f;
+                }
+                else if (strcmp(inputName, "FadeOut") == 0) {
+                    ent->runtime_int_a = 2;
+                    ent->runtime_float_a = 0.0f;
+                }
+                else if (strcmp(inputName, "Fade") == 0) {
+                    ent->runtime_int_a = 4;
+                    ent->runtime_float_a = 0.0f;
+                }
+            }
         }
     }
     for (int i = 0; i < scene->numObjects; ++i) {
@@ -424,6 +438,54 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                 const char* rot_speed_str = LogicEntity_GetProperty(ent, "rotationspeed", "10.0");
                 ent->rot.y += atof(rot_speed_str) * deltaTime;
                 if (ent->rot.y > 360.0f) ent->rot.y -= 360.0f;
+            }
+        }
+        else if (strcmp(ent->classname, "env_fade") == 0) {
+            if (ent->runtime_int_a != 0) {
+                scene->post.fade_active = true;
+                scene->post.fade_color = (Vec3){ 0, 0, 0 };
+
+                float duration = atof(LogicEntity_GetProperty(ent, "duration", "2.0"));
+                if (duration <= 0.0f) duration = 0.01f;
+                float holdtime = atof(LogicEntity_GetProperty(ent, "holdtime", "1.0"));
+                int renderamt = atoi(LogicEntity_GetProperty(ent, "renderamt", "255"));
+                float target_alpha = (float)renderamt / 255.0f;
+
+                ent->runtime_float_a += deltaTime;
+
+                if (ent->runtime_int_a == 1) {
+                    scene->post.fade_alpha = fminf(target_alpha, (ent->runtime_float_a / duration) * target_alpha);
+                    if (ent->runtime_float_a >= duration) {
+                        ent->runtime_int_a = 3;
+                        ent->runtime_float_a = 0.0f;
+                    }
+                }
+                else if (ent->runtime_int_a == 2) {
+                    scene->post.fade_alpha = fmaxf(0.0f, target_alpha - (ent->runtime_float_a / duration) * target_alpha);
+                    if (ent->runtime_float_a >= duration) {
+                        ent->runtime_int_a = 0;
+                        scene->post.fade_active = false;
+                    }
+                }
+                else if (ent->runtime_int_a == 3) {
+                    scene->post.fade_alpha = target_alpha;
+                    if (holdtime > 0 && ent->runtime_float_a >= holdtime) {
+                    }
+                }
+                else if (ent->runtime_int_a == 4) {
+                    scene->post.fade_alpha = fminf(target_alpha, (ent->runtime_float_a / duration) * target_alpha);
+                    if (ent->runtime_float_a >= duration) {
+                        ent->runtime_int_a = 5;
+                        ent->runtime_float_a = 0.0f;
+                    }
+                }
+                else if (ent->runtime_int_a == 5) {
+                    scene->post.fade_alpha = target_alpha;
+                    if (ent->runtime_float_a >= holdtime) {
+                        ent->runtime_int_a = 2;
+                        ent->runtime_float_a = 0.0f;
+                    }
+                }
             }
         }
     }

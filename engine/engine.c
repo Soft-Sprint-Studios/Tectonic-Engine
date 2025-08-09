@@ -2835,6 +2835,9 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_underwaterColor"), 1, &g_scene.post.underwaterColor.x);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fadeActive"), g_scene.post.fade_active);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fadeAlpha"), g_scene.post.fade_alpha);
+    glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fadeColor"), 1, &g_scene.post.fade_color.x);
     bool cc_enabled = Cvar_GetInt("r_colorcorrection") && g_scene.colorCorrection.enabled && g_scene.colorCorrection.lutTexture != 0;
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_colorCorrectionEnabled"), cc_enabled);
     if (cc_enabled) {
@@ -3553,6 +3556,8 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
     g_fps_last_update = SDL_GetTicks();
     while (g_engine->running) {
         Uint32 frameStartTicks = SDL_GetTicks();
+        g_scene.post.fade_active = false;
+        g_scene.post.fade_alpha = 0.0f;
         int current_vsync_cvar = Cvar_GetInt("r_vsync");
         if (current_vsync_cvar != g_last_vsync_cvar_state) {
             if (SDL_GL_SetSwapInterval(current_vsync_cvar) == 0) {

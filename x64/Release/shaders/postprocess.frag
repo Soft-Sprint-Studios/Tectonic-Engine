@@ -44,6 +44,10 @@ uniform float u_bwStrength;
 uniform bool u_isUnderwater;
 uniform vec3 u_underwaterColor;
 
+uniform bool u_fadeActive;
+uniform float u_fadeAlpha;
+uniform vec3 u_fadeColor;
+
 uniform vec3 u_flareLightWorldPos;
 uniform mat4 u_view;
 
@@ -320,6 +324,10 @@ void main()
     if (u_isUnderwater) {
         color = mix(color, u_underwaterColor, 0.6);
         color *= 0.8;
+    }
+	
+    if (u_fadeActive) {
+        color = mix(color, u_fadeColor, u_fadeAlpha);
     }
 
     FragColor = vec4(color, 1.0);

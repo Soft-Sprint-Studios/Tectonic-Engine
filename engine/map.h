@@ -159,6 +159,9 @@ extern "C" {
         float sharpenAmount;
         bool bwEnabled;
         float bwStrength;
+        bool fade_active;
+        float fade_alpha;
+        Vec3 fade_color;
         bool isUnderwater;
         Vec3 underwaterColor;
     } PostProcessSettings;
@@ -445,6 +448,8 @@ extern "C" {
 
         bool runtime_active;
         float runtime_float_a;
+        int runtime_int_a;
+        float runtime_float_b;
         bool isGrouped;
         char groupName[64];
 
