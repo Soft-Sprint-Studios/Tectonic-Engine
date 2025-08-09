@@ -88,6 +88,11 @@ static bool g_screenshot_requested = false;
 static char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
 
+static bool g_start_fullscreen = false;
+static bool g_start_windowed = false;
+static bool g_start_with_console = false;
+static bool g_dev_mode_requested = false;
+
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 void BuildCubemaps();
 
@@ -1549,7 +1554,6 @@ void process_input() {
             if (state[SDL_SCANCODE_A]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
             if (state[SDL_SCANCODE_SPACE]) g_engine->camera.position.y += speed * g_engine->deltaTime;
             if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
-
         }
         else if (g_player_on_ladder) {
             float ladder_speed = Cvar_GetFloat("g_speed");
@@ -3667,6 +3671,27 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
 }
 
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
+    for (int i = 1; i < argc; ++i) {
+        if (_stricmp(argv[i], "-fullscreen") == 0) {
+            g_start_fullscreen = true;
+            g_start_windowed = false;
+        }
+        else if (_stricmp(argv[i], "-window") == 0) {
+            g_start_windowed = true;
+            g_start_fullscreen = false;
+        }
+        else if (_stricmp(argv[i], "-console") == 0) {
+            g_start_with_console = true;
+        }
+        else if (_stricmp(argv[i], "-dev") == 0) {
+            g_dev_mode_requested = true;
+        }
+        else if ((_stricmp(argv[i], "-w") == 0 || _stricmp(argv[i], "-h") == 0)) {
+            if (i + 1 < argc) {
+                i++;
+            }
+        }
+    }
 #ifdef ENABLE_CHECKSUM
     char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
@@ -3719,11 +3744,28 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
 #ifndef GAME_RELEASE
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
-    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
+    Uint32 window_flags = SDL_WINDOW_OPENGL;
+    if (g_start_fullscreen && !g_start_windowed) {
+        window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
+    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE; glewInit();
     GL_InitDebugOutput();
     init_engine(window, context);
+    for (int i = 1; i < argc; ++i) {
+        if ((_stricmp(argv[i], "-w") == 0 || _stricmp(argv[i], "-h") == 0)) {
+            Console_Printf("TODO: Implement -w and -h command line arguments.");
+            if (i + 1 < argc) i++;
+        }
+    }
+
+    if (g_start_with_console) {
+        Console_Toggle();
+    }
+    if (g_dev_mode_requested) {
+        Cvar_Set("developer", "1");
+    }
     if (Cvar_GetInt("r_vsync")) {
         SDL_GL_SetSwapInterval(1);
     }
