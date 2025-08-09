@@ -882,6 +882,9 @@ bool Brush_IsSolid(const Brush* b) {
     if (!b) return false;
 
     if (strlen(b->classname) > 0) {
+        if (strcmp(b->classname, "func_clip") == 0) {
+            return true;
+        }
         if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
