@@ -338,9 +338,18 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
     if (strcmp(b->classname, "func_clip") == 0) return;
     if (b->totalRenderVertexCount == 0) return;
-    if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0) return;
+    if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) return;
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
+
+    if (strcmp(b->classname, "func_lod") == 0) {
+        glUniform1f(glGetUniformLocation(shader, "u_fadeStartDist"), atof(Brush_GetProperty(b, "DisappearMinDist", "500")));
+        glUniform1f(glGetUniformLocation(shader, "u_fadeEndDist"), atof(Brush_GetProperty(b, "DisappearMaxDist", "1000")));
+    }
+    else {
+        glUniform1f(glGetUniformLocation(shader, "u_fadeStartDist"), 0.0f);
+        glUniform1f(glGetUniformLocation(shader, "u_fadeEndDist"), 0.0f);
+    }
 
     bool envMapEnabled = false;
     if (!is_baking_pass && shader == g_renderer.mainShader && Cvar_GetInt("r_cubemaps")) {
@@ -2412,7 +2421,7 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_clip") == 0) continue;
-        if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0) continue;
+        if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);

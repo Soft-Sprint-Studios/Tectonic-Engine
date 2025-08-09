@@ -38,6 +38,9 @@ uniform float u_time;
 uniform vec3 u_windDirection;
 uniform float u_windStrength;
 
+uniform float u_fadeStartDist;
+uniform float u_fadeEndDist;
+
 void main()
 {
     mat4 boneTransform = mat4(1.0);

@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake", "game_end" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave", "func_illusionary" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave", "func_illusionary", "func_lod" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -1282,6 +1282,10 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
         if (strcmp(key, "speed") == 0) return "Conveyor Speed";
         if (strcmp(key, "direction") == 0) return "Direction (Pitch Yaw Roll)";
     }
+    else if (strcmp(classname, "func_lod") == 0) {
+        if (strcmp(key, "DisappearMinDist") == 0) return "Min Disappear Distance";
+        if (strcmp(key, "DisappearMaxDist") == 0) return "Max Disappear Distance";
+    }
     else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
         if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
     }
@@ -1334,6 +1338,13 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         strcpy(b->properties[0].value, "100");
         strcpy(b->properties[1].key, "direction");
         strcpy(b->properties[1].value, "0 0 0");
+    }
+    else if (strcmp(b->classname, "func_lod") == 0) {
+        b->numProperties = 2;
+        strcpy(b->properties[0].key, "DisappearMinDist");
+        strcpy(b->properties[0].value, "500");
+        strcpy(b->properties[1].key, "DisappearMaxDist");
+        strcpy(b->properties[1].value, "1000");
     }
     else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
         b->numProperties = 1;

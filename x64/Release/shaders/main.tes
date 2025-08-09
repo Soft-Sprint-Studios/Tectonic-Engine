@@ -85,9 +85,9 @@ void main()
     vec2 lm_tc2 = gl_TessCoord.z * tes_in[2].lightmapTexCoords;
     TexCoordsLightmap = lm_tc0 + lm_tc1 + lm_tc2;
 	
-	isBrush = tes_in[0].isBrush;
+    isBrush = tes_in[0].isBrush;
 	
-    if (tes_in[0].isBrush == 0 && u_fadeEndDist > 0.0) {
+    if (u_fadeEndDist > 0.0) {
         float dist = length(FragPos_world - viewPos);
         fadeAlpha = 1.0 - smoothstep(u_fadeStartDist, u_fadeEndDist, dist);
     } else {
