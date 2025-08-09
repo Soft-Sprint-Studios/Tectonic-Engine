@@ -69,6 +69,7 @@ extern "C" {
     int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connections_out, int max_out);
 
     void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter);
+    LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname);
     void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine);
 
     const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val);

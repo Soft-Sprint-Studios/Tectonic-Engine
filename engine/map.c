@@ -1326,10 +1326,6 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene, 0, sizeof(Scene));
     scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
-    scene->fog.enabled = false;
-    scene->fog.color = (Vec3){ 0.5f, 0.6f, 0.7f };
-    scene->fog.start = 50.0f;
-    scene->fog.end = 200.0f;
     scene->post.enabled = true;
     scene->post.crtCurvature = 0.1f;
     scene->post.vignetteStrength = 0.8f;
@@ -1630,12 +1626,6 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
         else if (strcmp(keyword, "lightmap_resolution") == 0) {
             sscanf(line, "%*s %d", &scene->lightmapResolution);
-        }
-        else if (strcmp(keyword, "fog_settings") == 0) {
-            int enabled_int;
-            sscanf(line, "%*s %d %f %f %f %f %f",
-                &enabled_int, &scene->fog.color.x, &scene->fog.color.y, &scene->fog.color.z, &scene->fog.start, &scene->fog.end);
-            scene->fog.enabled = (bool)enabled_int;
         }
         else if (strcmp(keyword, "post_settings") == 0) {
             int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int;
@@ -2051,6 +2041,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     }
                 }
             }
+            if (strcmp(ent->classname, "env_fog") == 0 || strcmp(ent->classname, "env_blackhole") == 0) {
+                const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
+                ent->runtime_active = (atoi(starton_val) != 0);
+            }
             if (strcmp(ent->classname, "logic_random") == 0) { if (strcmp(LogicEntity_GetProperty(ent, "is_default_enabled", "0"), "1") == 0) { ent->runtime_active = true; } }
             else if (strcmp(ent->classname, "env_blackhole") == 0) {
                 const char* starton_str = LogicEntity_GetProperty(ent, "starton", "1");
@@ -2123,7 +2117,6 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     else {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z, scene->playerStart.yaw, scene->playerStart.pitch);
     }
-    fprintf(file, "fog_settings %d %.4f %.4f %.4f %.4f %.4f\n\n", (int)scene->fog.enabled, scene->fog.color.x, scene->fog.color.y, scene->fog.color.z, scene->fog.start, scene->fog.end);
     fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",
         (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
         (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity,

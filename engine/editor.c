@@ -277,7 +277,7 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake", "game_end" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake", "game_end", "env_fog"};
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
 static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave", "func_illusionary", "func_lod" };
@@ -349,6 +349,9 @@ static const int g_num_logic_random_inputs = sizeof(g_logic_random_inputs) / siz
 
 static const char* g_game_end_inputs[] = { "EndGame" };
 static const int g_num_game_end_inputs = sizeof(g_game_end_inputs) / sizeof(g_game_end_inputs[0]);
+
+static const char* g_env_fog_inputs[] = { "Enable", "Disable" };
+static const int g_num_env_fog_inputs = sizeof(g_env_fog_inputs) / sizeof(g_env_fog_inputs[0]);
 
 static bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
     if (name == NULL || *name == '\0') return false;
@@ -1221,6 +1224,17 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
         strcpy(ent->properties[3].value, "40.0");
         strcpy(ent->properties[4].key, "GlobalShake");
         strcpy(ent->properties[4].value, "0");
+    }
+    else if (strcmp(ent->classname, "env_fog") == 0) {
+        ent->numProperties = 4;
+        strcpy(ent->properties[0].key, "starton");
+        strcpy(ent->properties[0].value, "1");
+        strcpy(ent->properties[1].key, "color");
+        strcpy(ent->properties[1].value, "0.5 0.6 0.7");
+        strcpy(ent->properties[2].key, "start");
+        strcpy(ent->properties[2].value, "50.0");
+        strcpy(ent->properties[3].key, "end");
+        strcpy(ent->properties[3].value, "200.0");
     }
 }
 
@@ -4723,10 +4737,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glUniform2f(glGetUniformLocation(renderer->postProcessShader, "resolution"), g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "time"), (float)SDL_GetTicks() / 1000.0f);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_exposure"), renderer->currentExposure);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_fogEnabled"), scene->fog.enabled);
-        glUniform3fv(glGetUniformLocation(renderer->postProcessShader, "u_fogColor"), 1, &scene->fog.color.x);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_fogStart"), scene->fog.start);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_fogEnd"), scene->fog.end);
+ 
         glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_postEnabled"), scene->post.enabled);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_crtCurvature"), scene->post.crtCurvature);
         glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_vignetteStrength"), scene->post.vignetteStrength);
@@ -5511,6 +5522,7 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                 else if (strcmp(ent->classname, "env_fade") == 0) { valid_inputs = g_env_fade_inputs; num_valid_inputs = g_num_env_fade_inputs; }
                                 else if (strcmp(ent->classname, "env_shake") == 0) { valid_inputs = g_env_shake_inputs; num_valid_inputs = g_num_env_shake_inputs; }
                                 else if (strcmp(ent->classname, "game_end") == 0) { valid_inputs = g_game_end_inputs; num_valid_inputs = g_num_game_end_inputs; }
+                                else if (strcmp(ent->classname, "env_fog") == 0) { valid_inputs = g_env_fog_inputs; num_valid_inputs = g_num_env_fog_inputs; }
                                 break;
                             }
                             default: break;
@@ -8209,16 +8221,22 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         for (int i = 0; i < ent->numProperties; ++i) {
             const char* prop_desc = GetEntityPropertyDescription(ent->classname, ent->properties[i].key);
             UI_PushID(i);
-            if (strcmp(ent->properties[i].key, "starton") == 0 || strcmp(ent->properties[i].key, "GlobalShake") == 0) {
+
+            if (strcmp(ent->properties[i].key, "starton") == 0 || strcmp(ent->properties[i].key, "GlobalShake") == 0 || strcmp(ent->properties[i].key, "enabled") == 0) {
                 bool is_checked = (atoi(ent->properties[i].value) != 0);
-                if (UI_Checkbox(prop_desc, &is_checked)) {
-                    strcpy(ent->properties[i].value, is_checked ? "1" : "0");
-                }
+                if (UI_Checkbox(prop_desc, &is_checked)) strcpy(ent->properties[i].value, is_checked ? "1" : "0");
+            }
+            else if (strcmp(ent->classname, "env_fog") == 0 && strcmp(ent->properties[i].key, "color") == 0) {
+                Vec3 color;
+                sscanf(ent->properties[i].value, "%f %f %f", &color.x, &color.y, &color.z);
+                if (UI_ColorEdit3(prop_desc, &color.x)) sprintf(ent->properties[i].value, "%.3f %.3f %.3f", color.x, color.y, color.z);
             }
             else {
                 UI_SetNextItemWidth(150.0f);
                 UI_InputText(prop_desc, ent->properties[i].value, sizeof(ent->properties[i].value));
             }
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Edit Logic Property"); }
             UI_PopID();
         }
         if (prop_to_delete != -1) {
@@ -8291,7 +8309,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
     }
-    if (UI_CollapsingHeader("Fog", 1)) { if (UI_Checkbox("Enabled", &scene->fog.enabled)) {} UI_ColorEdit3("Color", &scene->fog.color.x); UI_DragFloat("Start Distance", &scene->fog.start, 0.5f, 0.0f, 5000.0f); UI_DragFloat("End Distance", &scene->fog.end, 0.5f, 0.0f, 5000.0f); }
     if (UI_CollapsingHeader("Post-Processing", 1)) {
         if (UI_Checkbox("Enabled", &scene->post.enabled)) {} UI_Separator(); UI_Text("CRT & Vignette"); UI_DragFloat("CRT Curvature", &scene->post.crtCurvature, 0.01f, 0.0f, 1.0f); UI_DragFloat("Vignette Strength", &scene->post.vignetteStrength, 0.01f, 0.0f, 2.0f); UI_DragFloat("Vignette Radius", &scene->post.vignetteRadius, 0.01f, 0.0f, 2.0f); UI_Separator(); UI_Text("Effects"); if (UI_Checkbox("Lens Flare", &scene->post.lensFlareEnabled)) {} UI_DragFloat("Flare Strength", &scene->post.lensFlareStrength, 0.05f, 0.0f, 5.0f); UI_DragFloat("Scanline Strength", &scene->post.scanlineStrength, 0.01f, 0.0f, 1.0f); UI_DragFloat("Film Grain", &scene->post.grainIntensity, 0.005f, 0.0f, 0.5f); UI_Separator();
         UI_Separator();

@@ -144,6 +144,15 @@ void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
     g_num_pending_events = write_idx;
 }
 
+LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname) {
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (strcmp(scene->logicEntities[i].classname, classname) == 0 && scene->logicEntities[i].runtime_active) {
+            return &scene->logicEntities[i];
+        }
+    }
+    return NULL;
+}
+
 void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine) {
     for (int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].targetname, targetName) == 0) {
@@ -286,6 +295,10 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         engine->shake_duration_timer = 0.0f;
                     }
                 }
+            }
+            else if (strcmp(ent->classname, "env_fog") == 0) {
+                if (strcmp(inputName, "Enable") == 0) ent->runtime_active = true;
+                else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
             }
             else if (strcmp(ent->classname, "game_end") == 0) {
                 if (strcmp(inputName, "EndGame") == 0) {

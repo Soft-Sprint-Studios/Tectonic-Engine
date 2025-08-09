@@ -3000,10 +3000,18 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->scaledTime);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), g_scene.fog.enabled);
-    glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fogColor"), 1, &g_scene.fog.color.x);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogStart"), g_scene.fog.start);
-    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnd"), g_scene.fog.end);
+    LogicEntity* fog_ent = FindActiveEntityByClass(&g_scene, "env_fog");
+    if (fog_ent) {
+        glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), 1);
+        Vec3 fog_color;
+        sscanf(LogicEntity_GetProperty(fog_ent, "color", "0.5 0.6 0.7"), "%f %f %f", &fog_color.x, &fog_color.y, &fog_color.z);
+        glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_fogColor"), 1, &fog_color.x);
+        glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogStart"), atof(LogicEntity_GetProperty(fog_ent, "start", "50.0")));
+        glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnd"), atof(LogicEntity_GetProperty(fog_ent, "end", "200.0")));
+    }
+    else {
+        glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), 0);
+    }
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_postEnabled"), g_scene.post.enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_crtCurvature"), g_scene.post.crtCurvature);
 

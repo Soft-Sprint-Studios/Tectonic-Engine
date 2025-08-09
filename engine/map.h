@@ -475,7 +475,6 @@ extern "C" {
         int numVideoPlayers;
         ParallaxRoom parallaxRooms[MAX_PARALLAX_ROOMS];
         int numParallaxRooms;
-        Fog fog;
         PostProcessSettings post;
         Sun sun;
         bool use_cubemap_skybox;
