@@ -729,24 +729,38 @@ namespace
 
     static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {
         const BrushFace& face = b->faces[face_index];
-        Vec3 pos = b->vertices[vertex_index].pos;
+        Vec3 local_pos = b->vertices[vertex_index].pos;
 
-        Vec3 p0 = b->vertices[face.vertexIndices[0]].pos;
-        Vec3 p1 = b->vertices[face.vertexIndices[1]].pos;
-        Vec3 p2 = b->vertices[face.vertexIndices[2]].pos;
-        Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-        vec3_normalize(&normal_vec);
+        Vec3 world_pos = mat4_mul_vec3(&b->modelMatrix, local_pos);
 
-        float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
+        Vec3 p0 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[0]].pos);
+        Vec3 p1 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[1]].pos);
+        Vec3 p2 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[2]].pos);
+        Vec3 world_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+        vec3_normalize(&world_normal);
+
+        float absX = fabsf(world_normal.x);
+        float absY = fabsf(world_normal.y);
+        float absZ = fabsf(world_normal.z);
         int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
 
         float u, v;
-        if (dominant_axis == 0) { u = pos.y; v = pos.z; }
-        else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
-        else { u = pos.x; v = pos.y; }
+        if (dominant_axis == 0) {
+            u = world_pos.y;
+            v = world_pos.z;
+        }
+        else if (dominant_axis == 1) {
+            u = world_pos.x;
+            v = world_pos.z;
+        }
+        else {
+            u = world_pos.x;
+            v = world_pos.y;
+        }
 
         float rad = face.uv_rotation * (M_PI / 180.0f);
-        float cos_r = cosf(rad); float sin_r = sinf(rad);
+        float cos_r = cosf(rad);
+        float sin_r = sinf(rad);
 
         Vec2 final_uv;
         final_uv.x = ((u * cos_r - v * sin_r) / face.uv_scale.x) + face.uv_offset.x;
@@ -760,16 +774,6 @@ namespace
         const Brush& b = m_scene->brushes[data.brush_index];
         const BrushFace& face = b.faces[data.face_index];
         if (face.numVertexIndices < 3) return;
-
-        Vec3 face_normal = { 0.0f, 0.0f, 0.0f };
-        for (int k = 0; k < face.numVertexIndices - 2; ++k) {
-            Vec3 p0 = b.vertices[face.vertexIndices[0]].pos;
-            Vec3 p1 = b.vertices[face.vertexIndices[k + 1]].pos;
-            Vec3 p2 = b.vertices[face.vertexIndices[k + 2]].pos;
-            Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-            face_normal = vec3_add(face_normal, tri_normal);
-        }
-        vec3_normalize(&face_normal);
 
         Vec2 min_uv = { FLT_MAX, FLT_MAX };
         Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
@@ -822,7 +826,8 @@ namespace
 
                 Vec3 world_pos;
                 bool inside = false;
-                Vec3 point_on_plane;
+                Vec3 point_normal = { 0.0f, 0.0f, 1.0f };
+
                 for (int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
                     int idx0 = face.vertexIndices[0];
@@ -835,9 +840,12 @@ namespace
 
                     Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
 
-                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) {
+                    if (barycentric.x >= -1e-4f && barycentric.y >= -1e-4f && barycentric.z >= -1e-4f) {
                         inside = true;
                         world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
+                        Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+                        vec3_normalize(&tri_normal);
+                        point_normal = tri_normal;
                         break;
                     }
                 }
@@ -847,12 +855,12 @@ namespace
                 if (inside)
                 {
                     std::mt19937 rng(generate_seed_from_pos(world_pos));
-                    direct_light_color = calculate_direct_light(world_pos, face_normal, accumulated_direction);
-                    indirect_light_color = calculate_indirect_light(world_pos, face_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
+                    direct_light_color = calculate_direct_light(world_pos, point_normal, accumulated_direction);
+                    indirect_light_color = calculate_indirect_light(world_pos, point_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
-                    normal_lightmap_data[hdr_idx + 0] = face_normal.x;
-                    normal_lightmap_data[hdr_idx + 1] = face_normal.y;
-                    normal_lightmap_data[hdr_idx + 2] = face_normal.z;
+                    normal_lightmap_data[hdr_idx + 0] = point_normal.x;
+                    normal_lightmap_data[hdr_idx + 1] = point_normal.y;
+                    normal_lightmap_data[hdr_idx + 2] = point_normal.z;
                 }
                 else
                 {
@@ -930,6 +938,8 @@ namespace
                 float target_v = min_uv.y + v_tex * uv_range.y;
                 Vec3 world_pos;
                 bool inside = false;
+                Vec3 point_normal = { 0.0f, 0.0f, 1.0f };
+
                 for (int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
                     int idx0 = face.vertexIndices[0];
@@ -940,16 +950,19 @@ namespace
                     Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
                     Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
                     Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
-                    if (barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0) {
+                    if (barycentric.x >= -1e-4f && barycentric.y >= -1e-4f && barycentric.z >= -1e-4f) {
                         inside = true;
                         world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
+                        Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+                        vec3_normalize(&tri_normal);
+                        point_normal = tri_normal;
                         break;
                     }
                 }
 
                 Vec3 direct_sun_light = { 0,0,0 };
                 if (inside) {
-                    direct_sun_light = calculate_direct_sun_light_only(world_pos, face_normal);
+                    direct_sun_light = calculate_direct_sun_light_only(world_pos, point_normal);
                 }
 
                 Vec3 final_light = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
