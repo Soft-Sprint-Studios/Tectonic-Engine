@@ -328,7 +328,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 }
 
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
-    if (strlen(b->classname) > 0 || b->totalRenderVertexCount == 0) return;
+    if (!Brush_IsSolid(b) || b->totalRenderVertexCount == 0) return;
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
