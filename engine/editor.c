@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };

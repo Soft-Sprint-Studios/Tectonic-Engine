@@ -1798,6 +1798,18 @@ void update_state() {
                 IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", g_engine->lastFrame, NULL);
             }
         }
+        else if (strcmp(b->classname, "trigger_autosave") == 0) {
+            if (!b->runtime_hasFired) {
+                char save_name[128];
+                time_t now = time(NULL);
+                strftime(save_name, sizeof(save_name), "autosave_%Y%m%d_%H%M%S", localtime(&now));
+
+                char* argv[] = { (char*)"save", save_name };
+                Cmd_SaveGame(2, argv);
+
+                b->runtime_hasFired = true;
+            }
+        }
         else if (!is_inside && b->runtime_playerIsTouching) {
             b->runtime_playerIsTouching = false;
             if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
