@@ -64,7 +64,7 @@ extern "C" {
 #define MAX_LOGIC_ENTITIES 8192
 #define MAX_ENTITY_PROPERTIES 32
 
-#define MAP_VERSION 11
+#define MAP_VERSION 12
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -296,9 +296,12 @@ extern "C" {
     } BrushFace;
 
     typedef struct {
+        char key[64];
+        char value[128];
+    } KeyValue;
+
+    typedef struct {
         char targetname[64];
-        bool isTrigger;
-        bool playerIsTouching;
         Vec3 pos;
         Vec3 rot;
         Vec3 scale;
@@ -314,18 +317,22 @@ extern "C" {
         RigidBodyHandle physicsBody;
         float mass;
         bool isPhysicsEnabled;
-        bool isReflectionProbe;
         bool isWater;
         WaterDef* waterDef;
         GLuint cubemapTexture;
         char name[64];
-        bool isDSP;
         ReverbPreset reverbPreset;
-        bool isGlass;
         float refractionStrength;
         Material* glassNormalMap;
         bool isGrouped;
         char groupName[64];
+        char classname[64];
+        KeyValue properties[MAX_ENTITY_PROPERTIES];
+        int numProperties;
+
+        bool runtime_playerIsTouching;
+        bool runtime_hasFired;
+        bool runtime_active;
     } Brush;
 
     typedef struct {
@@ -433,11 +440,6 @@ extern "C" {
     } Sprite;
 
     typedef struct {
-        char key[64];
-        char value[128];
-    } KeyValue;
-
-    typedef struct {
         char targetname[64];
         char classname[64];
         Vec3 pos;
@@ -519,6 +521,7 @@ extern "C" {
     void Brush_FreeData(Brush* b);
     void Brush_DeepCopy(Brush* dest, const Brush* src);
     void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
+    bool Brush_IsSolid(const Brush* b);
     void Decal_UpdateMatrix(Decal* d);
     void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
     void LogicSystem_Update(Scene* scene, float deltaTime);

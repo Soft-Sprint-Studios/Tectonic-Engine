@@ -195,14 +195,13 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->scale = src->scale;
     dest->modelMatrix = src->modelMatrix;
     strcpy(dest->targetname, src->targetname);
-    dest->isTrigger = src->isTrigger;
-    dest->isReflectionProbe = src->isReflectionProbe;
-    dest->isDSP = src->isDSP;
-    dest->isGlass = src->isGlass;
     dest->refractionStrength = src->refractionStrength;
     dest->isWater = src->isWater;
     dest->cubemapTexture = src->cubemapTexture;
     strcpy(dest->name, src->name);
+    strcpy(dest->classname, src->classname);
+    dest->numProperties = src->numProperties;
+    memcpy(dest->properties, src->properties, sizeof(KeyValue) * MAX_ENTITY_PROPERTIES);
     dest->numVertices = src->numVertices;
     if (src->numVertices > 0) {
         dest->vertices = malloc(src->numVertices * sizeof(BrushVertex));
@@ -879,6 +878,19 @@ cleanup_and_return:
     free(temp_face_verts_idx);
     free(temp_cap_verts);
     free(new_face_list_array);
+}
+
+bool Brush_IsSolid(const Brush* b) {
+    if (!b) return false;
+    if (b->isWater) return false;
+
+    if (strlen(b->classname) > 0) {
+        if (strcmp(b->classname, "func_glass") == 0) {
+            return true;
+        }
+        return false;
+    }
+    return true;
 }
 
 static int getNumFaces(const SMikkTSpaceContext* pContext) {
@@ -1664,6 +1676,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             memset(b, 0, sizeof(Brush));
             b->mass = 0.0f;
             b->isPhysicsEnabled = true;
+            b->runtime_active = true;
+            b->runtime_playerIsTouching = false;
+            b->runtime_hasFired = false;
             char water_def_name[64] = "";
             char glass_normal_name[64] = "NULL";
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
@@ -1729,26 +1744,33 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                         }
                     }
                 }
-                else if (sscanf(line, " is_reflection_probe %d", &dummy_int) == 1) { b->isReflectionProbe = (bool)dummy_int; }
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
-                else if (sscanf(line, " is_trigger %d", &dummy_int) == 1) { b->isTrigger = (bool)dummy_int; }
-                else if (sscanf(line, " is_dsp %d", &dummy_int) == 1) { b->isDSP = (bool)dummy_int; }
                 else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) { b->reverbPreset = (ReverbPreset)dummy_int; }
                 else if (sscanf(line, " is_water %d", &dummy_int) == 1) { b->isWater = (bool)dummy_int; }
                 else if (sscanf(line, " water_def \"%63[^\"]\"", water_def_name) == 1) {}
-                else if (sscanf(line, " is_glass %d", &dummy_int) == 1) { b->isGlass = (bool)dummy_int; }
                 else if (sscanf(line, " glass_normal_mat \"%63[^\"]\"", glass_normal_name) == 1) {}
                 else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
+                else if (sscanf(line, " classname \"%63[^\"]\"", b->classname) == 1) {}
+                else if (strstr(line, "properties")) {
+                    b->numProperties = 0;
+                    while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
+                        if (b->numProperties < MAX_ENTITY_PROPERTIES) {
+                            if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", b->properties[b->numProperties].key, b->properties[b->numProperties].value) == 2) {
+                                b->numProperties++;
+                            }
+                        }
+                    }
+                }
                 else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) { 
                     b->isGrouped = (bool)dummy_int; 
                 } else {
                      b->groupName[0] = '\0';
                 }
             }
-            if (b->isReflectionProbe) {
+            if (strcmp(b->classname, "func_reflectionprobe") == 0) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
                 char face_paths[6][256];
                 for (int i = 0; i < 6; ++i) sprintf(face_paths[i], "cubemaps/%s_%s.png", b->name, faces_suffixes[i]);
@@ -1757,7 +1779,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
             if (b->isWater) { b->waterDef = WaterManager_FindWaterDef(water_def_name); }
-            if (b->isGlass) { b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name); }
+            if (strcmp(b->classname, "func_glass") == 0) { b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name); }
             Brush_UpdateMatrix(b);
             char map_name_sanitized[128];
             char* dot = strrchr(scene->mapPath, '.');
@@ -1769,7 +1791,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             else { strcpy(map_name_sanitized, scene->mapPath); }
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             Brush_CreateRenderData(b);
-            if (!b->isReflectionProbe && !b->isTrigger && !b->isWater && !b->isDSP && b->numVertices > 0) {
+            if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
                     b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
                     if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
@@ -2131,24 +2153,21 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
+        if (strlen(b->classname) > 0) fprintf(file, "  classname \"%s\"\n", b->classname);
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
-        if (b->isTrigger) fprintf(file, "  is_trigger 1\n");
-        if (b->isDSP) {
-            fprintf(file, " is_dsp 1\n");
+        if (strcmp(b->classname, "func_dspzone") == 0) {
             fprintf(file, " reverb_preset %d\n", (int)b->reverbPreset);
         }
-        if (b->isReflectionProbe) {
-            fprintf(file, "  is_reflection_probe 1\n");
+        if (strcmp(b->classname, "func_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }
         if (b->isWater) fprintf(file, "  is_water 1\n");
         if (b->isWater && b->waterDef) {
             fprintf(file, "  water_def \"%s\"\n", b->waterDef->name);
         }
-        if (b->isGlass) {
-            fprintf(file, "  is_glass 1\n");
+        if (strcmp(b->classname, "func_glass") == 0) {
             fprintf(file, "  refraction_strength %.4f\n", b->refractionStrength);
             fprintf(file, "  glass_normal_mat \"%s\"\n", b->glassNormalMap ? b->glassNormalMap->name : "NULL");
         }
@@ -2177,6 +2196,14 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             fprintf(file, " lightmap_scale %.4f", face->lightmap_scale);
             if (face->isGrouped && face->groupName[0] != '\0') fprintf(file, " is_grouped 1 \"%s\"", face->groupName);
             fprintf(file, "\n");
+        }
+        if (b->numProperties > 0) {
+            fprintf(file, "  properties\n");
+            fprintf(file, "  {\n");
+            for (int j = 0; j < b->numProperties; ++j) {
+                fprintf(file, "    \"%s\" \"%s\"\n", b->properties[j].key, b->properties[j].value);
+            }
+            fprintf(file, "  }\n");
         }
         fprintf(file, "brush_end\n\n");
     }

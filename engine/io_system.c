@@ -328,6 +328,22 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
+    for (int i = 0; i < scene->numBrushes; ++i) {
+        if (strcmp(scene->brushes[i].targetname, targetName) == 0) {
+            Brush* b = &scene->brushes[i];
+            if (strlen(b->classname) > 0) {
+                if (strcmp(inputName, "Enable") == 0) {
+                    b->runtime_active = true;
+                }
+                else if (strcmp(inputName, "Disable") == 0) {
+                    b->runtime_active = false;
+                }
+                else if (strcmp(inputName, "Toggle") == 0) {
+                    b->runtime_active = !b->runtime_active;
+                }
+            }
+        }
+    }
     for (int i = 0; i < scene->numActiveLights; ++i) {
         if (strcmp(scene->lights[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "TurnOn") == 0) scene->lights[i].is_on = true;

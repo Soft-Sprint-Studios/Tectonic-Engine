@@ -280,6 +280,9 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "func_glass", "func_dspzone", "func_reflectionprobe" };
+static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
+
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
 static const int g_num_env_blackhole_inputs = sizeof(g_env_blackhole_inputs) / sizeof(g_env_blackhole_inputs[0]);
 
@@ -634,7 +637,7 @@ static void Editor_MergeSelection(Scene* scene, Engine* engine) {
         Physics_RemoveRigidBody(engine->physicsWorld, base_brush->physicsBody);
         base_brush->physicsBody = NULL;
     }
-    if (!base_brush->isTrigger && !base_brush->isWater && base_brush->numVertices > 0) {
+    if (Brush_IsSolid(base_brush) && base_brush->numVertices > 0) {
         Vec3* world_verts = (Vec3*)malloc(base_brush->numVertices * sizeof(Vec3));
         for (int i = 0; i < base_brush->numVertices; i++) {
             world_verts[i] = mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
@@ -895,9 +898,9 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     b->vao = 0; b->vbo = 0;
     b->mass = 0.0f;
     b->isPhysicsEnabled = true;
-    b->isReflectionProbe = false; b->isTrigger = false; b->physicsBody = NULL;
+    b->physicsBody = NULL;
     Brush_UpdateMatrix(b); Brush_CreateRenderData(b);
-    if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+    if (Brush_IsSolid(b) && b->numVertices > 0) {
         Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
         for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -945,7 +948,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     new_brush->pos.x += 1.0f;
     Brush_UpdateMatrix(new_brush);
     Brush_CreateRenderData(new_brush);
-    if (!new_brush->isTrigger && !new_brush->isReflectionProbe && !new_brush->isWater && new_brush->numVertices > 0) {
+    if (Brush_IsSolid(new_brush) && new_brush->numVertices > 0) {
         if (new_brush->mass > 0.0f) {
             new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)new_brush->vertices, new_brush->numVertices, new_brush->mass, new_brush->modelMatrix);
             if (!new_brush->isPhysicsEnabled) {
@@ -1716,7 +1719,9 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
 
     for (int i = 0; i < g_CurrentScene->numBrushes; ++i) {
         Brush* brush = &g_CurrentScene->brushes[i];
-        if (brush->isReflectionProbe) continue;
+		if (strcmp(brush->classname, "func_reflectionprobe") == 0) {
+			continue;
+		}
 
         Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -2292,7 +2297,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_Clip(original_brush, plane_normal, plane_d_a);
                 Brush_CreateRenderData(original_brush);
                 if (original_brush->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, original_brush->physicsBody);
-                if (!original_brush->isTrigger && original_brush->numVertices > 0) {
+                if (Brush_IsSolid(original_brush) && original_brush->numVertices > 0) {
                     Vec3* world_verts = malloc(original_brush->numVertices * sizeof(Vec3));
                     for (int k = 0; k < original_brush->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
                     original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, original_brush->numVertices);
@@ -2311,7 +2316,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                     Brush* new_b_ptr = &scene->brushes[new_brush_index];
                     Brush_CreateRenderData(new_b_ptr);
-                    if (!new_b_ptr->isTrigger && new_b_ptr->isWater && new_b_ptr->numVertices > 0) {
+                    if (Brush_IsSolid(new_b_ptr) && new_b_ptr->numVertices > 0) {
                         Vec3* world_verts = malloc(new_b_ptr->numVertices * sizeof(Vec3));
                         for (int k = 0; k < new_b_ptr->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
                         new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_b_ptr->numVertices);
@@ -2932,7 +2937,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                    if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                    if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                         for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
                         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -3004,7 +3009,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                    if (!b->isTrigger && b->numVertices > 0) {
+                    if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                         for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -3064,7 +3069,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                if (!b->isTrigger && b->numVertices > 0) {
+                if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                     for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -3091,7 +3096,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                if (!b->isTrigger && b->numVertices > 0) {
+                if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                     for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -3151,7 +3156,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                if (!b->isTrigger && b->numVertices > 0) {
+                if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                     for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -3667,7 +3672,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Brush_CreateRenderData(b);
                     if (b->physicsBody) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                        if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                        if (Brush_IsSolid(b) && b->numVertices > 0) {
                             Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                             for (int i = 0; i < b->numVertices; ++i) {
                                 world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
@@ -4003,7 +4008,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                    if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+                    if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                         for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
                         b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
@@ -4741,7 +4746,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         }
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
         for (int i = 0; i < scene->numObjects; i++) { render_object(g_EditorState.debug_shader, &scene->objects[i], false, NULL); }
-        for (int i = 0; i < scene->numBrushes; i++) { if (!scene->brushes[i].isTrigger) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false, NULL); }
+        for (int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(g_EditorState.debug_shader, &scene->brushes[i], false, NULL); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -4908,10 +4913,10 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
-        if (b->isReflectionProbe || b->isTrigger || b->isWater) {
+        if ((strlen(b->classname) > 0) || b->isWater) {
             bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
-            if (!is_selected && !b->isWater) continue;
-            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (b->isTrigger) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; } if (b->isReflectionProbe) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (b->isWater) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if (!is_selected && !b->isWater && strcmp(b->classname, "func_reflectionprobe") != 0) continue;
+            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }  if (strcmp(b->classname, "func_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (b->isWater) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
     for (int i = 0; i < g_EditorState.num_selections; ++i) {
@@ -4919,7 +4924,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
 
         if (sel->type == ENTITY_BRUSH) {
             Brush* b = &scene->brushes[sel->index];
-            if (!b->isReflectionProbe && !b->isTrigger && sel->face_index >= 0 && sel->face_index < b->numFaces) {
+            if (Brush_IsSolid(b) && b->numVertices > 0) {
                 BrushFace* face = &b->faces[sel->face_index];
                 if (face->numVertexIndices >= 3) {
                     int num_tris = face->numVertexIndices - 2;
@@ -5317,7 +5322,12 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
 
                             switch (target_type) {
                             case ENTITY_MODEL: valid_inputs = g_model_inputs; num_valid_inputs = g_num_model_inputs; break;
-                            case ENTITY_BRUSH: if (g_CurrentScene->brushes[target_index].isTrigger) { valid_inputs = g_brush_trigger_inputs; num_valid_inputs = g_num_brush_trigger_inputs; } break;
+                            case ENTITY_BRUSH:
+                                if (strncmp(g_CurrentScene->brushes[target_index].classname, "trigger", 7) == 0) {
+                                    valid_inputs = g_brush_trigger_inputs;
+                                    num_valid_inputs = g_num_brush_trigger_inputs;
+                                }
+                                break;
                             case ENTITY_LIGHT: valid_inputs = g_light_inputs; num_valid_inputs = g_num_light_inputs; break;
                             case ENTITY_SOUND: valid_inputs = g_sound_inputs; num_valid_inputs = g_num_sound_inputs; break;
                             case ENTITY_PARTICLE_EMITTER: valid_inputs = g_particle_inputs; num_valid_inputs = g_num_particle_inputs; break;
@@ -5968,7 +5978,7 @@ static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
 
         for (int i = 0; i < scene->numBrushes; ++i) {
             Brush* b = &scene->brushes[i];
-            if (b->isReflectionProbe) {
+            if (strcmp(b->classname, "func_reflectionprobe") == 0) {
                 const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
                 char face_paths[6][256];
                 const char* face_pointers[6];
@@ -7286,13 +7296,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (model_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_MODEL, model_to_delete, "Delete Model"); _raw_delete_model(scene, model_to_delete, engine); Editor_RemoveFromSelection(ENTITY_MODEL, model_to_delete); }
     if (UI_CollapsingHeader("Brushes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
-            if (scene->brushes[i].isReflectionProbe || scene->brushes[i].isGlass || scene->brushes[i].isDSP || scene->brushes[i].isWater) continue;
+            if (!Brush_IsSolid(&scene->brushes[i])) continue;
             char label[128];
+            const char* entity_tag = "";
+            if (strlen(scene->brushes[i].classname) > 0) {
+                entity_tag = "[E]";
+            }
             if (strlen(scene->brushes[i].targetname) > 0) {
-                sprintf(label, "%s %s##%d", scene->brushes[i].targetname, scene->brushes[i].isTrigger ? "[T]" : "", i);
+                sprintf(label, "%s %s##%d", scene->brushes[i].targetname, entity_tag, i);
             }
             else {
-                sprintf(label, "Brush %d %s##%d", i, scene->brushes[i].isTrigger ? "[T]" : "", i);
+                sprintf(label, "Brush %d %s##%d", i, entity_tag, i);
             }
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_BRUSH, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_BRUSH, i, 0, 0); }
             char popup_id[64];
@@ -7303,55 +7317,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }
             UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
-        }
-    }
-    if (UI_CollapsingHeader("DSP Zones", 1)) {
-        for (int i = 0; i < scene->numBrushes; ++i) {
-            if (!scene->brushes[i].isDSP) continue;
-            char label[128];
-            sprintf(label, "DSP Zone %d", i);
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_BRUSH, i))) {
-                if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
-                Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
-            }
-            char popup_id[64];
-            sprintf(popup_id, "DSPContext_%d", i);
-            if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
-                UI_EndPopup();
-            }
-            UI_SameLine(0, 20.0f);
-            char del_label[32];
-            sprintf(del_label, "[X]##dspbrush%d", i);
-            if (UI_Button(del_label)) { brush_to_delete = i; }
-        }
-    }
-    if (UI_CollapsingHeader("Glass", 1)) {
-        for (int i = 0; i < scene->numBrushes; ++i) {
-            if (!scene->brushes[i].isGlass) continue;
-            char label[128];
-            if (strlen(scene->brushes[i].targetname) > 0) {
-                sprintf(label, "%s##glass%d", scene->brushes[i].targetname, i);
-            }
-            else {
-                sprintf(label, "Glass Brush %d##glass%d", i, i);
-            }
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_BRUSH, i))) {
-                if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
-                Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
-            }
-            char popup_id[64];
-            sprintf(popup_id, "GlassContext_%d", i);
-            if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
-                UI_EndPopup();
-            }
-            UI_SameLine(0, 20.0f);
-            char del_label[32];
-            sprintf(del_label, "[X]##glassbrush%d", i);
-            if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
     if (UI_CollapsingHeader("Water", 1)) {
@@ -7393,28 +7358,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
-    if (UI_CollapsingHeader("Reflection Probes", 1)) {
-        for (int i = 0; i < scene->numBrushes; ++i) {
-            if (!scene->brushes[i].isReflectionProbe) continue;
-            char label[128];
-            sprintf(label, "%s##probebrush%d", scene->brushes[i].targetname, i);
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_BRUSH, i))) {
-                if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
-                Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
-            }
-            char popup_id[64];
-            sprintf(popup_id, "ProbeContext_%d", i);
-            if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
-                UI_EndPopup();
-            }
-            UI_SameLine(0, 20.0f);
-            char del_label[32];
-            sprintf(del_label, "[X]##reflprobe%d", i);
-            if (UI_Button(del_label)) { brush_to_delete = i; }
-        }
-    }
     if (UI_CollapsingHeader("Decals", 1)) {
         for (int i = 0; i < scene->numDecals; ++i) {
             char label[128];
@@ -7723,48 +7666,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         Brush* b = &scene->brushes[primary->index];
         if (UI_Checkbox("Is Water", &b->isWater)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->isWater) {
-                b->isTrigger = false;
-                b->isReflectionProbe = false;
-                b->isDSP = false;
-                b->isGlass = false;
-            }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Water");
-        }
-        if (UI_Checkbox("Is Reflection Probe", &b->isReflectionProbe)) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->isReflectionProbe) {
-                b->isTrigger = false;
-                b->isWater = false;
-                b->isDSP = false;
-                b->isGlass = false;
-                int px = (int)roundf(b->pos.x);
-                int py = (int)roundf(b->pos.y);
-                int pz = (int)roundf(b->pos.z);
-                sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
-                strcpy(b->targetname, b->name);
-            }
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Reflection Probe");
-        }
-        if (UI_Checkbox("Is Trigger", &b->isTrigger)) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->isTrigger) {
-                b->isReflectionProbe = false;
-                b->isWater = false;
-                b->isDSP = false;
-                b->isGlass = false;
-            }
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Trigger");
-        }
-        if (UI_Checkbox("Is DSP Zone", &b->isDSP)) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->isDSP) {
-                b->isTrigger = false;
-                b->isReflectionProbe = false;
-                b->isWater = false;
-                b->isGlass = false;
-            }
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush DSP Zone");
         }
         if (b->isWater) {
             UI_Separator();
@@ -7793,17 +7695,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
             free(items);
         }
-        if (UI_Checkbox("Is Glass", &b->isGlass)) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->isGlass) {
-                b->isTrigger = false;
-                b->isReflectionProbe = false;
-                b->isWater = false;
-                b->isDSP = false;
-                b->refractionStrength = 0.01f;
-            }
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Glass");
-        }
         UI_Separator();
         UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Name"); }
         UI_Separator(); bool transform_changed = false;
@@ -7820,7 +7711,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 b->physicsBody = NULL;
             }
-            if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+            if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
                     b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
                 }
@@ -7855,14 +7746,43 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
         UI_Separator();
-        if (b->isReflectionProbe) {
+        UI_Text("Brush Entity Class");
+        int current_class_idx = 0;
+        for (int i = 1; i < g_num_brush_entity_classnames; ++i) {
+            if (strcmp(b->classname, g_brush_entity_classnames[i]) == 0) {
+                current_class_idx = i;
+                break;
+            }
+        }
+
+        if (UI_Combo("Classname", &current_class_idx, g_brush_entity_classnames, g_num_brush_entity_classnames, -1)) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+            if (current_class_idx == 0) {
+                b->classname[0] = '\0';
+                b->numProperties = 0;
+            }
+            else {
+                strcpy(b->classname, g_brush_entity_classnames[current_class_idx]);
+                b->numProperties = 0;
+                if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+                    int px = (int)roundf(b->pos.x);
+                    int py = (int)roundf(b->pos.y);
+                    int pz = (int)roundf(b->pos.z);
+                    sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
+                    strcpy(b->targetname, b->name);
+                }
+            }
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Class");
+        }
+        UI_Separator();
+        if (strcmp(b->classname, "func_reflectionprobe") == 0) {
             UI_Text("Probe Name: %s", b->targetname);
         }
-        else if (b->isTrigger) {
-            const char* brush_outputs[] = { "OnTouch", "OnEndTouch", "OnUse" };
+        else if (strncmp(b->classname, "trigger", 7) == 0) {
+            const char* brush_outputs[] = { "OnStartTouch", "OnEndTouch", "OnUse" };
             RenderIOEditor(ENTITY_BRUSH, primary->index, brush_outputs, 3);
         }
-        else if (b->isDSP) {
+        else if (strcmp(b->classname, "func_dspzone") == 0) {
             UI_Separator();
             UI_Text("DSP Zone Settings");
             const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
@@ -7873,7 +7793,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Reverb Preset");
             }
         }
-        else if (b->isGlass) {
+        else if (strcmp(b->classname, "func_glass") == 0) {
             UI_Separator();
             UI_Text("Glass Settings");
             UI_DragFloat("Refraction Strength", &b->refractionStrength, 0.001f, 0.0f, 0.1f);
@@ -7898,7 +7818,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     Brush_CreateRenderData(b);
                     if (b->physicsBody) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                        if (!b->isTrigger && b->numVertices > 0) {
+                        if (Brush_IsSolid(b) && b->numVertices > 0) {
                             Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                             for (int i = 0; i < b->numVertices; ++i) { world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos); }
                             b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);

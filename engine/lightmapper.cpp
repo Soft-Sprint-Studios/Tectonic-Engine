@@ -110,6 +110,19 @@ namespace
         return seed;
     }
 
+    static bool IsBrushBakeable(const Brush& b)
+    {
+        if (strlen(b.classname) > 0) {
+            if (strcmp(b.classname, "trigger_once") == 0 ||
+                strcmp(b.classname, "trigger_multiple") == 0 ||
+                strcmp(b.classname, "func_glass") == 0 ||
+                strcmp(b.classname, "func_dspzone") == 0 ||
+                strcmp(b.classname, "func_reflectionprobe") == 0) {
+                return false;
+            }
+        }
+    }
+
     class Lightmapper
     {
     public:
@@ -212,7 +225,7 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isReflectionProbe || b.isDSP || b.isWater) continue;
+            if (!IsBrushBakeable(b)) continue;
 
             for (int j = 0; j < b.numFaces; ++j)
             {
@@ -329,7 +342,7 @@ namespace
 
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isReflectionProbe || b.isDSP || b.isWater || b.numVertices == 0) continue;
+            if (!IsBrushBakeable(b) || b.numVertices == 0) continue;
 
             Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -1212,7 +1225,7 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (!b.isTrigger && !b.isWater && !b.isReflectionProbe && !b.isGlass && !b.isDSP)
+            if (!IsBrushBakeable(b)) continue;
             {
                 total_brush_faces += b.numFaces;
             }
@@ -1249,7 +1262,7 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
-            if (b.isTrigger || b.isReflectionProbe || b.isGlass || b.isDSP) continue;
+            if (!IsBrushBakeable(b)) continue;
             std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
             fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
             fs::create_directories(brush_dir);

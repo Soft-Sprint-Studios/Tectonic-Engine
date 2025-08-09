@@ -221,7 +221,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         Brush_CreateRenderData(b);
         b->physicsBody = NULL;
 
-        if (!b->isTrigger && !b->isWater && b->numVertices > 0) {
+        if (Brush_IsSolid(b) && b->numVertices > 0) {
             if (b->mass > 0.0f) {
                 b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
             }

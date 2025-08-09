@@ -193,7 +193,9 @@ float decalQuadVertices[] = {
 static int FindReflectionProbeForPoint(Vec3 p) {
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isReflectionProbe) continue;
+		if (!strcmp(b->classname, "func_reflectionprobe") == 0) {
+            continue;
+		}
 
         if (b->numVertices == 0 || b->vertices == NULL) continue;
 
@@ -326,7 +328,7 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 }
 
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
-    if (b->isReflectionProbe || b->isTrigger || b->isWater || b->isGlass || b->totalRenderVertexCount == 0) return;
+    if (strlen(b->classname) > 0 || b->totalRenderVertexCount == 0) return;
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
@@ -1413,7 +1415,7 @@ void process_input() {
 
                 for (int i = 0; i < g_scene.numBrushes; ++i) {
                     Brush* brush = &g_scene.brushes[i];
-                    if (brush->isTrigger) {
+                    if (strlen(brush->classname) > 0 && brush->runtime_active) {
                         Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                         Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
                         if (brush->numVertices > 0) {
@@ -1686,7 +1688,7 @@ void update_state() {
     int new_reverb_zone_index = -1;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isDSP) continue;
+        if (strcmp(b->classname, "func_dspzone") != 0) continue;
         if (b->numVertices == 0) continue;
 
         Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
@@ -1722,7 +1724,7 @@ void update_state() {
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isTrigger) continue;
+        if (strlen(b->classname) == 0 || !b->runtime_active) continue;
 
         if (b->numVertices == 0) continue;
 
@@ -1742,13 +1744,23 @@ void update_state() {
             playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
             playerPos.z >= min_aabb.z && playerPos.z <= max_aabb.z);
 
-        if (is_inside && !b->playerIsTouching) {
-            b->playerIsTouching = true;
-            IO_FireOutput(ENTITY_BRUSH, i, "OnTouch", g_engine->lastFrame, NULL);
+        if(is_inside && !b->runtime_playerIsTouching) {
+            b->runtime_playerIsTouching = true;
+            if (strcmp(b->classname, "trigger_once") == 0) {
+                if (!b->runtime_hasFired) {
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", g_engine->lastFrame, NULL);
+                    b->runtime_hasFired = true;
+                }
+            }
+            else if (strcmp(b->classname, "trigger_multiple") == 0) {
+                IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", g_engine->lastFrame, NULL);
+            }
         }
-        else if (!is_inside && b->playerIsTouching) {
-            b->playerIsTouching = false;
-            IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, NULL);
+        else if (!is_inside && b->runtime_playerIsTouching) {
+            b->runtime_playerIsTouching = false;
+            if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
+                IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, NULL);
+            }
         }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -1853,7 +1865,7 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
         render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
-        if (g_scene.brushes[j].isWater) continue;
+        if (strcmp(g_scene.brushes[j].classname, "func_reflectionprobe") == 0) continue;
         render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false, NULL);
     }
 
@@ -1901,7 +1913,7 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isGlass) continue;
+        if (strcmp(b->classname, "func_glass") != 0) continue;
 
         glActiveTexture(GL_TEXTURE1);
         if (b->glassNormalMap) {
@@ -2232,7 +2244,7 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
-        if (b->isWater || b->isGlass || b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+        if (!Brush_IsSolid(b)) continue;
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -2608,7 +2620,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         for (int i = 0; i < g_scene.numBrushes; i++) {
             Brush* b = &g_scene.brushes[i];
-            if (b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            if (!Brush_IsSolid(b)) continue;
             glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
             glBindVertexArray(b->vao);
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -2631,7 +2643,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         for (int i = 0; i < g_scene.numBrushes; i++) {
             Brush* b = &g_scene.brushes[i];
-            if (b->isTrigger || b->isReflectionProbe || b->isDSP) continue;
+            if (!Brush_IsSolid(b)) continue;
             glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
             glBindVertexArray(b->vao);
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -2936,7 +2948,7 @@ void cleanup() {
     }
     for (int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
     for (int i = 0; i < g_scene.numBrushes; ++i) {
-        if (g_scene.brushes[i].isReflectionProbe) {
+        if (strcmp(g_scene.brushes[i].classname, "func_reflectionprobe") == 0) {
             glDeleteTextures(1, &g_scene.brushes[i].cubemapTexture);
         }
         Brush_FreeData(&g_scene.brushes[i]);
@@ -3220,7 +3232,9 @@ void BuildCubemaps(int resolution) {
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!b->isReflectionProbe) continue;
+        if (!strcmp(b->classname, "func_reflectionprobe") == 0) {
+            continue;
+        }
         if (strlen(b->name) == 0) {
             Console_Printf_Warning("[WARNING] Skipping unnamed reflection probe at index %d.", i);
             continue;
