@@ -195,7 +195,6 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->scale = src->scale;
     dest->modelMatrix = src->modelMatrix;
     strcpy(dest->targetname, src->targetname);
-    dest->refractionStrength = src->refractionStrength;
     dest->cubemapTexture = src->cubemapTexture;
     strcpy(dest->name, src->name);
     strcpy(dest->classname, src->classname);
@@ -1678,7 +1677,6 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             b->runtime_playerIsTouching = false;
             b->runtime_hasFired = false;
             char water_def_name[64] = "";
-            char glass_normal_name[64] = "NULL";
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
             while (fgets(line, sizeof(line), file) && strncmp(line, "brush_end", 9) != 0) {
                 int dummy_int;
@@ -1744,10 +1742,6 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
                 else if (sscanf(line, " name \"%63[^\"]\"", b->name) == 1) {}
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
-                else if (sscanf(line, " reverb_preset %d", &dummy_int) == 1) { b->reverbPreset = (ReverbPreset)dummy_int; }
-                else if (sscanf(line, " water_def \"%63[^\"]\"", water_def_name) == 1) {}
-                else if (sscanf(line, " glass_normal_mat \"%63[^\"]\"", glass_normal_name) == 1) {}
-                else if (sscanf(line, " refraction_strength %f", &b->refractionStrength) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
                 else if (sscanf(line, " classname \"%63[^\"]\"", b->classname) == 1) {}
@@ -1775,8 +1769,6 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
-            if (strcmp(b->classname, "func_water") == 0) { b->waterDef = WaterManager_FindWaterDef(water_def_name); }
-            if (strcmp(b->classname, "func_glass") == 0) { b->glassNormalMap = TextureManager_FindMaterial(glass_normal_name); }
             Brush_UpdateMatrix(b);
             char map_name_sanitized[128];
             char* dot = strrchr(scene->mapPath, '.');
@@ -2154,18 +2146,8 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
-        if (strcmp(b->classname, "func_dspzone") == 0) {
-            fprintf(file, " reverb_preset %d\n", (int)b->reverbPreset);
-        }
         if (strcmp(b->classname, "func_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
-        }
-        if (strcmp(b->classname, "func_water") == 0 && b->waterDef) {
-            fprintf(file, "  water_def \"%s\"\n", b->waterDef->name);
-        }
-        if (strcmp(b->classname, "func_glass") == 0) {
-            fprintf(file, "  refraction_strength %.4f\n", b->refractionStrength);
-            fprintf(file, "  glass_normal_mat \"%s\"\n", b->glassNormalMap ? b->glassNormalMap->name : "NULL");
         }
         fprintf(file, "  num_verts %d\n", b->numVertices);
         for (int v = 0; v < b->numVertices; ++v) {

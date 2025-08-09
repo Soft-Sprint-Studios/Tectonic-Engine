@@ -71,6 +71,7 @@ extern "C" {
     void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter);
     void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine);
 
+    const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val);
     const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val);
 
     extern IOConnection g_io_connections[MAX_IO_CONNECTIONS];

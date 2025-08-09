@@ -317,12 +317,8 @@ extern "C" {
         RigidBodyHandle physicsBody;
         float mass;
         bool isPhysicsEnabled;
-        WaterDef* waterDef;
         GLuint cubemapTexture;
         char name[64];
-        ReverbPreset reverbPreset;
-        float refractionStrength;
-        Material* glassNormalMap;
         bool isGrouped;
         char groupName[64];
         char classname[64];

@@ -1212,6 +1212,30 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
     }
 }
 
+static void Editor_SetDefaultBrushProperties(Brush* b) {
+    if (!b) return;
+
+    b->numProperties = 0;
+
+    if (strcmp(b->classname, "func_dspzone") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "reverb_preset");
+        strcpy(b->properties[0].value, "1");
+    }
+    else if (strcmp(b->classname, "func_glass") == 0) {
+        b->numProperties = 2;
+        strcpy(b->properties[0].key, "refraction_strength");
+        strcpy(b->properties[0].value, "0.01");
+        strcpy(b->properties[1].key, "normal_map");
+        strcpy(b->properties[1].value, "NULL");
+    }
+    else if (strcmp(b->classname, "func_water") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "water_def");
+        strcpy(b->properties[0].value, "default_water");
+    }
+}
+
 static void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view) {
     Vec3 world_min, world_max;
 
@@ -6181,7 +6205,16 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                 }
                 else if (primary && primary->type == ENTITY_BRUSH && g_EditorState.texture_browser_target == 5) {
                     Brush* b = &scene->brushes[primary->index];
-                    b->glassNormalMap = mat;
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                    bool found = false;
+                    for (int k = 0; k < b->numProperties; ++k) {
+                        if (strcmp(b->properties[k].key, "normal_map") == 0) {
+                            strncpy(b->properties[k].value, mat->name, sizeof(b->properties[k].value) - 1);
+                            found = true;
+                            break;
+                        }
+                    }
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Glass Normal Map");
                     g_EditorState.show_texture_browser = false;
                 }
                 else if (primary && primary->type == ENTITY_DECAL) {
@@ -7649,13 +7682,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (strcmp(b->classname, "func_water") == 0) {
             UI_Separator();
             UI_Text("Water Definition");
+            const char* current_def_name = Brush_GetProperty(b, "water_def", "default_water");
             int current_item = -1;
-            if (b->waterDef) {
-                for (int i = 0; i < WaterManager_GetWaterDefCount(); ++i) {
-                    if (b->waterDef == WaterManager_GetWaterDef(i)) {
-                        current_item = i;
-                        break;
-                    }
+            for (int i = 0; i < WaterManager_GetWaterDefCount(); ++i) {
+                if (strcmp(current_def_name, WaterManager_GetWaterDef(i)->name) == 0) {
+                    current_item = i;
+                    break;
                 }
             }
 
@@ -7667,10 +7699,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
             if (UI_Combo("Type", &current_item, items, waterDefCount, -1)) {
                 if (current_item >= 0 && current_item < waterDefCount) {
-                    b->waterDef = WaterManager_GetWaterDef(current_item);
+                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                    bool found = false;
+                    for (int k = 0; k < b->numProperties; ++k) {
+                        if (strcmp(b->properties[k].key, "water_def") == 0) {
+                            strncpy(b->properties[k].value, items[current_item], sizeof(b->properties[k].value) - 1);
+                            found = true;
+                            break;
+                        }
+                    }
+                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Water Definition");
                 }
             }
-
             free(items);
         }
         UI_Separator();
@@ -7741,14 +7781,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             else {
                 strcpy(b->classname, g_brush_entity_classnames[current_class_idx]);
-                b->numProperties = 0;
-                if (strcmp(b->classname, "func_reflectionprobe") == 0) {
-                    int px = (int)roundf(b->pos.x);
-                    int py = (int)roundf(b->pos.y);
-                    int pz = (int)roundf(b->pos.z);
-                    sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
-                    strcpy(b->targetname, b->name);
-                }
+                Editor_SetDefaultBrushProperties(b);
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Class");
         }
@@ -7764,25 +7797,49 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Separator();
             UI_Text("DSP Zone Settings");
             const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
-            int current_preset = (int)b->reverbPreset;
+            int current_preset = atoi(Brush_GetProperty(b, "reverb_preset", "0"));
             if (UI_Combo("Reverb Preset", &current_preset, reverb_names, REVERB_PRESET_COUNT, REVERB_PRESET_COUNT)) {
                 Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                b->reverbPreset = (ReverbPreset)current_preset;
+                bool found = false;
+                for (int k = 0; k < b->numProperties; ++k) {
+                    if (strcmp(b->properties[k].key, "reverb_preset") == 0) {
+                        snprintf(b->properties[k].value, sizeof(b->properties[k].value), "%d", current_preset);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    strcpy(b->properties[b->numProperties].key, "reverb_preset");
+                    snprintf(b->properties[b->numProperties].value, sizeof(b->properties[b->numProperties].value), "%d", current_preset);
+                    b->numProperties++;
+                }
                 Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Reverb Preset");
             }
         }
         else if (strcmp(b->classname, "func_glass") == 0) {
             UI_Separator();
             UI_Text("Glass Settings");
-            UI_DragFloat("Refraction Strength", &b->refractionStrength, 0.001f, 0.0f, 0.1f);
+            float refraction_strength = atof(Brush_GetProperty(b, "refraction_strength", "0.01"));
+            if (UI_DragFloat("Refraction Strength", &refraction_strength, 0.001f, 0.0f, 0.1f)) {
+                bool found = false;
+                for (int k = 0; k < b->numProperties; ++k) {
+                    if (strcmp(b->properties[k].key, "refraction_strength") == 0) {
+                        snprintf(b->properties[k].value, sizeof(b->properties[k].value), "%.4f", refraction_strength);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Glass Strength"); }
+
+            const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
             char mat_label[128];
-            sprintf(mat_label, "Normal Map: %s", b->glassNormalMap ? b->glassNormalMap->name : "None");
+            sprintf(mat_label, "Normal Map: %s", normal_map_name);
             if (UI_Button(mat_label)) {
                 g_EditorState.texture_browser_target = 5;
                 g_EditorState.show_texture_browser = true;
             }
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Glass Strength"); }
         }
         else {
             UI_Separator();

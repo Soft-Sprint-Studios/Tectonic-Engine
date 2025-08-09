@@ -421,6 +421,15 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
     }
 }
 
+const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val) {
+    for (int i = 0; i < b->numProperties; ++i) {
+        if (strcmp(b->properties[i].key, key) == 0) {
+            return b->properties[i].value;
+        }
+    }
+    return default_val;
+}
+
 const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
     for (int i = 0; i < ent->numProperties; ++i) {
         if (strcmp(ent->properties[i].key, key) == 0) {

@@ -1715,7 +1715,9 @@ void update_state() {
     if (new_reverb_zone_index != g_current_reverb_zone_index) {
         g_current_reverb_zone_index = new_reverb_zone_index;
         if (new_reverb_zone_index != -1) {
-            SoundSystem_SetCurrentReverb(g_scene.brushes[new_reverb_zone_index].reverbPreset);
+            Brush* b = &g_scene.brushes[new_reverb_zone_index];
+            const char* preset_str = Brush_GetProperty(b, "reverb_preset", "0");
+            SoundSystem_SetCurrentReverb((ReverbPreset)atoi(preset_str));
         }
         else {
             SoundSystem_SetCurrentReverb(REVERB_PRESET_NONE);
@@ -1915,15 +1917,16 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_glass") != 0) continue;
 
-        glActiveTexture(GL_TEXTURE1);
-        if (b->glassNormalMap) {
-            glBindTexture(GL_TEXTURE_2D, b->glassNormalMap->normalMap);
+        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
+        Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
+        if (normal_mat && normal_mat != &g_MissingMaterial) {
+            glBindTexture(GL_TEXTURE_2D, normal_mat->normalMap);
         }
         else {
             glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
         }
 
-        glUniform1f(glGetUniformLocation(g_renderer.glassShader, "refractionStrength"), b->refractionStrength);
+        glUniform1f(glGetUniformLocation(g_renderer.glassShader, "refractionStrength"), atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -2111,7 +2114,10 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "func_water") != 0 || !b->waterDef) continue;
+        if (strcmp(b->classname, "func_water") != 0) continue;
+        const char* water_def_name = Brush_GetProperty(b, "water_def", "default_water");
+        WaterDef* water_def = WaterManager_FindWaterDef(water_def_name);
+        if (!water_def) continue;
 
         Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -2129,8 +2135,8 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
             glUniform3fv(glGetUniformLocation(g_renderer.waterShader, "u_waterAabbMax"), 1, &world_max.x);
         }
 
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, b->waterDef->dudvMap);
-        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, b->waterDef->normalMap);
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, water_def->dudvMap);
+        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, water_def->normalMap);
 
         if (b->lightmapAtlas != 0) {
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useLightmap"), 1);
@@ -2152,11 +2158,11 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useDirectionalLightmap"), 0);
         }
 
-        if (b->waterDef->flowMap != 0) {
+        if (water_def->flowMap != 0) {
             glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, b->waterDef->flowMap);
+            glBindTexture(GL_TEXTURE_2D, water_def->flowMap);
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "flowMap"), 3);
-            glUniform1f(glGetUniformLocation(g_renderer.waterShader, "flowSpeed"), b->waterDef->flowSpeed);
+            glUniform1f(glGetUniformLocation(g_renderer.waterShader, "flowSpeed"), water_def->flowSpeed);
             glUniform1i(glGetUniformLocation(g_renderer.waterShader, "useFlowMap"), 1);
         }
         else {
