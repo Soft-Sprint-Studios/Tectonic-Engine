@@ -277,10 +277,41 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake", "game_end", "env_fog"};
+static const char* logic_entity_classnames[] = {
+    "env_blackhole",
+    "env_fade",
+    "env_shake",
+    "env_fog",
+    "game_end",
+    "logic_auto",
+    "logic_compare",
+    "logic_counter",
+    "logic_random",
+    "logic_relay",
+    "logic_timer",
+    "math_counter",
+    "point_servercommand"
+};
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave", "func_illusionary", "func_lod" };
+static const char* g_brush_entity_classnames[] = {
+    "(None)",
+    "env_glass",
+    "env_reflectionprobe",
+    "func_button",
+    "func_clip",
+    "func_conveyor",
+    "func_friction",
+    "func_illusionary",
+    "func_ladder",
+    "func_lod",
+    "func_water",
+    "trigger_autosave",
+    "trigger_dspzone",
+    "trigger_gravity",
+    "trigger_multiple",
+    "trigger_once"
+};
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
