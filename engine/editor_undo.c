@@ -352,7 +352,16 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
     if (g_redo_top >= MAX_UNDO_ACTIONS - 1) { free_action_data(g_redo_stack[0]); free(g_redo_stack[0]); memmove(&g_redo_stack[0], &g_redo_stack[1], (MAX_UNDO_ACTIONS - 1) * sizeof(Action*)); g_redo_top--; }
     g_redo_stack[++g_redo_top] = action;
     switch (action->type) {
-    case ACTION_MODIFY_ENTITY: for (int i = 0; i < action->num_before_states; ++i) apply_state(scene, engine, &action->before_states[i], false); break;
+    case ACTION_MODIFY_ENTITY:  if (action->num_after_states == 1 && action->num_before_states > 1) {
+            _raw_delete_brush(scene, engine, action->after_states[0].index);
+            for (int i = 0; i < action->num_before_states; ++i) {
+                apply_state(scene, engine, &action->before_states[i], true);
+            }
+        } else {
+            for (int i = 0; i < action->num_before_states; ++i) {
+                apply_state(scene, engine, &action->before_states[i], false);
+            }
+        } break;
     case ACTION_CREATE_ENTITY: for (int i = action->num_after_states - 1; i >= 0; --i) {
         switch (action->after_states[i].type) {
         case ENTITY_MODEL: _raw_delete_model(scene, action->after_states[i].index, engine); break;
@@ -378,7 +387,16 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
     Action* action = g_redo_stack[g_redo_top--];
     g_undo_stack[++g_undo_top] = action;
     switch (action->type) {
-    case ACTION_MODIFY_ENTITY: for (int i = 0; i < action->num_after_states; ++i) apply_state(scene, engine, &action->after_states[i], false); break;
+    case ACTION_MODIFY_ENTITY:   if (action->num_after_states == 1 && action->num_before_states > 1) {
+            for (int i = action->num_before_states - 1; i >= 0; --i) {
+                _raw_delete_brush(scene, engine, action->before_states[i].index);
+            }
+            apply_state(scene, engine, &action->after_states[0], true);
+        } else {
+            for (int i = 0; i < action->num_after_states; ++i) {
+                apply_state(scene, engine, &action->after_states[i], false);
+            }
+        } break;
     case ACTION_CREATE_ENTITY: for (int i = 0; i < action->num_after_states; ++i) apply_state(scene, engine, &action->after_states[i], true); break;
     case ACTION_DELETE_ENTITY: for (int i = action->num_before_states - 1; i >= 0; --i) {
         switch (action->before_states[i].type) {
@@ -441,6 +459,18 @@ void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, 
     action->type = ACTION_DELETE_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     action->before_states = deleted_states; action->num_before_states = num_states;
     action->after_states = NULL; action->num_after_states = 0;
+    Undo_PushAction(action);
+}
+
+void Undo_PushMergeAction(Scene* scene, EntityState* before_states, int num_before, EntityState* after_states, int num_after, const char* description) {
+    Action* action = (Action*)calloc(1, sizeof(Action));
+    if (!action) return;
+    action->type = ACTION_MODIFY_ENTITY;
+    strncpy(action->description, description, sizeof(action->description) - 1);
+    action->before_states = before_states;
+    action->num_before_states = num_before;
+    action->after_states = after_states;
+    action->num_after_states = num_after;
     Undo_PushAction(action);
 }
 

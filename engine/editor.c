@@ -546,6 +546,105 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     Console_Printf("Subdivided face %d of brush %d.", face_index, brush_index);
 }
 
+static void Editor_MergeSelection(Scene* scene, Engine* engine) {
+    if (g_EditorState.num_selections < 2) return;
+
+    EditorSelection* brush_selections = (EditorSelection*)malloc(g_EditorState.num_selections * sizeof(EditorSelection));
+    int brush_count = 0;
+    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+        if (g_EditorState.selections[i].type == ENTITY_BRUSH) {
+            bool already_added = false;
+            for (int j = 0; j < brush_count; ++j) {
+                if (brush_selections[j].index == g_EditorState.selections[i].index) {
+                    already_added = true;
+                    break;
+                }
+            }
+            if (!already_added) {
+                brush_selections[brush_count++] = g_EditorState.selections[i];
+            }
+        }
+    }
+
+    if (brush_count < 2) {
+        Console_Printf_Warning("Merge requires at least two unique brushes to be selected.");
+        free(brush_selections);
+        return;
+    }
+
+    EntityState* before_states = (EntityState*)calloc(brush_count, sizeof(EntityState));
+    for (int i = 0; i < brush_count; i++) {
+        capture_state(&before_states[i], scene, ENTITY_BRUSH, brush_selections[i].index);
+    }
+
+    int base_brush_index = brush_selections[0].index;
+    Brush* base_brush = &scene->brushes[base_brush_index];
+
+    Mat4 base_inv_matrix;
+    mat4_inverse(&base_brush->modelMatrix, &base_inv_matrix);
+
+    for (int i = 1; i < brush_count; i++) {
+        int source_brush_index = brush_selections[i].index;
+        Brush* source_brush = &scene->brushes[source_brush_index];
+
+        int vertex_offset = base_brush->numVertices;
+
+        Mat4 source_to_base_transform;
+        mat4_multiply(&source_to_base_transform, &base_inv_matrix, &source_brush->modelMatrix);
+
+        base_brush->vertices = (BrushVertex*)realloc(base_brush->vertices, (base_brush->numVertices + source_brush->numVertices) * sizeof(BrushVertex));
+        for (int v = 0; v < source_brush->numVertices; v++) {
+            Vec3 transformed_pos = mat4_mul_vec3(&source_to_base_transform, source_brush->vertices[v].pos);
+            base_brush->vertices[vertex_offset + v] = source_brush->vertices[v];
+            base_brush->vertices[vertex_offset + v].pos = transformed_pos;
+        }
+        base_brush->numVertices += source_brush->numVertices;
+
+        base_brush->faces = (BrushFace*)realloc(base_brush->faces, (base_brush->numFaces + source_brush->numFaces) * sizeof(BrushFace));
+        for (int j = 0; j < source_brush->numFaces; j++) {
+            BrushFace* new_face = &base_brush->faces[base_brush->numFaces + j];
+            BrushFace* source_face = &source_brush->faces[j];
+
+            *new_face = *source_face;
+            new_face->vertexIndices = (int*)malloc(source_face->numVertexIndices * sizeof(int));
+            memcpy(new_face->vertexIndices, source_face->vertexIndices, source_face->numVertexIndices * sizeof(int));
+
+            for (int k = 0; k < new_face->numVertexIndices; k++) {
+                new_face->vertexIndices[k] += vertex_offset;
+            }
+        }
+        base_brush->numFaces += source_brush->numFaces;
+    }
+
+    for (int i = brush_count - 1; i >= 1; --i) {
+        _raw_delete_brush(scene, engine, brush_selections[i].index);
+    }
+
+    Brush_CreateRenderData(base_brush);
+    if (base_brush->physicsBody) {
+        Physics_RemoveRigidBody(engine->physicsWorld, base_brush->physicsBody);
+        base_brush->physicsBody = NULL;
+    }
+    if (!base_brush->isTrigger && !base_brush->isWater && base_brush->numVertices > 0) {
+        Vec3* world_verts = (Vec3*)malloc(base_brush->numVertices * sizeof(Vec3));
+        for (int i = 0; i < base_brush->numVertices; i++) {
+            world_verts[i] = mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
+        }
+        base_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, base_brush->numVertices);
+        free(world_verts);
+    }
+
+    EntityState* after_state = (EntityState*)calloc(1, sizeof(EntityState));
+    capture_state(after_state, scene, ENTITY_BRUSH, base_brush_index);
+
+    Undo_PushMergeAction(scene, before_states, brush_count, after_state, 1, "Merge Brushes");
+
+    free(brush_selections);
+    Editor_ClearSelection();
+    Editor_AddToSelection(ENTITY_BRUSH, base_brush_index, 0, 0);
+    Console_Printf("Merged %d brushes.", brush_count);
+}
+
 static void Editor_SaveRecentFiles() {
     FILE* file = fopen("editor_prefs.cfg", "w");
     if (!file) return;
@@ -8204,6 +8303,19 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 else {
                     g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
                 }
+            }
+            bool can_merge = false;
+            if (g_EditorState.num_selections > 1) {
+                can_merge = true;
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    if (g_EditorState.selections[i].type != ENTITY_BRUSH) {
+                        can_merge = false;
+                        break;
+                    }
+                }
+            }
+            if (UI_MenuItem("Merge", NULL, false, can_merge)) {
+                Editor_MergeSelection(scene, engine);
             }
             UI_Separator();
             if (UI_MenuItem("Flip Horizontal", "Ctrl+L", false, g_EditorState.num_selections > 0)) {

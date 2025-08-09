@@ -76,6 +76,7 @@ extern "C" {
     void Undo_EndMultiEntityModification(Scene* scene, EditorSelection* selections, int num_selections, const char* description);
     void Undo_PushCreateMultipleEntities(Scene* scene, EditorSelection* selections, int num_selections, const char* description);
     void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, int num_states, const char* description);
+    void Undo_PushMergeAction(Scene* scene, EntityState* before_states, int num_before, EntityState* after_states, int num_after, const char* description);
 
     void Undo_BeginEntityModification(Scene* scene, EntityType type, int index);
     void Undo_EndEntityModification(Scene* scene, EntityType type, int index, const char* description);
