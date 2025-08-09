@@ -128,6 +128,8 @@ const float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
 static int g_last_vsync_cvar_state = -1;
 static float g_current_friction_modifier = 1.0f;
+static bool g_player_on_ladder = false;
+static Vec3 g_ladder_normal;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 float parallaxRoomVertices[] = {
@@ -1545,6 +1547,37 @@ void process_input() {
             if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
 
         }
+        else if (g_player_on_ladder) {
+            float ladder_speed = Cvar_GetFloat("g_speed");
+            Vec3 wish_vel = { 0, 0, 0 };
+
+            if (state[SDL_SCANCODE_W]) {
+                wish_vel.y = ladder_speed;
+            }
+            if (state[SDL_SCANCODE_S]) {
+                wish_vel.y = -ladder_speed;
+            }
+
+            Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
+            Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
+            Vec3 strafe_move = { 0, 0, 0 };
+            if (state[SDL_SCANCODE_A]) strafe_move = vec3_add(strafe_move, r_flat);
+            if (state[SDL_SCANCODE_D]) strafe_move = vec3_sub(strafe_move, r_flat);
+
+            vec3_normalize(&strafe_move);
+            wish_vel.x = strafe_move.x * ladder_speed;
+            wish_vel.z = strafe_move.z * ladder_speed;
+
+            Vec3 horizontal_vel = { wish_vel.x, 0, wish_vel.z };
+            horizontal_vel = vec3_sub(horizontal_vel, vec3_muls(g_ladder_normal, vec3_dot(horizontal_vel, g_ladder_normal)));
+
+            Vec3 final_vel = { horizontal_vel.x, wish_vel.y, horizontal_vel.z };
+
+            final_vel = vec3_add(final_vel, vec3_muls(g_ladder_normal, -1.0f));
+
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, final_vel);
+            Physics_Activate(g_engine->camera.physicsBody);
+        }
         else {
             Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
             Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
@@ -1576,7 +1609,6 @@ void process_input() {
 
             if (vec3_length_sq(vel_delta) > 0.0001f) {
                 float delta_speed = vec3_length(vel_delta);
-
                 float add_speed = delta_speed * accel * friction * g_engine->deltaTime;
 
                 if (add_speed > delta_speed) {
@@ -1869,6 +1901,21 @@ void update_state() {
                         Physics_Activate(obj->physicsBody);
                     }
                 }
+            }
+        }
+    }
+    g_player_on_ladder = false;
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_ladder") == 0 && b->runtime_playerIsTouching) {
+            Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+            vec3_normalize(&forward);
+            Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 2.0f));
+            RaycastHitInfo hit_info;
+            if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hit_info)) {
+                g_player_on_ladder = true;
+                g_ladder_normal = hit_info.normal;
+                break;
             }
         }
     }
