@@ -520,4 +520,39 @@ extern "C" {
             }
         }
     }
+
+    PHYSICS_API bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance) {
+        if (!handle || !bodyHandle) return false;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+        RigidBody* rb = (RigidBody*)bodyHandle;
+
+        if (!rb->body || rb->body->getCollisionShape()->getShapeType() != CAPSULE_SHAPE_PROXYTYPE) {
+            return false;
+        }
+
+        btTransform trans;
+        rb->body->getMotionState()->getWorldTransform(trans);
+        btVector3 startPos = trans.getOrigin();
+
+        btCapsuleShape* shape = static_cast<btCapsuleShape*>(rb->body->getCollisionShape());
+        float halfHeight = shape->getHalfHeight();
+        float radius = shape->getRadius();
+
+        btVector3 rayStart = startPos;
+        btVector3 rayEnd = startPos - btVector3(0, halfHeight + radius + groundCheckDistance, 0);
+
+        btCollisionWorld::ClosestRayResultCallback rayCallback(rayStart, rayEnd);
+        rayCallback.m_collisionFilterGroup = COL_PLAYER;
+        rayCallback.m_collisionFilterMask = COL_STATIC | COL_DYNAMIC;
+
+        world->dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
+
+        if (rayCallback.hasHit()) {
+            btVector3 upVector(0.0f, 1.0f, 0.0f);
+            if (rayCallback.m_hitNormalWorld.dot(upVector) > 0.7f) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -1594,7 +1594,8 @@ void process_input() {
             Physics_Activate(g_engine->camera.physicsBody);
 
             if (state[SDL_SCANCODE_SPACE]) {
-                if (fabs(Physics_GetLinearVelocity(g_engine->camera.physicsBody).y) < 0.01f) {
+                Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+                if (current_vel.y <= 0.1f && Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f)) {
                     Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, Cvar_GetFloat("g_jump_force"), 0 });
                     SoundSystem_PlaySound(g_jump_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
                 }
