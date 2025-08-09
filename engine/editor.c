@@ -1270,6 +1270,7 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
     }
     else if (strcmp(classname, "func_button") == 0) {
         if (strcmp(key, "locked") == 0) return "Starts Locked";
+        if (strcmp(key, "delay") == 0) return "Delay Before Firing (seconds)";
     }
     else if (strcmp(classname, "trigger_gravity") == 0) {
         if (strcmp(key, "gravity") == 0) return "Gravity";
@@ -1280,6 +1281,9 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
     else if (strcmp(classname, "func_conveyor") == 0) {
         if (strcmp(key, "speed") == 0) return "Conveyor Speed";
         if (strcmp(key, "direction") == 0) return "Direction (Pitch Yaw Roll)";
+    }
+    else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
+        if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
     }
 
     return key;
@@ -1308,9 +1312,11 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         strcpy(b->properties[0].value, "default_water");
     }
     else if (strcmp(b->classname, "func_button") == 0) {
-        b->numProperties = 1;
+        b->numProperties = 2;
         strcpy(b->properties[0].key, "locked");
         strcpy(b->properties[0].value, "0");
+        strcpy(b->properties[1].key, "delay");
+        strcpy(b->properties[1].value, "0");
     }
     else if (strcmp(b->classname, "trigger_gravity") == 0) {
         b->numProperties = 1;
@@ -1328,6 +1334,11 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         strcpy(b->properties[0].value, "100");
         strcpy(b->properties[1].key, "direction");
         strcpy(b->properties[1].value, "0 0 0");
+    }
+    else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "delay");
+        strcpy(b->properties[0].value, "0");
     }
 }
 

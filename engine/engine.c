@@ -1449,7 +1449,9 @@ void process_input() {
                                 IO_FireOutput(ENTITY_BRUSH, i, "OnUseLocked", g_engine->lastFrame, NULL);
                             }
                             else {
-                                IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, NULL);
+                                const char* delay_str = Brush_GetProperty(brush, "delay", "0");
+                                float fire_time = g_engine->lastFrame + atof(delay_str);
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", fire_time, NULL);
                             }
                         }
                     }
@@ -1791,12 +1793,16 @@ void update_state() {
             b->runtime_playerIsTouching = true;
             if (strcmp(b->classname, "trigger_once") == 0) {
                 if (!b->runtime_hasFired) {
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", g_engine->lastFrame, NULL);
+                    const char* delay_str = Brush_GetProperty(b, "delay", "0");
+                    float fire_time = g_engine->lastFrame + atof(delay_str);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, NULL);
                     b->runtime_hasFired = true;
                 }
             }
             else if (strcmp(b->classname, "trigger_multiple") == 0) {
-                IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", g_engine->lastFrame, NULL);
+                const char* delay_str = Brush_GetProperty(b, "delay", "0");
+                float fire_time = g_engine->lastFrame + atof(delay_str);
+                IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, NULL);
             }
         }
         else if (strcmp(b->classname, "trigger_autosave") == 0) {
