@@ -286,7 +286,13 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         engine->shake_duration_timer = 0.0f;
                     }
                 }
+            }
+            else if (strcmp(ent->classname, "game_end") == 0) {
+                if (strcmp(inputName, "EndGame") == 0) {
+                    char* disconnect_argv[] = { (char*)"disconnect" };
+                    Commands_Execute(1, disconnect_argv);
                 }
+            }
         }
     }
     for (int i = 0; i < scene->numObjects; ++i) {

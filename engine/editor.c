@@ -277,7 +277,7 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake", "game_end" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
 static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor", "func_ladder", "func_clip", "trigger_autosave" };
@@ -346,6 +346,9 @@ static const int g_num_math_counter_inputs = sizeof(g_math_counter_inputs) / siz
 
 static const char* g_logic_random_inputs[] = { "Enable", "Disable" };
 static const int g_num_logic_random_inputs = sizeof(g_logic_random_inputs) / sizeof(g_logic_random_inputs[0]);
+
+static const char* g_game_end_inputs[] = { "EndGame" };
+static const int g_num_game_end_inputs = sizeof(g_game_end_inputs) / sizeof(g_game_end_inputs[0]);
 
 static bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
     if (name == NULL || *name == '\0') return false;
@@ -5466,6 +5469,7 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                 else if (strcmp(ent->classname, "env_blackhole") == 0) { valid_inputs = g_env_blackhole_inputs; num_valid_inputs = g_num_env_blackhole_inputs; }
                                 else if (strcmp(ent->classname, "env_fade") == 0) { valid_inputs = g_env_fade_inputs; num_valid_inputs = g_num_env_fade_inputs; }
                                 else if (strcmp(ent->classname, "env_shake") == 0) { valid_inputs = g_env_shake_inputs; num_valid_inputs = g_num_env_shake_inputs; }
+                                else if (strcmp(ent->classname, "game_end") == 0) { valid_inputs = g_game_end_inputs; num_valid_inputs = g_num_game_end_inputs; }
                                 break;
                             }
                             default: break;
