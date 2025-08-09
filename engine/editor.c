@@ -5054,17 +5054,36 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
-        if ((strlen(b->classname) > 0)) {
-            bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
-            if (!is_selected && strcmp(b->classname, "func_water") != 0 && strcmp(b->classname, "env_reflectionprobe") != 0 && strcmp(b->classname, "func_clip") != 0) continue;
-            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-            float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
-            if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }
-            if (strcmp(b->classname, "env_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; }
-            if (strcmp(b->classname, "func_water") == 0) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; }
-            if (strcmp(b->classname, "func_clip") == 0) { color[0] = 1.0f; color[1] = 0.0f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; }
-            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (strlen(b->classname) == 0) continue;
+
+        bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
+
+
+        if (!is_selected && (strcmp(b->classname, "func_water") != 0 && strcmp(b->classname, "env_reflectionprobe") != 0 && strcmp(b->classname, "func_clip") != 0)) {
+            continue;
         }
+
+        glUseProgram(g_EditorState.debug_shader);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+
+        float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+        if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }
+        if (strcmp(b->classname, "env_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; }
+        if (strcmp(b->classname, "func_water") == 0) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; }
+        if (strcmp(b->classname, "func_clip") == 0) { color[0] = 1.0f; color[1] = 0.0f; color[2] = 1.0f; }
+
+        if (!is_selected) {
+            color[3] = 0.3f;
+        }
+
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glBindVertexArray(b->vao);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        glBindVertexArray(0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     for (int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
@@ -7453,7 +7472,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (model_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_MODEL, model_to_delete, "Delete Model"); _raw_delete_model(scene, model_to_delete, engine); Editor_RemoveFromSelection(ENTITY_MODEL, model_to_delete); }
     if (UI_CollapsingHeader("Brushes", 1)) {
         for (int i = 0; i < scene->numBrushes; ++i) {
-            if (!Brush_IsSolid(&scene->brushes[i])) continue;
             char label[128];
             const char* entity_tag = "";
             if (strlen(scene->brushes[i].classname) > 0) {
