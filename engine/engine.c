@@ -1802,6 +1802,20 @@ void update_state() {
             }
         }
     }
+    bool in_gravity_zone = false;
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "trigger_gravity") == 0 && b->runtime_playerIsTouching) {
+            float gravity_val = atof(Brush_GetProperty(b, "gravity", "9.81"));
+            Physics_SetGravity(g_engine->physicsWorld, (Vec3) { 0, -gravity_val, 0 });
+            in_gravity_zone = true;
+            break;
+        }
+    }
+
+    if (!in_gravity_zone) {
+        Physics_SetGravity(g_engine->physicsWorld, (Vec3) { 0, -Cvar_GetFloat("gravity"), 0 });
+    }
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
     if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);

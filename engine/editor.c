@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -1222,7 +1222,6 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
 }
 
 static const char* GetEntityPropertyDescription(const char* classname, const char* key) {
-    // Point Entities
     if (strcmp(classname, "logic_timer") == 0) {
         if (strcmp(key, "delay") == 0) return "Delay";
     }
@@ -1269,6 +1268,9 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
     else if (strcmp(classname, "func_button") == 0) {
         if (strcmp(key, "locked") == 0) return "Starts Locked";
     }
+    else if (strcmp(classname, "trigger_gravity") == 0) {
+        if (strcmp(key, "gravity") == 0) return "Gravity";
+    }
 
     return key;
 }
@@ -1299,6 +1301,11 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         b->numProperties = 1;
         strcpy(b->properties[0].key, "locked");
         strcpy(b->properties[0].value, "0");
+    }
+    else if (strcmp(b->classname, "trigger_gravity") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "gravity");
+        strcpy(b->properties[0].value, "9.81");
     }
 }
 
@@ -7828,7 +7835,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             UI_Text("Probe Name: %s", b->targetname);
         }
-        else if (strncmp(b->classname, "trigger", 7) == 0) {
+        else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
             RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
         }
         else if (b->numProperties > 0) {
@@ -7879,6 +7886,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
                 if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
                 UI_PopID();
+            }
+            if (strcmp(b->classname, "trigger_gravity") == 0) {
+                RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
             }
             if (strcmp(b->classname, "func_button") == 0) {
                 RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_button_outputs, g_num_brush_button_outputs);

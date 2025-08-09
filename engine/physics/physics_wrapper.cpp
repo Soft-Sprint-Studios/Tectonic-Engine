@@ -555,4 +555,18 @@ extern "C" {
         }
         return false;
     }
+
+    void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity) {
+        if (!handle) return;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+        world->dynamicsWorld->setGravity(btVector3(gravity.x, gravity.y, gravity.z));
+
+        for (int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
+            btCollisionObject* obj = world->dynamicsWorld->getCollisionObjectArray()[i];
+            btRigidBody* body = btRigidBody::upcast(obj);
+            if (body && body->getInvMass() > 0.0f) {
+                body->activate(true);
+            }
+        }
+    }
 }
