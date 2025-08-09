@@ -2082,6 +2082,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
     Scene_LoadAmbientProbes(scene);
 
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (strcmp(scene->logicEntities[i].classname, "logic_auto") == 0) {
+            IO_FireOutput(ENTITY_LOGIC, i, "OnMapSpawn", 0.0f, NULL);
+        }
+    }
+
     return true;
 }
 

@@ -277,7 +277,7 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -285,6 +285,9 @@ static const int g_num_env_blackhole_inputs = sizeof(g_env_blackhole_inputs) / s
 
 static const char* g_env_fade_inputs[] = { "FadeIn", "FadeOut", "Fade" };
 static const int g_num_env_fade_inputs = sizeof(g_env_fade_inputs) / sizeof(g_env_fade_inputs[0]);
+
+static const char* g_logic_auto_outputs[] = { "OnMapSpawn" };
+static const int g_num_logic_auto_outputs = sizeof(g_logic_auto_outputs) / sizeof(g_logic_auto_outputs[0]);
 
 static const char* g_logic_relay_inputs[] = { "Trigger", "Enable", "Disable", "Toggle" };
 static const int g_num_logic_relay_inputs = sizeof(g_logic_relay_inputs) / sizeof(g_logic_relay_inputs[0]);
@@ -8152,6 +8155,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         else if (strcmp(ent->classname, "logic_relay") == 0) {
             RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_relay_outputs, g_num_logic_relay_outputs);
+        }
+        else if (strcmp(ent->classname, "logic_auto") == 0) {
+            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_auto_outputs, g_num_logic_auto_outputs);
         }
         else if (strcmp(ent->classname, "point_servercommand") == 0) {
         }
