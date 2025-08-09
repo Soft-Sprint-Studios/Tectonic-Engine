@@ -1613,6 +1613,13 @@ void update_state() {
         }
         g_last_deactivation_cvar_state = deactivation_cvar;
     }
+    if (g_engine->shake_duration_timer > 0) {
+        g_engine->shake_duration_timer -= g_engine->deltaTime;
+        if (g_engine->shake_duration_timer <= 0) {
+            g_engine->shake_amplitude = 0.0f;
+            g_engine->shake_frequency = 0.0f;
+        }
+    }
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
@@ -3611,6 +3618,14 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
             Vec3 t = vec3_add(g_engine->camera.position, f);
             Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
+            if (g_engine->shake_amplitude > 0.0f) {
+                float time = g_engine->scaledTime * g_engine->shake_frequency;
+                float shake_offset_x = (rand_float_range(-1.0f, 1.0f)) * g_engine->shake_amplitude * 0.015f;
+                float shake_offset_y = (rand_float_range(-1.0f, 1.0f)) * g_engine->shake_amplitude * 0.015f;
+
+                Mat4 shake_matrix = mat4_translate((Vec3) { shake_offset_x, shake_offset_y, 0.0f });
+                mat4_multiply(&view, &shake_matrix, &view);
+            }
             Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
             float speed = sqrtf(vel.x * vel.x + vel.z * vel.z);
             if (speed > 0.1f) {

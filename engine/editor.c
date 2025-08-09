@@ -277,7 +277,7 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
-static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto" };
+static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -285,6 +285,9 @@ static const int g_num_env_blackhole_inputs = sizeof(g_env_blackhole_inputs) / s
 
 static const char* g_env_fade_inputs[] = { "FadeIn", "FadeOut", "Fade" };
 static const int g_num_env_fade_inputs = sizeof(g_env_fade_inputs) / sizeof(g_env_fade_inputs[0]);
+
+static const char* g_env_shake_inputs[] = { "StartShake", "StopShake" };
+static const int g_num_env_shake_inputs = sizeof(g_env_shake_inputs) / sizeof(g_env_shake_inputs[0]);
 
 static const char* g_logic_auto_outputs[] = { "OnMapSpawn" };
 static const int g_num_logic_auto_outputs = sizeof(g_logic_auto_outputs) / sizeof(g_logic_auto_outputs[0]);
@@ -1190,6 +1193,19 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
         strcpy(ent->properties[1].value, "1.0");
         strcpy(ent->properties[2].key, "renderamt");
         strcpy(ent->properties[2].value, "255");
+    }
+    else if (strcmp(ent->classname, "env_shake") == 0) {
+        ent->numProperties = 5;
+        strcpy(ent->properties[0].key, "amplitude");
+        strcpy(ent->properties[0].value, "4.0");
+        strcpy(ent->properties[1].key, "radius");
+        strcpy(ent->properties[1].value, "500.0");
+        strcpy(ent->properties[2].key, "duration");
+        strcpy(ent->properties[2].value, "1.0");
+        strcpy(ent->properties[3].key, "frequency");
+        strcpy(ent->properties[3].value, "40.0");
+        strcpy(ent->properties[4].key, "GlobalShake");
+        strcpy(ent->properties[4].value, "0");
     }
 }
 
@@ -3849,10 +3865,6 @@ void Editor_RenderGrid(ViewportType type, float aspect) {
     glUniform4fv(glGetUniformLocation(g_EditorState.grid_shader, "grid_color"), 1, color);
     glDrawArrays(GL_LINES, 0, line_count / 3); glBindVertexArray(0);
 }
-static float rand_float_range(float min, float max) {
-    if (min >= max) return min;
-    return min + ((float)rand() / (float)RAND_MAX) * (max - min);
-}
 void Editor_Update(Engine* engine, Scene* scene) {
     bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
     if (can_move) {
@@ -5321,6 +5333,7 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                 else if (strcmp(ent->classname, "logic_compare") == 0) { valid_inputs = g_logic_compare_inputs; num_valid_inputs = g_num_logic_compare_inputs; }
                                 else if (strcmp(ent->classname, "env_blackhole") == 0) { valid_inputs = g_env_blackhole_inputs; num_valid_inputs = g_num_env_blackhole_inputs; }
                                 else if (strcmp(ent->classname, "env_fade") == 0) { valid_inputs = g_env_fade_inputs; num_valid_inputs = g_num_env_fade_inputs; }
+                                else if (strcmp(ent->classname, "env_shake") == 0) { valid_inputs = g_env_shake_inputs; num_valid_inputs = g_num_env_shake_inputs; }
                                 break;
                             }
                             default: break;

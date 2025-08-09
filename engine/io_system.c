@@ -92,11 +92,6 @@ int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connec
     return count;
 }
 
-static float rand_float_range(float min, float max) {
-    if (min >= max) return min;
-    return min + (rand() / (float)RAND_MAX) * (max - min);
-}
-
 void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter) {
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
@@ -273,6 +268,25 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     ent->runtime_float_a = 0.0f;
                 }
             }
+            else if (strcmp(ent->classname, "env_shake") == 0) {
+                bool global_shake = atoi(LogicEntity_GetProperty(ent, "GlobalShake", "0"));
+                float radius = atof(LogicEntity_GetProperty(ent, "radius", "500.0"));
+                float dist_sq = vec3_length_sq(vec3_sub(engine->camera.position, ent->pos));
+
+                if (strcmp(inputName, "StartShake") == 0) {
+                    if (global_shake || dist_sq < (radius * radius)) {
+                        engine->shake_amplitude = atof(LogicEntity_GetProperty(ent, "amplitude", "4.0"));
+                        engine->shake_frequency = atof(LogicEntity_GetProperty(ent, "frequency", "40.0"));
+                        engine->shake_duration_timer = atof(LogicEntity_GetProperty(ent, "duration", "1.0"));
+                    }
+                }
+                else if (strcmp(inputName, "StopShake") == 0) {
+                    if (global_shake || dist_sq < (radius * radius)) {
+                        engine->shake_amplitude = 0.0f;
+                        engine->shake_duration_timer = 0.0f;
+                    }
+                }
+                }
         }
     }
     for (int i = 0; i < scene->numObjects; ++i) {

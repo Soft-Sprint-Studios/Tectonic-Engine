@@ -656,3 +656,12 @@ Vec3 barycentric_coords(Vec2 p, Vec2 a, Vec2 b, Vec2 c) {
     float u = 1.0f - v - w;
     return (Vec3) { u, v, w };
 }
+
+float rand_float_range(float min, float max) {
+    if (min > max) {
+        float temp = min;
+        min = max;
+        max = temp;
+    }
+    return min + ((float)rand() / (float)RAND_MAX) * (max - min);
+}

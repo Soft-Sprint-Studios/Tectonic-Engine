@@ -30,6 +30,7 @@
 //----------------------------------------//
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "math_api.h"
@@ -80,6 +81,7 @@ extern "C" {
 	MATH_API bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs);
 	MATH_API Vec3 barycentric_coords(Vec2 p, Vec2 a, Vec2 b, Vec2 c);
 	MATH_API bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir, Vec3 v0, Vec3 v1, Vec3 v2, float* t_out);
+	MATH_API float rand_float_range(float min, float max);
 
 #ifdef __cplusplus
 }

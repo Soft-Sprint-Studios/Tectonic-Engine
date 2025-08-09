@@ -31,11 +31,6 @@
 
 static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
 
-static float rand_float(float min, float max) {
-    if (min > max) { float temp = min; min = max; max = temp; }
-    return min + (rand() / (float)RAND_MAX) * (max - min);
-}
-
 ParticleSystem* ParticleSystem_Load(const char* path) {
     FILE* file = fopen(path, "r");
     if (!file) return NULL;
@@ -102,14 +97,14 @@ static int find_unused_particle(ParticleEmitter* emitter) {
 static void respawn_particle(ParticleEmitter* emitter, Particle* p) {
     ParticleSystem* ps = emitter->system;
     p->position = emitter->pos;
-    p->velocity.x = ps->startVelocity.x + rand_float(-ps->velocityVariation.x, ps->velocityVariation.x);
-    p->velocity.y = ps->startVelocity.y + rand_float(-ps->velocityVariation.y, ps->velocityVariation.y);
-    p->velocity.z = ps->startVelocity.z + rand_float(-ps->velocityVariation.z, ps->velocityVariation.z);
+    p->velocity.x = ps->startVelocity.x + rand_float_range(-ps->velocityVariation.x, ps->velocityVariation.x);
+    p->velocity.y = ps->startVelocity.y + rand_float_range(-ps->velocityVariation.y, ps->velocityVariation.y);
+    p->velocity.z = ps->startVelocity.z + rand_float_range(-ps->velocityVariation.z, ps->velocityVariation.z);
     p->color = ps->startColor;
-    p->life = ps->lifetime + rand_float(-ps->lifetimeVariation, ps->lifetimeVariation);
+    p->life = ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation);
     p->size = ps->startSize;
-    p->angle = ps->startAngle + rand_float(-ps->angleVariation, ps->angleVariation);
-    p->angularVelocity = ps->startAngularVelocity + rand_float(-ps->angularVelocityVariation, ps->angularVelocityVariation);
+    p->angle = ps->startAngle + rand_float_range(-ps->angleVariation, ps->angleVariation);
+    p->angularVelocity = ps->startAngularVelocity + rand_float_range(-ps->angularVelocityVariation, ps->angularVelocityVariation);
 }
 
 void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3 position) {
@@ -163,7 +158,7 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
                 p->velocity = vec3_add(p->velocity, vec3_muls(ps->gravity, deltaTime));
                 p->position = vec3_add(p->position, vec3_muls(p->velocity, deltaTime));
                 p->angle += p->angularVelocity * deltaTime;
-                float lifeRatio = 1.0f - (p->life / (ps->lifetime + rand_float(-ps->lifetimeVariation, ps->lifetimeVariation)));
+                float lifeRatio = 1.0f - (p->life / (ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation)));
                 p->color.x = ps->startColor.x + (ps->endColor.x - ps->startColor.x) * lifeRatio;
                 p->color.y = ps->startColor.y + (ps->endColor.y - ps->startColor.y) * lifeRatio;
                 p->color.z = ps->startColor.z + (ps->endColor.z - ps->startColor.z) * lifeRatio;

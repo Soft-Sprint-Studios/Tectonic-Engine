@@ -496,6 +496,9 @@ extern "C" {
         SDL_GLContext context;
         bool running;
         bool flashlight_on;
+        float shake_amplitude;
+        float shake_frequency;
+        float shake_duration_timer;
         float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
         Camera camera;
         PhysicsWorldHandle physicsWorld;
