@@ -332,7 +332,8 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
 
 void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
     if (strcmp(b->classname, "func_clip") == 0) return;
-    if (!Brush_IsSolid(b) || b->totalRenderVertexCount == 0) return;
+    if (b->totalRenderVertexCount == 0) return;
+    if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0) return;
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), 0);
 
@@ -2401,7 +2402,7 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_clip") == 0) continue;
-        if (!Brush_IsSolid(b)) continue;
+        if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0) continue;
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
