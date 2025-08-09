@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "func_glass", "func_dspzone", "func_reflectionprobe", "func_water" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "func_glass", "func_dspzone", "func_reflectionprobe", "func_water", "func_button" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -313,6 +313,15 @@ static const int g_num_model_inputs = sizeof(g_model_inputs) / sizeof(g_model_in
 
 static const char* g_brush_trigger_inputs[] = { "Enable", "Disable", "Toggle" };
 static const int g_num_brush_trigger_inputs = sizeof(g_brush_trigger_inputs) / sizeof(g_brush_trigger_inputs[0]);
+
+static const char* g_brush_trigger_outputs[] = { "OnStartTouch", "OnEndTouch" };
+static const int g_num_brush_trigger_outputs = sizeof(g_brush_trigger_outputs) / sizeof(g_brush_trigger_outputs[0]);
+
+static const char* g_brush_button_inputs[] = { "Lock", "Unlock", "Press" };
+static const int g_num_brush_button_inputs = sizeof(g_brush_button_inputs) / sizeof(g_brush_button_inputs[0]);
+
+static const char* g_brush_button_outputs[] = { "OnPressed", "OnUseLocked" };
+static const int g_num_brush_button_outputs = sizeof(g_brush_button_outputs) / sizeof(g_brush_button_outputs[0]);
 
 static const char* g_light_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
 static const int g_num_light_inputs = sizeof(g_light_inputs) / sizeof(g_light_inputs[0]);
@@ -1212,6 +1221,58 @@ static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
     }
 }
 
+static const char* GetEntityPropertyDescription(const char* classname, const char* key) {
+    // Point Entities
+    if (strcmp(classname, "logic_timer") == 0) {
+        if (strcmp(key, "delay") == 0) return "Delay";
+    }
+    else if (strcmp(classname, "math_counter") == 0) {
+        if (strcmp(key, "min") == 0) return "Min Value";
+        if (strcmp(key, "max") == 0) return "Max Value";
+    }
+    else if (strcmp(classname, "logic_random") == 0) {
+        if (strcmp(key, "min_time") == 0) return "Min Time";
+        if (strcmp(key, "max_time") == 0) return "Max Time";
+    }
+    else if (strcmp(classname, "logic_compare") == 0) {
+        if (strcmp(key, "InitialValue") == 0) return "Initial Value";
+        if (strcmp(key, "CompareValue") == 0) return "Compare Value";
+    }
+    else if (strcmp(classname, "env_blackhole") == 0) {
+        if (strcmp(key, "rotationspeed") == 0) return "Rotation Speed";
+        if (strcmp(key, "scale") == 0) return "Scale";
+        if (strcmp(key, "starton") == 0) return "Start On";
+    }
+    else if (strcmp(classname, "env_fade") == 0) {
+        if (strcmp(key, "duration") == 0) return "Duration";
+        if (strcmp(key, "holdtime") == 0) return "Hold Time";
+        if (strcmp(key, "renderamt") == 0) return "Render Amount (0-255)";
+    }
+    else if (strcmp(classname, "env_shake") == 0) {
+        if (strcmp(key, "amplitude") == 0) return "Amplitude";
+        if (strcmp(key, "radius") == 0) return "Radius";
+        if (strcmp(key, "duration") == 0) return "Duration";
+        if (strcmp(key, "frequency") == 0) return "Frequency";
+        if (strcmp(key, "GlobalShake") == 0) return "Global Shake";
+    }
+
+    else if (strcmp(classname, "func_dspzone") == 0) {
+        if (strcmp(key, "reverb_preset") == 0) return "Reverb Preset";
+    }
+    else if (strcmp(classname, "func_glass") == 0) {
+        if (strcmp(key, "refraction_strength") == 0) return "Refraction Strength";
+        if (strcmp(key, "normal_map") == 0) return "Normal Map";
+    }
+    else if (strcmp(classname, "func_water") == 0) {
+        if (strcmp(key, "water_def") == 0) return "Water Definition";
+    }
+    else if (strcmp(classname, "func_button") == 0) {
+        if (strcmp(key, "locked") == 0) return "Starts Locked";
+    }
+
+    return key;
+}
+
 static void Editor_SetDefaultBrushProperties(Brush* b) {
     if (!b) return;
 
@@ -1233,6 +1294,11 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         b->numProperties = 1;
         strcpy(b->properties[0].key, "water_def");
         strcpy(b->properties[0].value, "default_water");
+    }
+    else if (strcmp(b->classname, "func_button") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "locked");
+        strcpy(b->properties[0].value, "0");
     }
 }
 
@@ -7679,40 +7745,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (primary && primary->type == ENTITY_BRUSH) {
         Brush* b = &scene->brushes[primary->index];
-        if (strcmp(b->classname, "func_water") == 0) {
-            UI_Separator();
-            UI_Text("Water Definition");
-            const char* current_def_name = Brush_GetProperty(b, "water_def", "default_water");
-            int current_item = -1;
-            for (int i = 0; i < WaterManager_GetWaterDefCount(); ++i) {
-                if (strcmp(current_def_name, WaterManager_GetWaterDef(i)->name) == 0) {
-                    current_item = i;
-                    break;
-                }
-            }
-
-            int waterDefCount = WaterManager_GetWaterDefCount();
-            const char** items = (const char**)malloc(waterDefCount * sizeof(const char*));
-            for (int i = 0; i < waterDefCount; i++) {
-                items[i] = WaterManager_GetWaterDef(i)->name;
-            }
-
-            if (UI_Combo("Type", &current_item, items, waterDefCount, -1)) {
-                if (current_item >= 0 && current_item < waterDefCount) {
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                    bool found = false;
-                    for (int k = 0; k < b->numProperties; ++k) {
-                        if (strcmp(b->properties[k].key, "water_def") == 0) {
-                            strncpy(b->properties[k].value, items[current_item], sizeof(b->properties[k].value) - 1);
-                            found = true;
-                            break;
-                        }
-                    }
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Water Definition");
-                }
-            }
-            free(items);
-        }
         UI_Separator();
         UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Name"); }
         UI_Separator(); bool transform_changed = false;
@@ -7782,6 +7814,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 strcpy(b->classname, g_brush_entity_classnames[current_class_idx]);
                 Editor_SetDefaultBrushProperties(b);
+                if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+                    int px = (int)roundf(b->pos.x);
+                    int py = (int)roundf(b->pos.y);
+                    int pz = (int)roundf(b->pos.z);
+                    sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
+                    strcpy(b->targetname, b->name);
+                }
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Class");
         }
@@ -7790,55 +7829,59 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Text("Probe Name: %s", b->targetname);
         }
         else if (strncmp(b->classname, "trigger", 7) == 0) {
-            const char* brush_outputs[] = { "OnStartTouch", "OnEndTouch", "OnUse" };
-            RenderIOEditor(ENTITY_BRUSH, primary->index, brush_outputs, 3);
+            RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
         }
-        else if (strcmp(b->classname, "func_dspzone") == 0) {
+        else if (b->numProperties > 0) {
             UI_Separator();
-            UI_Text("DSP Zone Settings");
-            const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
-            int current_preset = atoi(Brush_GetProperty(b, "reverb_preset", "0"));
-            if (UI_Combo("Reverb Preset", &current_preset, reverb_names, REVERB_PRESET_COUNT, REVERB_PRESET_COUNT)) {
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                bool found = false;
-                for (int k = 0; k < b->numProperties; ++k) {
-                    if (strcmp(b->properties[k].key, "reverb_preset") == 0) {
-                        snprintf(b->properties[k].value, sizeof(b->properties[k].value), "%d", current_preset);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    strcpy(b->properties[b->numProperties].key, "reverb_preset");
-                    snprintf(b->properties[b->numProperties].value, sizeof(b->properties[b->numProperties].value), "%d", current_preset);
-                    b->numProperties++;
-                }
-                Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Reverb Preset");
-            }
-        }
-        else if (strcmp(b->classname, "func_glass") == 0) {
-            UI_Separator();
-            UI_Text("Glass Settings");
-            float refraction_strength = atof(Brush_GetProperty(b, "refraction_strength", "0.01"));
-            if (UI_DragFloat("Refraction Strength", &refraction_strength, 0.001f, 0.0f, 0.1f)) {
-                bool found = false;
-                for (int k = 0; k < b->numProperties; ++k) {
-                    if (strcmp(b->properties[k].key, "refraction_strength") == 0) {
-                        snprintf(b->properties[k].value, sizeof(b->properties[k].value), "%.4f", refraction_strength);
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Glass Strength"); }
+            UI_Text("Properties");
+            for (int i = 0; i < b->numProperties; ++i) {
+                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
+                UI_PushID(i);
 
-            const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
-            char mat_label[128];
-            sprintf(mat_label, "Normal Map: %s", normal_map_name);
-            if (UI_Button(mat_label)) {
-                g_EditorState.texture_browser_target = 5;
-                g_EditorState.show_texture_browser = true;
+                if (strcmp(b->properties[i].key, "reverb_preset") == 0) {
+                    const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
+                    int current_preset = atoi(b->properties[i].value);
+                    if (UI_Combo(prop_desc, &current_preset, reverb_names, REVERB_PRESET_COUNT, -1)) {
+                        snprintf(b->properties[i].value, sizeof(b->properties[i].value), "%d", current_preset);
+                    }
+                }
+                else if (strcmp(b->properties[i].key, "water_def") == 0) {
+                    int waterDefCount = WaterManager_GetWaterDefCount();
+                    const char** items = (const char**)malloc(waterDefCount * sizeof(const char*));
+                    int current_item = -1;
+                    for (int j = 0; j < waterDefCount; ++j) {
+                        items[j] = WaterManager_GetWaterDef(j)->name;
+                        if (strcmp(items[j], b->properties[i].value) == 0) current_item = j;
+                    }
+                    if (UI_Combo(prop_desc, &current_item, items, waterDefCount, -1)) {
+                        if (current_item >= 0) strncpy(b->properties[i].value, items[current_item], sizeof(b->properties[i].value) - 1);
+                    }
+                    free(items);
+                }
+                else if (strcmp(b->properties[i].key, "normal_map") == 0) {
+                    char mat_label[128];
+                    sprintf(mat_label, "%s: %s", prop_desc, b->properties[i].value);
+                    if (UI_Button(mat_label)) {
+                        g_EditorState.texture_browser_target = 5;
+                        g_EditorState.show_texture_browser = true;
+                    }
+                }
+                else if (strcmp(b->properties[i].key, "locked") == 0) {
+                    bool is_locked = (atoi(b->properties[i].value) != 0);
+                    if (UI_Checkbox(prop_desc, &is_locked)) {
+                        strcpy(b->properties[i].value, is_locked ? "1" : "0");
+                    }
+                }
+                else {
+                    UI_SetNextItemWidth(150.0f);
+                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
+                }
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
+                UI_PopID();
+            }
+            if (strcmp(b->classname, "func_button") == 0) {
+                RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_button_outputs, g_num_brush_button_outputs);
             }
         }
         else {
@@ -8085,16 +8128,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Text("Properties");
         int prop_to_delete = -1;
         for (int i = 0; i < ent->numProperties; ++i) {
-            char key_label[32], val_label[32], del_label[32];
-            sprintf(key_label, "##key%d", i);
-            sprintf(val_label, "##val%d", i);
-            sprintf(del_label, "[X]##prop%d", i);
+            const char* prop_desc = GetEntityPropertyDescription(ent->classname, ent->properties[i].key);
             UI_PushID(i);
-            UI_SetNextItemWidth(100.0f);
-            UI_InputText(key_label, ent->properties[i].key, sizeof(ent->properties[i].key)); UI_SameLine();
-            UI_SetNextItemWidth(120.0f);
-            UI_InputText(val_label, ent->properties[i].value, sizeof(ent->properties[i].value)); UI_SameLine();
-            if (UI_Button(del_label)) { prop_to_delete = i; }
+            if (strcmp(ent->properties[i].key, "starton") == 0 || strcmp(ent->properties[i].key, "GlobalShake") == 0) {
+                bool is_checked = (atoi(ent->properties[i].value) != 0);
+                if (UI_Checkbox(prop_desc, &is_checked)) {
+                    strcpy(ent->properties[i].value, is_checked ? "1" : "0");
+                }
+            }
+            else {
+                UI_SetNextItemWidth(150.0f);
+                UI_InputText(prop_desc, ent->properties[i].value, sizeof(ent->properties[i].value));
+            }
             UI_PopID();
         }
         if (prop_to_delete != -1) {

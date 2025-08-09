@@ -1415,7 +1415,7 @@ void process_input() {
 
                 for (int i = 0; i < g_scene.numBrushes; ++i) {
                     Brush* brush = &g_scene.brushes[i];
-                    if (strlen(brush->classname) > 0 && brush->runtime_active) {
+                    if (strcmp(brush->classname, "func_button") == 0) {
                         Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                         Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
                         if (brush->numVertices > 0) {
@@ -1439,7 +1439,13 @@ void process_input() {
                             brush_local_min,
                             brush_local_max,
                             &t) && t < 3.0f) {
-                            IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, NULL);
+                            bool is_locked = (atoi(Brush_GetProperty(brush, "locked", "0")) == 1);
+                            if (is_locked) {
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUseLocked", g_engine->lastFrame, NULL);
+                            }
+                            else {
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, NULL);
+                            }
                         }
                     }
                 }

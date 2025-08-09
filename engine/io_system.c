@@ -332,6 +332,17 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
         if (strcmp(scene->brushes[i].targetname, targetName) == 0) {
             Brush* b = &scene->brushes[i];
             if (strlen(b->classname) > 0) {
+                if (strcmp(b->classname, "func_button") == 0) {
+                    if (strcmp(inputName, "Lock") == 0) {
+                        for (int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "1");
+                    }
+                    else if (strcmp(inputName, "Unlock") == 0) {
+                        for (int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "0");
+                    }
+                    else if (strcmp(inputName, "Press") == 0) {
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, NULL);
+                    }
+                }
                 if (strcmp(inputName, "Enable") == 0) {
                     b->runtime_active = true;
                 }
