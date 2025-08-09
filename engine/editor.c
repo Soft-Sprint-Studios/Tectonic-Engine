@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button", "trigger_gravity", "func_friction", "func_conveyor" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -1274,6 +1274,10 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
     else if (strcmp(classname, "func_friction") == 0) {
         if (strcmp(key, "modifier") == 0) return "Friction Percentage (0-100)";
     }
+    else if (strcmp(classname, "func_conveyor") == 0) {
+        if (strcmp(key, "speed") == 0) return "Conveyor Speed";
+        if (strcmp(key, "direction") == 0) return "Direction (Pitch Yaw Roll)";
+    }
 
     return key;
 }
@@ -1314,6 +1318,13 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         b->numProperties = 1;
         strcpy(b->properties[0].key, "modifier");
         strcpy(b->properties[0].value, "50");
+    }
+    else if (strcmp(b->classname, "func_conveyor") == 0) {
+        b->numProperties = 2;
+        strcpy(b->properties[0].key, "speed");
+        strcpy(b->properties[0].value, "100");
+        strcpy(b->properties[1].key, "direction");
+        strcpy(b->properties[1].value, "0 0 0");
     }
 }
 

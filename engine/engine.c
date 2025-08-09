@@ -1813,6 +1813,65 @@ void update_state() {
             break;
         }
     }
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_conveyor") != 0) continue;
+
+        const char* speed_str = Brush_GetProperty(b, "speed", "0");
+        float speed = atof(speed_str);
+        if (speed == 0.0f) continue;
+
+        const char* dir_str = Brush_GetProperty(b, "direction", "0 0 0");
+        float pitch, yaw, roll;
+        sscanf(dir_str, "%f %f %f", &pitch, &yaw, &roll);
+
+        float pitch_rad = pitch * (M_PI / 180.0f);
+        float yaw_rad = yaw * (M_PI / 180.0f);
+        float roll_rad = roll * (M_PI / 180.0f);
+
+        Mat4 rot_x_mat = mat4_rotate_x(pitch_rad);
+        Mat4 rot_y_mat = mat4_rotate_y(yaw_rad);
+        Mat4 rot_z_mat = mat4_rotate_z(roll_rad);
+        Mat4 rot_mat;
+        mat4_multiply(&rot_mat, &rot_y_mat, &rot_x_mat);
+        mat4_multiply(&rot_mat, &rot_z_mat, &rot_mat);
+
+        Vec3 base_dir = { 1, 0, 0 };
+        Vec3 move_dir = mat4_mul_vec3_dir(&rot_mat, base_dir);
+        Vec3 conveyor_vel = vec3_muls(move_dir, speed);
+
+        if (b->runtime_playerIsTouching) {
+            Vec3 player_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { conveyor_vel.x, player_vel.y, conveyor_vel.z });
+            Physics_Activate(g_engine->camera.physicsBody);
+        }
+
+        Vec3 conveyor_min, conveyor_max;
+        if (b->numVertices > 0) {
+            conveyor_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+            conveyor_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                conveyor_min.x = fminf(conveyor_min.x, world_v.x); conveyor_min.y = fminf(conveyor_min.y, world_v.y); conveyor_min.z = fminf(conveyor_min.z, world_v.z);
+                conveyor_max.x = fmaxf(conveyor_max.x, world_v.x); conveyor_max.y = fmaxf(conveyor_max.y, world_v.y); conveyor_max.z = fmaxf(conveyor_max.z, world_v.z);
+            }
+
+            for (int obj_idx = 0; obj_idx < g_scene.numObjects; ++obj_idx) {
+                SceneObject* obj = &g_scene.objects[obj_idx];
+                if (obj->mass > 0.0f) {
+                    Vec3 obj_pos = obj->pos;
+                    if (obj_pos.x > conveyor_min.x && obj_pos.x < conveyor_max.x &&
+                        obj_pos.y > conveyor_min.y && obj_pos.y < conveyor_max.y + 1.0f &&
+                        obj_pos.z > conveyor_min.z && obj_pos.z < conveyor_max.z)
+                    {
+                        Vec3 obj_vel = Physics_GetLinearVelocity(obj->physicsBody);
+                        Physics_SetLinearVelocity(obj->physicsBody, (Vec3) { conveyor_vel.x, obj_vel.y, conveyor_vel.z });
+                        Physics_Activate(obj->physicsBody);
+                    }
+                }
+            }
+        }
+    }
     bool in_gravity_zone = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
