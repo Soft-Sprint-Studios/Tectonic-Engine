@@ -115,9 +115,9 @@ namespace
         if (strlen(b.classname) > 0) {
             if (strcmp(b.classname, "trigger_once") == 0 ||
                 strcmp(b.classname, "trigger_multiple") == 0 ||
-                strcmp(b.classname, "func_glass") == 0 ||
-                strcmp(b.classname, "func_dspzone") == 0 ||
-                strcmp(b.classname, "func_reflectionprobe") == 0) {
+                strcmp(b.classname, "env_glass") == 0 ||
+                strcmp(b.classname, "trigger_dspzone") == 0 ||
+                strcmp(b.classname, "env_reflectionprobe") == 0) {
                 return false;
             }
             if (strcmp(b.classname, "func_water") == 0) {

@@ -280,7 +280,7 @@ static bool g_hasCopiedFace = false;
 static const char* logic_entity_classnames[] = { "logic_timer", "math_counter", "logic_random", "logic_relay", "point_servercommand", "logic_compare", "env_blackhole", "env_fade", "logic_auto", "env_shake" };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
-static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "func_glass", "func_dspzone", "func_reflectionprobe", "func_water", "func_button" };
+static const char* g_brush_entity_classnames[] = { "(None)", "trigger_multiple", "trigger_once", "env_glass", "trigger_dspzone", "env_reflectionprobe", "func_water", "func_button" };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
 static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
@@ -1256,10 +1256,10 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
         if (strcmp(key, "GlobalShake") == 0) return "Global Shake";
     }
 
-    else if (strcmp(classname, "func_dspzone") == 0) {
+    else if (strcmp(classname, "trigger_dspzone") == 0) {
         if (strcmp(key, "reverb_preset") == 0) return "Reverb Preset";
     }
-    else if (strcmp(classname, "func_glass") == 0) {
+    else if (strcmp(classname, "env_glass") == 0) {
         if (strcmp(key, "refraction_strength") == 0) return "Refraction Strength";
         if (strcmp(key, "normal_map") == 0) return "Normal Map";
     }
@@ -1278,12 +1278,12 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
 
     b->numProperties = 0;
 
-    if (strcmp(b->classname, "func_dspzone") == 0) {
+    if (strcmp(b->classname, "trigger_dspzone") == 0) {
         b->numProperties = 1;
         strcpy(b->properties[0].key, "reverb_preset");
         strcpy(b->properties[0].value, "1");
     }
-    else if (strcmp(b->classname, "func_glass") == 0) {
+    else if (strcmp(b->classname, "env_glass") == 0) {
         b->numProperties = 2;
         strcpy(b->properties[0].key, "refraction_strength");
         strcpy(b->properties[0].value, "0.01");
@@ -1809,7 +1809,7 @@ static void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport)
 
     for (int i = 0; i < g_CurrentScene->numBrushes; ++i) {
         Brush* brush = &g_CurrentScene->brushes[i];
-		if (strcmp(brush->classname, "func_reflectionprobe") == 0) {
+		if (strcmp(brush->classname, "env_reflectionprobe") == 0) {
 			continue;
 		}
 
@@ -5005,8 +5005,8 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         Brush* b = &scene->brushes[i];
         if ((strlen(b->classname) > 0)) {
             bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
-            if (!is_selected && strcmp(b->classname, "func_water") != 0 && strcmp(b->classname, "func_reflectionprobe") != 0) continue;
-            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }  if (strcmp(b->classname, "func_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (strcmp(b->classname, "func_water") == 0) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if (!is_selected && strcmp(b->classname, "func_water") != 0 && strcmp(b->classname, "env_reflectionprobe") != 0) continue;
+            glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }  if (strcmp(b->classname, "env_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; } if (strcmp(b->classname, "func_water") == 0) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; if (!is_selected) color[3] = 0.3f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glBindVertexArray(b->vao); glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount); glBindVertexArray(0); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
     for (int i = 0; i < g_EditorState.num_selections; ++i) {
@@ -6068,7 +6068,7 @@ static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
 
         for (int i = 0; i < scene->numBrushes; ++i) {
             Brush* b = &scene->brushes[i];
-            if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+            if (strcmp(b->classname, "env_reflectionprobe") == 0) {
                 const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
                 char face_paths[6][256];
                 const char* face_pointers[6];
@@ -7814,7 +7814,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 strcpy(b->classname, g_brush_entity_classnames[current_class_idx]);
                 Editor_SetDefaultBrushProperties(b);
-                if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+                if (strcmp(b->classname, "env_reflectionprobe") == 0) {
                     int px = (int)roundf(b->pos.x);
                     int py = (int)roundf(b->pos.y);
                     int pz = (int)roundf(b->pos.z);
@@ -7825,7 +7825,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Class");
         }
         UI_Separator();
-        if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+        if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             UI_Text("Probe Name: %s", b->targetname);
         }
         else if (strncmp(b->classname, "trigger", 7) == 0) {

@@ -193,7 +193,7 @@ float decalQuadVertices[] = {
 static int FindReflectionProbeForPoint(Vec3 p) {
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-		if (!strcmp(b->classname, "func_reflectionprobe") == 0) {
+		if (!strcmp(b->classname, "env_reflectionprobe") == 0) {
             continue;
 		}
 
@@ -1694,7 +1694,7 @@ void update_state() {
     int new_reverb_zone_index = -1;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "func_dspzone") != 0) continue;
+        if (strcmp(b->classname, "trigger_dspzone") != 0) continue;
         if (b->numVertices == 0) continue;
 
         Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
@@ -1873,7 +1873,7 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
         render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
-        if (strcmp(g_scene.brushes[j].classname, "func_reflectionprobe") == 0) continue;
+        if (strcmp(g_scene.brushes[j].classname, "env_reflectionprobe") == 0) continue;
         render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false, NULL);
     }
 
@@ -1921,7 +1921,7 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "func_glass") != 0) continue;
+        if (strcmp(b->classname, "env_glass") != 0) continue;
 
         const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
@@ -2960,7 +2960,7 @@ void cleanup() {
     }
     for (int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
     for (int i = 0; i < g_scene.numBrushes; ++i) {
-        if (strcmp(g_scene.brushes[i].classname, "func_reflectionprobe") == 0) {
+        if (strcmp(g_scene.brushes[i].classname, "env_reflectionprobe") == 0) {
             glDeleteTextures(1, &g_scene.brushes[i].cubemapTexture);
         }
         Brush_FreeData(&g_scene.brushes[i]);
@@ -3244,7 +3244,7 @@ void BuildCubemaps(int resolution) {
 
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (!strcmp(b->classname, "func_reflectionprobe") == 0) {
+        if (!strcmp(b->classname, "env_reflectionprobe") == 0) {
             continue;
         }
         if (strlen(b->name) == 0) {

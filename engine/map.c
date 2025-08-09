@@ -882,7 +882,7 @@ bool Brush_IsSolid(const Brush* b) {
     if (!b) return false;
 
     if (strlen(b->classname) > 0) {
-        if (strcmp(b->classname, "func_glass") == 0) {
+        if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
         return false;
@@ -1761,7 +1761,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                      b->groupName[0] = '\0';
                 }
             }
-            if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+            if (strcmp(b->classname, "env_reflectionprobe") == 0) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
                 char face_paths[6][256];
                 for (int i = 0; i < 6; ++i) sprintf(face_paths[i], "cubemaps/%s_%s.png", b->name, faces_suffixes[i]);
@@ -2146,7 +2146,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
-        if (strcmp(b->classname, "func_reflectionprobe") == 0) {
+        if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }
         fprintf(file, "  num_verts %d\n", b->numVertices);
