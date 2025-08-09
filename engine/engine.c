@@ -127,6 +127,7 @@ static float g_distance_walked = 0.0f;
 const float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
 static int g_last_vsync_cvar_state = -1;
+static float g_current_friction_modifier = 1.0f;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 float parallaxRoomVertices[] = {
@@ -901,7 +902,7 @@ void init_cvars() {
     Cvar_Register("g_speed", "6.0", "Player walking speed", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration", CVAR_NONE);
-    Cvar_Register("g_friction", "5.0", "Player friction", CVAR_NONE);
+    Cvar_Register("g_friction", "2.0", "Player friction", CVAR_NONE);
     Cvar_Register("g_jump_force", "350.0", "Player jump force", CVAR_NONE);
     Cvar_Register("g_bob", "0.01", "The amount of view bobbing.", CVAR_NONE);
     Cvar_Register("g_bobcycle", "0.8", "The speed of the view bobbing.", CVAR_NONE);
@@ -1564,7 +1565,7 @@ void process_input() {
             }
 
             float accel = Cvar_GetFloat("g_accel");
-            float friction = Cvar_GetFloat("g_friction");
+            float friction = Cvar_GetFloat("g_friction") * g_current_friction_modifier;
 
             Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
             Vec3 current_vel_flat = { current_vel.x, 0, current_vel.z };
@@ -1576,7 +1577,7 @@ void process_input() {
             if (vec3_length_sq(vel_delta) > 0.0001f) {
                 float delta_speed = vec3_length(vel_delta);
 
-                float add_speed = delta_speed * accel * g_engine->deltaTime;
+                float add_speed = delta_speed * accel * friction * g_engine->deltaTime;
 
                 if (add_speed > delta_speed) {
                     add_speed = delta_speed;
@@ -1800,6 +1801,16 @@ void update_state() {
             if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
                 Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
             }
+        }
+    }
+    g_current_friction_modifier = 1.0f;
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_friction") == 0 && b->runtime_playerIsTouching) {
+            const char* modifier_str = Brush_GetProperty(b, "modifier", "100");
+            float modifier = atof(modifier_str);
+            g_current_friction_modifier = modifier / 100.0f;
+            break;
         }
     }
     bool in_gravity_zone = false;
