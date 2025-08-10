@@ -888,6 +888,9 @@ bool Brush_IsSolid(const Brush* b) {
         if (strcmp(b->classname, "func_rotating") == 0) {
             return true;
         }
+        if (strcmp(b->classname, "func_plat") == 0) {
+            return true;
+        }
         if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
@@ -1777,7 +1780,15 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             Brush_CreateRenderData(b);
             if (Brush_IsSolid(b) && b->numVertices > 0) {
-                if (b->mass > 0.0f) {
+                if (strcmp(b->classname, "func_plat") == 0) {
+                    b->start_pos = b->pos;
+                    float height = atof(Brush_GetProperty(b, "height", "0"));
+                    b->end_pos = (Vec3){ b->pos.x, b->pos.y + height, b->pos.z };
+                    b->move_dir = vec3_sub(b->end_pos, b->start_pos);
+                    vec3_normalize(&b->move_dir);
+                    b->physicsBody = Physics_CreateKinematicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->modelMatrix);
+                }
+                else if (b->mass > 0.0f) {
                     b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
                     if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
@@ -1790,6 +1801,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             b->current_angular_velocity = 0.0f;
             b->target_angular_velocity = 0.0f;
+            b->plat_state = PLAT_STATE_BOTTOM;
+            b->wait_timer = 0.0f;
             if (strcmp(b->classname, "func_rotating") == 0) {
                 if (atoi(Brush_GetProperty(b, "StartON", "1")) != 0) {
                     b->target_angular_velocity = atof(Brush_GetProperty(b, "speed", "10"));

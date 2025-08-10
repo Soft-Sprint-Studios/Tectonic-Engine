@@ -307,6 +307,7 @@ static const char* g_brush_entity_classnames[] = {
     "func_ladder",
     "func_lod",
     "func_water",
+    "func_plat",
     "trigger_autosave",
     "trigger_dspzone",
     "trigger_gravity",
@@ -351,6 +352,9 @@ static const int g_num_brush_trigger_outputs = sizeof(g_brush_trigger_outputs) /
 
 static const char* g_brush_rotating_inputs[] = { "Start", "Stop", "Toggle" };
 static const int g_num_brush_rotating_inputs = sizeof(g_brush_rotating_inputs[0]);
+
+static const char* g_brush_plat_inputs[] = { "Raise", "Lower", "Toggle" };
+static const int g_num_brush_plat_inputs = sizeof(g_brush_plat_inputs[0]);
 
 static const char* g_brush_button_inputs[] = { "Lock", "Unlock", "Press" };
 static const int g_num_brush_button_inputs = sizeof(g_brush_button_inputs) / sizeof(g_brush_button_inputs[0]);
@@ -1343,6 +1347,12 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
         if (strcmp(key, "YAxis") == 0) return "Y Axis";
         if (strcmp(key, "AccDcc") == 0) return "Accelerate/Decelerate";
     }
+    else if (strcmp(classname, "func_plat") == 0) {
+        if (strcmp(key, "speed") == 0) return "Speed";
+        if (strcmp(key, "height") == 0) return "Height (+/-)";
+        if (strcmp(key, "wait") == 0) return "Wait before return (sec)";
+        if (strcmp(key, "is_trigger") == 0) return "Trigger Only (No Auto)";
+    }
     else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
         if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
     }
@@ -1415,6 +1425,17 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         strcpy(b->properties[3].value, "0");
         strcpy(b->properties[4].key, "YAxis");
         strcpy(b->properties[4].value, "0");
+    }
+    else if (strcmp(b->classname, "func_plat") == 0) {
+        b->numProperties = 4;
+        strcpy(b->properties[0].key, "speed");
+        strcpy(b->properties[0].value, "150");
+        strcpy(b->properties[1].key, "height");
+        strcpy(b->properties[1].value, "128");
+        strcpy(b->properties[2].key, "wait");
+        strcpy(b->properties[2].value, "3");
+        strcpy(b->properties[3].key, "is_trigger");
+        strcpy(b->properties[3].value, "0");
     }
     else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
         b->numProperties = 1;
@@ -5564,6 +5585,10 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                     valid_inputs = g_brush_rotating_inputs;
                                     num_valid_inputs = g_num_brush_rotating_inputs;
                                 }
+                                else if (strcmp(g_CurrentScene->brushes[target_index].classname, "func_plat") == 0) {
+                                    valid_inputs = g_brush_plat_inputs;
+                                    num_valid_inputs = g_num_brush_plat_inputs;
+                                }
                                 break;
                             case ENTITY_LIGHT: valid_inputs = g_light_inputs; num_valid_inputs = g_num_light_inputs; break;
                             case ENTITY_SOUND: valid_inputs = g_sound_inputs; num_valid_inputs = g_num_sound_inputs; break;
@@ -7986,6 +8011,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
                 UI_PushID(i);
                 if (strcmp(b->properties[i].key, "StartON") == 0 || strcmp(b->properties[i].key, "XAxis") == 0 || strcmp(b->properties[i].key, "YAxis") == 0 || strcmp(b->properties[i].key, "AccDcc") == 0) {
+                    bool is_checked = (atoi(b->properties[i].value) != 0);
+                    if (UI_Checkbox(prop_desc, &is_checked)) {
+                        strcpy(b->properties[i].value, is_checked ? "1" : "0");
+                    }
+                }
+                else {
+                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
+                }
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
+                UI_PopID();
+            }
+        }
+        else if (strcmp(b->classname, "func_plat") == 0) {
+            UI_Separator();
+            UI_Text("Func Plat Properties");
+            for (int i = 0; i < b->numProperties; ++i) {
+                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
+                UI_PushID(i);
+                if (strcmp(b->properties[i].key, "is_trigger") == 0) {
                     bool is_checked = (atoi(b->properties[i].value) != 0);
                     if (UI_Checkbox(prop_desc, &is_checked)) {
                         strcpy(b->properties[i].value, is_checked ? "1" : "0");

@@ -300,6 +300,13 @@ extern "C" {
         char value[128];
     } KeyValue;
 
+    typedef enum {
+        PLAT_STATE_TOP,
+        PLAT_STATE_BOTTOM,
+        PLAT_STATE_UP,
+        PLAT_STATE_DOWN
+    } PlatState;
+
     typedef struct {
         char targetname[64];
         Vec3 pos;
@@ -330,6 +337,11 @@ extern "C" {
         bool runtime_active;
         float current_angular_velocity;
         float target_angular_velocity;
+        Vec3 start_pos;
+        Vec3 end_pos;
+        Vec3 move_dir;
+        PlatState plat_state;
+        float wait_timer;
     } Brush;
 
     typedef struct {

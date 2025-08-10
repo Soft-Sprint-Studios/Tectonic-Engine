@@ -2007,6 +2007,59 @@ void update_state() {
             }
         }
     }
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_plat") == 0 && b->runtime_active) {
+            float speed = atof(Brush_GetProperty(b, "speed", "150"));
+            float wait = atof(Brush_GetProperty(b, "wait", "3"));
+            bool is_trigger = atoi(Brush_GetProperty(b, "is_trigger", "0")) != 0;
+
+            if (!is_trigger && b->runtime_playerIsTouching && b->plat_state == PLAT_STATE_BOTTOM) {
+                b->plat_state = PLAT_STATE_UP;
+            }
+
+            if (b->plat_state == PLAT_STATE_UP) {
+                Vec3 to_end = vec3_sub(b->end_pos, b->pos);
+                float dist_to_end = vec3_length(to_end);
+                float move_dist = speed * g_engine->deltaTime;
+
+                if (move_dist >= dist_to_end) {
+                    b->pos = b->end_pos;
+                    b->plat_state = PLAT_STATE_TOP;
+                    b->wait_timer = wait;
+                }
+                else {
+                    b->pos = vec3_add(b->pos, vec3_muls(b->move_dir, move_dist));
+                }
+            }
+            else if (b->plat_state == PLAT_STATE_DOWN) {
+                Vec3 to_start = vec3_sub(b->start_pos, b->pos);
+                float dist_to_start = vec3_length(to_start);
+                float move_dist = speed * g_engine->deltaTime;
+
+                if (move_dist >= dist_to_start) {
+                    b->pos = b->start_pos;
+                    b->plat_state = PLAT_STATE_BOTTOM;
+                }
+                else {
+                    b->pos = vec3_add(b->pos, vec3_muls(vec3_muls(b->move_dir, -1.0f), move_dist));
+                }
+            }
+            else if (b->plat_state == PLAT_STATE_TOP) {
+                if (wait > 0) {
+                    b->wait_timer -= g_engine->deltaTime;
+                    if (b->wait_timer <= 0) {
+                        b->plat_state = PLAT_STATE_DOWN;
+                    }
+                }
+            }
+
+            Brush_UpdateMatrix(b);
+            if (b->physicsBody) {
+                Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+            }
+        }
+    }
     g_scene.post.isUnderwater = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];

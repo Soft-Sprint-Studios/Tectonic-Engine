@@ -261,6 +261,30 @@ extern "C" {
         return rb;
     }
 
+    RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, Mat4 transform) {
+        if (!handle || !vertices || numVertices == 0) return NULL;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+
+        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(float));
+        world->collisionShapes.push_back(hullShape);
+
+        btTransform startTransform;
+        startTransform.setFromOpenGLMatrix(transform.m);
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(0.0f, myMotionState, hullShape, btVector3(0, 0, 0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+
+        body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
+
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        return rb;
+    }
+
     void Physics_RemoveRigidBody(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
         if (!handle || !bodyHandle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;

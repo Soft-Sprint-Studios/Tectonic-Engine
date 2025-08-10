@@ -374,6 +374,18 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         b->target_angular_velocity = (b->target_angular_velocity > 0.001f) ? 0.0f : speed;
                     }
                 }
+                else if (strcmp(b->classname, "func_plat") == 0) {
+                    if (strcmp(inputName, "Raise") == 0) {
+                        if (b->plat_state == PLAT_STATE_BOTTOM) b->plat_state = PLAT_STATE_UP;
+                    }
+                    else if (strcmp(inputName, "Lower") == 0) {
+                        if (b->plat_state == PLAT_STATE_TOP) b->plat_state = PLAT_STATE_DOWN;
+                    }
+                    else if (strcmp(inputName, "Toggle") == 0) {
+                        if (b->plat_state == PLAT_STATE_TOP) b->plat_state = PLAT_STATE_DOWN;
+                        else if (b->plat_state == PLAT_STATE_BOTTOM) b->plat_state = PLAT_STATE_UP;
+                    }
+                }
                 if (strcmp(inputName, "Enable") == 0) {
                     b->runtime_active = true;
                 }
