@@ -112,7 +112,7 @@ namespace
 
     static bool IsBrushBakeable(const Brush& b)
     {
-        const char* allowed[] = {
+        const char* disallowed[] = {
             "func_button",
             "func_clip",
             "func_conveyor",
@@ -130,8 +130,8 @@ namespace
         };
 
         if (strlen(b.classname) > 0) {
-            for (int i = 0; i < sizeof(allowed) / sizeof(allowed[0]); i++) {
-                if (strcmp(b.classname, allowed[i]) == 0) {
+            for (int i = 0; i < sizeof(disallowed) / sizeof(disallowed[0]); i++) {
+                if (strcmp(b.classname, disallowed[i]) == 0) {
                     return false;
                 }
             }
