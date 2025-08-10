@@ -1599,9 +1599,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
     char version_line[256];
     int map_file_version = 0;
-    if (fgets(version_line, sizeof(version_line), file) && sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
-        if (map_file_version != MAP_VERSION) {
-            Console_Printf_Error("[error] Map version mismatch! Map is v%d, Engine expects v%d.", map_file_version, MAP_VERSION);
+
+    if (fgets(version_line, sizeof(version_line), file) &&
+        sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
+
+        if (map_file_version < MIN_MAP_VERSION || map_file_version > MAP_VERSION) {
+            Console_Printf_Error("[error] Map version unsupported! Map is v%d, supported range is v%d–v%d.",
+                map_file_version, MIN_MAP_VERSION, MAP_VERSION);
             fclose(file);
             return false;
         }

@@ -5250,7 +5250,6 @@ static void RenderIOEditor(EntityType type, int index) {
     UI_Separator();
     UI_Text("Outputs");
 
-    // Gather all possible target names just once
     int total_target_names = 0;
     char** all_target_names = NULL;
 
