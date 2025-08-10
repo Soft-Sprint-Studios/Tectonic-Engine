@@ -3788,7 +3788,7 @@ static void render_debug_buffer(GLuint textureID, int viewMode) {
     glBindVertexArray(0);
 }
 
-ENGINE_API int Engine_Main(int argc, char* argv[]) {
+void ParseCommandLineArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         if (_stricmp(argv[i], "-fullscreen") == 0) {
             g_start_fullscreen = true;
@@ -3810,6 +3810,10 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
         }
     }
+}
+
+ENGINE_API int Engine_Main(int argc, char* argv[]) {
+    ParseCommandLineArgs(argc, argv);
 #ifdef ENABLE_CHECKSUM
     char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
