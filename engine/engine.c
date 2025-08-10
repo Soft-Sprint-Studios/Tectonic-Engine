@@ -54,6 +54,7 @@
 #include "lightmapper.h"
 #include "ipc_system.h"
 #include "game_data.h"
+#include "beams.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -1027,6 +1028,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     VideoPlayer_InitSystem();
     init_renderer();
     DSP_Reverb_Thread_Init();
+    Beams_Init();
     init_scene();
     Discord_Init();
     Weapons_Init();
@@ -2878,6 +2880,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glBindVertexArray(0);
+    Beams_Render(&g_scene, *view, *projection, cameraPos, g_engine->scaledTime);
     if (Cvar_GetInt("r_wireframe")) {
         glUseProgram(g_renderer.wireframeShader);
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "view"), 1, GL_FALSE, view->m);
@@ -3311,6 +3314,7 @@ void cleanup() {
     WaterManager_Shutdown();
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
+    Beams_Shutdown();
     VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);

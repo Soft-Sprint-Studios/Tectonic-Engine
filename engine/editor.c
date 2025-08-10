@@ -291,6 +291,26 @@ static bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_ty
     return false;
 }
 
+static bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos) {
+    if (name == NULL || *name == '\0') return false;
+    EntityType type;
+    int index;
+    if (FindEntityInScene(scene, name, &type, &index)) {
+        switch (type) {
+        case ENTITY_MODEL: *out_pos = scene->objects[index].pos; return true;
+        case ENTITY_BRUSH: *out_pos = scene->brushes[index].pos; return true;
+        case ENTITY_LIGHT: *out_pos = scene->lights[index].position; return true;
+        case ENTITY_SOUND: *out_pos = scene->soundEntities[index].pos; return true;
+        case ENTITY_PARTICLE_EMITTER: *out_pos = scene->particleEmitters[index].pos; return true;
+        case ENTITY_VIDEO_PLAYER: *out_pos = scene->videoPlayers[index].pos; return true;
+        case ENTITY_SPRITE: *out_pos = scene->sprites[index].pos; return true;
+        case ENTITY_LOGIC: *out_pos = scene->logicEntities[index].pos; return true;
+        default: return false;
+        }
+    }
+    return false;
+}
+
 static EditorSelection* Editor_GetPrimarySelection() {
     if (g_EditorState.num_selections == 0) return NULL;
     return &g_EditorState.selections[g_EditorState.num_selections - 1];
@@ -4926,6 +4946,33 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     for (int i = 0; i < scene->numParticleEmitters; ++i) { bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); float color[] = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
     glUseProgram(g_EditorState.debug_shader);
     for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (strcmp(scene->logicEntities[i].classname, "env_beam") == 0) {
+            LogicEntity* ent = &scene->logicEntities[i];
+            const char* target_name = LogicEntity_GetProperty(ent, "target", "");
+            Vec3 end_pos;
+
+            if (Editor_FindNamedEntityPosition(scene, target_name, &end_pos)) {
+                Mat4 identity;
+                mat4_identity(&identity);
+                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity.m);
+
+                float line_verts[6] = { ent->pos.x, ent->pos.y, ent->pos.z, end_pos.x, end_pos.y, end_pos.z };
+                float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+
+                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+
+                glBindVertexArray(g_EditorState.vertex_points_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(line_verts), line_verts, GL_DYNAMIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0);
+
+                glLineWidth(2.0f);
+                glDrawArrays(GL_LINES, 0, 2);
+                glLineWidth(1.0f);
+                glBindVertexArray(0);
+            }
+        }
         bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
         Mat4 modelMatrix = mat4_translate(scene->logicEntities[i].pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);

@@ -2064,6 +2064,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     }
                 }
             }
+            if (strcmp(ent->classname, "env_beam") == 0) {
+                const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
+                ent->runtime_active = (atoi(starton_val) != 0);
+            }
             if (strcmp(ent->classname, "env_fog") == 0 || strcmp(ent->classname, "env_blackhole") == 0) {
                 const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
                 ent->runtime_active = (atoi(starton_val) != 0);

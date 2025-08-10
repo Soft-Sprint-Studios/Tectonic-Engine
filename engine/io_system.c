@@ -313,6 +313,17 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 if (strcmp(inputName, "Enable") == 0) ent->runtime_active = true;
                 else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
             }
+            else if (strcmp(ent->classname, "env_beam") == 0) {
+                if (strcmp(inputName, "TurnOn") == 0) {
+                    ent->runtime_active = true;
+                }
+                else if (strcmp(inputName, "TurnOff") == 0) {
+                    ent->runtime_active = false;
+                }
+                else if (strcmp(inputName, "Toggle") == 0) {
+                    ent->runtime_active = !ent->runtime_active;
+                }
+            }
             else if (strcmp(ent->classname, "game_end") == 0) {
                 if (strcmp(inputName, "EndGame") == 0) {
                     char* disconnect_argv[] = { (char*)"disconnect" };
