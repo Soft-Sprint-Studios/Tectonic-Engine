@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 3.16)
 project(TectonicEngine LANGUAGES C CXX)
 
 if(UNIX AND NOT APPLE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
+
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
 # Set C++ standard and IPO
 set(CMAKE_CXX_STANDARD 17)
