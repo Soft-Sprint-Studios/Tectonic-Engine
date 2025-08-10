@@ -70,21 +70,41 @@ extern void VideoPlayer_Free(VideoPlayer* vp);
 
 void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     if (index < 0 || index >= scene->numObjects) return;
-    if (scene->objects[index].model) Model_Free(scene->objects[index].model);
-    if (scene->objects[index].bone_matrices) free(scene->objects[index].bone_matrices);
-    if (scene->objects[index].physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, scene->objects[index].physicsBody);
-    if (scene->objects[index].bakedVertexColors) free(scene->objects[index].bakedVertexColors);
-    for (int i = index; i < scene->numObjects - 1; ++i) scene->objects[i] = scene->objects[i + 1];
+
+    SceneObject* obj_to_delete = &scene->objects[index];
+    if (obj_to_delete->model) Model_Free(obj_to_delete->model);
+    if (obj_to_delete->bone_matrices) free(obj_to_delete->bone_matrices);
+    if (obj_to_delete->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, obj_to_delete->physicsBody);
+    if (obj_to_delete->bakedVertexColors) free(obj_to_delete->bakedVertexColors);
+    if (obj_to_delete->bakedVertexDirections) free(obj_to_delete->bakedVertexDirections);
+
+    if (index < scene->numObjects - 1) {
+        scene->objects[index] = scene->objects[scene->numObjects - 1];
+    }
+
     scene->numObjects--;
-    if (scene->numObjects > 0) { scene->objects = (SceneObject*)realloc(scene->objects, scene->numObjects * sizeof(SceneObject)); }
-    else { free(scene->objects); scene->objects = NULL; }
+
+    if (scene->numObjects > 0) {
+        scene->objects = (SceneObject*)realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+    }
+    else {
+        free(scene->objects);
+        scene->objects = NULL;
+    }
 }
 
 void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numBrushes) return;
+
     Brush_FreeData(&scene->brushes[index]);
-    if (scene->brushes[index].physicsBody) { Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody); scene->brushes[index].physicsBody = NULL; }
-    for (int i = index; i < scene->numBrushes - 1; ++i) scene->brushes[i] = scene->brushes[i + 1];
+    if (scene->brushes[index].physicsBody) {
+        Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody);
+    }
+
+    if (index < scene->numBrushes - 1) {
+        scene->brushes[index] = scene->brushes[scene->numBrushes - 1];
+    }
+
     scene->numBrushes--;
 }
 
