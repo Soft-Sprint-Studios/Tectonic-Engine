@@ -4298,6 +4298,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
                 default: pos = (Vec3){ 0 }; break;
                 }
                 g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
