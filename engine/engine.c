@@ -1817,6 +1817,19 @@ void update_state() {
                 float fire_time = g_engine->lastFrame + atof(delay_str);
                 IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, NULL);
             }
+            else if (strcmp(b->classname, "trigger_teleport") == 0) {
+                const char* target_name = Brush_GetProperty(b, "target", "");
+                Vec3 target_pos;
+                Vec3 target_angles;
+                if (strlen(target_name) > 0 && IO_FindNamedEntity(&g_scene, target_name, &target_pos, &target_angles)) {
+                    if (g_engine->camera.physicsBody) {
+                        Physics_Teleport(g_engine->camera.physicsBody, target_pos);
+                    }
+                    g_engine->camera.position = target_pos;
+                    g_engine->camera.yaw = target_angles.y * (M_PI / 180.0f);
+                    g_engine->camera.pitch = target_angles.x * (M_PI / 180.0f);
+                }
+            }
         }
         else if (strcmp(b->classname, "trigger_autosave") == 0) {
             if (!b->runtime_hasFired) {

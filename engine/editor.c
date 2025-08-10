@@ -313,7 +313,8 @@ static const char* g_brush_entity_classnames[] = {
     "trigger_dspzone",
     "trigger_gravity",
     "trigger_multiple",
-    "trigger_once"
+    "trigger_once",
+    "trigger_teleport"
 };
 static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
 
@@ -1357,6 +1358,9 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
     else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
         if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
     }
+    else if (strcmp(classname, "trigger_teleport") == 0) {
+        if (strcmp(key, "target") == 0) return "Target (info_target)";
+    }
 
     return key;
 }
@@ -1442,6 +1446,11 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         b->numProperties = 1;
         strcpy(b->properties[0].key, "delay");
         strcpy(b->properties[0].value, "0");
+    }
+    else if (strcmp(b->classname, "trigger_teleport") == 0) {
+        b->numProperties = 1;
+        strcpy(b->properties[0].key, "target");
+        strcpy(b->properties[0].value, "");
     }
 }
 

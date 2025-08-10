@@ -96,9 +96,9 @@ bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out
     if (!name || *name == '\0') return false;
 
     for (int i = 0; i < scene->numLogicEntities; ++i) {
-        if (strcmp(scene->logicEntities[i].targetname, name) == 0) {
-            *out_pos = scene->logicEntities[i].pos;
-            *out_angles = scene->logicEntities[i].rot;
+        if (strcmp(scene->logicEntities[i].targetname, name) == 0 && strcmp(scene->logicEntities[i].classname, "info_target") == 0) {
+            if (out_pos) *out_pos = scene->logicEntities[i].pos;
+            if (out_angles) *out_angles = scene->logicEntities[i].rot;
             return true;
         }
     }
