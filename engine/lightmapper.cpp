@@ -116,6 +116,9 @@ namespace
             if (strcmp(b.classname, "func_water") == 0) {
                 return true;
             }
+            if (strcmp(b.classname, "func_rotating") == 0) {
+                return true;
+            }
         }
         return false;
     }

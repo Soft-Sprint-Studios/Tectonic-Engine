@@ -301,6 +301,7 @@ static const char* g_brush_entity_classnames[] = {
     "func_button",
     "func_clip",
     "func_conveyor",
+    "func_rotating",
     "func_friction",
     "func_illusionary",
     "func_ladder",
@@ -347,6 +348,9 @@ static const int g_num_brush_trigger_inputs = sizeof(g_brush_trigger_inputs) / s
 
 static const char* g_brush_trigger_outputs[] = { "OnStartTouch", "OnEndTouch" };
 static const int g_num_brush_trigger_outputs = sizeof(g_brush_trigger_outputs) / sizeof(g_brush_trigger_outputs[0]);
+
+static const char* g_brush_rotating_inputs[] = { "Start", "Stop", "Toggle" };
+static const int g_num_brush_rotating_inputs = sizeof(g_brush_rotating_inputs[0]);
 
 static const char* g_brush_button_inputs[] = { "Lock", "Unlock", "Press" };
 static const int g_num_brush_button_inputs = sizeof(g_brush_button_inputs) / sizeof(g_brush_button_inputs[0]);
@@ -1331,6 +1335,14 @@ static const char* GetEntityPropertyDescription(const char* classname, const cha
         if (strcmp(key, "DisappearMinDist") == 0) return "Min Disappear Distance";
         if (strcmp(key, "DisappearMaxDist") == 0) return "Max Disappear Distance";
     }
+    else if (strcmp(classname, "func_rotating") == 0) {
+        if (strcmp(key, "speed") == 0) return "Rotation Speed (degrees/sec)";
+        if (strcmp(key, "fanfriction") == 0) return "Friction (0-100%)";
+        if (strcmp(key, "StartON") == 0) return "Start ON";
+        if (strcmp(key, "XAxis") == 0) return "X Axis";
+        if (strcmp(key, "YAxis") == 0) return "Y Axis";
+        if (strcmp(key, "AccDcc") == 0) return "Accelerate/Decelerate";
+    }
     else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
         if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
     }
@@ -1390,6 +1402,19 @@ static void Editor_SetDefaultBrushProperties(Brush* b) {
         strcpy(b->properties[0].value, "500");
         strcpy(b->properties[1].key, "DisappearMaxDist");
         strcpy(b->properties[1].value, "1000");
+    }
+    else if (strcmp(b->classname, "func_rotating") == 0) {
+        b->numProperties = 5;
+        strcpy(b->properties[0].key, "speed");
+        strcpy(b->properties[0].value, "10");
+        strcpy(b->properties[1].key, "fanfriction");
+        strcpy(b->properties[1].value, "0");
+        strcpy(b->properties[2].key, "StartON");
+        strcpy(b->properties[2].value, "1");
+        strcpy(b->properties[3].key, "XAxis");
+        strcpy(b->properties[3].value, "0");
+        strcpy(b->properties[4].key, "YAxis");
+        strcpy(b->properties[4].value, "0");
     }
     else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
         b->numProperties = 1;
@@ -5535,6 +5560,10 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                                     valid_inputs = g_brush_trigger_inputs;
                                     num_valid_inputs = g_num_brush_trigger_inputs;
                                 }
+                                else if (strcmp(g_CurrentScene->brushes[target_index].classname, "func_rotating") == 0) {
+                                    valid_inputs = g_brush_rotating_inputs;
+                                    num_valid_inputs = g_num_brush_rotating_inputs;
+                                }
                                 break;
                             case ENTITY_LIGHT: valid_inputs = g_light_inputs; num_valid_inputs = g_num_light_inputs; break;
                             case ENTITY_SOUND: valid_inputs = g_sound_inputs; num_valid_inputs = g_num_sound_inputs; break;
@@ -7949,6 +7978,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
             RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
+        }
+        else if (strcmp(b->classname, "func_rotating") == 0) {
+            UI_Separator();
+            UI_Text("Properties");
+            for (int i = 0; i < b->numProperties; ++i) {
+                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
+                UI_PushID(i);
+                if (strcmp(b->properties[i].key, "StartON") == 0 || strcmp(b->properties[i].key, "XAxis") == 0 || strcmp(b->properties[i].key, "YAxis") == 0 || strcmp(b->properties[i].key, "AccDcc") == 0) {
+                    bool is_checked = (atoi(b->properties[i].value) != 0);
+                    if (UI_Checkbox(prop_desc, &is_checked)) {
+                        strcpy(b->properties[i].value, is_checked ? "1" : "0");
+                    }
+                }
+                else {
+                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
+                }
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
+                UI_PopID();
+            }
         }
         else if (b->numProperties > 0) {
             UI_Separator();

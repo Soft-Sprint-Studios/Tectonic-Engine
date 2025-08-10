@@ -1972,6 +1972,41 @@ void update_state() {
     if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
     g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
     }
+    for (int i = 0; i < g_scene.numBrushes; ++i) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_rotating") == 0 && b->runtime_active) {
+            bool use_accel = atoi(Brush_GetProperty(b, "AccDcc", "0")) != 0;
+
+            if (use_accel) {
+                float friction = atof(Brush_GetProperty(b, "fanfriction", "0"));
+                float accel_factor = 1.0f - (friction / 100.0f);
+                float lerp_speed = 2.0f + (accel_factor * 8.0f);
+                b->current_angular_velocity = vec3_lerp((Vec3) { b->current_angular_velocity, 0, 0 }, (Vec3) { b->target_angular_velocity, 0, 0 }, g_engine->deltaTime* lerp_speed).x;
+            }
+            else {
+                b->current_angular_velocity = b->target_angular_velocity;
+            }
+
+            if (fabsf(b->current_angular_velocity) > 0.001f) {
+                Vec3 rotation_axis = { 0, 0, 1 };
+                if (atoi(Brush_GetProperty(b, "XAxis", "0")) != 0) rotation_axis = (Vec3){ 1, 0, 0 };
+                if (atoi(Brush_GetProperty(b, "YAxis", "0")) != 0) rotation_axis = (Vec3){ 0, 1, 0 };
+
+                float deg_per_sec = b->current_angular_velocity;
+                Vec3 delta_rot = vec3_muls(rotation_axis, deg_per_sec * g_engine->deltaTime);
+                b->rot = vec3_add(b->rot, delta_rot);
+
+                b->rot.x = fmodf(b->rot.x, 360.0f);
+                b->rot.y = fmodf(b->rot.y, 360.0f);
+                b->rot.z = fmodf(b->rot.z, 360.0f);
+
+                Brush_UpdateMatrix(b);
+                if (b->physicsBody) {
+                    Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                }
+            }
+        }
+    }
     g_scene.post.isUnderwater = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];

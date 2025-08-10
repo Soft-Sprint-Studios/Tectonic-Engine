@@ -328,6 +328,8 @@ extern "C" {
         bool runtime_playerIsTouching;
         bool runtime_hasFired;
         bool runtime_active;
+        float current_angular_velocity;
+        float target_angular_velocity;
     } Brush;
 
     typedef struct {

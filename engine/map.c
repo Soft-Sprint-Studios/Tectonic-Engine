@@ -885,6 +885,9 @@ bool Brush_IsSolid(const Brush* b) {
         if (strcmp(b->classname, "func_clip") == 0) {
             return true;
         }
+        if (strcmp(b->classname, "func_rotating") == 0) {
+            return true;
+        }
         if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
@@ -1783,6 +1786,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
                     free(world_verts);
+                }
+            }
+            b->current_angular_velocity = 0.0f;
+            b->target_angular_velocity = 0.0f;
+            if (strcmp(b->classname, "func_rotating") == 0) {
+                if (atoi(Brush_GetProperty(b, "StartON", "1")) != 0) {
+                    b->target_angular_velocity = atof(Brush_GetProperty(b, "speed", "10"));
                 }
             }
             scene->numBrushes++;

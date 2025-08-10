@@ -362,6 +362,18 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, NULL);
                     }
                 }
+                else if (strcmp(b->classname, "func_rotating") == 0) {
+                    float speed = atof(Brush_GetProperty(b, "speed", "10"));
+                    if (strcmp(inputName, "Start") == 0) {
+                        b->target_angular_velocity = speed;
+                    }
+                    else if (strcmp(inputName, "Stop") == 0) {
+                        b->target_angular_velocity = 0.0f;
+                    }
+                    else if (strcmp(inputName, "Toggle") == 0) {
+                        b->target_angular_velocity = (b->target_angular_velocity > 0.001f) ? 0.0f : speed;
+                    }
+                }
                 if (strcmp(inputName, "Enable") == 0) {
                     b->runtime_active = true;
                 }
