@@ -535,6 +535,25 @@ else()
     endif()
 endif()
 
+# Apply RPATH settings to all shared libraries on Linux
+if(UNIX AND NOT APPLE)
+    set(ALL_SHARED_LIBRARIES
+        math_lib
+        ipc_lib
+        level0
+        level1
+        materials
+        models
+        physics
+        sound
+        engine
+    )
+
+    foreach(lib_target ${ALL_SHARED_LIBRARIES})
+        target_link_options(${lib_target} PRIVATE "-Wl,-rpath,'$ORIGIN'")
+    endforeach()
+endif()
+
 # launcher executable
 add_executable(launcher launcher/launcher.c)
 
