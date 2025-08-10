@@ -545,6 +545,10 @@ endif()
 # launcher executable
 add_executable(launcher launcher/launcher.c)
 
+if(UNIX AND NOT APPLE)
+    target_link_options(launcher PRIVATE "-Wl,-rpath,$<TARGET_FILE_DIR:engine>")
+endif()
+
 if(WIN32)
     set(LAUNCHER_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.rc")
     set(LAUNCHER_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.manifest")
