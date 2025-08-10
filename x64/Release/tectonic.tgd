@@ -347,3 +347,16 @@
     input Enable ""
     input Disable ""
 )
+
+@PointClass = env_beam
+[
+    target(string) : "Target Entity" = ""
+    color(color) : "Beam Color" = "1.0 1.0 1.0"
+    width(float) : "Beam Width" = "2.0"
+    starton(checkbox) : "Start On" = "1"
+]
+(
+    input TurnOn "Turn the beam on."
+    input TurnOff "Turn the beam off."
+    input Toggle "Toggle the beam on/off."
+)
