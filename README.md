@@ -1,5 +1,5 @@
 # Tectonic Engine
-A modern, feature-rich 3D game engine written in pure C, inspired by classic FPS engines.
+A modern, feature-rich 3D game engine written in C, inspired by classic FPS engines.
 
 # Tectonic Engine - Feature Set
 An overview of the core technologies and rendering capabilities of the Tectonic Engine.
@@ -24,7 +24,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Percentage-Closer Filtering (PCF): Implemented for soft shadow edges.
 
-- Global Illumination via Lightmapping, the engine supports staticly baked lightmaps, including directional lightmaps for realistic specular and normal mapping
+- Global Illumination via Lightmapping and vertex lightmaps, the engine supports staticly baked lightmaps, including directional lightmaps for realistic specular and normal mapping for brushes, along with vertex lightmaps for models
 
 - High-Dynamic Range (HDR) Lighting: The entire lighting pipeline operates in HDR.
 
