@@ -72,6 +72,7 @@ endif()
 set(ENGINE_SOURCES
     engine/discord_wrapper.c
     engine/editor.c engine/editor_undo.c
+    engine/game_data.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/particle_system.c
     engine/video_player.c engine/weapons.c
@@ -83,6 +84,7 @@ set(ENGINE_SOURCES
 set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor.h engine/editor_undo.h
+    engine/game_data.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h
     engine/particle_system.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h

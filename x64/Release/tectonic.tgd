@@ -1,0 +1,349 @@
+// ==================================================================
+// SPECIAL BASE DEFINITIONS (Not selectable classes)
+// ==================================================================
+
+@PointClass = _model_base
+(
+    input EnablePhysics "Enables physics collisions."
+    input DisablePhysics "Disables physics collisions."
+    input PlayAnimation "Plays a specific animation. Parameter: animation_name"
+)
+
+@PointClass = _light_base
+(
+    input TurnOn "Turns the light on."
+    input TurnOff "Turns the light off."
+    input Toggle "Toggles the light on/off."
+)
+
+@PointClass = _sound_base
+(
+    input PlaySound "Plays the sound."
+    input StopSound "Stops the sound."
+    input EnableLoop "Enables looping."
+    input DisableLoop "Disables looping."
+    input ToggleLoop "Toggles looping."
+)
+
+@PointClass = _particle_base
+(
+    input TurnOn "Turns the emitter on."
+    input TurnOff "Turns the emitter off."
+    input Toggle "Toggles the emitter on/off."
+)
+
+@PointClass = _video_base
+(
+    input startvideo "Starts the video."
+    input stopvideo "Stops the video."
+    input restartvideo "Restarts the video."
+)
+
+@PointClass = _sprite_base
+(
+    input TurnOn "Turns the sprite on."
+    input TurnOff "Turns the sprite off."
+    input Toggle "Toggles the sprite on/off."
+)
+
+// ==================================================================
+// SELECTABLE POINT ENTITIES
+// ==================================================================
+
+@PointClass = info_target
+[
+]
+
+// ==================================================================
+// Brush Entities
+// ==================================================================
+
+@SolidClass = func_button
+[
+    locked(checkbox) : "Starts Locked" = "0"
+    delay(float) : "Delay Before Firing" = "0"
+]
+(
+    input Lock "Lock the button."
+    input Unlock "Unlock the button."
+    input Press "Simulate the button being pressed."
+    output OnPressed "Fires when the button is pressed."
+    output OnUseLocked "Fires when the player tries to use the button while it's locked."
+)
+
+@SolidClass = func_plat
+[
+    speed(float) : "Speed" = "150"
+    height(float) : "Height (+/-)" = "128"
+    wait(float) : "Wait before return (sec)" = "3"
+    is_trigger(checkbox) : "Trigger Only (No Auto)" = "0"
+]
+(
+    input Raise "Raise the platform."
+    input Lower "Lower the platform."
+    input Toggle "Toggle the platform's movement."
+)
+
+@SolidClass = func_rotating
+[
+    speed(float) : "Rotation Speed (deg/sec)" = "10"
+    fanfriction(float) : "Friction (0-100%)" = "0"
+    StartON(checkbox) : "Start ON" = "1"
+    XAxis(checkbox) : "Rotate on X Axis" = "0"
+    YAxis(checkbox) : "Rotate on Y Axis" = "0"
+    AccDcc(checkbox) : "Accelerate/Decelerate" = "0"
+]
+(
+    input Start "Start rotating."
+    input Stop "Stop rotating."
+    input Toggle "Toggle rotation."
+)
+
+@SolidClass = func_clip
+[
+]
+
+@SolidClass = func_conveyor
+[
+    speed(float) : "Speed" = "100"
+    direction(string) : "Direction (Pitch Yaw Roll)" = "0 0 0"
+]
+
+@SolidClass = func_friction
+[
+    modifier(float) : "Friction Percentage" = "50"
+]
+
+@SolidClass = func_illusionary
+[
+]
+
+@SolidClass = func_ladder
+[
+]
+
+@SolidClass = func_lod
+[
+    DisappearMinDist(float) : "Min Disappear Distance" = "500"
+    DisappearMaxDist(float) : "Max Disappear Distance" = "1000"
+]
+
+@SolidClass = func_water
+[
+    water_def(string) : "Water Definition" = "default_water"
+]
+
+@SolidClass = env_glass
+[
+    refraction_strength(float) : "Refraction Strength" = "0.01"
+    normal_map(texture) : "Normal Map" = "NULL"
+]
+
+@SolidClass = env_reflectionprobe
+[
+]
+
+@SolidClass = trigger_autosave
+[
+]
+
+@SolidClass = trigger_dspzone
+[
+    reverb_preset(choices) : "Reverb Preset" = "1"
+    [
+        0 : "None"
+        1 : "Small Room"
+        2 : "Medium Room"
+        3 : "Large Room"
+        4 : "Hall"
+        5 : "Cave"
+    ]
+]
+
+@SolidClass = trigger_gravity
+[
+    gravity(float) : "Gravity" = "9.81"
+]
+(
+    output OnStartTouch "Fires when player enters."
+    output OnEndTouch "Fires when player leaves."
+)
+
+@SolidClass = trigger_multiple
+[
+    delay(float) : "Delay" = "0"
+]
+(
+    input Enable ""
+    input Disable ""
+    input Toggle ""
+    output OnStartTouch ""
+    output OnEndTouch ""
+)
+
+@SolidClass = trigger_once
+[
+    delay(float) : "Delay" = "0"
+]
+(
+    input Enable ""
+    input Disable ""
+    input Toggle ""
+    output OnStartTouch ""
+    output OnEndTouch ""
+)
+
+@SolidClass = trigger_teleport
+[
+    target(string) : "Target" = ""
+]
+
+// ==================================================================
+// Point Entities
+// ==================================================================
+
+@PointClass = logic_auto
+[
+]
+(
+    output OnMapSpawn "Fires when the map starts."
+)
+
+@PointClass = logic_compare
+[
+    InitialValue(float) : "Initial Value" = "0"
+    CompareValue(float) : "Compare Value" = "0"
+]
+(
+    input SetValue ""
+    input SetValueCompare ""
+    input SetCompareValue ""
+    input Compare ""
+    output OnLessThan ""
+    output OnEqualTo ""
+    output OnNotEqualTo ""
+    output OnGreaterThan ""
+)
+
+@PointClass = logic_counter
+[
+    min(integer) : "Min Value" = "0"
+    max(integer) : "Max Value" = "10"
+]
+(
+    input Add ""
+    input Subtract ""
+    input Multiply ""
+    input Divide ""
+    output OnHitMax ""
+    output OnHitMin ""
+)
+
+@PointClass = logic_random
+[
+    min_time(float) : "Min Time" = "1.0"
+    max_time(float) : "Max Time" = "5.0"
+]
+(
+    input Enable ""
+    input Disable ""
+    output OnRandom ""
+)
+
+@PointClass = logic_relay
+[
+]
+(
+    input Trigger ""
+    input Enable ""
+    input Disable ""
+    input Toggle ""
+    output OnTrigger ""
+)
+
+@PointClass = logic_timer
+[
+    delay(float) : "Delay" = "1.0"
+]
+(
+    input StartTimer ""
+    input StopTimer ""
+    input ToggleTimer ""
+    output OnTimer ""
+)
+
+@PointClass = math_counter
+[
+    min(integer) : "Min Value" = "0"
+    max(integer) : "Max Value" = "10"
+]
+(
+    input Add ""
+    input Subtract ""
+    input Multiply ""
+    input Divide ""
+    output OnHitMax ""
+    output OnHitMin ""
+)
+
+@PointClass = point_servercommand
+[
+]
+(
+    input Command ""
+)
+
+@PointClass = game_end
+[
+]
+(
+    input EndGame ""
+)
+
+@PointClass = env_blackhole
+[
+    rotationspeed(float) : "Rotation Speed" = "10.0"
+    scale(float) : "Scale" = "1.0"
+    starton(checkbox) : "Start On" = "1"
+]
+(
+    input Enable ""
+    input Disable ""
+)
+
+@PointClass = env_fade
+[
+    duration(float) : "Duration" = "2.0"
+    holdtime(float) : "Hold Time" = "1.0"
+    renderamt(integer) : "Render Amount (0-255)" = "255"
+]
+(
+    input FadeIn ""
+    input FadeOut ""
+    input Fade ""
+)
+
+@PointClass = env_shake
+[
+    amplitude(float) : "Amplitude" = "4.0"
+    radius(float) : "Radius" = "500.0"
+    duration(float) : "Duration" = "1.0"
+    frequency(float) : "Frequency" = "40.0"
+    GlobalShake(checkbox) : "Global Shake" = "0"
+]
+(
+    input StartShake ""
+    input StopShake ""
+)
+
+@PointClass = env_fog
+[
+    starton(checkbox) : "Start On" = "1"
+    color(color) : "Color" = "0.5 0.6 0.7"
+    start(float) : "Start Distance" = "50.0"
+    end(float) : "End Distance" = "200.0"
+]
+(
+    input Enable ""
+    input Disable ""
+)

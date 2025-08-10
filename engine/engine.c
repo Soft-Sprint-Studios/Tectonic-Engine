@@ -53,6 +53,7 @@
 #include "video_player.h" 
 #include "lightmapper.h"
 #include "ipc_system.h"
+#include "game_data.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -1005,6 +1006,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Binds_Init();
     Commands_Init();
     init_commands();
+    GameData_Init("tectonic.tgd");
     Sentry_Init();
     FILE* autoexec_file = fopen("autoexec.cfg", "r");
     if (autoexec_file) {
@@ -3322,6 +3324,7 @@ void cleanup() {
     Cvar_Save("cvars.txt");
     DSP_Reverb_Thread_Shutdown();
     Editor_Shutdown();
+    GameData_Shutdown();
     Weapons_Shutdown();
     Network_Shutdown();
     UI_Shutdown();

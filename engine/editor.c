@@ -43,6 +43,7 @@
 #include "water_manager.h"
 #include "io_system.h"
 #include "video_player.h"
+#include "game_data.h"
 #include "cvar.h"
 
 typedef enum {
@@ -276,123 +277,6 @@ static Mat4 g_proj_matrix[VIEW_COUNT];
 
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
-
-static const char* logic_entity_classnames[] = {
-    "env_blackhole",
-    "env_fade",
-    "env_shake",
-    "env_fog",
-    "game_end",
-    "logic_auto",
-    "logic_compare",
-    "logic_counter",
-    "logic_random",
-    "logic_relay",
-    "logic_timer",
-    "math_counter",
-    "point_servercommand",
-    "info_target"
-};
-static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
-
-static const char* g_brush_entity_classnames[] = {
-    "(None)",
-    "env_glass",
-    "env_reflectionprobe",
-    "func_button",
-    "func_clip",
-    "func_conveyor",
-    "func_rotating",
-    "func_friction",
-    "func_illusionary",
-    "func_ladder",
-    "func_lod",
-    "func_water",
-    "func_plat",
-    "trigger_autosave",
-    "trigger_dspzone",
-    "trigger_gravity",
-    "trigger_multiple",
-    "trigger_once",
-    "trigger_teleport"
-};
-static const int g_num_brush_entity_classnames = sizeof(g_brush_entity_classnames) / sizeof(g_brush_entity_classnames[0]);
-
-static const char* g_env_blackhole_inputs[] = { "Enable", "Disable" };
-static const int g_num_env_blackhole_inputs = sizeof(g_env_blackhole_inputs) / sizeof(g_env_blackhole_inputs[0]);
-
-static const char* g_env_fade_inputs[] = { "FadeIn", "FadeOut", "Fade" };
-static const int g_num_env_fade_inputs = sizeof(g_env_fade_inputs) / sizeof(g_env_fade_inputs[0]);
-
-static const char* g_env_shake_inputs[] = { "StartShake", "StopShake" };
-static const int g_num_env_shake_inputs = sizeof(g_env_shake_inputs) / sizeof(g_env_shake_inputs[0]);
-
-static const char* g_logic_auto_outputs[] = { "OnMapSpawn" };
-static const int g_num_logic_auto_outputs = sizeof(g_logic_auto_outputs) / sizeof(g_logic_auto_outputs[0]);
-
-static const char* g_logic_relay_inputs[] = { "Trigger", "Enable", "Disable", "Toggle" };
-static const int g_num_logic_relay_inputs = sizeof(g_logic_relay_inputs) / sizeof(g_logic_relay_inputs[0]);
-static const char* g_logic_relay_outputs[] = { "OnTrigger" };
-static const int g_num_logic_relay_outputs = sizeof(g_logic_relay_outputs) / sizeof(g_logic_relay_outputs[0]);
-
-static const char* g_point_servercommand_inputs[] = { "Command" };
-static const int g_num_point_servercommand_inputs = sizeof(g_point_servercommand_inputs) / sizeof(g_point_servercommand_inputs[0]);
-
-static const char* g_logic_compare_inputs[] = { "SetValue", "SetValueCompare", "SetCompareValue", "Compare" };
-static const int g_num_logic_compare_inputs = sizeof(g_logic_compare_inputs) / sizeof(g_logic_compare_inputs[0]);
-static const char* g_logic_compare_outputs[] = { "OnLessThan", "OnEqualTo", "OnNotEqualTo", "OnGreaterThan" };
-static const int g_num_logic_compare_outputs = sizeof(g_logic_compare_outputs) / sizeof(g_logic_compare_outputs[0]);
-
-static const char* g_model_inputs[] = { "EnablePhysics", "DisablePhysics", "PlayAnimation"};
-static const int g_num_model_inputs = sizeof(g_model_inputs) / sizeof(g_model_inputs[0]);
-
-static const char* g_brush_trigger_inputs[] = { "Enable", "Disable", "Toggle" };
-static const int g_num_brush_trigger_inputs = sizeof(g_brush_trigger_inputs) / sizeof(g_brush_trigger_inputs[0]);
-
-static const char* g_brush_trigger_outputs[] = { "OnStartTouch", "OnEndTouch" };
-static const int g_num_brush_trigger_outputs = sizeof(g_brush_trigger_outputs) / sizeof(g_brush_trigger_outputs[0]);
-
-static const char* g_brush_rotating_inputs[] = { "Start", "Stop", "Toggle" };
-static const int g_num_brush_rotating_inputs = sizeof(g_brush_rotating_inputs[0]);
-
-static const char* g_brush_plat_inputs[] = { "Raise", "Lower", "Toggle" };
-static const int g_num_brush_plat_inputs = sizeof(g_brush_plat_inputs[0]);
-
-static const char* g_brush_button_inputs[] = { "Lock", "Unlock", "Press" };
-static const int g_num_brush_button_inputs = sizeof(g_brush_button_inputs) / sizeof(g_brush_button_inputs[0]);
-
-static const char* g_brush_button_outputs[] = { "OnPressed", "OnUseLocked" };
-static const int g_num_brush_button_outputs = sizeof(g_brush_button_outputs) / sizeof(g_brush_button_outputs[0]);
-
-static const char* g_light_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
-static const int g_num_light_inputs = sizeof(g_light_inputs) / sizeof(g_light_inputs[0]);
-
-static const char* g_sound_inputs[] = { "PlaySound", "StopSound", "EnableLoop", "DisableLoop", "ToggleLoop" };
-static const int g_num_sound_inputs = sizeof(g_sound_inputs) / sizeof(g_sound_inputs[0]);
-
-static const char* g_particle_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
-static const int g_num_particle_inputs = sizeof(g_particle_inputs) / sizeof(g_particle_inputs[0]);
-
-static const char* g_video_inputs[] = { "startvideo", "stopvideo", "restartvideo" };
-static const int g_num_video_inputs = sizeof(g_video_inputs) / sizeof(g_video_inputs[0]);
-
-static const char* g_sprite_inputs[] = { "TurnOn", "TurnOff", "Toggle" };
-static const int g_num_sprite_inputs = sizeof(g_sprite_inputs) / sizeof(g_sprite_inputs[0]);
-
-static const char* g_logic_timer_inputs[] = { "StartTimer", "StopTimer", "ToggleTimer" };
-static const int g_num_logic_timer_inputs = sizeof(g_logic_timer_inputs) / sizeof(g_logic_timer_inputs[0]);
-
-static const char* g_math_counter_inputs[] = { "Add", "Subtract", "Multiply", "Divide" };
-static const int g_num_math_counter_inputs = sizeof(g_math_counter_inputs) / sizeof(g_math_counter_inputs[0]);
-
-static const char* g_logic_random_inputs[] = { "Enable", "Disable" };
-static const int g_num_logic_random_inputs = sizeof(g_logic_random_inputs) / sizeof(g_logic_random_inputs[0]);
-
-static const char* g_game_end_inputs[] = { "EndGame" };
-static const int g_num_game_end_inputs = sizeof(g_game_end_inputs) / sizeof(g_game_end_inputs[0]);
-
-static const char* g_env_fog_inputs[] = { "Enable", "Disable" };
-static const int g_num_env_fog_inputs = sizeof(g_env_fog_inputs) / sizeof(g_env_fog_inputs[0]);
 
 static bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
     if (name == NULL || *name == '\0') return false;
@@ -1202,256 +1086,6 @@ static void Editor_UpdatePreviewBrushFromWorldMinMax() {
     }
     Brush_UpdateMatrix(b);
     Brush_CreateRenderData(b);
-}
-
-static void Editor_SetDefaultLogicProperties(LogicEntity* ent) {
-    if (!ent) return;
-
-    ent->numProperties = 0;
-
-    if (strcmp(ent->classname, "logic_timer") == 0) {
-        ent->numProperties = 1;
-        strcpy(ent->properties[0].key, "delay");
-        strcpy(ent->properties[0].value, "1.0");
-    }
-    else if (strcmp(ent->classname, "math_counter") == 0) {
-        ent->numProperties = 2;
-        strcpy(ent->properties[0].key, "min");
-        strcpy(ent->properties[0].value, "0");
-        strcpy(ent->properties[1].key, "max");
-        strcpy(ent->properties[1].value, "10");
-    }
-    else if (strcmp(ent->classname, "logic_random") == 0) {
-        ent->numProperties = 2;
-        strcpy(ent->properties[0].key, "min_time");
-        strcpy(ent->properties[0].value, "1.0");
-        strcpy(ent->properties[1].key, "max_time");
-        strcpy(ent->properties[1].value, "5.0");
-    }
-    else if (strcmp(ent->classname, "logic_compare") == 0) {
-        ent->numProperties = 2;
-        strcpy(ent->properties[0].key, "InitialValue");
-        strcpy(ent->properties[0].value, "0");
-        strcpy(ent->properties[1].key, "CompareValue");
-        strcpy(ent->properties[1].value, "0");
-    }
-    else if (strcmp(ent->classname, "env_blackhole") == 0) {
-        ent->numProperties = 3;
-        strcpy(ent->properties[0].key, "rotationspeed");
-        strcpy(ent->properties[0].value, "10.0");
-        strcpy(ent->properties[1].key, "scale");
-        strcpy(ent->properties[1].value, "1.0");
-        strcpy(ent->properties[2].key, "starton");
-        strcpy(ent->properties[2].value, "1");
-    }
-    else if (strcmp(ent->classname, "env_fade") == 0) {
-        ent->numProperties = 3;
-        strcpy(ent->properties[0].key, "duration");
-        strcpy(ent->properties[0].value, "2.0");
-        strcpy(ent->properties[1].key, "holdtime");
-        strcpy(ent->properties[1].value, "1.0");
-        strcpy(ent->properties[2].key, "renderamt");
-        strcpy(ent->properties[2].value, "255");
-    }
-    else if (strcmp(ent->classname, "env_shake") == 0) {
-        ent->numProperties = 5;
-        strcpy(ent->properties[0].key, "amplitude");
-        strcpy(ent->properties[0].value, "4.0");
-        strcpy(ent->properties[1].key, "radius");
-        strcpy(ent->properties[1].value, "500.0");
-        strcpy(ent->properties[2].key, "duration");
-        strcpy(ent->properties[2].value, "1.0");
-        strcpy(ent->properties[3].key, "frequency");
-        strcpy(ent->properties[3].value, "40.0");
-        strcpy(ent->properties[4].key, "GlobalShake");
-        strcpy(ent->properties[4].value, "0");
-    }
-    else if (strcmp(ent->classname, "env_fog") == 0) {
-        ent->numProperties = 4;
-        strcpy(ent->properties[0].key, "starton");
-        strcpy(ent->properties[0].value, "1");
-        strcpy(ent->properties[1].key, "color");
-        strcpy(ent->properties[1].value, "0.5 0.6 0.7");
-        strcpy(ent->properties[2].key, "start");
-        strcpy(ent->properties[2].value, "50.0");
-        strcpy(ent->properties[3].key, "end");
-        strcpy(ent->properties[3].value, "200.0");
-    }
-}
-
-static const char* GetEntityPropertyDescription(const char* classname, const char* key) {
-    if (strcmp(classname, "logic_timer") == 0) {
-        if (strcmp(key, "delay") == 0) return "Delay";
-    }
-    else if (strcmp(classname, "math_counter") == 0) {
-        if (strcmp(key, "min") == 0) return "Min Value";
-        if (strcmp(key, "max") == 0) return "Max Value";
-    }
-    else if (strcmp(classname, "logic_random") == 0) {
-        if (strcmp(key, "min_time") == 0) return "Min Time";
-        if (strcmp(key, "max_time") == 0) return "Max Time";
-    }
-    else if (strcmp(classname, "logic_compare") == 0) {
-        if (strcmp(key, "InitialValue") == 0) return "Initial Value";
-        if (strcmp(key, "CompareValue") == 0) return "Compare Value";
-    }
-    else if (strcmp(classname, "env_blackhole") == 0) {
-        if (strcmp(key, "rotationspeed") == 0) return "Rotation Speed";
-        if (strcmp(key, "scale") == 0) return "Scale";
-        if (strcmp(key, "starton") == 0) return "Start On";
-    }
-    else if (strcmp(classname, "env_fade") == 0) {
-        if (strcmp(key, "duration") == 0) return "Duration";
-        if (strcmp(key, "holdtime") == 0) return "Hold Time";
-        if (strcmp(key, "renderamt") == 0) return "Render Amount (0-255)";
-    }
-    else if (strcmp(classname, "env_shake") == 0) {
-        if (strcmp(key, "amplitude") == 0) return "Amplitude";
-        if (strcmp(key, "radius") == 0) return "Radius";
-        if (strcmp(key, "duration") == 0) return "Duration";
-        if (strcmp(key, "frequency") == 0) return "Frequency";
-        if (strcmp(key, "GlobalShake") == 0) return "Global Shake";
-    }
-
-    else if (strcmp(classname, "trigger_dspzone") == 0) {
-        if (strcmp(key, "reverb_preset") == 0) return "Reverb Preset";
-    }
-    else if (strcmp(classname, "env_glass") == 0) {
-        if (strcmp(key, "refraction_strength") == 0) return "Refraction Strength";
-        if (strcmp(key, "normal_map") == 0) return "Normal Map";
-    }
-    else if (strcmp(classname, "func_water") == 0) {
-        if (strcmp(key, "water_def") == 0) return "Water Definition";
-    }
-    else if (strcmp(classname, "func_button") == 0) {
-        if (strcmp(key, "locked") == 0) return "Starts Locked";
-        if (strcmp(key, "delay") == 0) return "Delay Before Firing (seconds)";
-    }
-    else if (strcmp(classname, "trigger_gravity") == 0) {
-        if (strcmp(key, "gravity") == 0) return "Gravity";
-    }
-    else if (strcmp(classname, "func_friction") == 0) {
-        if (strcmp(key, "modifier") == 0) return "Friction Percentage (0-100)";
-    }
-    else if (strcmp(classname, "func_conveyor") == 0) {
-        if (strcmp(key, "speed") == 0) return "Conveyor Speed";
-        if (strcmp(key, "direction") == 0) return "Direction (Pitch Yaw Roll)";
-    }
-    else if (strcmp(classname, "func_lod") == 0) {
-        if (strcmp(key, "DisappearMinDist") == 0) return "Min Disappear Distance";
-        if (strcmp(key, "DisappearMaxDist") == 0) return "Max Disappear Distance";
-    }
-    else if (strcmp(classname, "func_rotating") == 0) {
-        if (strcmp(key, "speed") == 0) return "Rotation Speed (degrees/sec)";
-        if (strcmp(key, "fanfriction") == 0) return "Friction (0-100%)";
-        if (strcmp(key, "StartON") == 0) return "Start ON";
-        if (strcmp(key, "XAxis") == 0) return "X Axis";
-        if (strcmp(key, "YAxis") == 0) return "Y Axis";
-        if (strcmp(key, "AccDcc") == 0) return "Accelerate/Decelerate";
-    }
-    else if (strcmp(classname, "func_plat") == 0) {
-        if (strcmp(key, "speed") == 0) return "Speed";
-        if (strcmp(key, "height") == 0) return "Height (+/-)";
-        if (strcmp(key, "wait") == 0) return "Wait before return (sec)";
-        if (strcmp(key, "is_trigger") == 0) return "Trigger Only (No Auto)";
-    }
-    else if (strcmp(classname, "trigger_multiple") == 0 || strcmp(classname, "trigger_once") == 0) {
-        if (strcmp(key, "delay") == 0) return "Delay before firing outputs (seconds)";
-    }
-    else if (strcmp(classname, "trigger_teleport") == 0) {
-        if (strcmp(key, "target") == 0) return "Target (info_target)";
-    }
-
-    return key;
-}
-
-static void Editor_SetDefaultBrushProperties(Brush* b) {
-    if (!b) return;
-
-    b->numProperties = 0;
-
-    if (strcmp(b->classname, "trigger_dspzone") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "reverb_preset");
-        strcpy(b->properties[0].value, "1");
-    }
-    else if (strcmp(b->classname, "env_glass") == 0) {
-        b->numProperties = 2;
-        strcpy(b->properties[0].key, "refraction_strength");
-        strcpy(b->properties[0].value, "0.01");
-        strcpy(b->properties[1].key, "normal_map");
-        strcpy(b->properties[1].value, "NULL");
-    }
-    else if (strcmp(b->classname, "func_water") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "water_def");
-        strcpy(b->properties[0].value, "default_water");
-    }
-    else if (strcmp(b->classname, "func_button") == 0) {
-        b->numProperties = 2;
-        strcpy(b->properties[0].key, "locked");
-        strcpy(b->properties[0].value, "0");
-        strcpy(b->properties[1].key, "delay");
-        strcpy(b->properties[1].value, "0");
-    }
-    else if (strcmp(b->classname, "trigger_gravity") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "gravity");
-        strcpy(b->properties[0].value, "9.81");
-    }
-    else if (strcmp(b->classname, "func_friction") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "modifier");
-        strcpy(b->properties[0].value, "50");
-    }
-    else if (strcmp(b->classname, "func_conveyor") == 0) {
-        b->numProperties = 2;
-        strcpy(b->properties[0].key, "speed");
-        strcpy(b->properties[0].value, "100");
-        strcpy(b->properties[1].key, "direction");
-        strcpy(b->properties[1].value, "0 0 0");
-    }
-    else if (strcmp(b->classname, "func_lod") == 0) {
-        b->numProperties = 2;
-        strcpy(b->properties[0].key, "DisappearMinDist");
-        strcpy(b->properties[0].value, "500");
-        strcpy(b->properties[1].key, "DisappearMaxDist");
-        strcpy(b->properties[1].value, "1000");
-    }
-    else if (strcmp(b->classname, "func_rotating") == 0) {
-        b->numProperties = 5;
-        strcpy(b->properties[0].key, "speed");
-        strcpy(b->properties[0].value, "10");
-        strcpy(b->properties[1].key, "fanfriction");
-        strcpy(b->properties[1].value, "0");
-        strcpy(b->properties[2].key, "StartON");
-        strcpy(b->properties[2].value, "1");
-        strcpy(b->properties[3].key, "XAxis");
-        strcpy(b->properties[3].value, "0");
-        strcpy(b->properties[4].key, "YAxis");
-        strcpy(b->properties[4].value, "0");
-    }
-    else if (strcmp(b->classname, "func_plat") == 0) {
-        b->numProperties = 4;
-        strcpy(b->properties[0].key, "speed");
-        strcpy(b->properties[0].value, "150");
-        strcpy(b->properties[1].key, "height");
-        strcpy(b->properties[1].value, "128");
-        strcpy(b->properties[2].key, "wait");
-        strcpy(b->properties[2].value, "3");
-        strcpy(b->properties[3].key, "is_trigger");
-        strcpy(b->properties[3].value, "0");
-    }
-    else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "delay");
-        strcpy(b->properties[0].value, "0");
-    }
-    else if (strcmp(b->classname, "trigger_teleport") == 0) {
-        b->numProperties = 1;
-        strcpy(b->properties[0].key, "target");
-        strcpy(b->properties[0].value, "");
-    }
 }
 
 static void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view) {
@@ -5537,29 +5171,41 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
         Editor_RenderModelPreviewerScene(renderer);
     }
 }
-static void RenderIOEditor(EntityType type, int index, const char** valid_outputs, int num_valid_outputs) {
-    if (num_valid_outputs == 0) return;
+static void RenderIOEditor(EntityType type, int index) {
+    const TGD_EntityDef* def = NULL;
+    if (type == ENTITY_BRUSH) {
+        def = GameData_FindEntityDef(g_CurrentScene->brushes[index].classname);
+    }
+    else if (type == ENTITY_LOGIC) {
+        def = GameData_FindEntityDef(g_CurrentScene->logicEntities[index].classname);
+    }
+
+    if (!def || def->num_outputs == 0) {
+        return;
+    }
+
     UI_Separator();
     UI_Text("Outputs");
 
+    // Gather all possible target names just once
     int total_target_names = 0;
     char** all_target_names = NULL;
 
-    for (int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->objects[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->brushes[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->lights[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->soundEntities[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->particleEmitters[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->videoPlayers[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->sprites[i].targetname; }
-    for (int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) { all_target_names = realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->logicEntities[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->objects[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->brushes[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->lights[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->soundEntities[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->particleEmitters[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->videoPlayers[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->sprites[i].targetname; }
+    for (int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->logicEntities[i].targetname; }
 
-    for (int i = 0; i < num_valid_outputs; ++i) {
-        if (UI_CollapsingHeader(valid_outputs[i], 1)) {
+    for (int i = 0; i < def->num_outputs; ++i) {
+        if (UI_CollapsingHeader(def->outputs[i].name, 1)) {
             int conn_to_delete = -1;
             for (int k = 0; k < g_num_io_connections; k++) {
                 IOConnection* conn = &g_io_connections[k];
-                if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, valid_outputs[i]) == 0) {
+                if (conn->sourceType == type && conn->sourceIndex == index && strcmp(conn->outputName, def->outputs[i].name) == 0) {
                     UI_PushID(k);
                     char header_label[128];
                     sprintf(header_label, "To '%s' -> '%s'", conn->targetName, conn->inputName);
@@ -5581,61 +5227,48 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
                         EntityType target_type;
                         int target_index;
                         if (FindEntityInScene(g_CurrentScene, conn->targetName, &target_type, &target_index)) {
-                            const char** valid_inputs = NULL;
-                            int num_valid_inputs = 0;
+                            const TGD_EntityDef* target_def = NULL;
+                            const char* classname = NULL;
+                            const char* base_classname = NULL;
 
                             switch (target_type) {
-                            case ENTITY_MODEL: valid_inputs = g_model_inputs; num_valid_inputs = g_num_model_inputs; break;
-                            case ENTITY_BRUSH:
-                                if (strncmp(g_CurrentScene->brushes[target_index].classname, "trigger", 7) == 0) {
-                                    valid_inputs = g_brush_trigger_inputs;
-                                    num_valid_inputs = g_num_brush_trigger_inputs;
-                                }
-                                else if (strcmp(g_CurrentScene->brushes[target_index].classname, "func_rotating") == 0) {
-                                    valid_inputs = g_brush_rotating_inputs;
-                                    num_valid_inputs = g_num_brush_rotating_inputs;
-                                }
-                                else if (strcmp(g_CurrentScene->brushes[target_index].classname, "func_plat") == 0) {
-                                    valid_inputs = g_brush_plat_inputs;
-                                    num_valid_inputs = g_num_brush_plat_inputs;
-                                }
-                                break;
-                            case ENTITY_LIGHT: valid_inputs = g_light_inputs; num_valid_inputs = g_num_light_inputs; break;
-                            case ENTITY_SOUND: valid_inputs = g_sound_inputs; num_valid_inputs = g_num_sound_inputs; break;
-                            case ENTITY_PARTICLE_EMITTER: valid_inputs = g_particle_inputs; num_valid_inputs = g_num_particle_inputs; break;
-                            case ENTITY_VIDEO_PLAYER: valid_inputs = g_video_inputs; num_valid_inputs = g_num_video_inputs; break;
-                            case ENTITY_SPRITE: valid_inputs = g_sprite_inputs; num_valid_inputs = g_num_sprite_inputs; break;
-                            case ENTITY_LOGIC: {
-                                LogicEntity* ent = &g_CurrentScene->logicEntities[target_index];
-                                if (strcmp(ent->classname, "logic_timer") == 0) { valid_inputs = g_logic_timer_inputs; num_valid_inputs = g_num_logic_timer_inputs; }
-                                else if (strcmp(ent->classname, "math_counter") == 0) { valid_inputs = g_math_counter_inputs; num_valid_inputs = g_num_math_counter_inputs; }
-                                else if (strcmp(ent->classname, "logic_random") == 0) { valid_inputs = g_logic_random_inputs; num_valid_inputs = g_num_logic_random_inputs; }
-                                else if (strcmp(ent->classname, "logic_relay") == 0) { valid_inputs = g_logic_relay_inputs; num_valid_inputs = g_num_logic_relay_inputs; }
-                                else if (strcmp(ent->classname, "point_servercommand") == 0) { valid_inputs = g_point_servercommand_inputs; num_valid_inputs = g_num_point_servercommand_inputs; }
-                                else if (strcmp(ent->classname, "logic_compare") == 0) { valid_inputs = g_logic_compare_inputs; num_valid_inputs = g_num_logic_compare_inputs; }
-                                else if (strcmp(ent->classname, "env_blackhole") == 0) { valid_inputs = g_env_blackhole_inputs; num_valid_inputs = g_num_env_blackhole_inputs; }
-                                else if (strcmp(ent->classname, "env_fade") == 0) { valid_inputs = g_env_fade_inputs; num_valid_inputs = g_num_env_fade_inputs; }
-                                else if (strcmp(ent->classname, "env_shake") == 0) { valid_inputs = g_env_shake_inputs; num_valid_inputs = g_num_env_shake_inputs; }
-                                else if (strcmp(ent->classname, "game_end") == 0) { valid_inputs = g_game_end_inputs; num_valid_inputs = g_num_game_end_inputs; }
-                                else if (strcmp(ent->classname, "env_fog") == 0) { valid_inputs = g_env_fog_inputs; num_valid_inputs = g_num_env_fog_inputs; }
-                                break;
-                            }
+                            case ENTITY_MODEL: base_classname = "_model_base"; break;
+                            case ENTITY_LIGHT: base_classname = "_light_base"; break;
+                            case ENTITY_SOUND: base_classname = "_sound_base"; break;
+                            case ENTITY_PARTICLE_EMITTER: base_classname = "_particle_base"; break;
+                            case ENTITY_VIDEO_PLAYER: base_classname = "_video_base"; break;
+                            case ENTITY_SPRITE: base_classname = "_sprite_base"; break;
+                            case ENTITY_BRUSH: classname = g_CurrentScene->brushes[target_index].classname; break;
+                            case ENTITY_LOGIC: classname = g_CurrentScene->logicEntities[target_index].classname; break;
                             default: break;
                             }
 
-                            if (valid_inputs && num_valid_inputs > 0) {
+                            if (classname && classname[0] != '\0') {
+                                target_def = GameData_FindEntityDef(classname);
+                            }
+                            else if (base_classname) {
+                                target_def = GameData_FindEntityDef(base_classname);
+                            }
+
+                            if (target_def && target_def->num_inputs > 0) {
+                                const char** valid_inputs = (const char**)malloc(target_def->num_inputs * sizeof(const char*));
+                                for (int j = 0; j < target_def->num_inputs; ++j) {
+                                    valid_inputs[j] = target_def->inputs[j].name;
+                                }
+
                                 int current_input_idx = -1;
-                                for (int j = 0; j < num_valid_inputs; j++) {
+                                for (int j = 0; j < target_def->num_inputs; j++) {
                                     if (strcmp(valid_inputs[j], conn->inputName) == 0) {
                                         current_input_idx = j;
                                         break;
                                     }
                                 }
-                                if (UI_Combo("Input", &current_input_idx, valid_inputs, num_valid_inputs, -1)) {
+                                if (UI_Combo("Input", &current_input_idx, valid_inputs, target_def->num_inputs, -1)) {
                                     if (current_input_idx >= 0) {
                                         strncpy(conn->inputName, valid_inputs[current_input_idx], sizeof(conn->inputName) - 1);
                                     }
                                 }
+                                free(valid_inputs);
                             }
                             else {
                                 UI_InputText("Input", conn->inputName, sizeof(conn->inputName));
@@ -5657,8 +5290,8 @@ static void RenderIOEditor(EntityType type, int index, const char** valid_output
             }
             if (conn_to_delete != -1) { IO_RemoveConnection(conn_to_delete); }
             char add_label[64];
-            sprintf(add_label, "Add Connection##%s", valid_outputs[i]);
-            if (UI_Button(add_label)) { IO_AddConnection(type, index, valid_outputs[i]); }
+            sprintf(add_label, "Add Connection##%s", def->outputs[i].name);
+            if (UI_Button(add_label)) { IO_AddConnection(type, index, def->outputs[i].name); }
         }
     }
 
@@ -6415,9 +6048,6 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                 if (g_EditorState.num_selections > 0 && is_face_material_target) {
                     Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
 
-                    int* modified_brushes = malloc(g_EditorState.num_selections * sizeof(int));
-                    int num_modified_brushes = 0;
-
                     for (int sel_idx = 0; sel_idx < g_EditorState.num_selections; ++sel_idx) {
                         EditorSelection* sel = &g_EditorState.selections[sel_idx];
                         if (sel->type == ENTITY_BRUSH && sel->face_index != -1) {
@@ -6430,41 +6060,31 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                             case 2: face->material3 = mat; break;
                             case 3: face->material4 = mat; break;
                             }
-
-                            bool already_added = false;
-                            for (int k = 0; k < num_modified_brushes; ++k) {
-                                if (modified_brushes[k] == sel->index) {
-                                    already_added = true;
-                                    break;
-                                }
-                            }
-                            if (!already_added) {
-                                modified_brushes[num_modified_brushes++] = sel->index;
-                            }
+                            Brush_CreateRenderData(b);
                         }
                     }
-
-                    for (int k = 0; k < num_modified_brushes; ++k) {
-                        Brush_CreateRenderData(&scene->brushes[modified_brushes[k]]);
-                    }
-
-                    free(modified_brushes);
 
                     Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Change Face Materials");
                     g_EditorState.show_texture_browser = false;
                 }
-                else if (primary && primary->type == ENTITY_BRUSH && g_EditorState.texture_browser_target == 5) {
+                else if (primary && primary->type == ENTITY_BRUSH && g_EditorState.texture_browser_target >= 100 && g_EditorState.texture_browser_target < 200) {
+                    int prop_index = g_EditorState.texture_browser_target - 100;
                     Brush* b = &scene->brushes[primary->index];
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                    bool found = false;
-                    for (int k = 0; k < b->numProperties; ++k) {
-                        if (strcmp(b->properties[k].key, "normal_map") == 0) {
-                            strncpy(b->properties[k].value, mat->name, sizeof(b->properties[k].value) - 1);
-                            found = true;
-                            break;
-                        }
+                    if (prop_index < b->numProperties) {
+                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                        strncpy(b->properties[prop_index].value, mat->name, sizeof(b->properties[prop_index].value) - 1);
+                        Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Brush Texture Property");
                     }
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Set Glass Normal Map");
+                    g_EditorState.show_texture_browser = false;
+                }
+                else if (primary && primary->type == ENTITY_LOGIC && g_EditorState.texture_browser_target >= 200) {
+                    int prop_index = g_EditorState.texture_browser_target - 200;
+                    LogicEntity* ent = &scene->logicEntities[primary->index];
+                    if (prop_index < ent->numProperties) {
+                        Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index);
+                        strncpy(ent->properties[prop_index].value, mat->name, sizeof(ent->properties[prop_index].value) - 1);
+                        Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Set Logic Texture Property");
+                    }
                     g_EditorState.show_texture_browser = false;
                 }
                 else if (primary && primary->type == ENTITY_DECAL) {
@@ -7822,13 +7442,22 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (scene->numLogicEntities < MAX_LOGIC_ENTITIES) {
                 LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
                 memset(ent, 0, sizeof(LogicEntity));
-                strcpy(ent->classname, "logic_timer");
-                sprintf(ent->targetname, "timer_%d", scene->numLogicEntities);
+
+                int num_logic_classes = 0;
+                const char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
+                if (num_logic_classes > 0) {
+                    strcpy(ent->classname, logic_classes[0]);
+                    const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
+                    if (def) {
+                        ent->numProperties = def->num_properties;
+                        for (int i = 0; i < def->num_properties; ++i) {
+                            strcpy(ent->properties[i].key, def->properties[i].key);
+                            strcpy(ent->properties[i].value, def->properties[i].default_value);
+                        }
+                    }
+                }
+                sprintf(ent->targetname, "%s_%d", ent->classname, scene->numLogicEntities);
                 ent->pos = g_EditorState.editor_camera.position;
-                Editor_SetDefaultLogicProperties(ent);
-                ent->numProperties = 1;
-                strcpy(ent->properties[0].key, "delay");
-                strcpy(ent->properties[0].value, "1.0");
                 scene->numLogicEntities++;
                 Undo_PushCreateEntity(scene, ENTITY_LOGIC, scene->numLogicEntities - 1, "Create Logic Entity");
             }
@@ -7980,135 +7609,88 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         UI_Separator();
         UI_Text("Brush Entity Class");
+        int num_brush_classes = 0;
+        const char** brush_classes = GameData_GetBrushEntityClassnames(&num_brush_classes);
         int current_class_idx = 0;
-        for (int i = 1; i < g_num_brush_entity_classnames; ++i) {
-            if (strcmp(b->classname, g_brush_entity_classnames[i]) == 0) {
+        for (int i = 1; i < num_brush_classes; ++i) {
+            if (strcmp(b->classname, brush_classes[i]) == 0) {
                 current_class_idx = i;
                 break;
             }
         }
 
-        if (UI_Combo("Classname", &current_class_idx, g_brush_entity_classnames, g_num_brush_entity_classnames, -1)) {
+        if (UI_Combo("Classname", &current_class_idx, brush_classes, num_brush_classes, -1)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
             if (current_class_idx == 0) {
                 b->classname[0] = '\0';
                 b->numProperties = 0;
             }
             else {
-                strcpy(b->classname, g_brush_entity_classnames[current_class_idx]);
-                Editor_SetDefaultBrushProperties(b);
-                if (strcmp(b->classname, "env_reflectionprobe") == 0) {
-                    int px = (int)roundf(b->pos.x);
-                    int py = (int)roundf(b->pos.y);
-                    int pz = (int)roundf(b->pos.z);
-                    sprintf(b->name, "Probe_%d_%d_%d", px, py, pz);
-                    strcpy(b->targetname, b->name);
+                strcpy(b->classname, brush_classes[current_class_idx]);
+                const TGD_EntityDef* def = GameData_FindEntityDef(b->classname);
+                if (def) {
+                    b->numProperties = def->num_properties;
+                    for (int k = 0; k < def->num_properties; ++k) {
+                        strcpy(b->properties[k].key, def->properties[k].key);
+                        strcpy(b->properties[k].value, def->properties[k].default_value);
+                    }
                 }
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Change Brush Class");
         }
-        UI_Separator();
-        if (strcmp(b->classname, "env_reflectionprobe") == 0) {
-            UI_Text("Probe Name: %s", b->targetname);
-        }
-        else if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
-            RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
-        }
-        else if (strcmp(b->classname, "func_rotating") == 0) {
-            UI_Separator();
-            UI_Text("Properties");
-            for (int i = 0; i < b->numProperties; ++i) {
-                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
-                UI_PushID(i);
-                if (strcmp(b->properties[i].key, "StartON") == 0 || strcmp(b->properties[i].key, "XAxis") == 0 || strcmp(b->properties[i].key, "YAxis") == 0 || strcmp(b->properties[i].key, "AccDcc") == 0) {
-                    bool is_checked = (atoi(b->properties[i].value) != 0);
-                    if (UI_Checkbox(prop_desc, &is_checked)) {
-                        strcpy(b->properties[i].value, is_checked ? "1" : "0");
-                    }
-                }
-                else {
-                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
-                }
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
-                UI_PopID();
-            }
-        }
-        else if (strcmp(b->classname, "func_plat") == 0) {
-            UI_Separator();
-            UI_Text("Properties");
-            for (int i = 0; i < b->numProperties; ++i) {
-                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
-                UI_PushID(i);
-                if (strcmp(b->properties[i].key, "is_trigger") == 0) {
-                    bool is_checked = (atoi(b->properties[i].value) != 0);
-                    if (UI_Checkbox(prop_desc, &is_checked)) {
-                        strcpy(b->properties[i].value, is_checked ? "1" : "0");
-                    }
-                }
-                else {
-                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
-                }
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
-                UI_PopID();
-            }
-        }
-        else if (b->numProperties > 0) {
-            UI_Separator();
-            UI_Text("Properties");
-            for (int i = 0; i < b->numProperties; ++i) {
-                const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
-                UI_PushID(i);
 
-                if (strcmp(b->properties[i].key, "reverb_preset") == 0) {
-                    const char* reverb_names[] = { "None", "Small Room", "Medium Room", "Large Room", "Hall", "Cave" };
-                    int current_preset = atoi(b->properties[i].value);
-                    if (UI_Combo(prop_desc, &current_preset, reverb_names, REVERB_PRESET_COUNT, -1)) {
-                        snprintf(b->properties[i].value, sizeof(b->properties[i].value), "%d", current_preset);
+        const TGD_EntityDef* brush_def = GameData_FindEntityDef(b->classname);
+        if (brush_def) {
+            UI_Separator();
+            UI_Text("Properties");
+            for (int i = 0; i < brush_def->num_properties; ++i) {
+                const TGD_Property* prop = &brush_def->properties[i];
+                if (i >= b->numProperties) continue;
+
+                UI_PushID(i);
+                switch (prop->type) {
+                case TGD_PROP_CHECKBOX: {
+                    bool is_checked = (atoi(b->properties[i].value) != 0);
+                    if (UI_Checkbox(prop->display_name, &is_checked)) {
+                        strcpy(b->properties[i].value, is_checked ? "1" : "0");
                     }
+                    break;
                 }
-                else if (strcmp(b->properties[i].key, "water_def") == 0) {
-                    int waterDefCount = WaterManager_GetWaterDefCount();
-                    const char** items = (const char**)malloc(waterDefCount * sizeof(const char*));
+                case TGD_PROP_CHOICES: {
+                    const char** display_items = (const char**)malloc(prop->num_choices * sizeof(const char*));
                     int current_item = -1;
-                    for (int j = 0; j < waterDefCount; ++j) {
-                        items[j] = WaterManager_GetWaterDef(j)->name;
-                        if (strcmp(items[j], b->properties[i].value) == 0) current_item = j;
+                    for (int j = 0; j < prop->num_choices; ++j) {
+                        display_items[j] = prop->choices[j].display_name;
+                        if (strcmp(b->properties[i].value, prop->choices[j].value) == 0) {
+                            current_item = j;
+                        }
                     }
-                    if (UI_Combo(prop_desc, &current_item, items, waterDefCount, -1)) {
-                        if (current_item >= 0) strncpy(b->properties[i].value, items[current_item], sizeof(b->properties[i].value) - 1);
+                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1)) {
+                        if (current_item >= 0) {
+                            strcpy(b->properties[i].value, prop->choices[current_item].value);
+                        }
                     }
-                    free(items);
+                    free(display_items);
+                    break;
                 }
-                else if (strcmp(b->properties[i].key, "normal_map") == 0) {
-                    char mat_label[128];
-                    sprintf(mat_label, "%s: %s", prop_desc, b->properties[i].value);
-                    if (UI_Button(mat_label)) {
-                        g_EditorState.texture_browser_target = 5;
+                case TGD_PROP_TEXTURE: {
+                    char button_label[256];
+                    snprintf(button_label, sizeof(button_label), "%s: %s", prop->display_name, b->properties[i].value);
+                    if (UI_Button(button_label)) {
+                        g_EditorState.texture_browser_target = 100 + i;
                         g_EditorState.show_texture_browser = true;
                     }
+                    break;
                 }
-                else if (strcmp(b->properties[i].key, "locked") == 0) {
-                    bool is_locked = (atoi(b->properties[i].value) != 0);
-                    if (UI_Checkbox(prop_desc, &is_locked)) {
-                        strcpy(b->properties[i].value, is_locked ? "1" : "0");
-                    }
-                }
-                else {
-                    UI_SetNextItemWidth(150.0f);
-                    UI_InputText(prop_desc, b->properties[i].value, sizeof(b->properties[i].value));
+                default:
+                    UI_InputText(prop->display_name, b->properties[i].value, sizeof(b->properties[i].value));
+                    break;
                 }
                 if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
                 if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
                 UI_PopID();
             }
-            if (strcmp(b->classname, "trigger_gravity") == 0) {
-                RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_trigger_outputs, g_num_brush_trigger_outputs);
-            }
-            if (strcmp(b->classname, "func_button") == 0) {
-                RenderIOEditor(ENTITY_BRUSH, primary->index, g_brush_button_outputs, g_num_brush_button_outputs);
-            }
+            RenderIOEditor(ENTITY_BRUSH, primary->index);
         }
         else {
             UI_Separator();
@@ -8333,83 +7915,95 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     else if (primary && primary->type == ENTITY_LOGIC) {
         LogicEntity* ent = &scene->logicEntities[primary->index];
         UI_Text("Logic Entity Properties");
+        int num_logic_classes = 0;
+        const char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
         int current_class_index = -1;
-        for (int i = 0; i < num_logic_entity_classnames; ++i) {
-            if (strcmp(ent->classname, logic_entity_classnames[i]) == 0) {
+        for (int i = 0; i < num_logic_classes; ++i) {
+            if (strcmp(ent->classname, logic_classes[i]) == 0) {
                 current_class_index = i;
                 break;
             }
         }
-        if (UI_Combo("Classname", &current_class_index, logic_entity_classnames, num_logic_entity_classnames, -1)) {
-            Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index);
-            strcpy(ent->classname, logic_entity_classnames[current_class_index]);
-            Editor_SetDefaultLogicProperties(ent);
-            Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Change Logic Class");
+        if (UI_Combo("Classname", &current_class_index, logic_classes, num_logic_classes, -1)) {
+            if (current_class_index >= 0) {
+                Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index);
+                strcpy(ent->classname, logic_classes[current_class_index]);
+                const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
+                if (def) {
+                    ent->numProperties = def->num_properties;
+                    for (int k = 0; k < def->num_properties; ++k) {
+                        strcpy(ent->properties[k].key, def->properties[k].key);
+                        strcpy(ent->properties[k].value, def->properties[k].default_value);
+                    }
+                }
+                else {
+                    ent->numProperties = 0;
+                }
+                Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Change Logic Class");
+            }
         }
         UI_InputText("Targetname", ent->targetname, sizeof(ent->targetname));
         if (UI_DragFloat3("Position", &ent->pos.x, 0.1f, 0, 0)) {}
         if (UI_DragFloat3("Rotation", &ent->rot.x, 1.0f, 0, 0)) {}
 
         UI_Separator();
-        UI_Text("Properties");
-        int prop_to_delete = -1;
-        for (int i = 0; i < ent->numProperties; ++i) {
-            const char* prop_desc = GetEntityPropertyDescription(ent->classname, ent->properties[i].key);
-            UI_PushID(i);
-
-            if (strcmp(ent->properties[i].key, "starton") == 0 || strcmp(ent->properties[i].key, "GlobalShake") == 0 || strcmp(ent->properties[i].key, "enabled") == 0) {
-                bool is_checked = (atoi(ent->properties[i].value) != 0);
-                if (UI_Checkbox(prop_desc, &is_checked)) strcpy(ent->properties[i].value, is_checked ? "1" : "0");
+        const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
+        if (def) {
+            UI_Text("Properties");
+            for (int i = 0; i < ent->numProperties; ++i) {
+                const TGD_Property* prop = &def->properties[i];
+                UI_PushID(i);
+                switch (prop->type) {
+                case TGD_PROP_CHECKBOX: {
+                    bool is_checked = (atoi(ent->properties[i].value) != 0);
+                    if (UI_Checkbox(prop->display_name, &is_checked)) {
+                        strcpy(ent->properties[i].value, is_checked ? "1" : "0");
+                    }
+                    break;
+                }
+                case TGD_PROP_COLOR: {
+                    Vec3 color;
+                    sscanf(ent->properties[i].value, "%f %f %f", &color.x, &color.y, &color.z);
+                    if (UI_ColorEdit3(prop->display_name, &color.x)) {
+                        sprintf(ent->properties[i].value, "%.3f %.3f %.3f", color.x, color.y, color.z);
+                    }
+                    break;
+                }
+                case TGD_PROP_CHOICES: {
+                    const char** display_items = (const char**)malloc(prop->num_choices * sizeof(const char*));
+                    int current_item = -1;
+                    for (int j = 0; j < prop->num_choices; ++j) {
+                        display_items[j] = prop->choices[j].display_name;
+                        if (strcmp(ent->properties[i].value, prop->choices[j].value) == 0) {
+                            current_item = j;
+                        }
+                    }
+                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1)) {
+                        if (current_item >= 0) {
+                            strcpy(ent->properties[i].value, prop->choices[current_item].value);
+                        }
+                    }
+                    free(display_items);
+                    break;
+                }
+                case TGD_PROP_TEXTURE: {
+                    char button_label[256];
+                    snprintf(button_label, sizeof(button_label), "%s: %s", prop->display_name, ent->properties[i].value);
+                    if (UI_Button(button_label)) {
+                        g_EditorState.texture_browser_target = 200 + i;
+                        g_EditorState.show_texture_browser = true;
+                    }
+                    break;
+                }
+                default:
+                    UI_InputText(prop->display_name, ent->properties[i].value, sizeof(ent->properties[i].value));
+                    break;
+                }
+                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index); }
+                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Edit Logic Property"); }
+                UI_PopID();
             }
-            else if (strcmp(ent->classname, "env_fog") == 0 && strcmp(ent->properties[i].key, "color") == 0) {
-                Vec3 color;
-                sscanf(ent->properties[i].value, "%f %f %f", &color.x, &color.y, &color.z);
-                if (UI_ColorEdit3(prop_desc, &color.x)) sprintf(ent->properties[i].value, "%.3f %.3f %.3f", color.x, color.y, color.z);
-            }
-            else {
-                UI_SetNextItemWidth(150.0f);
-                UI_InputText(prop_desc, ent->properties[i].value, sizeof(ent->properties[i].value));
-            }
-            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index); }
-            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Edit Logic Property"); }
-            UI_PopID();
-        }
-        if (prop_to_delete != -1) {
-            for (int i = prop_to_delete; i < ent->numProperties - 1; ++i) {
-                ent->properties[i] = ent->properties[i + 1];
-            }
-            ent->numProperties--;
-        }
-        if (UI_Button("Add Property")) {
-            if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
-                ent->numProperties++;
-            }
-        }
-
-        if (strcmp(ent->classname, "logic_timer") == 0) {
-            const char* timer_outputs[] = { "OnTimer" };
-            RenderIOEditor(ENTITY_LOGIC, primary->index, timer_outputs, 1);
-        }
-        else if (strcmp(ent->classname, "math_counter") == 0) {
-            const char* counter_outputs[] = { "OnHitMax", "OnHitMin" };
-            RenderIOEditor(ENTITY_LOGIC, primary->index, counter_outputs, 2);
-        }
-        else if (strcmp(ent->classname, "logic_random") == 0) {
-            const char* random_outputs[] = { "OnRandom" };
-            RenderIOEditor(ENTITY_LOGIC, primary->index, random_outputs, 1);
-        }
-        else if (strcmp(ent->classname, "logic_relay") == 0) {
-            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_relay_outputs, g_num_logic_relay_outputs);
-        }
-        else if (strcmp(ent->classname, "logic_auto") == 0) {
-            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_auto_outputs, g_num_logic_auto_outputs);
-        }
-        else if (strcmp(ent->classname, "point_servercommand") == 0) {
-        }
-        else if (strcmp(ent->classname, "logic_compare") == 0) {
-            RenderIOEditor(ENTITY_LOGIC, primary->index, g_logic_compare_outputs, g_num_logic_compare_outputs);
-        }
-        else if (strcmp(ent->classname, "env_blackhole") == 0) {
+            RenderIOEditor(ENTITY_LOGIC, primary->index);
         }
     }
     UI_Separator(); UI_Text("Scene Settings"); UI_Separator();
