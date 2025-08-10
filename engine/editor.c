@@ -275,6 +275,17 @@ static Scene* g_CurrentScene;
 static Mat4 g_view_matrix[VIEW_COUNT];
 static Mat4 g_proj_matrix[VIEW_COUNT];
 
+static bool g_is_map_dirty = false;
+
+typedef enum {
+    PENDING_ACTION_NONE,
+    PENDING_ACTION_NEW_MAP,
+    PENDING_ACTION_LOAD_MAP,
+    PENDING_ACTION_EXIT_EDITOR
+} PendingEditorAction;
+
+static PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
+
 static BrushFace g_copiedFaceProperties;
 static bool g_hasCopiedFace = false;
 
@@ -376,6 +387,10 @@ static void Editor_AddToSelection(EntityType type, int index, int face_index, in
     g_EditorState.num_selections++;
     g_EditorState.selections = realloc(g_EditorState.selections, g_EditorState.num_selections * sizeof(EditorSelection));
     g_EditorState.selections[g_EditorState.num_selections - 1] = (EditorSelection){ type, index, face_index, vertex_index };
+}
+
+void Editor_SetMapDirty(bool is_dirty) {
+    g_is_map_dirty = is_dirty;
 }
 
 static Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
@@ -7214,6 +7229,30 @@ static void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
 
     Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Flip Selection");
 }
+static void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer) {
+    switch (g_pending_action) {
+    case PENDING_ACTION_NEW_MAP:
+        Scene_Clear(scene, engine);
+        strcpy(g_EditorState.currentMapPath, "untitled.map");
+        Undo_Init();
+        Editor_SetMapDirty(false);
+        break;
+    case PENDING_ACTION_LOAD_MAP:
+        g_EditorState.show_load_map_popup = true;
+        ScanMapFiles();
+        Editor_SetMapDirty(false);
+        break;
+    case PENDING_ACTION_EXIT_EDITOR:
+    {
+        char* args[] = { "edit" };
+        handle_command(1, args);
+        break;
+    }
+    default:
+        break;
+    }
+    g_pending_action = PENDING_ACTION_NONE;
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -8152,13 +8191,23 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (UI_BeginMainMenuBar()) {
         if (UI_BeginMenu("File", true)) {
             if (UI_MenuItem("New Map", NULL, false, true)) {
-                Scene_Clear(scene, engine);
-                strcpy(g_EditorState.currentMapPath, "untitled.map");
-                Undo_Init();
+                if (g_is_map_dirty) {
+                    g_pending_action = PENDING_ACTION_NEW_MAP;
+                }
+                else {
+                    Scene_Clear(scene, engine);
+                    strcpy(g_EditorState.currentMapPath, "untitled.map");
+                    Undo_Init();
+                }
             }
             if (UI_MenuItem("Load Map...", NULL, false, true)) {
-                g_EditorState.show_load_map_popup = true;
-                ScanMapFiles();
+                if (g_is_map_dirty) {
+                    g_pending_action = PENDING_ACTION_LOAD_MAP;
+                }
+                else {
+                    g_EditorState.show_load_map_popup = true;
+                    ScanMapFiles();
+                }
             }
             if (UI_MenuItem("Save", "Ctrl+S", false, true)) {
                 if (strcmp(g_EditorState.currentMapPath, "untitled.map") == 0) {
@@ -8166,6 +8215,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
                 else {
                     Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
+                    Editor_SetMapDirty(false);
                     Editor_AddRecentFile(g_EditorState.currentMapPath);
                 }
             }
@@ -8192,7 +8242,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndMenu();
             }
             UI_Separator();
-            if (UI_MenuItem("Exit Editor", "F5", false, true)) { char* args[] = { "edit" }; handle_command(1, args); }
+            if (UI_MenuItem("Exit Editor", "F5", false, true)) {
+                if (g_is_map_dirty) {
+                    g_pending_action = PENDING_ACTION_EXIT_EDITOR;
+                }
+                else {
+                    char* args[] = { "edit" };
+                    handle_command(1, args);
+                }
+            }
             UI_EndMenu();
         }
         if (UI_BeginMenu("Edit", true)) { if (UI_MenuItem("Undo", "Ctrl+Z", false, true)) { Undo_PerformUndo(scene, engine); } if (UI_MenuItem("Redo", "Ctrl+Y", false, true)) { Undo_PerformRedo(scene, engine); } UI_EndMenu(); }
@@ -8274,6 +8332,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Save")) {
             Scene_SaveMap(scene, NULL, g_EditorState.save_map_path);
             strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
+            Editor_SetMapDirty(false);
+            if (g_pending_action != PENDING_ACTION_NONE) {
+                Editor_ExecutePendingAction(engine, scene, renderer);
+            }
             Editor_AddRecentFile(g_EditorState.currentMapPath);
             Console_Printf("Map saved to %s", g_EditorState.currentMapPath);
             g_EditorState.show_save_map_popup = false;
@@ -8290,6 +8352,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Scene_LoadMap(scene, renderer, path_buffer, engine);
                 strcpy(g_EditorState.currentMapPath, path_buffer);
                 Undo_Init();
+                Editor_SetMapDirty(false);
                 g_EditorState.show_load_map_popup = false;
             }
         }
@@ -8317,6 +8380,38 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderMapInfoWindow(scene);
     Editor_RenderTransformWindow(scene, engine);
     Editor_RenderGoToCoordinatesWindow();
+
+    if (g_pending_action != PENDING_ACTION_NONE) {
+        UI_OpenPopup("Unsaved Changes");
+    }
+
+    if (UI_BeginPopupModal("Unsaved Changes", NULL, 1 << 3)) {
+        UI_Text("You have unsaved changes. Do you want to save them?");
+        UI_Spacing();
+
+        if (UI_Button("Save")) {
+            if (strcmp(g_EditorState.currentMapPath, "untitled.map") == 0) {
+                g_EditorState.show_save_map_popup = true;
+            }
+            else {
+                Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
+                Editor_SetMapDirty(false);
+                Editor_ExecutePendingAction(engine, scene, renderer);
+            }
+            UI_CloseCurrentPopup();
+        }
+        UI_SameLine();
+        if (UI_Button("Don't Save")) {
+            Editor_ExecutePendingAction(engine, scene, renderer);
+            UI_CloseCurrentPopup();
+        }
+        UI_SameLine();
+        if (UI_Button("Cancel")) {
+            g_pending_action = PENDING_ACTION_NONE;
+            UI_CloseCurrentPopup();
+        }
+        UI_EndPopup();
+    }
 
     float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 

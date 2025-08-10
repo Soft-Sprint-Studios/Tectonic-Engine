@@ -344,6 +344,7 @@ static void Undo_PushAction(Action* action) {
         g_undo_top--;
     }
     g_undo_top++; g_undo_stack[g_undo_top] = action;
+    Editor_SetMapDirty(true);
 }
 
 void Undo_PerformUndo(Scene* scene, Engine* engine) {
