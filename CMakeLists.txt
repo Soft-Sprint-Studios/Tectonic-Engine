@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(TectonicEngine LANGUAGES C CXX)
 
+if(UNIX AND NOT APPLE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+endif()
+
 # Set C++ standard and IPO
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -535,31 +540,8 @@ else()
     endif()
 endif()
 
-# Apply RPATH settings to all shared libraries on Linux
-if(UNIX AND NOT APPLE)
-    set(ALL_SHARED_LIBRARIES
-        math_lib
-        ipc_lib
-        level0
-        level1
-        materials
-        models
-        physics
-        sound
-        engine
-    )
-
-    foreach(lib_target ${ALL_SHARED_LIBRARIES})
-        target_link_options(${lib_target} PRIVATE "-Wl,-rpath,'$ORIGIN'")
-    endforeach()
-endif()
-
 # launcher executable
 add_executable(launcher launcher/launcher.c)
-
-if(UNIX AND NOT APPLE)
-    target_link_options(launcher PRIVATE "-Wl,-rpath,'$ORIGIN'")
-endif()
 
 if(WIN32)
     set(LAUNCHER_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/launcher/resources/launcher.rc")
