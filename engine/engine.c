@@ -56,6 +56,7 @@
 #include "game_data.h"
 #include "beams.h"
 #include "decals.h"
+#include "glow.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -1022,6 +1023,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     init_renderer();
     DSP_Reverb_Thread_Init();
     Beams_Init();
+    Glow_Init();
     Decals_Init(&g_renderer);
     init_scene();
     Discord_Init();
@@ -2812,6 +2814,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glDisable(GL_BLEND);
     glBindVertexArray(0);
     Beams_Render(&g_scene, *view, *projection, cameraPos, g_engine->scaledTime);
+    Glow_Render(&g_scene, *view, *projection);
     if (Cvar_GetInt("r_wireframe")) {
         glUseProgram(g_renderer.wireframeShader);
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "view"), 1, GL_FALSE, view->m);
@@ -3245,6 +3248,7 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     Beams_Shutdown();
+    Glow_Shutdown();
     Decals_Shutdown(&g_renderer);
     VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);

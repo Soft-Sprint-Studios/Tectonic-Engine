@@ -360,3 +360,15 @@
     input TurnOff "Turn the beam off."
     input Toggle "Toggle the beam on/off."
 )
+
+@PointClass = env_glow
+[
+    glow_size(float) : "Glow Size" = "10.0"
+    color(color) : "Glow Color" = "1.0 0.8 0.2"
+    starton(checkbox) : "Start On" = "1"
+]
+(
+    input TurnOn "Turn the glow on."
+    input TurnOff "Turn the glow off."
+    input Toggle "Toggle the glow on/off."
+)
