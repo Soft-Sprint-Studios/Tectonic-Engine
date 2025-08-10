@@ -112,15 +112,31 @@ namespace
 
     static bool IsBrushBakeable(const Brush& b)
     {
+        const char* allowed[] = {
+            "func_button",
+            "func_clip",
+            "func_conveyor",
+            "func_friction",
+            "func_ladder",
+            "env_glass",
+            "env_reflectionprobe",
+            "trigger_autosave",
+            "trigger_dspzone",
+            "trigger_gravity",
+            "trigger_multiple",
+			"trigger_once",
+            "trigger_teleport",
+            "trigger_hurt",
+        };
+
         if (strlen(b.classname) > 0) {
-            if (strcmp(b.classname, "func_water") == 0) {
-                return true;
-            }
-            if (strcmp(b.classname, "func_rotating") == 0) {
-                return true;
+            for (int i = 0; i < sizeof(allowed) / sizeof(allowed[0]); i++) {
+                if (strcmp(b.classname, allowed[i]) == 0) {
+                    return false;
+                }
             }
         }
-        return false;
+        return true;
     }
 
     class Lightmapper
