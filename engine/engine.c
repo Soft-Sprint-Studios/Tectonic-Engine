@@ -55,6 +55,7 @@
 #include "ipc_system.h"
 #include "game_data.h"
 #include "beams.h"
+#include "decals.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -190,14 +191,6 @@ float skyboxVertices[] = {
      1.0f, -1.0f, -1.0f,
     -1.0f, -1.0f,  1.0f,
      1.0f, -1.0f,  1.0f
-};
-float decalQuadVertices[] = {
-    -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   1.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f
 };
 
 static int FindReflectionProbeForPoint(Vec3 p) {
@@ -1029,6 +1022,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     init_renderer();
     DSP_Reverb_Thread_Init();
     Beams_Init();
+    Decals_Init(&g_renderer);
     init_scene();
     Discord_Init();
     Weapons_Init();
@@ -1219,30 +1213,6 @@ void init_renderer() {
     glBindVertexArray(g_renderer.skyboxVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.skyboxVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glGenVertexArrays(1, &g_renderer.decalVAO);
-    glGenBuffers(1, &g_renderer.decalVBO);
-    glBindVertexArray(g_renderer.decalVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, g_renderer.decalVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(decalQuadVertices), &decalQuadVertices, GL_STATIC_DRAW);
-    size_t stride = 22 * sizeof(float);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, (void*)(8 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (void*)(12 * sizeof(float)));
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, stride, (void*)(16 * sizeof(float)));
-    glEnableVertexAttribArray(5);
-    glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, stride, (void*)(18 * sizeof(float)));
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, stride, (void*)(20 * sizeof(float)));
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(8);
-    glEnableVertexAttribArray(7);
     glGenVertexArrays(1, &g_renderer.parallaxRoomVAO); glGenBuffers(1, &g_renderer.parallaxRoomVBO);
     glBindVertexArray(g_renderer.parallaxRoomVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.parallaxRoomVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(parallaxRoomVertices), parallaxRoomVertices, GL_STATIC_DRAW);
@@ -2800,46 +2770,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         render_brush(g_renderer.mainShader, &g_scene.brushes[i], false, &frustum);
     }
     render_parallax_rooms(view, projection);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-    glUseProgram(g_renderer.mainShader);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
-    glPatchParameteri(GL_PATCH_VERTICES, 3);
-
-    for (int i = 0; i < g_scene.numDecals; ++i) {
-        Decal* d = &g_scene.decals[i];
-
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "model"), 1, GL_FALSE, d->modelMatrix.m);
-        glUniform1f(glGetUniformLocation(g_renderer.mainShader, "heightScale"), 0.0f);
-
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
-        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);
-        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, d->material->rmaMap);
-
-        bool has_lightmap = d->lightmapAtlas != 0 && d->lightmapAtlas != missingTextureID;
-        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useLightmap"), has_lightmap);
-        if (has_lightmap) {
-            glActiveTexture(GL_TEXTURE5);
-            glBindTexture(GL_TEXTURE_2D, d->lightmapAtlas);
-            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "lightmap"), 5);
-        }
-
-        bool has_dir_lightmap = d->directionalLightmapAtlas != 0 && d->directionalLightmapAtlas != missingTextureID;
-        glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useDirectionalLightmap"), has_dir_lightmap);
-        if (has_dir_lightmap) {
-            glActiveTexture(GL_TEXTURE6);
-            glBindTexture(GL_TEXTURE_2D, d->directionalLightmapAtlas);
-            glUniform1i(glGetUniformLocation(g_renderer.mainShader, "directionalLightmap"), 6);
-        }
-
-        glBindVertexArray(g_renderer.decalVAO);
-        glDrawArrays(GL_PATCHES, 0, 6);
-    }
-
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useLightmap"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "useDirectionalLightmap"), 0);
+    Decals_Render(&g_scene, &g_renderer, g_renderer.mainShader);
 
     if (Cvar_GetInt("r_physics_shadows")) {
         glUseProgram(g_renderer.modelShadowShader);
@@ -3302,7 +3233,6 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.spriteVBO);
     glDeleteFramebuffers(1, &g_renderer.sunShadowFBO);
     glDeleteTextures(1, &g_renderer.sunShadowMap);
-    glDeleteVertexArrays(1, &g_renderer.decalVAO); glDeleteBuffers(1, &g_renderer.decalVBO);
     glDeleteVertexArrays(1, &g_renderer.parallaxRoomVAO); glDeleteBuffers(1, &g_renderer.parallaxRoomVBO);
     glDeleteFramebuffers(1, &g_renderer.bloomFBO); glDeleteTextures(1, &g_renderer.bloomBrightnessTexture);
     glDeleteFramebuffers(2, g_renderer.pingpongFBO); glDeleteTextures(2, g_renderer.pingpongColorbuffers);
@@ -3315,6 +3245,7 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     Beams_Shutdown();
+    Decals_Shutdown(&g_renderer);
     VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);

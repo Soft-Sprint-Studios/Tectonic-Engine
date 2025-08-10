@@ -78,6 +78,7 @@ set(ENGINE_SOURCES
     engine/video_player.c engine/weapons.c
     engine/sentry_wrapper.c engine/checksum.c
     engine/beams.c
+    engine/decals.c
     engine/lightmapper.cpp
     mikktspace/mikktspace.c
 )
@@ -90,6 +91,7 @@ set(ENGINE_HEADERS
     engine/particle_system.h
     engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
     engine/beams.h
+    engine/decals.h
     engine/lightmapper.h
 )
 

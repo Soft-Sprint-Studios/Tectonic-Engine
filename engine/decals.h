@@ -22,21 +22,22 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef BEAMS_H
-#define BEAMS_H
+#ifndef DECALS_H
+#define DECALS_H
 
 #include "map.h"
+#include "gl_misc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void Beams_Init(void);
-	void Beams_Shutdown(void);
-	void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
+	void Decals_Init(Renderer* renderer);
+	void Decals_Shutdown(Renderer* renderer);
+	void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // BEAMS_H
+#endif // DECALS_H
