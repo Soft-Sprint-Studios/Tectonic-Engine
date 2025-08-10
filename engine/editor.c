@@ -290,7 +290,8 @@ static const char* logic_entity_classnames[] = {
     "logic_relay",
     "logic_timer",
     "math_counter",
-    "point_servercommand"
+    "point_servercommand",
+    "info_target"
 };
 static const int num_logic_entity_classnames = sizeof(logic_entity_classnames) / sizeof(logic_entity_classnames[0]);
 
@@ -8026,7 +8027,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         else if (strcmp(b->classname, "func_plat") == 0) {
             UI_Separator();
-            UI_Text("Func Plat Properties");
+            UI_Text("Properties");
             for (int i = 0; i < b->numProperties; ++i) {
                 const char* prop_desc = GetEntityPropertyDescription(b->classname, b->properties[i].key);
                 UI_PushID(i);

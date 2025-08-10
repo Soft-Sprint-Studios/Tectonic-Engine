@@ -92,6 +92,19 @@ int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connec
     return count;
 }
 
+bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out_angles) {
+    if (!name || *name == '\0') return false;
+
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (strcmp(scene->logicEntities[i].targetname, name) == 0) {
+            *out_pos = scene->logicEntities[i].pos;
+            *out_angles = scene->logicEntities[i].rot;
+            return true;
+        }
+    }
+    return false;
+}
+
 void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter) {
     for (int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];

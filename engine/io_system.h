@@ -68,6 +68,7 @@ extern "C" {
     void IO_RemoveConnection(int connection_index);
     int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connections_out, int max_out);
 
+    bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out_angles);
     void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter);
     LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname);
     void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine);
