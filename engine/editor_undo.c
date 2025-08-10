@@ -367,11 +367,43 @@ static void Undo_PushAction(Action* action) {
     Editor_SetMapDirty(true);
 }
 
+static void deep_copy_entity_state(EntityState* dest, const EntityState* src) {
+    *dest = *src;
+    if (src->type == ENTITY_BRUSH) {
+        Brush_DeepCopy(&dest->data.brush, &src->data.brush);
+    }
+}
+
+static Action* deep_copy_action(const Action* src) {
+    Action* dest = (Action*)calloc(1, sizeof(Action));
+    if (!dest) return NULL;
+
+    dest->type = src->type;
+    strncpy(dest->description, src->description, sizeof(dest->description) - 1);
+
+    dest->num_before_states = src->num_before_states;
+    if (src->num_before_states > 0) {
+        dest->before_states = (EntityState*)calloc(src->num_before_states, sizeof(EntityState));
+        for (int i = 0; i < src->num_before_states; ++i) {
+            deep_copy_entity_state(&dest->before_states[i], &src->before_states[i]);
+        }
+    }
+
+    dest->num_after_states = src->num_after_states;
+    if (src->num_after_states > 0) {
+        dest->after_states = (EntityState*)calloc(src->num_after_states, sizeof(EntityState));
+        for (int i = 0; i < src->num_after_states; ++i) {
+            deep_copy_entity_state(&dest->after_states[i], &src->after_states[i]);
+        }
+    }
+    return dest;
+}
+
 void Undo_PerformUndo(Scene* scene, Engine* engine) {
     if (g_undo_top < 0) return;
     Action* action = g_undo_stack[g_undo_top--];
     if (g_redo_top >= MAX_UNDO_ACTIONS - 1) { free_action_data(g_redo_stack[0]); free(g_redo_stack[0]); memmove(&g_redo_stack[0], &g_redo_stack[1], (MAX_UNDO_ACTIONS - 1) * sizeof(Action*)); g_redo_top--; }
-    g_redo_stack[++g_redo_top] = action;
+    g_redo_stack[++g_redo_top] = deep_copy_action(action);
     switch (action->type) {
     case ACTION_MODIFY_ENTITY:  if (action->num_after_states == 1 && action->num_before_states > 1) {
             _raw_delete_brush(scene, engine, action->after_states[0].index);
@@ -383,7 +415,7 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
                 apply_state(scene, engine, &action->before_states[i], false);
             }
         } break;
-    case ACTION_CREATE_ENTITY: for (int i = action->num_after_states - 1; i >= 0; --i) {
+    case ACTION_CREATE_ENTITY:  Editor_ClearSelection(); for (int i = action->num_after_states - 1; i >= 0; --i) {
         switch (action->after_states[i].type) {
         case ENTITY_MODEL: _raw_delete_model(scene, action->after_states[i].index, engine); break;
         case ENTITY_BRUSH: _raw_delete_brush(scene, engine, action->after_states[i].index); break;

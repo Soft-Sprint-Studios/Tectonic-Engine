@@ -38,6 +38,7 @@ extern "C" {
 
 void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
 void Editor_Shutdown();
+void Editor_ClearSelection();
 void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine);
 void Editor_Update(Engine* engine, Scene* scene);
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);

@@ -327,7 +327,7 @@ static EditorSelection* Editor_GetPrimarySelection() {
     return &g_EditorState.selections[g_EditorState.num_selections - 1];
 }
 
-static void Editor_ClearSelection() {
+void Editor_ClearSelection() {
     g_EditorState.num_selections = 0;
 }
 
