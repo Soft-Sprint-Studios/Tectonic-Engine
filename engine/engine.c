@@ -856,6 +856,7 @@ void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
     Cvar_Register("engine_running", "1", "Engine state (0=off, 1=on)", CVAR_HIDDEN);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (0=off, 1=on)", CVAR_NONE);
@@ -989,7 +990,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     IPC_Init();
-    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL };  g_engine->flashlight_on = false;
+    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
+    g_engine->prev_health = g_engine->camera.health;
+    g_engine->red_flash_intensity = 0.0f;
+    g_engine->prev_player_y_velocity = 0.0f;
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
@@ -1351,6 +1355,7 @@ void init_renderer() {
 void init_scene() {
     memset(&g_scene, 0, sizeof(Scene));
     const GameConfig* config = GameConfig_Get();
+    g_engine->camera.health = 100.0f;
     if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
         Scene_LoadMap(&g_scene, &g_renderer, config->startmap, g_engine);
     }
@@ -1647,6 +1652,20 @@ void update_state() {
         }
         g_last_deactivation_cvar_state = deactivation_cvar;
     }
+    if (g_engine->camera.health < g_engine->prev_health) {
+        g_engine->red_flash_intensity = 1.0f;
+        g_engine->shake_amplitude = 4.0f;
+        g_engine->shake_frequency = 50.0f;
+        g_engine->shake_duration_timer = 0.2f;
+    }
+    g_engine->prev_health = g_engine->camera.health;
+
+    if (g_engine->red_flash_intensity > 0.0f) {
+        g_engine->red_flash_intensity -= g_engine->deltaTime * 2.0f;
+        if (g_engine->red_flash_intensity < 0.0f) {
+            g_engine->red_flash_intensity = 0.0f;
+        }
+    }
     if (g_engine->shake_duration_timer > 0) {
         g_engine->shake_duration_timer -= g_engine->deltaTime;
         if (g_engine->shake_duration_timer <= 0) {
@@ -1825,6 +1844,13 @@ void update_state() {
                 IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, NULL);
             }
         }
+        if (is_inside && strcmp(b->classname, "trigger_hurt") == 0) {
+            const char* damage_str = Brush_GetProperty(b, "damage", "10");
+            float damage_per_second = atof(damage_str);
+            if (Cvar_GetInt("god") == 0) {
+                g_engine->camera.health -= damage_per_second * g_engine->deltaTime;
+            }
+        }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
     vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
@@ -1955,11 +1981,41 @@ void update_state() {
     if (!in_gravity_zone) {
         Physics_SetGravity(g_engine->physicsWorld, (Vec3) { 0, -Cvar_GetFloat("gravity"), 0 });
     }
+    if (g_engine->camera.health <= 0.0f) {
+        g_engine->camera.health = 100.0f;
+        g_engine->prev_health = g_engine->camera.health;
+        Physics_Teleport(g_engine->camera.physicsBody, g_scene.playerStart.position);
+        Console_Printf("Player died and respawned.");
+    }
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
     if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
     if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
     g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
+    }
+    if (!noclip) {
+        Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+        bool on_ground = Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
+
+        if (on_ground && g_engine->prev_player_y_velocity < -1.0f) {
+            float fall_speed = -g_engine->prev_player_y_velocity;
+
+            const float min_fall_speed_for_damage = 10.0f;
+            const float max_fall_speed_for_damage = 30.0f;
+            const float max_damage = 100.0f;
+
+            if (fall_speed > min_fall_speed_for_damage) {
+                float damage_lerp_factor = (fall_speed - min_fall_speed_for_damage) / (max_fall_speed_for_damage - min_fall_speed_for_damage);
+                damage_lerp_factor = fmaxf(0.0f, fminf(1.0f, damage_lerp_factor));
+
+                float damage = damage_lerp_factor * max_damage;
+
+                if (Cvar_GetInt("god") == 0) {
+                    g_engine->camera.health -= damage;
+                }
+            }
+        }
+        g_engine->prev_player_y_velocity = current_vel.y;
     }
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
@@ -3040,6 +3096,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->scaledTime);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_red_flash_intensity"), g_engine->red_flash_intensity);
     LogicEntity* fog_ent = FindActiveEntityByClass(&g_scene, "env_fog");
     if (fog_ent) {
         glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_fogEnabled"), 1);
@@ -4030,7 +4087,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_fps_history, FPS_GRAPH_SAMPLES);
+            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_fps_history, FPS_GRAPH_SAMPLES);
             UI_RenderDeveloperOverlay();
         }
         Console_Draw(); 

@@ -178,6 +178,7 @@ extern "C" {
         bool isCrouching;
         float currentHeight;
         RigidBodyHandle physicsBody;
+        float health;
     } Camera;
 
     typedef struct {
@@ -509,6 +510,9 @@ extern "C" {
         float shake_amplitude;
         float shake_frequency;
         float shake_duration_timer;
+        float red_flash_intensity;
+        float prev_health;
+        float prev_player_y_velocity;
         float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
         Camera camera;
         PhysicsWorldHandle physicsWorld;

@@ -1332,6 +1332,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene, 0, sizeof(Scene));
     scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
+    engine->camera.health = 100.0f;
     scene->post.enabled = true;
     scene->post.crtCurvature = 0.1f;
     scene->post.vignetteStrength = 0.8f;

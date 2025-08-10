@@ -223,7 +223,7 @@ extern "C" {
         console_instance.ClearLog();
     }
 
-    void UI_RenderGameHUD(float fps, float px, float py, float pz, const float* fps_history, int history_size) {
+    void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
@@ -237,7 +237,7 @@ extern "C" {
 
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
-        if (show_fps || show_pos) {
+        if (show_fps || show_pos || health > 0) {
             if (ImGui::Begin("GameHUD", NULL, window_flags)) {
                 if (show_fps) {
                     ImGui::Text("FPS: %.1f", fps);
@@ -245,6 +245,7 @@ extern "C" {
                 if (show_pos) {
                     ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
                 }
+                ImGui::Text("Health: %.0f", health);
             }
             if (show_graph && history_size > 0) {
                 float max_fps = 0.0f;
