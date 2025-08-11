@@ -67,8 +67,9 @@ void launch_tool(const char* tool_executable) {
         snprintf(path_buffer, sizeof(path_buffer), "./%s", tool_executable);
         execlp(path_buffer, tool_executable, (char*)NULL);
         perror("execlp");
-        _exit(1); 
-    } else if (pid < 0) {
+        _exit(1);
+    }
+    else if (pid < 0) {
         std::string error_msg = "Failed to fork process for '";
         error_msg += tool_executable;
         error_msg += "'.";
@@ -101,6 +102,22 @@ void on_launch_particle_editor_cb(Fl_Widget*, void*) {
 #endif
 }
 
+void on_launch_vertex_lighter_cb(Fl_Widget*, void*) {
+#ifdef _WIN32
+    launch_tool("TectonicVertexLighter.exe");
+#else
+    launch_tool("TectonicVertexLighter");
+#endif
+}
+
+void on_launch_ambient_inspector_cb(Fl_Widget*, void*) {
+#ifdef _WIN32
+    launch_tool("TectonicAmbientCubeInspector.exe");
+#else
+    launch_tool("TectonicAmbientCubeInspector");
+#endif
+}
+
 void on_quit_cb(Fl_Widget* w, void*) {
     Fl_Window* win = (Fl_Window*)w->window();
     win->hide();
@@ -108,7 +125,7 @@ void on_quit_cb(Fl_Widget* w, void*) {
 
 int main(int argc, char** argv) {
     const int win_w = 320;
-    const int win_h = 240;
+    const int win_h = 320;
 
     Fl_Window* window = new Fl_Window(win_w, win_h, "Tectonic SDK Launcher");
     window->begin();
@@ -126,9 +143,15 @@ int main(int argc, char** argv) {
     Fl_Button* btn_particle_editor = new Fl_Button(30, 160, win_w - 60, 30, "Particle Editor");
     btn_particle_editor->callback(on_launch_particle_editor_cb);
 
+    Fl_Button* btn_vertex_lighter = new Fl_Button(30, 200, win_w - 60, 30, "Vertex Light Debugging");
+    btn_vertex_lighter->callback(on_launch_vertex_lighter_cb);
+
+    Fl_Button* btn_ambient_inspector = new Fl_Button(30, 240, win_w - 60, 30, "Ambient Cube Inspector");
+    btn_ambient_inspector->callback(on_launch_ambient_inspector_cb);
+
     Fl_Button* btn_quit = new Fl_Button(win_w - 90, win_h - 40, 80, 25, "Quit");
     btn_quit->callback(on_quit_cb);
-    
+
     window->end();
     window->show(argc, argv);
 
