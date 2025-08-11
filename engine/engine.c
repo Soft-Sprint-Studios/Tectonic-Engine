@@ -1927,6 +1927,11 @@ void update_state() {
                 g_engine->camera.health -= damage_per_second * g_engine->deltaTime;
             }
         }
+        else if (is_inside && strcmp(b->classname, "trigger_killplayer") == 0) {
+            if (Cvar_GetInt("god") == 0) {
+                g_engine->camera.health = 0.0f;
+            }
+        }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
     vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
