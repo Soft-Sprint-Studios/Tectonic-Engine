@@ -55,6 +55,7 @@
 #include "ipc_system.h"
 #include "game_data.h"
 #include "beams.h"
+#include "cables.h"
 #include "decals.h"
 #include "glow.h"
 #include "engine_api.h"
@@ -1027,6 +1028,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     init_renderer();
     DSP_Reverb_Thread_Init();
     Beams_Init();
+    Cable_Init();
     Glow_Init();
     Decals_Init(&g_renderer);
     init_scene();
@@ -2995,6 +2997,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glDisable(GL_BLEND);
     glBindVertexArray(0);
     Beams_Render(&g_scene, *view, *projection, cameraPos, g_engine->scaledTime);
+    Cable_Render(&g_scene, *view, *projection, cameraPos);
     Glow_Render(&g_scene, *view, *projection);
     if (Cvar_GetInt("r_wireframe")) {
         glUseProgram(g_renderer.wireframeShader);
@@ -3415,6 +3418,7 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.histogramSSBO);
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     Beams_Shutdown();
+    Cable_Shutdown();
     Glow_Shutdown();
     Decals_Shutdown(&g_renderer);
     VideoPlayer_ShutdownSystem();
