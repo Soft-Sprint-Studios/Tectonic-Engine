@@ -3358,10 +3358,19 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
                 }
         else if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
-                    if (g_EditorState.is_viewport_focused[VIEW_TOP_XZ]) { float ms = g_EditorState.ortho_cam_zoom[0] * 0.002f; g_EditorState.ortho_cam_pos[0].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[0].z -= event->motion.yrel * ms; }
-                    if (g_EditorState.is_viewport_focused[VIEW_FRONT_XY]) { float ms = g_EditorState.ortho_cam_zoom[1] * 0.002f; g_EditorState.ortho_cam_pos[1].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[1].y += event->motion.yrel * ms; }
-                    if (g_EditorState.is_viewport_focused[VIEW_SIDE_YZ]) { float ms = g_EditorState.ortho_cam_zoom[2] * 0.002f; g_EditorState.ortho_cam_pos[2].z += event->motion.xrel * ms; g_EditorState.ortho_cam_pos[2].y += event->motion.yrel * ms; }
+            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+                if (g_EditorState.is_viewport_hovered[i]) {
+                    for (int j = 0; j < VIEW_COUNT; ++j) {
+                        g_EditorState.is_viewport_focused[j] = (j == i);
                     }
+                    break;
+                }
+            }
+
+            if (g_EditorState.is_viewport_focused[VIEW_TOP_XZ]) { float ms = g_EditorState.ortho_cam_zoom[0] * 0.002f; g_EditorState.ortho_cam_pos[0].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[0].z -= event->motion.yrel * ms; }
+            if (g_EditorState.is_viewport_focused[VIEW_FRONT_XY]) { float ms = g_EditorState.ortho_cam_zoom[1] * 0.002f; g_EditorState.ortho_cam_pos[1].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[1].y += event->motion.yrel * ms; }
+            if (g_EditorState.is_viewport_focused[VIEW_SIDE_YZ]) { float ms = g_EditorState.ortho_cam_zoom[2] * 0.002f; g_EditorState.ortho_cam_pos[2].z += event->motion.xrel * ms; g_EditorState.ortho_cam_pos[2].y += event->motion.yrel * ms; }
+        }
     }
     if (event->type == SDL_MOUSEWHEEL) {
         if (g_EditorState.is_in_z_mode) {
@@ -6169,7 +6178,12 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
             }
 
             if (!mat->isLoaded) {
-                TextureManager_LoadMaterialTextures(mat);
+                if (strlen(mat->diffusePath) > 0) {
+                    mat->diffuseMap = loadTexture(mat->diffusePath, true, TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL);
+                }
+                else {
+                    mat->diffuseMap = missingTextureID;
+                }
             }
 
             UI_PushID(i);
@@ -8285,7 +8299,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (scene->colorCorrection.lutTexture) {
                 glDeleteTextures(1, &scene->colorCorrection.lutTexture);
             }
-            scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false);
+            scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
         }
         if (scene->colorCorrection.lutTexture) {
             UI_Image((void*)(intptr_t)scene->colorCorrection.lutTexture, 256, 16);
@@ -8313,7 +8327,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (g_EditorState.current_brush_shape == BRUSH_SHAPE_TUBE) {
         UI_DragFloat("Wall Thickness", &g_EditorState.tube_wall_thickness, 0.05f, 0.1f, 16.0f);
     }
-    UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.125f, 0.125f, 64.0f);
+    UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.0625f, 0.0625f, 64.0f);
     UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
     for (int i = 0; i < 5; i++) {
         UI_Spacing();

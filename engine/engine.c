@@ -1348,7 +1348,7 @@ void init_renderer() {
     glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
     WaterManager_Init();
     WaterManager_ParseWaters("waters.def");
-    g_renderer.cloudTexture = loadTexture("clouds.png", false);
+    g_renderer.cloudTexture = loadTexture("clouds.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
     if (g_renderer.cloudTexture == 0) {
         Console_Printf_Error("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
     }

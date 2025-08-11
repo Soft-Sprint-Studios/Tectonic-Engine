@@ -39,6 +39,11 @@ extern "C" {
 
 #define MAX_MATERIALS 16384
 
+typedef enum {
+    TEXTURE_LOAD_CONTEXT_WORLD,
+    TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL
+} TextureLoadContext;
+
 typedef struct {
     char name[64];
     GLuint diffuseMap;
@@ -84,7 +89,7 @@ MATERIALS_API GLuint loadCubemap(const char* faces[6]);
 MATERIALS_API void TextureManager_LoadMaterialTextures(Material* material);
 MATERIALS_API GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 MATERIALS_API GLuint TextureManager_LoadLUT(const char* filename_only);
-MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb);
+MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context);
 
 #ifdef __cplusplus
 }

@@ -110,7 +110,7 @@ static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigne
     return texID;
 }
 
-GLuint loadTexture(const char* path, bool isSrgb) {
+GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
         Console_Printf_Warning("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
@@ -124,7 +124,21 @@ GLuint loadTexture(const char* path, bool isSrgb) {
         return missingTextureID;
     }
 
-    if (!g_is_editor_mode) {
+    if (context == TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL) {
+        int max_editor_dim = 128;
+        if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
+            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+        }
+    }
+    else {
         int quality = Cvar_GetInt("r_texture_quality");
         float scale_factor = 1.0f;
         switch (quality) {
@@ -135,42 +149,16 @@ GLuint loadTexture(const char* path, bool isSrgb) {
         case 5: scale_factor = 1.0f; break;
         default: scale_factor = 1.0f; break;
         }
-
-        if (scale_factor < 1.0f) {
+        if (scale_factor < 1.0f && (surf->w > 16 || surf->h > 16)) {
             int scaled_w = (int)(surf->w * scale_factor);
             int scaled_h = (int)(surf->h * scale_factor);
-
-            if (scaled_w == 0) scaled_w = 1;
-            if (scaled_h == 0) scaled_h = 1;
-
+            if (scaled_w < 1) scaled_w = 1;
+            if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
                 SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
-            }
-            else {
-                Console_Printf_Warning("TextureManager WARNING: Failed to create scaled surface for '%s' (quality). Using original resolution.\n", fullPath);
-            }
-        }
-    }
-
-    if (g_is_editor_mode) {
-        int max_editor_dim = 128;
-
-        if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
-            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
-            int scaled_w = (int)(surf->w * scale_factor);
-            int scaled_h = (int)(surf->h * scale_factor);
-
-            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
-            if (scaled_surf) {
-                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
-                SDL_FreeSurface(surf);
-                surf = scaled_surf;
-            }
-            else {
-                Console_Printf_Error("TextureManager ERROR: Failed to create scaled surface for '%s' (editor). Using full-res.\n", fullPath);
             }
         }
     }
@@ -213,11 +201,11 @@ void TextureManager_LoadMaterialTextures(Material* material) {
         return;
     }
 
-    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath, true); else material->diffuseMap = missingTextureID;
-    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false); else material->normalMap = defaultNormalMapID;
-    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false); else material->rmaMap = defaultRmaMapID;
-    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false); else material->heightMap = 0;
-    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true); else material->detailDiffuseMap = 0;
+    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath, true, TEXTURE_LOAD_CONTEXT_WORLD); else material->diffuseMap = missingTextureID;
+    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->normalMap = defaultNormalMapID;
+    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->rmaMap = defaultRmaMapID;
+    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->heightMap = 0;
+    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true, TEXTURE_LOAD_CONTEXT_WORLD); else material->detailDiffuseMap = 0;
 
     material->isLoaded = true;
 }

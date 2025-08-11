@@ -39,8 +39,8 @@ void WaterManager_Init(void) {
     strcpy(g_default_water_def.normalPath, "water_normal.png");
     strcpy(g_default_water_def.dudvPath, "dudv.png");
     strcpy(g_default_water_def.flowmapPath, "");
-    g_default_water_def.normalMap = loadTexture("water_normal.png", false);
-    g_default_water_def.dudvMap = loadTexture("dudv.png", false);
+    g_default_water_def.normalMap = loadTexture("water_normal.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
+    g_default_water_def.dudvMap = loadTexture("dudv.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
     g_default_water_def.flowMap = 0;
     g_default_water_def.flowSpeed = 0.01f;
 
@@ -81,10 +81,10 @@ void WaterManager_ParseWaters(const char* filepath) {
         } else if (trimmed_line[0] == '{') {
         } else if (trimmed_line[0] == '}') {
             if (current_def) {
-                current_def->normalMap = loadTexture(current_def->normalPath, false);
-                current_def->dudvMap = loadTexture(current_def->dudvPath, false);
+                current_def->normalMap = loadTexture(current_def->normalPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
+                current_def->dudvMap = loadTexture(current_def->dudvPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
                 if (strlen(current_def->flowmapPath) > 0) {
-                    current_def->flowMap = loadTexture(current_def->flowmapPath, false);
+                    current_def->flowMap = loadTexture(current_def->flowmapPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
                 }
                 else {
                     current_def->flowMap = 0;

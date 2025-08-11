@@ -1674,7 +1674,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             sscanf(line, "%*s %d \"%127[^\"]\"", &enabled_int, scene->colorCorrection.lutPath);
             scene->colorCorrection.enabled = (bool)enabled_int;
             if (scene->colorCorrection.enabled && strlen(scene->colorCorrection.lutPath) > 0) {
-                scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false);
+                scene->colorCorrection.lutTexture = loadTexture(scene->colorCorrection.lutPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
             }
         }
         else if (strcmp(keyword, "brush_begin") == 0) {
