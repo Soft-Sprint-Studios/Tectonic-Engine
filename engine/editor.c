@@ -3636,7 +3636,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_LEFTBRACKET) {
                 g_EditorState.grid_size /= 2.0f;
-                if (g_EditorState.grid_size < 0.125f) g_EditorState.grid_size = 0.125f;
+                if (g_EditorState.grid_size < 0.0625f) g_EditorState.grid_size = 0.0625f;
             }
             if (event->key.keysym.sym == SDLK_RIGHTBRACKET) {
                 g_EditorState.grid_size *= 2.0f;
