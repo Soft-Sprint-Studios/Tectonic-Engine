@@ -57,7 +57,7 @@ static Vec3 get_bezier_point(float t, Vec3 p0, Vec3 p1, Vec3 p2) {
     return p;
 }
 
-void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos) {
+void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time) {
     glUseProgram(g_cable_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "projection"), 1, GL_FALSE, projection.m);
@@ -83,8 +83,24 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos) {
                 int segments = atoi(LogicEntity_GetProperty(ent, "Segments", "16"));
                 if (segments < 2) segments = 2;
 
+                float wind_amount = atof(LogicEntity_GetProperty(ent, "WindAmount", "5.0"));
+                float wind_speed = atof(LogicEntity_GetProperty(ent, "WindSpeed", "1.0"));
+                Vec3 wind_angles;
+                sscanf(LogicEntity_GetProperty(ent, "WindDirection", "0 0 0"), "%f %f %f", &wind_angles.x, &wind_angles.y, &wind_angles.z);
+
                 Vec3 control_pos = vec3_muls(vec3_add(start_pos, end_pos), 0.5f);
                 control_pos.y -= depth;
+
+                if (wind_amount > 0.0f) {
+                    Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, wind_angles, (Vec3) { 1, 1, 1 });
+                    Vec3 wind_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
+                    vec3_normalize(&wind_dir);
+
+                    float sway1 = sin(time * wind_speed * 1.0f) * wind_amount * 0.6f;
+                    float sway2 = sin(time * wind_speed * 0.45f + 1.23f) * wind_amount * 0.4f;
+                    Vec3 wind_offset = vec3_muls(wind_dir, sway1 + sway2);
+                    control_pos = vec3_add(control_pos, wind_offset);
+                }
 
                 int num_vertices = (segments + 1) * 2;
                 Vec3* vertices = (Vec3*)malloc(num_vertices * sizeof(Vec3));
@@ -99,11 +115,12 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos) {
                         float t_prev = (float)(j - 1) / (float)segments;
                         Vec3 prev_p = get_bezier_point(t_prev, start_pos, control_pos, end_pos);
                         next_p = vec3_add(p, vec3_sub(p, prev_p));
-                    } else {
+                    }
+                    else {
                         float t_next = (float)(j + 1) / (float)segments;
                         next_p = get_bezier_point(t_next, start_pos, control_pos, end_pos);
                     }
-                    
+
                     Vec3 tangent = vec3_sub(next_p, p);
                     vec3_normalize(&tangent);
                     Vec3 view_vec = vec3_sub(p, cameraPos);

@@ -2997,7 +2997,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glDisable(GL_BLEND);
     glBindVertexArray(0);
     Beams_Render(&g_scene, *view, *projection, cameraPos, g_engine->scaledTime);
-    Cable_Render(&g_scene, *view, *projection, cameraPos);
+    Cable_Render(&g_scene, *view, *projection, cameraPos, g_engine->scaledTime);
     Glow_Render(&g_scene, *view, *projection);
     if (Cvar_GetInt("r_wireframe")) {
         glUseProgram(g_renderer.wireframeShader);
