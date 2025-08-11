@@ -177,7 +177,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
 
-    if (!g_is_editor_mode) {
+    if (context == TEXTURE_LOAD_CONTEXT_WORLD) {
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         GLfloat max_anisotropy;
