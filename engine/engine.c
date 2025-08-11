@@ -2876,8 +2876,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "view"), 1, GL_FALSE, view->m);
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "projection"), 1, GL_FALSE, projection->m);
 
-        glDepthFunc(GL_GREATER);
-        glUniform4f(glGetUniformLocation(g_renderer.wireframeShader, "wireframeColor"), 1.0f, 0.0f, 0.0f, 1.0f);
+        glUniform4f(glGetUniformLocation(g_renderer.wireframeShader, "wireframeColor"), 0.0f, 0.5f, 1.0f, 1.0f);
+
+        glDisable(GL_DEPTH_TEST);
 
         for (int i = 0; i < g_scene.numObjects; i++) {
             SceneObject* obj = &g_scene.objects[i];
@@ -2886,11 +2887,16 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
                 for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                     Mesh* mesh = &obj->model->meshes[meshIdx];
                     glBindVertexArray(mesh->VAO);
-                    if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
-                    else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
+                    if (mesh->useEBO) {
+                        glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+                    }
+                    else {
+                        glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount);
+                    }
                 }
             }
         }
+
         for (int i = 0; i < g_scene.numBrushes; i++) {
             Brush* b = &g_scene.brushes[i];
             if (!Brush_IsSolid(b)) continue;
@@ -2899,30 +2905,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
             glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
         }
 
-        glDepthFunc(GL_LEQUAL);
-        glUniform4f(glGetUniformLocation(g_renderer.wireframeShader, "wireframeColor"), 0.0f, 0.0f, 1.0f, 1.0f);
-
-        for (int i = 0; i < g_scene.numObjects; i++) {
-            SceneObject* obj = &g_scene.objects[i];
-            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
-            if (obj->model) {
-                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
-                    Mesh* mesh = &obj->model->meshes[meshIdx];
-                    glBindVertexArray(mesh->VAO);
-                    if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
-                    else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
-                }
-            }
-        }
-        for (int i = 0; i < g_scene.numBrushes; i++) {
-            Brush* b = &g_scene.brushes[i];
-            if (!Brush_IsSolid(b)) continue;
-            glUniformMatrix4fv(glGetUniformLocation(g_renderer.wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-            glBindVertexArray(b->vao);
-            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
-        }
-        glDepthFunc(GL_LESS);
+        glEnable(GL_DEPTH_TEST);
     }
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
