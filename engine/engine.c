@@ -2125,6 +2125,15 @@ void update_state() {
                 if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
         }
+        if (strcmp(b->classname, "func_wall_toggle") == 0) {
+            if (!b->runtime_hasFired) {
+                b->runtime_is_visible = (atoi(Brush_GetProperty(b, "StartON", "1")) != 0);
+                if (b->physicsBody) {
+                    Physics_ToggleCollision(g_engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
+                }
+                b->runtime_hasFired = true;
+            }
+        }
         if (strcmp(b->classname, "func_rotating") == 0 && b->runtime_active) {
             bool use_accel = atoi(Brush_GetProperty(b, "AccDcc", "0")) != 0;
 
@@ -2276,6 +2285,10 @@ void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
         render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
     }
     for (int j = 0; j < g_scene.numBrushes; ++j) {
+        Brush* b = &g_scene.brushes[j];
+        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
+            continue;
+        }
         if (strcmp(g_scene.brushes[j].classname, "env_reflectionprobe") == 0) continue;
         render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false, NULL);
     }
@@ -2659,6 +2672,9 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
+            continue;
+        }
         if (strcmp(b->classname, "func_clip") == 0) continue;
         if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
@@ -2917,6 +2933,9 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     }
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
+            continue;
+        }
         glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
         if(strcmp(b->classname, "func_water") == 0) continue;
         if (b->numVertices > 0) {

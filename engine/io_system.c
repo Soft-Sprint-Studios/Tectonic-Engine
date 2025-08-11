@@ -421,6 +421,25 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         else if (b->plat_state == PLAT_STATE_BOTTOM) b->plat_state = PLAT_STATE_UP;
                     }
                 }
+                else if (strcmp(b->classname, "func_wall_toggle") == 0) {
+                    bool should_be_visible = b->runtime_is_visible;
+                    if (strcmp(inputName, "Toggle") == 0) {
+                        should_be_visible = !b->runtime_is_visible;
+                    }
+                    else if (strcmp(inputName, "TurnOn") == 0) {
+                        should_be_visible = true;
+                    }
+                    else if (strcmp(inputName, "TurnOff") == 0) {
+                        should_be_visible = false;
+                    }
+
+                    if (should_be_visible != b->runtime_is_visible) {
+                        b->runtime_is_visible = should_be_visible;
+                        if (b->physicsBody) {
+                            Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
+                        }
+                    }
+                }
                 else if (strcmp(b->classname, "func_door") == 0) {
                     if (strcmp(inputName, "Open") == 0) {
                         b->door_state = DOOR_STATE_OPENING;

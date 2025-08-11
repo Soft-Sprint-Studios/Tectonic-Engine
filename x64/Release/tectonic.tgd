@@ -100,6 +100,16 @@
     output OnClosed "Fires when the door has finished closing."
 )
 
+@SolidClass = func_wall_toggle
+[
+    StartON(checkbox) : "Start ON" = "1"
+]
+(
+    input Toggle "Toggle the wall's visibility and collision."
+    input TurnOn "Makes the wall visible and solid."
+    input TurnOff "Makes the wall invisible and non-solid."
+)
+
 @SolidClass = func_rotating
 [
     speed(float) : "Rotation Speed (deg/sec)" = "10"

@@ -345,6 +345,7 @@ extern "C" {
         Vec3 door_start_pos;
         Vec3 door_end_pos;
         Vec3 door_move_dir;
+        bool runtime_is_visible;
         bool runtime_playerIsTouching;
         bool runtime_hasFired;
         bool runtime_active;
