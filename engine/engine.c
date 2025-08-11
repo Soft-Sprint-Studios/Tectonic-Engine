@@ -101,6 +101,9 @@ static bool g_start_windowed = false;
 static bool g_start_with_console = false;
 static bool g_dev_mode_requested = false;
 
+static int g_startup_width = 1920;
+static int g_startup_height = 1080;
+
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 void BuildCubemaps();
 
@@ -863,6 +866,8 @@ void init_cvars() {
     Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
     Cvar_Register("engine_running", "1", "Engine state (0=off, 1=on)", CVAR_HIDDEN);
+    Cvar_Register("r_width", "1920", "Screen width in pixels", CVAR_NONE);
+    Cvar_Register("r_height", "1080", "Screen height in pixels", CVAR_NONE);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_autoexposure_speed", "0.5", "Auto-exposure adaptation speed", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.18", "Auto-exposure middle-grey value", CVAR_NONE);
@@ -991,6 +996,8 @@ void PrintSystemInfo() {
 }
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
+    g_engine->width = g_startup_width;
+    g_engine->height = g_startup_height;
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     IPC_Init();
@@ -1041,7 +1048,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Discord_Init();
     Weapons_Init();
     g_current_mode = MODE_MAINMENU;
-    if (!MainMenu_Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+    if (!MainMenu_Init(g_engine->width, g_engine->height)) {
         Console_Printf_Error("[ERROR] Failed to initialize Main Menu.");
         g_engine->running = false;
     }
@@ -1079,8 +1086,8 @@ void init_renderer() {
     g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     g_renderer.blackholeShader = createShaderProgram("shaders/blackhole.vert", "shaders/blackhole.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-    const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+    const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+    const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
     glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
     glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
@@ -1123,8 +1130,8 @@ void init_renderer() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("G-Buffer Framebuffer not complete!\n");
-    const int bloom_width = WINDOW_WIDTH / BLOOM_DOWNSAMPLE;
-    const int bloom_height = WINDOW_HEIGHT / BLOOM_DOWNSAMPLE;
+    const int bloom_width = g_engine->width / BLOOM_DOWNSAMPLE;
+    const int bloom_height = g_engine->height / BLOOM_DOWNSAMPLE;
     glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
     glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
@@ -1146,22 +1153,22 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glGenTextures(1, &g_renderer.finalRenderTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.finalRenderTexture, 0);
     glGenTextures(1, &g_renderer.finalDepthTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.finalDepthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, g_engine->width, g_engine->height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.finalDepthTexture, 0);
     GLuint final_rboDepth; glGenRenderbuffers(1, &final_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, final_rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, g_engine->width, g_engine->height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, final_rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Final Render Framebuffer not complete!\n");
     glGenFramebuffers(1, &g_renderer.postProcessFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.postProcessFBO);
     glGenTextures(1, &g_renderer.postProcessTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.postProcessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.postProcessTexture, 0);
@@ -1170,7 +1177,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssrFBO);
     glGenTextures(1, &g_renderer.ssrTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssrTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssrTexture, 0);
@@ -1179,7 +1186,7 @@ void init_renderer() {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
     glGenTextures(1, &g_renderer.volumetricTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1191,7 +1198,7 @@ void init_renderer() {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1300,8 +1307,8 @@ void init_renderer() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    const int ssao_width = WINDOW_WIDTH / SSAO_DOWNSAMPLE;
-    const int ssao_height = WINDOW_HEIGHT / SSAO_DOWNSAMPLE;
+    const int ssao_width = g_engine->width / SSAO_DOWNSAMPLE;
+    const int ssao_height = g_engine->height / SSAO_DOWNSAMPLE;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glGenFramebuffers(1, &g_renderer.ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
@@ -2429,7 +2436,7 @@ static void render_blackholes(Mat4* view, Mat4* projection) {
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.postProcessFBO);
-    glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glDisable(GL_DEPTH_TEST);
@@ -2443,7 +2450,7 @@ static void render_blackholes(Mat4* view, Mat4* projection) {
     for (int i = 0; i < g_scene.numLogicEntities; ++i) {
         LogicEntity* ent = &g_scene.logicEntities[i];
         if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
-            glUniform2f(glGetUniformLocation(g_renderer.blackholeShader, "screensize"), (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT);
+            glUniform2f(glGetUniformLocation(g_renderer.blackholeShader, "screensize"), (float)g_engine->width, (float)g_engine->height);
 
             Mat4 view_proj;
             mat4_multiply(&view_proj, projection, view);
@@ -2693,7 +2700,7 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
 
 void render_zprepass(const Mat4* view, const Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
-    glViewport(0, 0, WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+    glViewport(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(g_renderer.zPrepassShader);
@@ -2788,7 +2795,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     extract_frustum_planes(&view_proj, &frustum, true);
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
-    glViewport(0, 0, WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+    glViewport(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
 
     if (Cvar_GetInt("r_zprepass")) {
         render_zprepass(view, projection);
@@ -2821,7 +2828,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)(WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));
+    glUniform2f(glGetUniformLocation(g_renderer.mainShader, "viewportSize"), (float)(g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.mainShader, "prevViewProjection"), 1, GL_FALSE, g_renderer.prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(g_renderer.mainShader, "viewPos"), 1, &cameraPos.x);
     glUniform1f(glGetUniformLocation(g_renderer.mainShader, "u_time"), g_engine->lastFrame);
@@ -3102,7 +3109,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
 
 void render_bloom_pass() {
     glUseProgram(g_renderer.bloomShader); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
-    glViewport(0, 0, WINDOW_WIDTH / BLOOM_DOWNSAMPLE, WINDOW_HEIGHT / BLOOM_DOWNSAMPLE);
+    glViewport(0, 0, g_engine->width / BLOOM_DOWNSAMPLE, g_engine->height / BLOOM_DOWNSAMPLE);
     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
     bool horizontal = true, first_iteration = true; unsigned int amount = 10; glUseProgram(g_renderer.bloomBlurShader);
@@ -3112,7 +3119,7 @@ void render_bloom_pass() {
         glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
         horizontal = !horizontal; if (first_iteration) first_iteration = false;
     }
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -3139,7 +3146,7 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
         return;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
-    glViewport(0, 0, WINDOW_WIDTH / VOLUMETRIC_DOWNSAMPLE, WINDOW_HEIGHT / VOLUMETRIC_DOWNSAMPLE);
+    glViewport(0, 0, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(g_renderer.volumetricShader);
@@ -3188,12 +3195,12 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
 }
 
 void render_ssao_pass(Mat4* projection) {
-    const int ssao_width = WINDOW_WIDTH / SSAO_DOWNSAMPLE;
-    const int ssao_height = WINDOW_HEIGHT / SSAO_DOWNSAMPLE;
+    const int ssao_width = g_engine->width / SSAO_DOWNSAMPLE;
+    const int ssao_height = g_engine->height / SSAO_DOWNSAMPLE;
     glViewport(0, 0, ssao_width, ssao_height);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -3214,7 +3221,7 @@ void render_ssao_pass(Mat4* projection) {
     glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
     glBindVertexArray(g_renderer.quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -3222,13 +3229,13 @@ void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* pro
     if (!Cvar_GetInt("r_ssr")) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destFBO);
-        glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return;
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
 
@@ -3262,12 +3269,12 @@ void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* pro
 
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
     if (Cvar_GetInt("r_clear")) {
         glClear(GL_COLOR_BUFFER_BIT);
     }
     glUseProgram(g_renderer.postProcessShader);
-    glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), WINDOW_WIDTH, WINDOW_HEIGHT);
+    glUniform2f(glGetUniformLocation(g_renderer.postProcessShader, "resolution"), g_engine->width, g_engine->height);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "time"), g_engine->scaledTime);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_exposure"), g_renderer.currentExposure);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_red_flash_intensity"), g_engine->red_flash_intensity);
@@ -3389,7 +3396,7 @@ void render_skybox(Mat4* view, Mat4* projection) {
 void present_final_image(GLuint source_fbo) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -3532,7 +3539,7 @@ void render_autoexposure_pass() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
     glUniform1i(glGetUniformLocation(g_renderer.histogramShader, "u_inputTexture"), 0);
-    glDispatchCompute((GLuint)(WINDOW_WIDTH / 16), (GLuint)(WINDOW_HEIGHT / 16), 1);
+    glDispatchCompute((GLuint)(g_engine->width / 16), (GLuint)(g_engine->height / 16), 1);
 
     glUseProgram(g_renderer.exposureShader);
     glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_key"), Cvar_GetFloat("r_autoexposure_key"));
@@ -3617,15 +3624,15 @@ void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepat
 }
 static void SaveScreenshotToPNG(const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    unsigned char* pixels = (unsigned char*)malloc(WINDOW_WIDTH * WINDOW_HEIGHT * 4);
+    unsigned char* pixels = (unsigned char*)malloc(g_engine->width * g_engine->height * 4);
     if (!pixels) {
         Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
         return;
     }
 
-    glReadPixels(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glReadPixels(0, 0, g_engine->width, g_engine->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    int row_size = WINDOW_WIDTH * 4;
+    int row_size = g_engine->width * 4;
     unsigned char* temp_row = (unsigned char*)malloc(row_size);
     if (!temp_row) {
         Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot row buffer.");
@@ -3633,16 +3640,16 @@ static void SaveScreenshotToPNG(const char* filepath) {
         return;
     }
 
-    for (int y = 0; y < WINDOW_HEIGHT / 2; ++y) {
+    for (int y = 0; y < g_engine->width / 2; ++y) {
         unsigned char* top = pixels + y * row_size;
-        unsigned char* bottom = pixels + (WINDOW_HEIGHT - 1 - y) * row_size;
+        unsigned char* bottom = pixels + (g_engine->width - 1 - y) * row_size;
         memcpy(temp_row, top, row_size);
         memcpy(top, bottom, row_size);
         memcpy(bottom, temp_row, row_size);
     }
     free(temp_row);
 
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, WINDOW_WIDTH, WINDOW_HEIGHT, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, g_engine->width, g_engine->height, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
         Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
@@ -3727,8 +3734,8 @@ void BuildCubemaps(int resolution) {
 
             glEnable(GL_FRAMEBUFFER_SRGB);
 
-            const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-            const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
 
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
@@ -3760,7 +3767,7 @@ void BuildCubemaps(int resolution) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     g_engine->camera = original_camera;
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
 
     Console_Printf("Cubemap build finished.");
 }
@@ -3946,7 +3953,7 @@ static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
 
 static void render_debug_buffer(GLuint textureID, int viewMode) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glViewport(0, 0, g_engine->width, g_engine->height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(g_renderer.debugBufferShader);
@@ -3979,12 +3986,39 @@ void ParseCommandLineArgs(int argc, char* argv[]) {
         else if (_stricmp(argv[i], "-dev") == 0) {
             g_dev_mode_requested = true;
         }
-        else if ((_stricmp(argv[i], "-w") == 0 || _stricmp(argv[i], "-h") == 0)) {
+        else if (_stricmp(argv[i], "-w") == 0) {
             if (i + 1 < argc) {
-                i++;
+                g_startup_width = atoi(argv[++i]);
+            }
+        }
+        else if (_stricmp(argv[i], "-h") == 0) {
+            if (i + 1 < argc) {
+                g_startup_height = atoi(argv[++i]);
             }
         }
     }
+}
+
+static void PreParse_GetResolution(int* width, int* height) {
+    FILE* file = fopen("cvars.txt", "r");
+    if (!file) {
+        return;
+    }
+
+    char line[256];
+    char name[64];
+    char value_str[128];
+    while (fgets(line, sizeof(line), file)) {
+        if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value_str) == 2) {
+            if (_stricmp(name, "r_width") == 0) {
+                *width = atoi(value_str);
+            }
+            else if (_stricmp(name, "r_height") == 0) {
+                *height = atoi(value_str);
+            }
+        }
+    }
+    fclose(file);
 }
 
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
@@ -4045,17 +4079,16 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
     if (g_start_fullscreen && !g_start_windowed) {
         window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     }
-    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, window_flags);
+    PreParse_GetResolution(&g_startup_width, &g_startup_height);
+    for (int i = 1; i < argc; ++i) {
+        if (_stricmp(argv[i], "-w") == 0 && i + 1 < argc) g_startup_width = atoi(argv[++i]);
+        if (_stricmp(argv[i], "-h") == 0 && i + 1 < argc) g_startup_height = atoi(argv[++i]);
+    }
+    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE; glewInit();
     GL_InitDebugOutput();
     init_engine(window, context);
-    for (int i = 1; i < argc; ++i) {
-        if ((_stricmp(argv[i], "-w") == 0 || _stricmp(argv[i], "-h") == 0)) {
-            Console_Printf("TODO: Implement -w and -h command line arguments.");
-            if (i + 1 < argc) i++;
-        }
-    }
 
     if (g_start_with_console) {
         Console_Toggle();
@@ -4157,7 +4190,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 mat4_multiply(&view, &view, &bob_matrix);
             }
             float fov_degrees = Cvar_GetFloat("fov_vertical");
-            Mat4 projection = mat4_perspective(fov_degrees * (M_PI / 180.f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 1000.f);
+            Mat4 projection = mat4_perspective(fov_degrees * (M_PI / 180.f), (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);
 
@@ -4187,9 +4220,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             render_lighting_composite_pass(&view, &projection);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            const int LOW_RES_WIDTH = WINDOW_WIDTH / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-            const int LOW_RES_HEIGHT = WINDOW_HEIGHT / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             if(Cvar_GetInt("r_skybox")) {
                render_skybox(&view, &projection);
             }

@@ -45,9 +45,6 @@
 extern "C" {
 #endif
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
-
 #define GEOMETRY_PASS_DOWNSAMPLE_FACTOR 1.1
 
 #define MAX_LIGHTS 256
@@ -531,6 +528,8 @@ extern "C" {
         float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
         Camera camera;
         PhysicsWorldHandle physicsWorld;
+        int width;
+        int height;
         int active_camera_brush_index;
         float camera_transition_timer;
         Vec3 camera_original_pos;
