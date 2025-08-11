@@ -870,6 +870,10 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     Brush* b = &scene->brushes[scene->numBrushes];
     memset(b, 0, sizeof(Brush));
     Brush_DeepCopy(b, preview);
+    for (int i = 0; i < b->numFaces; i++) {
+        b->faces[i].isGrouped = false;
+        b->faces[i].groupName[0] = '\0';
+    }
     b->vao = 0; b->vbo = 0;
     b->mass = 0.0f;
     b->isPhysicsEnabled = true;
