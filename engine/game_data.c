@@ -48,6 +48,7 @@ static TGD_PropertyType string_to_prop_type(const char* type_str) {
     if (_stricmp(type_str, "particle") == 0) return TGD_PROP_PARTICLE;
     if (_stricmp(type_str, "choices") == 0) return TGD_PROP_CHOICES;
     if (_stricmp(type_str, "texture") == 0) return TGD_PROP_TEXTURE;
+    if (_stricmp(type_str, "entities") == 0) return TGD_PROP_ENTITIES;
     return TGD_PROP_STRING;
 }
 

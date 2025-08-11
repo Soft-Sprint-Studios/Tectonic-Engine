@@ -45,7 +45,8 @@ typedef enum {
     TGD_PROP_SOUND,
     TGD_PROP_PARTICLE,
     TGD_PROP_CHOICES,
-    TGD_PROP_TEXTURE
+    TGD_PROP_TEXTURE,
+    TGD_PROP_ENTITIES
 } TGD_PropertyType;
 
 typedef struct {

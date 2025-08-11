@@ -7792,6 +7792,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (brush_def) {
             UI_Separator();
             UI_Text("Properties");
+
+            const char** target_names = NULL;
+            int num_targets = 0;
+            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->objects[k].targetname; }
+            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->brushes[k].targetname; }
+            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->lights[k].targetname; }
+            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->soundEntities[k].targetname; }
+            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->particleEmitters[k].targetname; }
+            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->videoPlayers[k].targetname; }
+            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->sprites[k].targetname; }
+            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->logicEntities[k].targetname; }
+
             for (int i = 0; i < brush_def->num_properties; ++i) {
                 const TGD_Property* prop = &brush_def->properties[i];
                 if (i >= b->numProperties) continue;
@@ -7831,6 +7843,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     }
                     break;
                 }
+                case TGD_PROP_ENTITIES: {
+                    int current_item = -1;
+                    for (int k = 0; k < num_targets; ++k) {
+                        if (strcmp(b->properties[i].value, target_names[k]) == 0) {
+                            current_item = k;
+                            break;
+                        }
+                    }
+                    if (UI_Combo(prop->display_name, &current_item, target_names, num_targets, -1)) {
+                        if (current_item >= 0) {
+                            strncpy(b->properties[i].value, target_names[current_item], sizeof(b->properties[i].value) - 1);
+                        }
+                    }
+                    break;
+                }
                 default:
                     UI_InputText(prop->display_name, b->properties[i].value, sizeof(b->properties[i].value));
                     break;
@@ -7839,6 +7866,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
                 UI_PopID();
             }
+            if (target_names) free(target_names);
             RenderIOEditor(ENTITY_BRUSH, primary->index);
         }
         else {
@@ -8099,6 +8127,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
         if (def) {
             UI_Text("Properties");
+
+            const char** target_names = NULL;
+            int num_targets = 0;
+            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->objects[k].targetname; }
+            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->brushes[k].targetname; }
+            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->lights[k].targetname; }
+            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->soundEntities[k].targetname; }
+            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->particleEmitters[k].targetname; }
+            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->videoPlayers[k].targetname; }
+            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->sprites[k].targetname; }
+            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->logicEntities[k].targetname; }
+
             for (int i = 0; i < ent->numProperties; ++i) {
                 const TGD_Property* prop = &def->properties[i];
                 UI_PushID(i);
@@ -8144,6 +8184,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     }
                     break;
                 }
+                case TGD_PROP_ENTITIES: {
+                    int current_item = -1;
+                    for (int k = 0; k < num_targets; ++k) {
+                        if (strcmp(ent->properties[i].value, target_names[k]) == 0) {
+                            current_item = k;
+                            break;
+                        }
+                    }
+                    if (UI_Combo(prop->display_name, &current_item, target_names, num_targets, -1)) {
+                        if (current_item >= 0) {
+                            strncpy(ent->properties[i].value, target_names[current_item], sizeof(ent->properties[i].value) - 1);
+                        }
+                    }
+                    break;
+                }
                 default:
                     UI_InputText(prop->display_name, ent->properties[i].value, sizeof(ent->properties[i].value));
                     break;
@@ -8152,6 +8207,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Edit Logic Property"); }
                 UI_PopID();
             }
+            if (target_names) free(target_names);
             RenderIOEditor(ENTITY_LOGIC, primary->index);
         }
     }

@@ -221,7 +221,7 @@
 
 @SolidClass = trigger_teleport
 [
-    target(string) : "Target" = ""
+    target(entities) : "Target" = ""
 ]
 
 @SolidClass = trigger_hurt
@@ -381,7 +381,7 @@
 
 @PointClass = env_beam
 [
-    target(string) : "Target Entity" = ""
+    target(entities) : "Target Entity" = ""
     color(color) : "Beam Color" = "1.0 1.0 1.0"
     width(float) : "Beam Width" = "2.0"
     starton(checkbox) : "Start On" = "1"
@@ -406,7 +406,7 @@
 
 @PointClass = env_cable
 [
-    Target(string) : "Target Entity" = ""
+    Target(entities) : "Target Entity" = ""
     Depth(float) : "Depth" = "20.0"
     Width(float) : "Width" = "0.1"
     Segments(integer) : "Segments" = "16"
