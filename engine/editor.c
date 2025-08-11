@@ -2337,24 +2337,28 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         if (g_EditorState.selected_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE) {
-            g_EditorState.is_dragging_selected_brush_handle = true;
-            g_EditorState.selected_brush_active_handle = g_EditorState.selected_brush_hovered_handle;
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            return;
+            if (primary && primary->type == ENTITY_BRUSH) {
+                g_EditorState.is_dragging_selected_brush_handle = true;
+                g_EditorState.selected_brush_active_handle = g_EditorState.selected_brush_hovered_handle;
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                return;
+            }
         }
         else if (g_EditorState.is_hovering_selected_brush_body && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
-            g_EditorState.is_dragging_selected_brush_body = true;
-            g_EditorState.selected_brush_drag_body_view = active_viewport;
-            Vec3 raw_start_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
-            if (g_EditorState.snap_to_grid) {
-                raw_start_mouse_world.x = SnapValue(raw_start_mouse_world.x, g_EditorState.grid_size);
-                raw_start_mouse_world.y = SnapValue(raw_start_mouse_world.y, g_EditorState.grid_size);
-                raw_start_mouse_world.z = SnapValue(raw_start_mouse_world.z, g_EditorState.grid_size);
+            if (primary && primary->type == ENTITY_BRUSH) {
+                g_EditorState.is_dragging_selected_brush_body = true;
+                g_EditorState.selected_brush_drag_body_view = active_viewport;
+                Vec3 raw_start_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
+                if (g_EditorState.snap_to_grid) {
+                    raw_start_mouse_world.x = SnapValue(raw_start_mouse_world.x, g_EditorState.grid_size);
+                    raw_start_mouse_world.y = SnapValue(raw_start_mouse_world.y, g_EditorState.grid_size);
+                    raw_start_mouse_world.z = SnapValue(raw_start_mouse_world.z, g_EditorState.grid_size);
+                }
+                g_EditorState.selected_brush_drag_body_start_mouse_world = raw_start_mouse_world;
+                g_EditorState.selected_brush_drag_body_start_brush_pos = scene->brushes[primary->index].pos;
+                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                return;
             }
-            g_EditorState.selected_brush_drag_body_start_mouse_world = raw_start_mouse_world;
-            g_EditorState.selected_brush_drag_body_start_brush_pos = scene->brushes[primary->index].pos;
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            return;
         }
         if (g_EditorState.is_in_brush_creation_mode && g_EditorState.preview_brush_hovered_handle != PREVIEW_BRUSH_HANDLE_NONE && active_viewport >= VIEW_TOP_XZ && active_viewport <= VIEW_SIDE_YZ) {
             g_EditorState.is_dragging_preview_brush_handle = true;
