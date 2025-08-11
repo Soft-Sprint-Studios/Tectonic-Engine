@@ -4136,22 +4136,41 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 };
 
                 for (int h_idx = 0; h_idx < 6; ++h_idx) {
-                    Vec3 handle_world_pos = mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
-                    float dist_sq = 0.0f;
-
+                    bool is_handle_relevant_to_view = false;
                     if (i == VIEW_TOP_XZ) {
-                        dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                        if (h_idx == PREVIEW_BRUSH_HANDLE_MIN_X || h_idx == PREVIEW_BRUSH_HANDLE_MAX_X || h_idx == PREVIEW_BRUSH_HANDLE_MIN_Z || h_idx == PREVIEW_BRUSH_HANDLE_MAX_Z) {
+                            is_handle_relevant_to_view = true;
+                        }
                     }
                     else if (i == VIEW_FRONT_XY) {
-                        dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.y - handle_world_pos.y, 2);
+                        if (h_idx == PREVIEW_BRUSH_HANDLE_MIN_X || h_idx == PREVIEW_BRUSH_HANDLE_MAX_X || h_idx == PREVIEW_BRUSH_HANDLE_MIN_Y || h_idx == PREVIEW_BRUSH_HANDLE_MAX_Y) {
+                            is_handle_relevant_to_view = true;
+                        }
                     }
                     else if (i == VIEW_SIDE_YZ) {
-                        dist_sq = powf(mouse_world.y - handle_world_pos.y, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                        if (h_idx == PREVIEW_BRUSH_HANDLE_MIN_Y || h_idx == PREVIEW_BRUSH_HANDLE_MAX_Y || h_idx == PREVIEW_BRUSH_HANDLE_MIN_Z || h_idx == PREVIEW_BRUSH_HANDLE_MAX_Z) {
+                            is_handle_relevant_to_view = true;
+                        }
                     }
 
-                    if (dist_sq <= handle_pick_dist_sq) {
-                        g_EditorState.selected_brush_hovered_handle = (PreviewBrushHandleType)h_idx;
-                        return;
+                    if (is_handle_relevant_to_view) {
+                        Vec3 handle_world_pos = mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
+                        float dist_sq = 0.0f;
+
+                        if (i == VIEW_TOP_XZ) {
+                            dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                        }
+                        else if (i == VIEW_FRONT_XY) {
+                            dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.y - handle_world_pos.y, 2);
+                        }
+                        else if (i == VIEW_SIDE_YZ) {
+                            dist_sq = powf(mouse_world.y - handle_world_pos.y, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
+                        }
+
+                        if (dist_sq <= handle_pick_dist_sq) {
+                            g_EditorState.selected_brush_hovered_handle = (PreviewBrushHandleType)h_idx;
+                            return;
+                        }
                     }
                 }
             }
@@ -4829,13 +4848,32 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             };
 
             for (int i = 0; i < 6; ++i) {
-                bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
-                bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
-                float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
-                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-                glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
-                glDrawArrays(GL_POINTS, 0, 1);
+                bool should_draw = false;
+                if (type == VIEW_TOP_XZ) {
+                    if (i == PREVIEW_BRUSH_HANDLE_MIN_X || i == PREVIEW_BRUSH_HANDLE_MAX_X || i == PREVIEW_BRUSH_HANDLE_MIN_Z || i == PREVIEW_BRUSH_HANDLE_MAX_Z) {
+                        should_draw = true;
+                    }
+                }
+                else if (type == VIEW_FRONT_XY) {
+                    if (i == PREVIEW_BRUSH_HANDLE_MIN_X || i == PREVIEW_BRUSH_HANDLE_MAX_X || i == PREVIEW_BRUSH_HANDLE_MIN_Y || i == PREVIEW_BRUSH_HANDLE_MAX_Y) {
+                        should_draw = true;
+                    }
+                }
+                else if (type == VIEW_SIDE_YZ) {
+                    if (i == PREVIEW_BRUSH_HANDLE_MIN_Y || i == PREVIEW_BRUSH_HANDLE_MAX_Y || i == PREVIEW_BRUSH_HANDLE_MIN_Z || i == PREVIEW_BRUSH_HANDLE_MAX_Z) {
+                        should_draw = true;
+                    }
+                }
+
+                if (should_draw) {
+                    bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
+                    bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
+                    float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
+                    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                    glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
+                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+                    glDrawArrays(GL_POINTS, 0, 1);
+                }
             }
             glPointSize(1.0f);
             glBindVertexArray(0);
