@@ -47,6 +47,7 @@ uniform vec3 u_underwaterColor;
 uniform bool u_fadeActive;
 uniform float u_fadeAlpha;
 uniform vec3 u_fadeColor;
+uniform float u_red_flash_intensity;
 
 uniform vec3 u_flareLightWorldPos;
 uniform mat4 u_view;
@@ -328,6 +329,19 @@ void main()
 	
     if (u_fadeActive) {
         color = mix(color, u_fadeColor, u_fadeAlpha);
+    }
+	
+    if (u_red_flash_intensity > 0.0) {
+        vec3 red_flash_color = vec3(1.0, 0.1, 0.1);
+
+        float dist = distance(TexCoords, vec2(0.5));
+
+        float vignette_strength = pow(dist * 1.4, 2.5);
+        vignette_strength = clamp(vignette_strength, 0.0, 1.0);
+
+        float mix_factor = u_red_flash_intensity * vignette_strength;
+        
+        color = mix(color, red_flash_color, mix_factor);
     }
 
     FragColor = vec4(color, 1.0);
