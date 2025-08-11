@@ -2092,6 +2092,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
                 ent->runtime_active = (atoi(starton_val) != 0);
             }
+            if (strcmp(ent->classname, "logic_repeat") == 0) {
+                if (atoi(LogicEntity_GetProperty(ent, "StartON", "0")) != 0) {
+                    ent->runtime_active = true;
+                    ent->runtime_float_a = atof(LogicEntity_GetProperty(ent, "delay", "1.0"));
+                    ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
+                }
+            }
             scene->numLogicEntities++;
         }
         else if (strcmp(keyword, "io_connection") == 0) {

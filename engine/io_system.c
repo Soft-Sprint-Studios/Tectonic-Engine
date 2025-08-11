@@ -221,6 +221,20 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
                 else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
             }
+            else if (strcmp(ent->classname, "logic_repeat") == 0) {
+                if (strcmp(inputName, "EnableRepeat") == 0) {
+                    ent->runtime_active = true;
+                    ent->runtime_float_a = atof(LogicEntity_GetProperty(ent, "delay", "1.0"));
+                    ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
+                }
+                else if (strcmp(inputName, "StopRepeat") == 0) {
+                    ent->runtime_active = false;
+                }
+                else if (strcmp(inputName, "ResetRepeat") == 0) {
+                    ent->runtime_active = false;
+                    ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
+                }
+            }
             else if (strcmp(ent->classname, "point_servercommand") == 0) {
                 if (strcmp(inputName, "Command") == 0) {
                     if (parameter && strlen(parameter) > 0) {
@@ -615,6 +629,25 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                     const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
                     const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                     ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
+                }
+            }
+        }
+        else if (strcmp(ent->classname, "logic_repeat") == 0) {
+            if (ent->runtime_active) {
+                ent->runtime_float_a -= deltaTime;
+                if (ent->runtime_float_a <= 0) {
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnRepeat", 0, NULL);
+
+                    if (ent->runtime_int_a != -1) {
+                        ent->runtime_int_a--;
+                    }
+
+                    if (ent->runtime_int_a == 0) {
+                        ent->runtime_active = false;
+                    }
+                    else {
+                        ent->runtime_float_a = atof(LogicEntity_GetProperty(ent, "delay", "1.0"));
+                    }
                 }
             }
         }

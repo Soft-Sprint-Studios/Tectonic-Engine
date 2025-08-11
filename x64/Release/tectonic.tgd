@@ -276,18 +276,17 @@
     output OnGreaterThan ""
 )
 
-@PointClass = logic_counter
+@PointClass = logic_repeat
 [
-    min(integer) : "Min Value" = "0"
-    max(integer) : "Max Value" = "10"
+    delay(float) : "Delay between triggers" = "1.0"
+    repeats(integer) : "Number of repeats" = "-1"
+    StartON(checkbox) : "Start ON" = "0"
 ]
 (
-    input Add ""
-    input Subtract ""
-    input Multiply ""
-    input Divide ""
-    output OnHitMax ""
-    output OnHitMin ""
+    input EnableRepeat "Starts the repeating trigger."
+    input StopRepeat "Stops the repeating trigger."
+    input ResetRepeat "Resets the repeat counter."
+    output OnRepeat "Fires repeatedly."
 )
 
 @PointClass = logic_random
