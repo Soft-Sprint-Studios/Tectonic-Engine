@@ -2396,6 +2396,28 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_drag_has_cloned = false;
+            g_EditorState.gizmo_selection_centroid = (Vec3){ 0 };
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                Vec3 pos;
+                switch (g_EditorState.selections[i].type) {
+                case ENTITY_MODEL: pos = scene->objects[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_BRUSH: pos = scene->brushes[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_LIGHT: pos = scene->lights[g_EditorState.selections[i].index].position; break;
+                case ENTITY_DECAL: pos = scene->decals[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_SOUND: pos = scene->soundEntities[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_PARTICLE_EMITTER: pos = scene->particleEmitters[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_SPRITE: pos = scene->sprites[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
+                case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
+                case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
+                default: pos = (Vec3){ 0 }; break;
+                }
+                g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
+            }
+            if (g_EditorState.num_selections > 0) {
+                g_EditorState.gizmo_selection_centroid = vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
+            }
             if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
             if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
             if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
@@ -3251,14 +3273,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     new_rot = start_rot_eulers;
 
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) {
-                        new_rot.x = start_rot_eulers.x + rot_angle_delta;
+                        new_rot.x += rot_angle_delta;
                     }
                     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) {
-                        new_rot.y = start_rot_eulers.y + rot_angle_delta;
+                        new_rot.y += rot_angle_delta;
                     }
                     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) {
-                        new_rot.z = start_rot_eulers.z + rot_angle_delta;
+                        new_rot.z += rot_angle_delta;
                     }
+                    Vec3 relative_pos = vec3_sub(start_pos, centroid);
+                    Vec3 rotated_relative_pos = mat4_mul_vec3_dir(&delta_rot_matrix, relative_pos);
+                    new_pos = vec3_add(centroid, rotated_relative_pos);
                 }
 
                 switch (sel->type) {
