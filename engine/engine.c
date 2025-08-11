@@ -93,6 +93,8 @@ static bool g_screenshot_requested = false;
 static char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
 
+bool g_player_input_disabled = false;
+
 static bool g_start_fullscreen = false;
 static bool g_start_windowed = false;
 static bool g_start_with_console = false;
@@ -992,6 +994,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     IPC_Init();
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
+    g_engine->active_camera_brush_index = -1;
+    g_player_input_disabled = false;
     g_engine->prev_health = g_engine->camera.health;
     g_engine->red_flash_intensity = 0.0f;
     g_engine->prev_player_y_velocity = 0.0f;
@@ -1544,7 +1548,7 @@ void process_input() {
         if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
             if (event.type == SDL_MOUSEMOTION) {
                 bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT));
-                bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible());
+                bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
 
                 if (can_look_in_game || can_look_in_editor) {
                     float sensitivity = Cvar_GetFloat("sensitivity");
@@ -1562,6 +1566,11 @@ void process_input() {
 
         bool noclip = Cvar_GetInt("noclip");
         float speed = (noclip ? 10.0f : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
+
+        if (g_player_input_disabled) {
+            if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
+            return;
+        }
 
         if (noclip) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -1709,6 +1718,37 @@ void update_state() {
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
     LogicSystem_Update(&g_scene, g_engine->deltaTime);
     Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
+    if (g_engine->active_camera_brush_index != -1) {
+        Brush* cam_brush = &g_scene.brushes[g_engine->active_camera_brush_index];
+        const char* target_name = Brush_GetProperty(cam_brush, "target", "");
+        Vec3 target_pos;
+        Vec3 target_angles;
+
+        if (IO_FindNamedEntity(&g_scene, target_name, &target_pos, &target_angles)) {
+            float moveto_time = atof(Brush_GetProperty(cam_brush, "moveto", "2.0"));
+            g_engine->camera_transition_timer += g_engine->unscaledDeltaTime;
+
+            float t = 1.0f;
+            if (moveto_time > 0.0f) {
+                t = fminf(g_engine->camera_transition_timer / moveto_time, 1.0f);
+            }
+
+            g_engine->camera.position = vec3_lerp(g_engine->camera_original_pos, target_pos, t);
+            g_engine->camera.yaw = g_engine->camera_original_yaw + (target_angles.y * (M_PI / 180.0f) - g_engine->camera_original_yaw) * t;
+            g_engine->camera.pitch = g_engine->camera_original_pitch + (target_angles.x * (M_PI / 180.0f) - g_engine->camera_original_pitch) * t;
+
+            if (t >= 1.0f) {
+                float hold_time = atof(Brush_GetProperty(cam_brush, "holdtime", "5.0"));
+                if (g_engine->camera_transition_timer >= moveto_time + hold_time) {
+                    ExecuteInput(cam_brush->targetname, "Disable", "", &g_scene, g_engine);
+                    IO_FireOutput(ENTITY_BRUSH, g_engine->active_camera_brush_index, "OnEnd", g_engine->lastFrame, NULL);
+                }
+            }
+        }
+        else {
+            ExecuteInput(cam_brush->targetname, "Disable", "", &g_scene, g_engine);
+        }
+    }
     Weapons_Update(g_engine->deltaTime);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
@@ -1854,6 +1894,11 @@ void update_state() {
                     g_engine->camera.position = target_pos;
                     g_engine->camera.yaw = target_angles.y * (M_PI / 180.0f);
                     g_engine->camera.pitch = target_angles.x * (M_PI / 180.0f);
+                }
+            }
+            else if (strcmp(b->classname, "trigger_camera") == 0) {
+                if (g_engine->active_camera_brush_index != i) {
+                    ExecuteInput(b->targetname, "Enable", "", &g_scene, g_engine);
                 }
             }
         }
@@ -2021,7 +2066,7 @@ void update_state() {
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
     if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
-    if (!noclip) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
+    if (!noclip && !g_player_input_disabled) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
     g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
     }
     if (!noclip) {

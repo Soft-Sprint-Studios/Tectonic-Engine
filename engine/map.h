@@ -529,6 +529,11 @@ extern "C" {
         float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
         Camera camera;
         PhysicsWorldHandle physicsWorld;
+        int active_camera_brush_index;
+        float camera_transition_timer;
+        Vec3 camera_original_pos;
+        float camera_original_yaw;
+        float camera_original_pitch;
     } Engine;
 
     void Light_InitShadowMap(Light* light);

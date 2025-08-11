@@ -34,6 +34,7 @@ IOConnection g_io_connections[MAX_IO_CONNECTIONS];
 int g_num_io_connections = 0;
 static PendingEvent g_pending_events[MAX_PENDING_EVENTS];
 static int g_num_pending_events = 0;
+extern g_player_input_disabled;
 
 void IO_Init() {
     IO_Clear();
@@ -453,6 +454,27 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         }
                         else if (b->door_state == DOOR_STATE_OPEN || b->door_state == DOOR_STATE_OPENING) {
                             b->door_state = DOOR_STATE_CLOSING;
+                        }
+                    }
+                }
+                else if (strcmp(b->classname, "trigger_camera") == 0) {
+                    if (strcmp(inputName, "Enable") == 0) {
+                        if (engine->active_camera_brush_index == -1) {
+                            engine->active_camera_brush_index = i;
+                            engine->camera_transition_timer = 0.0f;
+                            engine->camera_original_pos = engine->camera.position;
+                            engine->camera_original_yaw = engine->camera.yaw;
+                            engine->camera_original_pitch = engine->camera.pitch;
+                            g_player_input_disabled = true;
+                        }
+                    }
+                    else if (strcmp(inputName, "Disable") == 0) {
+                        if (engine->active_camera_brush_index == i) {
+                            engine->active_camera_brush_index = -1;
+                            g_player_input_disabled = false;
+                            engine->camera.position = engine->camera_original_pos;
+                            engine->camera.yaw = engine->camera_original_yaw;
+                            engine->camera.pitch = engine->camera_original_pitch;
                         }
                     }
                 }

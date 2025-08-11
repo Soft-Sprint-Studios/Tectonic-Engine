@@ -229,6 +229,18 @@
     damage(float) : "Damage Per Second" = "10"
 ]
 
+@SolidClass = trigger_camera
+[
+    target(entities) : "Target Camera" = ""
+    moveto(float) : "Move To Time" = "2.0"
+    holdtime(float) : "Hold Time" = "5.0"
+]
+(
+    input Enable "Starts the camera sequence."
+    input Disable "Stops the camera sequence and returns to player view."
+    output OnEnd "Fires when the camera sequence is finished (after hold time)."
+)
+
 // ==================================================================
 // Point Entities
 // ==================================================================
