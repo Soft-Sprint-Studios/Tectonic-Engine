@@ -421,6 +421,22 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         else if (b->plat_state == PLAT_STATE_BOTTOM) b->plat_state = PLAT_STATE_UP;
                     }
                 }
+                else if (strcmp(b->classname, "func_door") == 0) {
+                    if (strcmp(inputName, "Open") == 0) {
+                        b->door_state = DOOR_STATE_OPENING;
+                    }
+                    else if (strcmp(inputName, "Close") == 0) {
+                        b->door_state = DOOR_STATE_CLOSING;
+                    }
+                    else if (strcmp(inputName, "Toggle") == 0) {
+                        if (b->door_state == DOOR_STATE_CLOSED || b->door_state == DOOR_STATE_CLOSING) {
+                            b->door_state = DOOR_STATE_OPENING;
+                        }
+                        else if (b->door_state == DOOR_STATE_OPEN || b->door_state == DOOR_STATE_OPENING) {
+                            b->door_state = DOOR_STATE_CLOSING;
+                        }
+                    }
+                }
                 if (strcmp(inputName, "Enable") == 0) {
                     b->runtime_active = true;
                 }

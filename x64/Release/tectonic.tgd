@@ -84,6 +84,22 @@
     input Toggle "Toggle the platform's movement."
 )
 
+@SolidClass = func_door
+[
+    speed(float) : "Speed" = "100"
+    direction(string) : "Direction (Pitch Yaw Roll)" = "0 90 0"
+    distance(float) : "Move Distance" = "0"
+    StartOpen(checkbox) : "Start Open" = "0"
+    OpenOnUse(checkbox) : "Open On Use" = "1"
+]
+(
+    input Open "Open the door."
+    input Close "Close the door."
+    input Toggle "Toggle the door's state."
+    output OnOpened "Fires when the door has finished opening."
+    output OnClosed "Fires when the door has finished closing."
+)
+
 @SolidClass = func_rotating
 [
     speed(float) : "Rotation Speed (deg/sec)" = "10"

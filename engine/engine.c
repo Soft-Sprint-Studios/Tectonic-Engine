@@ -1450,6 +1450,35 @@ void process_input() {
                             }
                         }
                     }
+                    if (strcmp(brush->classname, "func_door") == 0) {
+                        if (atoi(Brush_GetProperty(brush, "OpenOnUse", "1")) == 1) {
+                            Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                            Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                            if (brush->numVertices > 0) {
+                                for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
+                                    brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
+                                    brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
+                                    brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
+                                    brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
+                                    brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
+                                    brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
+                                }
+                            }
+                            else {
+                                brush_local_min = (Vec3){ -0.1f, -0.1f, -0.1f };
+                                brush_local_max = (Vec3){ 0.1f,  0.1f,  0.1f };
+                            }
+                            float t;
+                            if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                                if (brush->door_state == DOOR_STATE_CLOSED || brush->door_state == DOOR_STATE_CLOSING) {
+                                    brush->door_state = DOOR_STATE_OPENING;
+                                }
+                                else if (brush->door_state == DOOR_STATE_OPEN || brush->door_state == DOOR_STATE_OPENING) {
+                                    brush->door_state = DOOR_STATE_CLOSING;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -2019,6 +2048,83 @@ void update_state() {
     }
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_door") == 0) {
+            if (vec3_length_sq(b->door_move_dir) < 0.001f) {
+                b->door_start_pos = b->pos;
+                Vec3 move_angles;
+                sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &move_angles.x, &move_angles.y, &move_angles.z);
+
+                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, move_angles, (Vec3) { 1, 1, 1 });
+                b->door_move_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
+                vec3_normalize(&b->door_move_dir);
+
+                float move_dist = atof(Brush_GetProperty(b, "distance", "0"));
+
+                if (move_dist <= 0) {
+                    Vec3 min_aabb_local = { FLT_MAX, FLT_MAX, FLT_MAX };
+                    Vec3 max_aabb_local = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                    for (int v = 0; v < b->numVertices; ++v) {
+                        min_aabb_local.x = fminf(min_aabb_local.x, b->vertices[v].pos.x);
+                        min_aabb_local.y = fminf(min_aabb_local.y, b->vertices[v].pos.y);
+                        min_aabb_local.z = fminf(min_aabb_local.z, b->vertices[v].pos.z);
+                        max_aabb_local.x = fmaxf(max_aabb_local.x, b->vertices[v].pos.x);
+                        max_aabb_local.y = fmaxf(max_aabb_local.y, b->vertices[v].pos.y);
+                        max_aabb_local.z = fmaxf(max_aabb_local.z, b->vertices[v].pos.z);
+                    }
+                    Vec3 size = vec3_sub(max_aabb_local, min_aabb_local);
+                    Vec3 extent_x = vec3_muls((Vec3) { 1, 0, 0 }, size.x);
+                    Vec3 extent_y = vec3_muls((Vec3) { 0, 1, 0 }, size.y);
+                    Vec3 extent_z = vec3_muls((Vec3) { 0, 0, 1 }, size.z);
+                    move_dist = fabsf(vec3_dot(extent_x, b->door_move_dir)) + fabsf(vec3_dot(extent_y, b->door_move_dir)) + fabsf(vec3_dot(extent_z, b->door_move_dir));
+                }
+
+                b->door_end_pos = vec3_add(b->door_start_pos, vec3_muls(b->door_move_dir, move_dist));
+
+                if (atoi(Brush_GetProperty(b, "StartOpen", "0")) == 1) {
+                    b->pos = b->door_end_pos;
+                    b->door_state = DOOR_STATE_OPEN;
+                }
+                else {
+                    b->door_state = DOOR_STATE_CLOSED;
+                }
+                Brush_UpdateMatrix(b);
+                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+            }
+
+            float speed = atof(Brush_GetProperty(b, "speed", "100"));
+            if (b->door_state == DOOR_STATE_OPENING) {
+                Vec3 to_end = vec3_sub(b->door_end_pos, b->pos);
+                float dist_to_end = vec3_length(to_end);
+                float move_dist = speed * g_engine->deltaTime;
+
+                if (move_dist >= dist_to_end) {
+                    b->pos = b->door_end_pos;
+                    b->door_state = DOOR_STATE_OPEN;
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnOpened", g_engine->lastFrame, NULL);
+                }
+                else {
+                    b->pos = vec3_add(b->pos, vec3_muls(b->door_move_dir, move_dist));
+                }
+                Brush_UpdateMatrix(b);
+                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+            }
+            else if (b->door_state == DOOR_STATE_CLOSING) {
+                Vec3 to_start = vec3_sub(b->door_start_pos, b->pos);
+                float dist_to_start = vec3_length(to_start);
+                float move_dist = speed * g_engine->deltaTime;
+
+                if (move_dist >= dist_to_start) {
+                    b->pos = b->door_start_pos;
+                    b->door_state = DOOR_STATE_CLOSED;
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnClosed", g_engine->lastFrame, NULL);
+                }
+                else {
+                    b->pos = vec3_add(b->pos, vec3_muls(vec3_muls(b->door_move_dir, -1.0f), move_dist));
+                }
+                Brush_UpdateMatrix(b);
+                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+            }
+        }
         if (strcmp(b->classname, "func_rotating") == 0 && b->runtime_active) {
             bool use_accel = atoi(Brush_GetProperty(b, "AccDcc", "0")) != 0;
 

@@ -303,6 +303,13 @@ extern "C" {
     } KeyValue;
 
     typedef enum {
+        DOOR_STATE_CLOSED,
+        DOOR_STATE_OPENING,
+        DOOR_STATE_OPEN,
+        DOOR_STATE_CLOSING
+    } DoorState;
+
+    typedef enum {
         PLAT_STATE_TOP,
         PLAT_STATE_BOTTOM,
         PLAT_STATE_UP,
@@ -334,6 +341,10 @@ extern "C" {
         KeyValue properties[MAX_ENTITY_PROPERTIES];
         int numProperties;
 
+        DoorState door_state;
+        Vec3 door_start_pos;
+        Vec3 door_end_pos;
+        Vec3 door_move_dir;
         bool runtime_playerIsTouching;
         bool runtime_hasFired;
         bool runtime_active;

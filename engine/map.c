@@ -891,6 +891,9 @@ bool Brush_IsSolid(const Brush* b) {
         if (strcmp(b->classname, "func_plat") == 0) {
             return true;
         }
+        if (strcmp(b->classname, "func_door") == 0) {
+            return true;
+        }
         if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
