@@ -433,3 +433,20 @@
     WindSpeed(float) : "Wind Speed" = "1.0"
     WindDirection(string) : "Wind Direction (Pitch Yaw Roll)" = "0 0 0"
 ]
+
+@PointClass = env_overlay
+[
+    material(texture) : "Overlay Material" = ""
+    starton(checkbox) : "Start ON" = "1"
+    rendermode(choices) : "Render Mode" = "0"
+    [
+        0 : "Additive"
+        1 : "Alpha Mask"
+        2 : "Alpha Blend"
+    ]
+]
+(
+    input TurnOn "Makes the overlay visible."
+    input TurnOff "Makes the overlay invisible."
+    input Toggle "Toggles the overlay's visibility."
+)

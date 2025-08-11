@@ -2099,6 +2099,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
                 }
             }
+            if (strcmp(ent->classname, "env_overlay") == 0) {
+                const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
+                ent->runtime_active = (atoi(starton_val) != 0);
+            }
             scene->numLogicEntities++;
         }
         else if (strcmp(keyword, "io_connection") == 0) {

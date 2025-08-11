@@ -235,6 +235,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
                 }
             }
+            else if (strcmp(ent->classname, "env_overlay") == 0) {
+                if (strcmp(inputName, "TurnOn") == 0) ent->runtime_active = true;
+                else if (strcmp(inputName, "TurnOff") == 0) ent->runtime_active = false;
+                else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
+            }
             else if (strcmp(ent->classname, "point_servercommand") == 0) {
                 if (strcmp(inputName, "Command") == 0) {
                     if (parameter && strlen(parameter) > 0) {

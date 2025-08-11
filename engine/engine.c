@@ -56,6 +56,7 @@
 #include "game_data.h"
 #include "beams.h"
 #include "cables.h"
+#include "overlay.h"
 #include "decals.h"
 #include "glow.h"
 #include "engine_api.h"
@@ -1033,6 +1034,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     DSP_Reverb_Thread_Init();
     Beams_Init();
     Cable_Init();
+    Overlay_Init();
     Glow_Init();
     Decals_Init(&g_renderer);
     init_scene();
@@ -3472,6 +3474,7 @@ void cleanup() {
     glDeleteBuffers(1, &g_renderer.exposureSSBO);
     Beams_Shutdown();
     Cable_Shutdown();
+    Overlay_Shutdown();
     Glow_Shutdown();
     Decals_Shutdown(&g_renderer);
     VideoPlayer_ShutdownSystem();
@@ -4239,6 +4242,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if (!debug_view_active) {
                 present_final_image(source_fbo);
             }
+            Overlay_Render(&g_scene, g_engine);
             Mat4 currentViewProjection;
             mat4_multiply(&currentViewProjection, &projection, &view);
             g_renderer.prevViewProjection = currentViewProjection;
