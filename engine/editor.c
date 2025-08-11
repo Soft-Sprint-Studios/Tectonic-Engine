@@ -7981,6 +7981,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Light Static");
         }
+        if (UI_Checkbox("Static Shadow Map", &light->is_static_shadow)) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+            light->has_rendered_static_shadow = false;
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Static Shadow");
+        }
         UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
     }
     else if (primary && primary->type == ENTITY_DECAL) {

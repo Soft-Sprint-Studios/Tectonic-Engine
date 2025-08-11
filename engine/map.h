@@ -65,7 +65,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 12
-#define MAP_VERSION 12
+#define MAP_VERSION 13
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -89,6 +89,8 @@ extern "C" {
         float base_intensity;
         bool is_on;
         bool is_static;
+        bool is_static_shadow;
+        bool has_rendered_static_shadow;
         float radius;
         float cutOff;
         float outerCutOff;

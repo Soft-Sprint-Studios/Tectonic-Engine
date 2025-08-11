@@ -2506,6 +2506,9 @@ void render_shadows() {
     glViewport(0, 0, shadow_map_size, shadow_map_size);
     for (int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
+        if (light->is_static_shadow && light->has_rendered_static_shadow) {
+            continue;
+        }
         if (light->is_static) continue;
         if (light->intensity <= 0.0f) continue;
         if (vec3_length_sq(vec3_sub(light->position, g_engine->camera.position)) > max_shadow_dist_sq) continue;
@@ -2538,6 +2541,9 @@ void render_shadows() {
             if (!g_scene.objects[j].casts_shadows) continue; render_object(current_shader, &g_scene.objects[j], false, NULL);
         }
         for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false, NULL);
+        if (light->is_static_shadow) {
+            light->has_rendered_static_shadow = true;
+        }
     }
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
