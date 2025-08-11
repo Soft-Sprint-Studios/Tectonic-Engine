@@ -229,6 +229,14 @@
     damage(float) : "Damage Per Second" = "10"
 ]
 
+@SolidClass = trigger_killplayer
+[
+]
+
+@SolidClass = trigger_paralyzeplayer
+[
+]
+
 @SolidClass = trigger_camera
 [
     target(entities) : "Target Camera" = ""

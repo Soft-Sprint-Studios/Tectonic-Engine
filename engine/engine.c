@@ -1901,6 +1901,9 @@ void update_state() {
                     ExecuteInput(b->targetname, "Enable", "", &g_scene, g_engine);
                 }
             }
+            else if (strcmp(b->classname, "trigger_paralyzeplayer") == 0) {
+                g_player_input_disabled = true;
+            }
         }
         else if (strcmp(b->classname, "trigger_autosave") == 0) {
             if (!b->runtime_hasFired) {
