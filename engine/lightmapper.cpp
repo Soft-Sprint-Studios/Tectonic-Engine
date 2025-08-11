@@ -1578,35 +1578,32 @@ namespace
     {
         Vec3 accumulated_color = { 0, 0, 0 };
         out_indirect_dir = { 0, 0, 0 };
-        std::uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
 
         if (m_bounces <= 0 || num_samples <= 0)
         {
             return accumulated_color;
         }
 
+        std::uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
         constexpr int BATCH_SIZE = 16;
-        int num_full_batches = num_samples / BATCH_SIZE;
+        int num_batches = (num_samples + BATCH_SIZE - 1) / BATCH_SIZE;
 
         RTCIntersectArguments args;
         rtcInitIntersectArguments(&args);
         args.feature_mask = RTC_FEATURE_FLAG_NONE;
 
-        for (int i = 0; i < num_full_batches; ++i)
+        for (int i = 0; i < num_batches; ++i)
         {
             RTCRayHit16 rayhit16;
             int valid[BATCH_SIZE];
-            Vec3 batch_first_bounce_dir[BATCH_SIZE];
-            Vec3 path_radiance[BATCH_SIZE];
+            Vec3 first_bounce_dirs[BATCH_SIZE];
+            int current_batch_size = ((i == num_batches - 1) && (num_samples % BATCH_SIZE != 0)) ? (num_samples % BATCH_SIZE) : BATCH_SIZE;
 
-            for (int k = 0; k < BATCH_SIZE; ++k)
+            for (int k = 0; k < current_batch_size; ++k)
             {
                 valid[k] = -1;
-                path_radiance[k] = { 0.0f, 0.0f, 0.0f };
-
                 Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(normal, rng);
-                batch_first_bounce_dir[k] = bounce_dir;
-
+                first_bounce_dirs[k] = bounce_dir;
                 Vec3 trace_origin = vec3_add(origin, vec3_muls(normal, SHADOW_BIAS));
 
                 rayhit16.ray.org_x[k] = trace_origin.x;
@@ -1624,115 +1621,92 @@ namespace
 
             rtcIntersect16(valid, m_rtc_scene, &rayhit16, &args);
 
-            for (int k = 0; k < BATCH_SIZE; ++k)
+            for (int k = 0; k < current_batch_size; ++k)
             {
                 if (rayhit16.hit.geomID[k] == RTC_INVALID_GEOMETRY_ID)
                 {
                     continue;
                 }
 
-                unsigned int primID = rayhit16.hit.primID[k];
+                Vec3 path_radiance = { 0, 0, 0 };
+                Vec3 throughput = { 1.0f, 1.0f, 1.0f };
 
-                if (primID < m_primID_to_face_map.size()) {
-                    const BrushFace* hit_face = m_primID_to_face_map[primID];
-                    if (hit_face && hit_face->material) {
-                        auto it = m_emissive_materials.find(hit_face->material);
-                        if (it != m_emissive_materials.end()) {
-                            const Vec3& color = it->second.first;
-                            const float intensity = it->second.second;
-                            path_radiance[k] = vec3_muls(color, intensity);
-                            continue;
-                        }
-                    }
-                }
-
-                Vec3 hit_pos = {
+                Vec3 current_pos = {
                     rayhit16.ray.org_x[k] + rayhit16.ray.tfar[k] * rayhit16.ray.dir_x[k],
                     rayhit16.ray.org_y[k] + rayhit16.ray.tfar[k] * rayhit16.ray.dir_y[k],
                     rayhit16.ray.org_z[k] + rayhit16.ray.tfar[k] * rayhit16.ray.dir_z[k]
                 };
+                Vec3 current_normal = { rayhit16.hit.Ng_x[k], rayhit16.hit.Ng_y[k], rayhit16.hit.Ng_z[k] };
+                vec3_normalize(&current_normal);
 
-                Vec3 hit_normal = { rayhit16.hit.Ng_x[k], rayhit16.hit.Ng_y[k], rayhit16.hit.Ng_z[k] };
-                vec3_normalize(&hit_normal);
+                unsigned int current_primID = rayhit16.hit.primID[k];
 
-                if (vec3_dot({ rayhit16.ray.dir_x[k], rayhit16.ray.dir_y[k], rayhit16.ray.dir_z[k] }, hit_normal) > 0.0f)
-                {
+                if (vec3_dot(first_bounce_dirs[k], current_normal) > 0.0f) {
                     continue;
                 }
 
-                Vec4 reflectivity_at_hit = get_reflectivity_at_hit(primID);
-                Vec3 albedo = { reflectivity_at_hit.x, reflectivity_at_hit.y, reflectivity_at_hit.z };
-
-                Vec3 dummy_dir;
-                Vec3 direct_light = calculate_direct_light(hit_pos, hit_normal, dummy_dir);
-                path_radiance[k] = vec3_mul(direct_light, albedo);
-            }
-
-            for (int k = 0; k < BATCH_SIZE; ++k)
-            {
-                accumulated_color = vec3_add(accumulated_color, path_radiance[k]);
-                out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(batch_first_bounce_dir[k], vec3_length(path_radiance[k])));
-            }
-        }
-
-        int remaining_samples = num_samples % BATCH_SIZE;
-        for (int i = 0; i < remaining_samples; ++i)
-        {
-            Vec3 throughput = { 1.0f, 1.0f, 1.0f };
-            Vec3 path_radiance = { 0, 0, 0 };
-
-            Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(normal, rng);
-            Vec3 trace_origin = vec3_add(origin, vec3_muls(normal, SHADOW_BIAS));
-
-            RTCRayHit rayhit;
-            rayhit.ray.org_x = trace_origin.x;
-            rayhit.ray.org_y = trace_origin.y;
-            rayhit.ray.org_z = trace_origin.z;
-            rayhit.ray.dir_x = bounce_dir.x;
-            rayhit.ray.dir_y = bounce_dir.y;
-            rayhit.ray.dir_z = bounce_dir.z;
-            rayhit.ray.tnear = 0.0f;
-            rayhit.ray.tfar = FLT_MAX;
-            rayhit.ray.mask = -1;
-            rayhit.ray.flags = 0;
-            rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-
-            rtcIntersect1(m_rtc_scene, &rayhit, &args);
-
-            if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
-            {
-                if (rayhit.hit.primID < m_primID_to_face_map.size()) {
-                    const BrushFace* hit_face = m_primID_to_face_map[rayhit.hit.primID];
-                    if (hit_face && hit_face->material) {
-                        auto it = m_emissive_materials.find(hit_face->material);
-                        if (it != m_emissive_materials.end()) {
-                            const Vec3& color = it->second.first;
-                            const float intensity = it->second.second;
-                            path_radiance = vec3_add(path_radiance, vec3_mul(vec3_muls(color, intensity), throughput));
+                for (int bounce = 1; bounce <= m_bounces; ++bounce)
+                {
+                    const Material* hit_material = nullptr;
+                    if (current_primID < m_primID_to_face_map.size()) {
+                        const BrushFace* hit_face = m_primID_to_face_map[current_primID];
+                        if (hit_face) {
+                            hit_material = hit_face->material;
+                        }
+                        else if (current_primID < m_primID_to_material_map.size()) {
+                            hit_material = m_primID_to_material_map[current_primID];
                         }
                     }
-                }
-                if (vec3_length_sq(path_radiance) == 0.0f)
-                {
-                    Vec3 hit_pos = {
-                        trace_origin.x + rayhit.ray.tfar * bounce_dir.x,
-                        trace_origin.y + rayhit.ray.tfar * bounce_dir.y,
-                        trace_origin.z + rayhit.ray.tfar * bounce_dir.z
-                    };
-                    Vec3 hit_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
-                    vec3_normalize(&hit_normal);
-                    if (vec3_dot(bounce_dir, hit_normal) <= 0.0f)
-                    {
-                        Vec4 reflectivity_at_hit = get_reflectivity_at_hit(rayhit.hit.primID);
-                        Vec3 albedo = { reflectivity_at_hit.x, reflectivity_at_hit.y, reflectivity_at_hit.z };
-                        Vec3 dummy_dir;
-                        Vec3 direct_light = calculate_direct_light(hit_pos, hit_normal, dummy_dir);
-                        path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
+                    if (hit_material) {
+                        auto it = m_emissive_materials.find(hit_material);
+                        if (it != m_emissive_materials.end()) {
+                            path_radiance = vec3_add(path_radiance, vec3_mul(vec3_muls(it->second.first, it->second.second), throughput));
+                            break;
+                        }
                     }
+
+                    Vec4 reflectivity = get_reflectivity_at_hit(current_primID);
+                    Vec3 albedo = { reflectivity.x, reflectivity.y, reflectivity.z };
+                    Vec3 dummy_dir;
+                    Vec3 direct_light = calculate_direct_light(current_pos, current_normal, dummy_dir);
+                    path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
+
+                    throughput = vec3_mul(throughput, albedo);
+                    float p = std::max({ throughput.x, throughput.y, throughput.z });
+                    if (bounce == m_bounces || p < 0.001f || roulette_dist(rng) > p) {
+                        break;
+                    }
+                    throughput = vec3_muls(throughput, 1.0f / p);
+
+                    Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(current_normal, rng);
+                    Vec3 trace_origin = vec3_add(current_pos, vec3_muls(current_normal, SHADOW_BIAS));
+
+                    RTCRayHit rayhit;
+                    rayhit.ray.org_x = trace_origin.x; rayhit.ray.org_y = trace_origin.y; rayhit.ray.org_z = trace_origin.z;
+                    rayhit.ray.dir_x = bounce_dir.x; rayhit.ray.dir_y = bounce_dir.y; rayhit.ray.dir_z = bounce_dir.z;
+                    rayhit.ray.tnear = 0.0f; rayhit.ray.tfar = FLT_MAX;
+                    rayhit.ray.mask = -1; rayhit.ray.flags = 0;
+                    rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+                    rtcIntersect1(m_rtc_scene, &rayhit, &args);
+
+                    if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+                        break;
+                    }
+
+                    current_pos = { trace_origin.x + rayhit.ray.tfar * bounce_dir.x, trace_origin.y + rayhit.ray.tfar * bounce_dir.y, trace_origin.z + rayhit.ray.tfar * bounce_dir.z };
+                    current_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
+                    vec3_normalize(&current_normal);
+
+                    if (vec3_dot(bounce_dir, current_normal) > 0.0f) {
+                        break;
+                    }
+                    current_primID = rayhit.hit.primID;
                 }
+
+                accumulated_color = vec3_add(accumulated_color, path_radiance);
+                out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(first_bounce_dirs[k], vec3_length(path_radiance)));
             }
-            accumulated_color = vec3_add(accumulated_color, path_radiance);
-            out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(bounce_dir, vec3_length(path_radiance)));
         }
 
         if (vec3_length_sq(out_indirect_dir) > 0.0001f)
