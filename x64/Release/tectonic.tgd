@@ -159,6 +159,12 @@
     water_def(string) : "Water Definition" = "default_water"
 ]
 
+@SolidClass = func_reflective_glass
+[
+    refraction_strength(float) : "Distortion Strength" = "0.01"
+    normal_map(texture) : "Normal Map" = "NULL"
+]
+
 @SolidClass = env_glass
 [
     refraction_strength(float) : "Refraction Strength" = "0.01"

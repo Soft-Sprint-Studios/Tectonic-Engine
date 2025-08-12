@@ -1103,6 +1103,7 @@ void init_renderer() {
     g_renderer.ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
     g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
+    g_renderer.reflectiveGlassShader = createShaderProgram("shaders/reflective_glass.vert", "shaders/reflective_glass.frag");
     g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
     g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     g_renderer.blackholeShader = createShaderProgram("shaders/blackhole.vert", "shaders/blackhole.frag");
@@ -2471,6 +2472,49 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
     glBindVertexArray(0);
 }
 
+void render_reflective_glass(Mat4* view, Mat4* projection) {
+    if (!Cvar_GetInt("r_water_planar")) return;
+
+    glUseProgram(g_renderer.reflectiveGlassShader);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.reflectiveGlassShader, "view"), 1, GL_FALSE, view->m);
+    glUniformMatrix4fv(glGetUniformLocation(g_renderer.reflectiveGlassShader, "projection"), 1, GL_FALSE, projection->m);
+    glUniform3fv(glGetUniformLocation(g_renderer.reflectiveGlassShader, "viewPos"), 1, &g_engine->camera.position.x);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.reflectionTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.reflectiveGlassShader, "reflectionTexture"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_renderer.refractionTexture);
+    glUniform1i(glGetUniformLocation(g_renderer.reflectiveGlassShader, "refractionTexture"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glUniform1i(glGetUniformLocation(g_renderer.reflectiveGlassShader, "normalMap"), 2);
+
+    for (int i = 0; i < g_scene.numBrushes; i++) {
+        Brush* b = &g_scene.brushes[i];
+        if (strcmp(b->classname, "func_reflective_glass") != 0) continue;
+
+        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
+        Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
+        glBindTexture(GL_TEXTURE_2D, (normal_mat && normal_mat != &g_MissingMaterial) ? normal_mat->normalMap : defaultNormalMapID);
+
+        glUniform1f(glGetUniformLocation(g_renderer.reflectiveGlassShader, "refractionStrength"), atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
+
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.reflectiveGlassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        glBindVertexArray(b->vao);
+        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
+}
+
 static void render_blackholes(Mat4* view, Mat4* projection) {
     bool has_blackhole = false;
     for (int i = 0; i < g_scene.numLogicEntities; ++i) {
@@ -2604,16 +2648,13 @@ void render_shadows() {
 }
 
 void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
-    if (!Cvar_GetInt("r_water")) return;
+    if (!Cvar_GetInt("r_water_planar")) return;
 
-    glEnable(GL_CLIP_DISTANCE0);
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
-    float water_height = 0.0;
-    bool water_found = false;
+    float reflection_plane_height = 0.0;
+    bool reflection_plane_found = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "func_water") == 0) {
+        if (strcmp(b->classname, "func_water") == 0 || strcmp(b->classname, "func_reflective_glass") == 0) {
             float max_y = -FLT_MAX;
             for (int v = 0; v < b->numVertices; ++v) {
                 Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
@@ -2621,20 +2662,22 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
                     max_y = world_v.y;
                 }
             }
-            water_height = max_y;
-            water_found = true;
+            reflection_plane_height = max_y;
+            reflection_plane_found = true;
             break;
         }
     }
-    if (!water_found) {
-        glDisable(GL_CLIP_DISTANCE0);
-        glDisable(GL_FRAMEBUFFER_SRGB);
+
+    if (!reflection_plane_found) {
         return;
     }
 
+    glEnable(GL_CLIP_DISTANCE0);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     Camera reflection_camera = *camera;
 
-    float distance = 2 * (reflection_camera.position.y - water_height);
+    float distance = 2 * (reflection_camera.position.y - reflection_plane_height);
     reflection_camera.position.y -= distance;
     reflection_camera.pitch = -reflection_camera.pitch;
 
@@ -2644,7 +2687,7 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
     Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, (Vec3) { 0, 1, 0 });
 
     glUseProgram(g_renderer.mainShader);
-    glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, 1, 0, -water_height + 0.1f);
+    glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, 1, 0, -reflection_plane_height + 0.1f);
 
     render_geometry_pass(&reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false);
 
@@ -2658,7 +2701,7 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
     render_skybox(&reflection_view, projection);
 
     glUseProgram(g_renderer.mainShader);
-    glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, -1, 0, water_height);
+    glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, -1, 0, reflection_plane_height);
     render_geometry_pass(view, projection, sunLightSpaceMatrix, camera->position, false);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
@@ -4351,6 +4394,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             render_blackholes(&view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             render_refractive_glass(&view, &projection);
+            render_reflective_glass(&view, &projection);
             for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
                 VideoPlayer_Render(&g_scene.videoPlayers[i], &view, &projection);
             }
