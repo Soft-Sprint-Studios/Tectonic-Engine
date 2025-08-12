@@ -6223,7 +6223,7 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                 continue;
             }
 
-            if (!mat->isLoaded) {
+            if (!mat->isLoaded && mat->diffuseMap == 0) {
                 if (strlen(mat->diffusePath) > 0) {
                     mat->diffuseMap = loadTexture(mat->diffusePath, true, TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL);
                 }
