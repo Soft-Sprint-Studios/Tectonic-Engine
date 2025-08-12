@@ -4535,7 +4535,9 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
         g_proj_matrix[type] = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 10000.0f);
-
+        if (Cvar_GetInt("r_water_planar")) {
+            render_planar_reflections(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, &g_EditorState.editor_camera);
+        }
         render_geometry_pass(&g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode);
         if (Cvar_GetInt("r_ssao")) {
             render_ssao_pass(&g_proj_matrix[type]);

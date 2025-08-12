@@ -2586,7 +2586,7 @@ void render_shadows() {
     glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
     if (!Cvar_GetInt("r_water")) return;
 
     glEnable(GL_CLIP_DISTANCE0);
@@ -2615,19 +2615,21 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
         return;
     }
 
-    float distance = 2 * (g_engine->camera.position.y - water_height);
-    g_engine->camera.position.y -= distance;
-    g_engine->camera.pitch = -g_engine->camera.pitch;
+    Camera reflection_camera = *camera;
 
-    Vec3 f_refl = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+    float distance = 2 * (reflection_camera.position.y - water_height);
+    reflection_camera.position.y -= distance;
+    reflection_camera.pitch = -reflection_camera.pitch;
+
+    Vec3 f_refl = { cosf(reflection_camera.pitch) * sinf(reflection_camera.yaw), sinf(reflection_camera.pitch), -cosf(reflection_camera.pitch) * cosf(reflection_camera.yaw) };
     vec3_normalize(&f_refl);
-    Vec3 t_refl = vec3_add(g_engine->camera.position, f_refl);
-    Mat4 reflection_view = mat4_lookAt(g_engine->camera.position, t_refl, (Vec3) { 0, 1, 0 });
+    Vec3 t_refl = vec3_add(reflection_camera.position, f_refl);
+    Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, (Vec3) { 0, 1, 0 });
 
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, 1, 0, -water_height + 0.1f);
 
-    render_geometry_pass(&reflection_view, projection, sunLightSpaceMatrix, g_engine->camera.position, false);
+    render_geometry_pass(&reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.reflectionFBO);
@@ -2638,12 +2640,9 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
     glViewport(0, 0, g_engine->width, g_engine->height);
     render_skybox(&reflection_view, projection);
 
-    g_engine->camera.position.y += distance;
-    g_engine->camera.pitch = -g_engine->camera.pitch;
-
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, -1, 0, water_height);
-    render_geometry_pass(view, projection, sunLightSpaceMatrix, g_engine->camera.position, false);
+    render_geometry_pass(view, projection, sunLightSpaceMatrix, camera->position, false);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.refractionFBO);
@@ -2654,9 +2653,8 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
     glViewport(0, 0, g_engine->width, g_engine->height);
     render_skybox(view, projection);
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
-
     glDisable(GL_CLIP_DISTANCE0);
+    glDisable(GL_FRAMEBUFFER_SRGB);
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, 0, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -4298,7 +4296,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 }
             }
             if (Cvar_GetInt("r_water_planar")) {
-                render_planar_reflections(&view, &projection, &sunLightSpaceMatrix);
+                render_planar_reflections(&view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
             }
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
             if (Cvar_GetInt("r_ssao")) {
