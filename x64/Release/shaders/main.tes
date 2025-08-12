@@ -15,6 +15,7 @@ in TCS_OUT {
 	ivec4 boneIndices;
     vec4 boneWeights;
     flat int isBrush;
+    float clipDist;
 } tes_in[];
 
 out vec3 FragPos_view;
@@ -122,6 +123,9 @@ void main()
         mat3 tbn2 = gl_TessCoord.z * tes_in[2].tbn;
         TBN = tbn0 + tbn1 + tbn2;
     }
+	
+    float finalClipDist = gl_TessCoord.x * tes_in[0].clipDist + gl_TessCoord.y * tes_in[1].clipDist + gl_TessCoord.z * tes_in[2].clipDist;
+    gl_ClipDistance[0] = finalClipDist;
 
     FragPos_view = vec3(view * vec4(FragPos_world, 1.0));
     Normal_view = mat3(transpose(inverse(view * model))) * worldNormal;

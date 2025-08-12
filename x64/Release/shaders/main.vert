@@ -26,12 +26,14 @@ out VS_OUT {
     ivec4 boneIndices;
     vec4 boneWeights;
     flat int isBrush;
+    float clipDist;
 } vs_out;
 
 uniform mat4 model;
 uniform bool u_hasAnimation;
 uniform mat4 u_boneMatrices[128];
 uniform bool isBrush;
+uniform vec4 clipPlane;
 
 uniform bool u_swayEnabled;
 uniform float u_time;
@@ -84,6 +86,7 @@ void main()
     vec3 T_world = normalize(normalMatrix * aTangent.xyz);
     vec3 B_world = cross(vs_out.worldNormal, T_world) * aTangent.w;
     vs_out.tbn = mat3(T_world, B_world, vs_out.worldNormal);
+    vs_out.clipDist = dot(vec4(vs_out.worldPos, 1.0), clipPlane);
 
     gl_Position = vec4(aPos, 1.0);
 }

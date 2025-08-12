@@ -15,6 +15,7 @@ in VS_OUT {
 	ivec4 boneIndices;
     vec4 boneWeights;
     flat int isBrush;
+    float clipDist;
 } tcs_in[];
 
 out TCS_OUT {
@@ -31,6 +32,7 @@ out TCS_OUT {
 	ivec4 boneIndices;
     vec4 boneWeights;
     flat int isBrush;
+    float clipDist;
 } tcs_out[];
 
 uniform vec3 viewPos;
@@ -51,6 +53,7 @@ void main()
 	tcs_out[gl_InvocationID].boneIndices = tcs_in[gl_InvocationID].boneIndices;
     tcs_out[gl_InvocationID].boneWeights = tcs_in[gl_InvocationID].boneWeights;
     tcs_out[gl_InvocationID].isBrush = tcs_in[gl_InvocationID].isBrush;
+    tcs_out[gl_InvocationID].clipDist = tcs_in[gl_InvocationID].clipDist;
 
     gl_TessLevelOuter[0] = 1.0;
     gl_TessLevelOuter[1] = 1.0;

@@ -12,6 +12,7 @@ out vec2 v_texCoord;
 out vec4 FragPosSunLightSpace;
 out vec3 FragPos_world;
 out vec2 v_texCoordLightmap;
+out vec4 v_clipSpace;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -40,4 +41,5 @@ void main()
     FragPosSunLightSpace = sunLightSpaceMatrix * worldPos4;
 
     gl_Position = projection * view * worldPos4;
+    v_clipSpace = gl_Position;
 }

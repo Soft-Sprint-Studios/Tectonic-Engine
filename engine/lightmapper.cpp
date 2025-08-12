@@ -242,6 +242,9 @@ namespace
         for (int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
+            if (strcmp(b.classname, "func_water") == 0) {
+                continue;
+            }
             if (!IsBrushBakeable(b)) continue;
 
             for (int j = 0; j < b.numFaces; ++j)
