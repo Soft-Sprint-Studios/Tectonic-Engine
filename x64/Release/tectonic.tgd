@@ -154,6 +154,14 @@
     DisappearMaxDist(float) : "Max Disappear Distance" = "1000"
 ]
 
+@SolidClass = func_healthcharger
+[
+    heal_amount(float) : "Heal Amount Per Use" = "25"
+]
+(
+    output OnUse "Fires when the player uses the charger."
+)
+
 @SolidClass = func_water
 [
     water_def(string) : "Water Definition" = "default_water"

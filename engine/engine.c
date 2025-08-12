@@ -1543,6 +1543,39 @@ void process_input() {
                             }
                         }
                     }
+                    if (strcmp(brush->classname, "func_healthcharger") == 0) {
+                        Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                        Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                        if (brush->numVertices > 0) {
+                            for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
+                                brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
+                                brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
+                                brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
+                                brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
+                                brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
+                                brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
+                            }
+                        }
+                        else {
+                            brush_local_min = (Vec3){ -0.5f, -0.5f, -0.5f };
+                            brush_local_max = (Vec3){ 0.5f, 0.5f, 0.5f };
+                        }
+
+                        float t;
+                        if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                            if (g_engine->camera.health < 100.0f) {
+                                const char* heal_str = Brush_GetProperty(brush, "heal_amount", "25");
+                                float heal_amount = atof(heal_str);
+
+                                g_engine->camera.health += heal_amount;
+                                if (g_engine->camera.health > 100.0f) {
+                                    g_engine->camera.health = 100.0f;
+                                }
+
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, NULL);
+                            }
+                        }
+                    }
                 }
             }
             if (event.key.keysym.sym == SDLK_ESCAPE) {
