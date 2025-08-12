@@ -2395,6 +2395,23 @@ void update_state() {
                 }
             }
         }
+        if (strcmp(b->classname, "func_weight_button") == 0) {
+            if (b->physicsBody) {
+                float required_weight = atof(Brush_GetProperty(b, "weight", "50"));
+                float current_weight = Physics_GetTotalMassOnObject(g_engine->physicsWorld, b->physicsBody);
+
+                bool is_pressed = current_weight >= required_weight;
+
+                if (is_pressed && !b->runtime_was_pressed) {
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, NULL);
+                }
+                else if (!is_pressed && b->runtime_was_pressed) {
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnReleased", g_engine->lastFrame, NULL);
+                }
+
+                b->runtime_was_pressed = is_pressed;
+            }
+        }
     }
     g_scene.post.isUnderwater = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {

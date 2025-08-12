@@ -71,6 +71,15 @@
     output OnUseLocked "Fires when the player tries to use the button while it's locked."
 )
 
+@SolidClass = func_weight_button
+[
+    weight(float) : "Weight to Activate" = "50"
+]
+(
+    output OnPressed "Fires when enough weight is on the button."
+    output OnReleased "Fires when the weight is removed from the button."
+)
+
 @SolidClass = func_plat
 [
     speed(float) : "Speed" = "150"
@@ -126,6 +135,10 @@
 )
 
 @SolidClass = func_clip
+[
+]
+
+@SolidClass = func_blocklight
 [
 ]
 

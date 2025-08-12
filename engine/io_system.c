@@ -476,6 +476,17 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         }
                     }
                 }
+                else if (strcmp(b->classname, "func_pendulum") == 0) {
+                    if (strcmp(inputName, "Start") == 0) {
+                        b->runtime_active = true;
+                    }
+                    else if (strcmp(inputName, "Stop") == 0) {
+                        b->runtime_active = false;
+                    }
+                    else if (strcmp(inputName, "Toggle") == 0) {
+                        b->runtime_active = !b->runtime_active;
+                    }
+                }
                 else if (strcmp(b->classname, "trigger_camera") == 0) {
                     if (strcmp(inputName, "Enable") == 0) {
                         if (engine->active_camera_brush_index == -1) {

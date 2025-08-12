@@ -356,6 +356,7 @@ extern "C" {
         Vec3 pendulum_start_pos;
         Vec3 pendulum_swing_dir;
         bool runtime_is_visible;
+        bool runtime_was_pressed;
         bool runtime_playerIsTouching;
         bool runtime_hasFired;
         bool runtime_active;

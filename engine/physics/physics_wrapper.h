@@ -84,6 +84,7 @@ extern "C" {
 	PHYSICS_API void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const float* vertices, int numVertices, const Mat4* transform);
 	PHYSICS_API void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, bool enabled);
 	PHYSICS_API bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance);
+	PHYSICS_API float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle);
 	PHYSICS_API void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity);
 
 #ifdef __cplusplus

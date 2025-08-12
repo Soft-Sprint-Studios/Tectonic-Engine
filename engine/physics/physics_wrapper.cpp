@@ -576,6 +576,44 @@ extern "C" {
         return false;
     }
 
+    float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
+        if (!handle || !bodyHandle) return 0.0f;
+        PhysicsWorld* world = (PhysicsWorld*)handle;
+        RigidBody* rb = (RigidBody*)bodyHandle;
+        if (!rb->body) return 0.0f;
+
+        float totalMass = 0.0f;
+        int numManifolds = world->dispatcher->getNumManifolds();
+        for (int i = 0; i < numManifolds; i++) {
+            btPersistentManifold* contactManifold = world->dispatcher->getManifoldByIndexInternal(i);
+            const btCollisionObject* obA = contactManifold->getBody0();
+            const btCollisionObject* obB = contactManifold->getBody1();
+
+            const btRigidBody* bodyA = btRigidBody::upcast(obA);
+            const btRigidBody* bodyB = btRigidBody::upcast(obB);
+
+            if (!bodyA || !bodyB) continue;
+
+            bool isTouching = false;
+            for (int j = 0; j < contactManifold->getNumContacts(); j++) {
+                if (contactManifold->getContactPoint(j).getDistance() < 0.05f) {
+                    isTouching = true;
+                    break;
+                }
+            }
+
+            if (isTouching) {
+                if (bodyA == rb->body && bodyB->getInvMass() != 0.0f) {
+                    totalMass += 1.0f / bodyB->getInvMass();
+                }
+                else if (bodyB == rb->body && bodyA->getInvMass() != 0.0f) {
+                    totalMass += 1.0f / bodyA->getInvMass();
+                }
+            }
+        }
+        return totalMass;
+    }
+
     void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
