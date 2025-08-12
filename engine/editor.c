@@ -5021,6 +5021,33 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
                 glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
+            if (light->type == LIGHT_SPOT || light->type == LIGHT_AREA) {
+                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, light->rot, (Vec3) { 1, 1, 1 });
+                Vec3 forward = { 0, 0, -1 };
+                Vec3 world_dir = mat4_mul_vec3_dir(&rot_mat, forward);
+                vec3_normalize(&world_dir);
+
+                Vec3 line_end = vec3_add(light->position, vec3_muls(world_dir, 2.0f));
+
+                Vec3 line_verts[] = { light->position, line_end };
+
+                Mat4 identity_mat;
+                mat4_identity(&identity_mat);
+                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
+
+                float line_color[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, line_color);
+
+                glBindVertexArray(g_EditorState.vertex_points_vao);
+                glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(line_verts), line_verts, GL_DYNAMIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+                glEnableVertexAttribArray(0);
+
+                glLineWidth(2.0f);
+                glDrawArrays(GL_LINES, 0, 2);
+                glLineWidth(1.0f);
+            }
             if (light->type == LIGHT_SPOT) {
                 float far_plane = light->shadowFarPlane > 0 ? light->shadowFarPlane : 25.0f;
                 float angle = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));

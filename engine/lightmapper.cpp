@@ -1480,6 +1480,11 @@ namespace
                 Mat4 light_transform = create_trs_matrix({ 0,0,0 }, light.rot, { 1,1,1 });
                 Vec3 light_right = mat4_mul_vec3_dir(&light_transform, { 1, 0, 0 });
                 Vec3 light_up = mat4_mul_vec3_dir(&light_transform, { 0, 1, 0 });
+                Vec3 light_forward = mat4_mul_vec3_dir(&light_transform, { 0, 0, -1 });
+
+                if (vec3_dot(normal, light_forward) >= 0) {
+                    continue;
+                }
 
                 Vec3 accumulated_light = { 0,0,0 };
                 int samples_that_hit = 0;
@@ -1511,15 +1516,15 @@ namespace
                         attenuation /= (dist * dist + 1.0f);
 
                         Vec3 light_color = vec3_muls(light.color, light.intensity);
-                        accumulated_light = vec3_add(accumulated_light, vec3_muls(light_color, NdotL * attenuation));
+                        accumulated_light = vec3_add(accumulated_light, vec3_muls(light_color, attenuation * NdotL));
                     }
                 }
 
                 if (samples_that_hit > 0) {
-                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / NUM_AREA_LIGHT_SAMPLES);
+                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / (float)(grid_size * grid_size));
                     direct_light = vec3_add(direct_light, light_contribution);
 
-                    Vec3 avg_light_dir = vec3_sub(light.position, pos);
+                    Vec3 avg_light_dir = vec3_muls(light_forward, -1.0f);
                     vec3_normalize(&avg_light_dir);
                     out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(avg_light_dir, vec3_length(light_contribution)));
                 }
