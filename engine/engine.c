@@ -2365,6 +2365,36 @@ void update_state() {
                 Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
         }
+        if (strcmp(b->classname, "func_pendulum") == 0) {
+            if (vec3_length_sq(b->pendulum_swing_dir) < 0.001f) {
+                b->pendulum_start_pos = b->pos;
+                Vec3 swing_angles;
+                sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &swing_angles.x, &swing_angles.y, &swing_angles.z);
+
+                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, swing_angles, (Vec3) { 1, 1, 1 });
+                b->pendulum_swing_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
+                vec3_normalize(&b->pendulum_swing_dir);
+
+                if (atoi(Brush_GetProperty(b, "StartON", "1")) == 1) {
+                    b->runtime_active = true;
+                }
+            }
+
+            if (b->runtime_active) {
+                float speed = atof(Brush_GetProperty(b, "speed", "1.0"));
+                float distance = atof(Brush_GetProperty(b, "distance", "10.0"));
+
+                float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * M_PI);
+                Vec3 offset = vec3_muls(b->pendulum_swing_dir, sine_wave_pos * distance);
+
+                b->pos = vec3_add(b->pendulum_start_pos, offset);
+
+                Brush_UpdateMatrix(b);
+                if (b->physicsBody) {
+                    Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                }
+            }
+        }
     }
     g_scene.post.isUnderwater = false;
     for (int i = 0; i < g_scene.numBrushes; ++i) {

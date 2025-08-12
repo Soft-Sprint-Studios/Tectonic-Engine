@@ -129,6 +129,19 @@
 [
 ]
 
+@SolidClass = func_pendulum
+[
+    speed(float) : "Swing Speed (cycles/sec)" = "1.0"
+    distance(float) : "Swing Distance (units)" = "10.0"
+    direction(string) : "Swing Direction (Pitch Yaw Roll)" = "0 90 0"
+    StartON(checkbox) : "Start ON" = "1"
+]
+(
+    input Start "Start swinging."
+    input Stop "Stop swinging."
+    input Toggle "Toggle swinging."
+)
+
 @SolidClass = func_conveyor
 [
     speed(float) : "Speed" = "100"

@@ -922,6 +922,9 @@ bool Brush_IsSolid(const Brush* b) {
         if (strcmp(b->classname, "func_wall_toggle") == 0) {
             return true;
         }
+        if (strcmp(b->classname, "func_pendulum") == 0) {
+            return true;
+        }
         if (strcmp(b->classname, "env_glass") == 0) {
             return true;
         }
