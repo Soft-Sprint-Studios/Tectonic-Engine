@@ -128,6 +128,14 @@ static Renderer g_renderer;
 static Scene g_scene;
 static EngineMode g_current_mode = MODE_GAME;
 
+typedef enum {
+    TRANSITION_NONE,
+    TRANSITION_TO_EDITOR,
+    TRANSITION_TO_GAME
+} EngineModeTransition;
+static EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
+static int g_last_water_cvar_state = -1;
+
 static Uint32 g_fps_last_update = 0;
 static int g_fps_frame_count = 0;
 static float g_fps_display = 0.0f;
@@ -499,9 +507,18 @@ void handle_command(int argc, char** argv) {
 
 void Cmd_Edit(int argc, char** argv) {
     if (g_current_mode == MODE_GAME) {
-        g_current_mode = MODE_EDITOR; SDL_SetRelativeMouseMode(SDL_FALSE); Editor_Init(g_engine, &g_renderer, &g_scene);
+        g_last_water_cvar_state = Cvar_GetInt("r_water");
+        Cvar_Set("r_water", "0");
+        g_pending_mode_transition = TRANSITION_TO_EDITOR;
     }
-    else { g_current_mode = MODE_GAME; Editor_Shutdown(); SDL_SetRelativeMouseMode(SDL_TRUE); }
+    else if (g_current_mode == MODE_EDITOR) {
+        if (g_last_water_cvar_state != -1) {
+            char val[2];
+            sprintf(val, "%d", g_last_water_cvar_state);
+            Cvar_Set("r_water", val);
+        }
+        g_pending_mode_transition = TRANSITION_TO_GAME;
+    }
 }
 
 void Cmd_Quit(int argc, char** argv) {
@@ -4201,6 +4218,19 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
 
     g_fps_last_update = SDL_GetTicks();
     while (g_engine->running) {
+        if (g_pending_mode_transition != TRANSITION_NONE) {
+            if (g_pending_mode_transition == TRANSITION_TO_EDITOR) {
+                g_current_mode = MODE_EDITOR;
+                SDL_SetRelativeMouseMode(SDL_FALSE);
+                Editor_Init(g_engine, &g_renderer, &g_scene);
+            }
+            else if (g_pending_mode_transition == TRANSITION_TO_GAME) {
+                Editor_Shutdown();
+                g_current_mode = MODE_GAME;
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+            }
+            g_pending_mode_transition = TRANSITION_NONE;
+        }
         Uint32 frameStartTicks = SDL_GetTicks();
         g_scene.post.fade_active = false;
         g_scene.post.fade_alpha = 0.0f;
