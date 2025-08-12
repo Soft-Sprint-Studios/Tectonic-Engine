@@ -4991,6 +4991,25 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
 
         if (is_selected) {
+            if (light->type == LIGHT_AREA) {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                Vec3 zero_vec = { 0.0f, 0.0f, 0.0f };
+                Vec3 one_vec = { 1.0f, 1.0f, 1.0f };
+                Vec3 scale_vec = { light->width, light->height, 0.01f };
+                Mat4 rot_mat = create_trs_matrix(zero_vec, light->rot, one_vec);
+                Mat4 scale_mat = mat4_scale(scale_vec);
+                Mat4 area_model_mat;
+                mat4_multiply(&area_model_mat, &rot_mat, &scale_mat);
+                mat4_multiply(&area_model_mat, &modelMatrix, &area_model_mat);
+
+                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, area_model_mat.m);
+                float area_color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
+                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, area_color);
+
+                glBindVertexArray(g_EditorState.decal_box_vao);
+                glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
             if (light->type == LIGHT_POINT) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                 Mat4 scaleMatrix = mat4_scale((Vec3) { light->radius, light->radius, light->radius });
@@ -7953,13 +7972,129 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (primary && primary->type == ENTITY_LIGHT) {
-        Light* light = &scene->lights[primary->index]; UI_InputText("Name", light->targetname, sizeof(light->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Name"); } bool is_point = light->type == LIGHT_POINT; if (UI_RadioButton("Point", is_point)) { if (!is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); Light_DestroyShadowMap(light); light->type = LIGHT_POINT; Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type"); } } UI_SameLine(); if (UI_RadioButton("Spot", !is_point)) { if (is_point) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); Light_DestroyShadowMap(light); light->type = LIGHT_SPOT; if (light->cutOff <= 0.0f) { light->cutOff = cosf(12.5f * M_PI / 180.0f); light->outerCutOff = cosf(17.5f * M_PI / 180.0f); } Light_InitShadowMap(light); Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type"); } } UI_Separator(); UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->position.x = SnapValue(light->position.x, g_EditorState.grid_size); light->position.y = SnapValue(light->position.y, g_EditorState.grid_size); light->position.z = SnapValue(light->position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Move Light"); } if (light->type == LIGHT_SPOT) { UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { light->rot.x = SnapAngle(light->rot.x, 15.0f); light->rot.y = SnapAngle(light->rot.y, 15.0f); light->rot.z = SnapAngle(light->rot.z, 15.0f); } Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Rotate Light"); } } UI_ColorEdit3("Color", &light->color.x); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Color"); } UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Intensity"); } UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Radius"); }UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Volumetric Intensity"); }
+        Light* light = &scene->lights[primary->index];
+
+        UI_InputText("Name", light->targetname, sizeof(light->targetname));
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Name");
+        }
+
+        if (UI_RadioButton("Point", light->type == LIGHT_POINT)) {
+            if (light->type != LIGHT_POINT) {
+                Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+                Light_DestroyShadowMap(light);
+                light->type = LIGHT_POINT;
+                Light_InitShadowMap(light);
+                Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type");
+            }
+        }
+        UI_SameLine();
+        if (UI_RadioButton("Spot", light->type == LIGHT_SPOT)) {
+            if (light->type != LIGHT_SPOT) {
+                Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+                Light_DestroyShadowMap(light);
+                light->type = LIGHT_SPOT;
+                if (light->cutOff <= 0.0f) {
+                    light->cutOff = cosf(12.5f * M_PI / 180.0f);
+                    light->outerCutOff = cosf(17.5f * M_PI / 180.0f);
+                }
+                Light_InitShadowMap(light);
+                Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type");
+            }
+        }
+        UI_SameLine();
+        if (UI_RadioButton("Area (Baked Only)", light->type == LIGHT_AREA)) {
+            if (light->type != LIGHT_AREA) {
+                Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+                Light_DestroyShadowMap(light);
+                light->type = LIGHT_AREA;
+                light->is_static = true;
+                Light_InitShadowMap(light);
+                Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type");
+            }
+        }
+
         UI_Separator();
+
+        UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            if (g_EditorState.snap_to_grid) {
+                light->position.x = SnapValue(light->position.x, g_EditorState.grid_size);
+                light->position.y = SnapValue(light->position.y, g_EditorState.grid_size);
+                light->position.z = SnapValue(light->position.z, g_EditorState.grid_size);
+            }
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Move Light");
+        }
+
+        if (light->type == LIGHT_SPOT || light->type == LIGHT_AREA) {
+            UI_DragFloat3("Rotation", &light->rot.x, 1.0f, -360.0f, 360.0f);
+            if (UI_IsItemActivated()) {
+                Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+            }
+            if (UI_IsItemDeactivatedAfterEdit()) {
+                if (g_EditorState.snap_to_grid) {
+                    light->rot.x = SnapAngle(light->rot.x, 15.0f);
+                    light->rot.y = SnapAngle(light->rot.y, 15.0f);
+                    light->rot.z = SnapAngle(light->rot.z, 15.0f);
+                }
+                Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Rotate Light");
+            }
+        }
+
+        UI_ColorEdit3("Color", &light->color.x);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Color");
+        }
+
+        UI_DragFloat("Intensity", &light->base_intensity, 0.05f, 0.0f, 1000.0f);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Intensity");
+        }
+
+        if (light->type == LIGHT_AREA) {
+            UI_DragFloat("Width", &light->width, 0.1f, 0.1f, 1000.0f);
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Width"); }
+            UI_DragFloat("Height", &light->height, 0.1f, 0.1f, 1000.0f);
+            if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); }
+            if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Height"); }
+        }
+
+        UI_DragFloat("Radius", &light->radius, 0.1f, 0.1f, 1000.0f);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Radius");
+        }
+
+        UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Volumetric Intensity");
+        }
+
+        UI_Separator();
+
         const char* preset_names[] = {
-           "0: Normal", "1: Flicker 1", "2: Slow Strong Pulse", "3: Candle 1",
-           "4: Fast Strobe", "5: Gentle Pulse", "6: Flicker 2", "7: Candle 2",
-           "8: Candle 3", "9: Slow Strobe", "10: Fluorescent", "11: Slow Pulse 2",
-           "12: Underwater", "13: Custom"
+            "0: Normal", "1: Flicker 1", "2: Slow Strong Pulse", "3: Candle 1",
+            "4: Fast Strobe", "5: Gentle Pulse", "6: Flicker 2", "7: Candle 2",
+            "8: Candle 3", "9: Slow Strobe", "10: Fluorescent", "11: Slow Pulse 2",
+            "12: Underwater", "13: Custom"
         };
 
         int temp_preset = light->preset;

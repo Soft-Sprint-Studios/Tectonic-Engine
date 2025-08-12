@@ -62,7 +62,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 12
-#define MAP_VERSION 13
+#define MAP_VERSION 14
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -73,7 +73,7 @@ extern "C" {
         ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC, ENTITY_SPRITE
     } EntityType;
 
-    typedef enum { LIGHT_POINT, LIGHT_SPOT } LightType;
+    typedef enum { LIGHT_POINT, LIGHT_SPOT, LIGHT_AREA } LightType;
 
     typedef struct {
         char targetname[64];
@@ -88,6 +88,8 @@ extern "C" {
         bool is_static;
         bool is_static_shadow;
         bool has_rendered_static_shadow;
+        float width;
+        float height;
         float radius;
         float cutOff;
         float outerCutOff;

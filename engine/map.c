@@ -1898,11 +1898,16 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             memset(light, 0, sizeof(Light));
             int type_int = 0; int preset_int = 0; int is_static_int = 0;
             int is_static_shadow_int = 0;
-            int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d %d \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, &is_static_shadow_int, light->cookiePath);
+            int items_scanned = sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d %d %f %f \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, &is_static_shadow_int, &light->width, &light->height, light->cookiePath);
 
             if (items_scanned < 22) {
                 sscanf(line, "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"", light->targetname, &type_int, &light->position.x, &light->position.y, &light->position.z, &light->rot.x, &light->rot.y, &light->rot.z, &light->color.x, &light->color.y, &light->color.z, &light->base_intensity, &light->radius, &light->cutOff, &light->outerCutOff, &light->shadowFarPlane, &light->shadowBias, &light->volumetricIntensity, &preset_int, &is_static_int, light->cookiePath);
                 is_static_shadow_int = 0;
+            }
+
+            if (items_scanned < 24) {
+                light->width = 0.0f;
+                light->height = 0.0f;
             }
 
             light->custom_style_string[0] = '\0';
@@ -2278,11 +2283,11 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
-        fprintf(file, "light \"%s\" %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d %d \"%s\" \"%s\"\n",
+        fprintf(file, "light \"%s\" %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d %d %.4f %.4f \"%s\" \"%s\"\n",
             light->targetname, (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z,
             light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius,
             light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
-            light->preset, (int)light->is_static, (int)light->is_static_shadow, cookiePathStr, light->custom_style_string);
+            light->preset, (int)light->is_static, (int)light->is_static_shadow, light->width, light->height, cookiePathStr, light->custom_style_string);
         if (light->isGrouped && light->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", light->groupName);
     }
     fprintf(file, "\n");

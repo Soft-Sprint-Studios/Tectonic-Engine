@@ -56,6 +56,7 @@ namespace
 
     constexpr float SHADOW_BIAS = 0.005f;
     constexpr int BLUR_RADIUS = 2;
+    constexpr int NUM_AREA_LIGHT_SAMPLES = 16;
     constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64;
     constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 512;
     constexpr int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
@@ -1465,10 +1466,65 @@ namespace
             }
         }
 
+        std::uniform_real_distribution<float> random_dist(-0.5f, 0.5f);
+        std::mt19937 rng(generate_seed_from_pos(pos));
+
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
             const Light& light = m_scene->lights[k];
             if (!light.is_static) continue;
+
+            if (light.type == LIGHT_AREA) {
+                if (light.width <= 0 || light.height <= 0) continue;
+
+                Mat4 light_transform = create_trs_matrix({ 0,0,0 }, light.rot, { 1,1,1 });
+                Vec3 light_right = mat4_mul_vec3_dir(&light_transform, { 1, 0, 0 });
+                Vec3 light_up = mat4_mul_vec3_dir(&light_transform, { 0, 1, 0 });
+
+                Vec3 accumulated_light = { 0,0,0 };
+                int samples_that_hit = 0;
+
+                int grid_size = static_cast<int>(sqrt(NUM_AREA_LIGHT_SAMPLES));
+                std::uniform_real_distribution<float> jitter_dist(0.0f, 1.0f);
+
+                for (int y = 0; y < grid_size; ++y) {
+                    for (int x = 0; x < grid_size; ++x) {
+                        float u = ((float)x + jitter_dist(rng)) / (float)grid_size - 0.5f;
+                        float v = ((float)y + jitter_dist(rng)) / (float)grid_size - 0.5f;
+
+                        Vec3 sample_offset = vec3_add(vec3_muls(light_right, u * light.width), vec3_muls(light_up, v * light.height));
+                        Vec3 sample_pos = vec3_add(light.position, sample_offset);
+
+                        Vec3 light_dir = vec3_sub(sample_pos, pos);
+                        float dist_sq = vec3_length_sq(light_dir);
+                        if (dist_sq > light.radius * light.radius) continue;
+
+                        vec3_normalize(&light_dir);
+                        float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+                        if (NdotL <= 0.0f) continue;
+
+                        if (is_in_shadow(point_to_light_check, sample_pos)) continue;
+
+                        samples_that_hit++;
+                        float dist = sqrtf(dist_sq);
+                        float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                        attenuation /= (dist * dist + 1.0f);
+
+                        Vec3 light_color = vec3_muls(light.color, light.intensity);
+                        accumulated_light = vec3_add(accumulated_light, vec3_muls(light_color, NdotL * attenuation));
+                    }
+                }
+
+                if (samples_that_hit > 0) {
+                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / NUM_AREA_LIGHT_SAMPLES);
+                    direct_light = vec3_add(direct_light, light_contribution);
+
+                    Vec3 avg_light_dir = vec3_sub(light.position, pos);
+                    vec3_normalize(&avg_light_dir);
+                    out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(avg_light_dir, vec3_length(light_contribution)));
+                }
+                continue;
+            }
 
             Vec3 light_dir = vec3_sub(light.position, pos);
             float dist = vec3_length(light_dir);
