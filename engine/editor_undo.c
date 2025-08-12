@@ -99,10 +99,15 @@ void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
     Brush_FreeData(&scene->brushes[index]);
     if (scene->brushes[index].physicsBody) {
         Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody);
+        scene->brushes[index].physicsBody = NULL;
     }
 
     if (index < scene->numBrushes - 1) {
         scene->brushes[index] = scene->brushes[scene->numBrushes - 1];
+    }
+
+    if (scene->numBrushes > 0) {
+        memset(&scene->brushes[scene->numBrushes - 1], 0, sizeof(Brush));
     }
 
     scene->numBrushes--;

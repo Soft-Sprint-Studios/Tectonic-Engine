@@ -162,42 +162,37 @@ void Light_DestroyShadowMap(Light* light) {
 
 void Brush_FreeData(Brush* b) {
     if (!b) return;
-    if (b->vertices) {
-        free(b->vertices);
-        b->vertices = NULL;
-    }
-    b->numVertices = 0;
+    if (b->vao) { glDeleteVertexArrays(1, &b->vao); b->vao = 0; }
+    if (b->vbo) { glDeleteBuffers(1, &b->vbo); b->vbo = 0; }
+    if (b->lightmapAtlas) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
+    if (b->directionalLightmapAtlas) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
+    if (b->vertices) { free(b->vertices); b->vertices = NULL; }
     if (b->faces) {
-        for (int i = 0; i < b->numFaces; ++i) {
+        for (int i = 0; i < b->numFaces; i++) {
             if (b->faces[i].vertexIndices) {
                 free(b->faces[i].vertexIndices);
+                b->faces[i].vertexIndices = NULL;
             }
         }
         free(b->faces);
         b->faces = NULL;
     }
+    b->numVertices = 0;
     b->numFaces = 0;
-    if (b->vao) {
-        glDeleteVertexArrays(1, &b->vao);
-        b->vao = 0;
-    }
-    if (b->vbo) {
-        glDeleteBuffers(1, &b->vbo);
-        b->vbo = 0;
-    }
 }
 
 void Brush_DeepCopy(Brush* dest, const Brush* src) {
-    Brush_FreeData(dest);
-
     dest->pos = src->pos;
     dest->rot = src->rot;
     dest->scale = src->scale;
     dest->modelMatrix = src->modelMatrix;
-    strcpy(dest->targetname, src->targetname);
+    strncpy(dest->targetname, src->targetname, sizeof(dest->targetname) - 1);
+    dest->targetname[sizeof(dest->targetname) - 1] = '\0';
     dest->cubemapTexture = src->cubemapTexture;
-    strcpy(dest->name, src->name);
-    strcpy(dest->classname, src->classname);
+    strncpy(dest->name, src->name, sizeof(dest->name) - 1);
+    dest->name[sizeof(dest->name) - 1] = '\0';
+    strncpy(dest->classname, src->classname, sizeof(dest->classname) - 1);
+    dest->classname[sizeof(dest->classname) - 1] = '\0';
     dest->numProperties = src->numProperties;
     memcpy(dest->properties, src->properties, sizeof(KeyValue) * MAX_ENTITY_PROPERTIES);
     dest->numVertices = src->numVertices;
@@ -214,16 +209,46 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
         dest->faces = malloc(src->numFaces * sizeof(BrushFace));
         for (int i = 0; i < src->numFaces; ++i) {
             dest->faces[i] = src->faces[i];
-            dest->faces[i].vertexIndices = NULL;
             if (src->faces[i].numVertexIndices > 0) {
                 dest->faces[i].vertexIndices = malloc(src->faces[i].numVertexIndices * sizeof(int));
                 memcpy(dest->faces[i].vertexIndices, src->faces[i].vertexIndices, src->faces[i].numVertexIndices * sizeof(int));
+            }
+            else {
+                dest->faces[i].vertexIndices = NULL;
             }
         }
     }
     else {
         dest->faces = NULL;
     }
+
+    dest->vao = 0;
+    dest->vbo = 0;
+    dest->lightmapAtlas = 0;
+    dest->directionalLightmapAtlas = 0;
+    dest->totalRenderVertexCount = 0;
+    dest->physicsBody = NULL;
+    dest->mass = src->mass;
+    dest->isPhysicsEnabled = src->isPhysicsEnabled;
+    dest->isGrouped = src->isGrouped;
+    strncpy(dest->groupName, src->groupName, sizeof(dest->groupName) - 1);
+    dest->groupName[sizeof(dest->groupName) - 1] = '\0';
+
+    dest->runtime_playerIsTouching = src->runtime_playerIsTouching;
+    dest->runtime_hasFired = src->runtime_hasFired;
+    dest->runtime_active = src->runtime_active;
+    dest->current_angular_velocity = src->current_angular_velocity;
+    dest->target_angular_velocity = src->target_angular_velocity;
+    dest->start_pos = src->start_pos;
+    dest->end_pos = src->end_pos;
+    dest->move_dir = src->move_dir;
+    dest->plat_state = src->plat_state;
+    dest->wait_timer = src->wait_timer;
+    dest->door_state = src->door_state;
+    dest->door_start_pos = src->door_start_pos;
+    dest->door_end_pos = src->door_end_pos;
+    dest->door_move_dir = src->door_move_dir;
+    dest->runtime_is_visible = src->runtime_is_visible;
 }
 
 void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {

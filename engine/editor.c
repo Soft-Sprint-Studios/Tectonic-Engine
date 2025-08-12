@@ -4940,6 +4940,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             Brush* b = &scene->brushes[sel->index];
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 BrushFace* face = &b->faces[sel->face_index];
+                if (sel->face_index < 0 || sel->face_index >= b->numFaces) continue;
                 if (face->numVertexIndices >= 3) {
                     int num_tris = face->numVertexIndices - 2;
                     int num_verts = num_tris * 3;

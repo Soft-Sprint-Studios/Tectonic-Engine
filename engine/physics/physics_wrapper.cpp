@@ -290,11 +290,6 @@ extern "C" {
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
 
-        if (!rb->body) {
-            delete rb;
-            return;
-        }
-
         if (rb->body) {
             btCollisionShape* shape = rb->body->getCollisionShape();
             if (rb->body->getMotionState()) {
@@ -315,6 +310,7 @@ extern "C" {
                 }
             }
         }
+        rb->body = nullptr;
         delete rb;
     }
 
