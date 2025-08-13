@@ -921,7 +921,8 @@ void init_cvars() {
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
     Cvar_Register("r_sprites", "1", "Enable sprites (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_water", "1", "Enable water rendering (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_water_planar", "1", "Enable planar reflections for water (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_planar", "1", "Enable planar reflections for water and reflective glass (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_planar_downsample", "2", "Downsample factor for planar reflections/refractions (e.g., 2 = 1/4 resolution)", CVAR_NONE);
     Cvar_Register("r_lightmaps_bicubic", "0", "Enable Bicubic lightmap filtering (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Max FPS (0=unlimited)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter (0=off, 1=on)", CVAR_NONE);
@@ -1352,30 +1353,34 @@ void init_renderer() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         Console_Printf("SSAO Blur Framebuffer not complete!\n");
+    int downsample = Cvar_GetInt("r_planar_downsample");
+    if (downsample < 1) downsample = 1;
+    int reflection_width = g_engine->width / downsample;
+    int reflection_height = g_engine->height / downsample;
     glGenFramebuffers(1, &g_renderer.reflectionFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.reflectionFBO);
     glGenTextures(1, &g_renderer.reflectionTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.reflectionTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, g_engine->width, g_engine->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.reflectionTexture, 0);
     glGenRenderbuffers(1, &g_renderer.reflectionDepthRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, g_renderer.reflectionDepthRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_engine->width, g_engine->height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, reflection_width, reflection_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_renderer.reflectionDepthRBO);
 
     glGenFramebuffers(1, &g_renderer.refractionFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.refractionFBO);
     glGenTextures(1, &g_renderer.refractionTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.refractionTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, g_engine->width, g_engine->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.refractionTexture, 0);
     glGenTextures(1, &g_renderer.refractionDepthTexture);
     glBindTexture(GL_TEXTURE_2D, g_renderer.refractionDepthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, g_engine->width, g_engine->height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, reflection_width, reflection_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.refractionDepthTexture, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2553,7 +2558,7 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
 }
 
 void render_reflective_glass(Mat4* view, Mat4* projection) {
-    if (!Cvar_GetInt("r_water_planar")) return;
+    if (!Cvar_GetInt("r_planar")) return;
 
     glUseProgram(g_renderer.reflectiveGlassShader);
     glEnable(GL_BLEND);
@@ -2728,7 +2733,7 @@ void render_shadows() {
 }
 
 void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
-    if (!Cvar_GetInt("r_water_planar")) return;
+    if (!Cvar_GetInt("r_planar")) return;
 
     float reflection_plane_height = 0.0;
     bool reflection_plane_found = false;
@@ -2752,6 +2757,11 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
         return;
     }
 
+    int downsample = Cvar_GetInt("r_planar_downsample");
+    if (downsample < 1) downsample = 1;
+    int reflection_width = g_engine->width / downsample;
+    int reflection_height = g_engine->height / downsample;
+
     glEnable(GL_CLIP_DISTANCE0);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -2769,28 +2779,30 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, 1, 0, -reflection_plane_height + 0.1f);
 
+    glViewport(0, 0, reflection_width, reflection_height);
     render_geometry_pass(&reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.reflectionFBO);
-    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.reflectionFBO);
-    glViewport(0, 0, g_engine->width, g_engine->height);
+    glViewport(0, 0, reflection_width, reflection_height);
     render_skybox(&reflection_view, projection);
 
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, -1, 0, reflection_plane_height);
+    glViewport(0, 0, reflection_width, reflection_height);
     render_geometry_pass(view, projection, sunLightSpaceMatrix, camera->position, false);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.refractionFBO);
-    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBlitFramebuffer(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.refractionFBO);
-    glViewport(0, 0, g_engine->width, g_engine->height);
+    glViewport(0, 0, reflection_width, reflection_height);
     render_skybox(view, projection);
 
     glDisable(GL_CLIP_DISTANCE0);
@@ -4448,7 +4460,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                     }
                 }
             }
-            if (Cvar_GetInt("r_water_planar")) {
+            if (Cvar_GetInt("r_planar")) {
                 render_planar_reflections(&view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
             }
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
