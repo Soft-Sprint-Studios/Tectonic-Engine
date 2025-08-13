@@ -2987,6 +2987,7 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
             continue;
         }
         if (strcmp(b->classname, "func_clip") == 0) continue;
+        if (strcmp(b->classname, "env_glass") == 0) continue;
         if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;
         glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
@@ -3249,6 +3250,7 @@ void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpac
         }
         glUniform1i(glGetUniformLocation(g_renderer.mainShader, "isBrush"), 1);
         if(strcmp(b->classname, "func_water") == 0) continue;
+        if (strcmp(b->classname, "env_glass") == 0) continue;
         if (b->numVertices > 0) {
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
