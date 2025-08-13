@@ -68,6 +68,7 @@ typedef struct {
 extern MATERIALS_API Material g_MissingMaterial;
 extern MATERIALS_API Material g_NodrawMaterial;
 extern MATERIALS_API bool g_is_editor_mode;
+extern MATERIALS_API bool g_is_thumbnail_mode;
 extern MATERIALS_API bool g_is_unlit_mode;
 
 extern MATERIALS_API GLuint missingTextureID;

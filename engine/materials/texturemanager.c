@@ -44,6 +44,7 @@ MATERIALS_API Material g_MissingMaterial;
 MATERIALS_API Material g_NodrawMaterial;
 
 MATERIALS_API bool g_is_editor_mode = false;
+MATERIALS_API bool g_is_thumbnail_mode = false;
 MATERIALS_API bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
@@ -201,11 +202,12 @@ void TextureManager_LoadMaterialTextures(Material* material) {
         return;
     }
 
-    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath, true, TEXTURE_LOAD_CONTEXT_WORLD); else material->diffuseMap = missingTextureID;
-    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->normalMap = defaultNormalMapID;
-    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->rmaMap = defaultRmaMapID;
-    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false, TEXTURE_LOAD_CONTEXT_WORLD); else material->heightMap = 0;
-    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true, TEXTURE_LOAD_CONTEXT_WORLD); else material->detailDiffuseMap = 0;
+    TextureLoadContext context = g_is_thumbnail_mode ? TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL : TEXTURE_LOAD_CONTEXT_WORLD;
+    if (strlen(material->diffusePath) > 0) material->diffuseMap = loadTexture(material->diffusePath, true, context); else material->diffuseMap = missingTextureID;
+    if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false, context); else material->normalMap = defaultNormalMapID;
+    if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false, context); else material->rmaMap = defaultRmaMapID;
+    if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false, context); else material->heightMap = 0;
+    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true, context); else material->detailDiffuseMap = 0;
 
     material->isLoaded = true;
 }

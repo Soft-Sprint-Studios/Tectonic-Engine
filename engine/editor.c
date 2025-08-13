@@ -5490,6 +5490,10 @@ static void RenderIOEditor(EntityType type, int index) {
 static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer) {
     if (!g_EditorState.show_add_model_popup) return;
 
+    if (g_EditorState.model_browser_entries == NULL) {
+        ScanModelFiles();
+    }
+
     UI_SetNextWindowSize(700, 500);
     if (UI_Begin("Model Browser", &g_EditorState.show_add_model_popup)) {
         UI_InputText("Search", g_EditorState.model_search_filter, sizeof(g_EditorState.model_search_filter));
@@ -5513,6 +5517,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* re
                 if (entry->thumbnail_texture == 0) {
                     char path_buffer[256];
                     sprintf(path_buffer, "models/%s", entry->file_path);
+                    g_is_thumbnail_mode = true;
                     LoadedModel* temp_model = Model_Load(path_buffer);
 
                     glGenTextures(1, &entry->thumbnail_texture);
@@ -5543,6 +5548,7 @@ static void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* re
                         render_object(renderer->mainShader, &temp_obj, false, NULL);
 
                         Model_Free(temp_model);
+                        g_is_thumbnail_mode = false;
                         glBindFramebuffer(GL_FRAMEBUFFER, 0);
                     }
                 }
@@ -7411,7 +7417,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
         }
-        if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; ScanModelFiles(); }
+        if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; }
     }
     if (model_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_MODEL, model_to_delete, "Delete Model"); _raw_delete_model(scene, model_to_delete, engine); Editor_RemoveFromSelection(ENTITY_MODEL, model_to_delete); }
     if (UI_CollapsingHeader("Brushes", 1)) {
