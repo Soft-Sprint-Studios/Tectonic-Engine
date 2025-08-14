@@ -8165,7 +8165,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
             }
         }
-        if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); light->is_on = !light->is_on; Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Light On"); }
+        if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Light On"); }
         UI_SameLine();
         if (UI_Checkbox("Static", &light->is_static)) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
