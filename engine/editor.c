@@ -721,7 +721,7 @@ static void ScanModelFiles() {
     struct dirent* dir;
     while ((dir = readdir(d)) != NULL) {
         const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".gltf") == 0)) {
+        if (ext && (_stricmp(ext, ".gltf") == 0 || _stricmp(ext, ".glb") == 0)) {
             g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
             g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = strdup(dir->d_name);
             g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
