@@ -702,16 +702,19 @@ static void ScanModelFiles() {
     const char* dir_path = "models/";
 #ifdef PLATFORM_WINDOWS
     char search_path[256];
-    sprintf(search_path, "%s*.gltf", dir_path);
+    sprintf(search_path, "%s*.*", dir_path);
     WIN32_FIND_DATAA find_data;
     HANDLE h_find = FindFirstFileA(search_path, &find_data);
     if (h_find == INVALID_HANDLE_VALUE) return;
     do {
         if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
-            g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = _strdup(find_data.cFileName);
-            g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
-            g_EditorState.num_model_files++;
+            const char* ext = strrchr(find_data.cFileName, '.');
+            if (ext && (_stricmp(ext, ".gltf") == 0 || _stricmp(ext, ".glb") == 0)) {
+                g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
+                g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = _strdup(find_data.cFileName);
+                g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
+                g_EditorState.num_model_files++;
+            }
         }
     } while (FindNextFileA(h_find, &find_data) != 0);
     FindClose(h_find);

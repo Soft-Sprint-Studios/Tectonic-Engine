@@ -194,6 +194,12 @@ LoadedModel* Model_Load(const char* path) {
         create_error_model();
     }
 
+    bool is_glb = false;
+    const char* ext = strrchr(path, '.');
+    if (ext && _stricmp(ext, ".glb") == 0) {
+        is_glb = true;
+    }
+
     cgltf_options options = { 0 };
     cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
@@ -296,7 +302,51 @@ LoadedModel* Model_Load(const char* path) {
             Mesh* newMesh = &loadedModel->meshes[currentMeshIndex];
             memset(newMesh, 0, sizeof(Mesh));
 
-            newMesh->material = (primitive->material && primitive->material->name) ? TextureManager_FindMaterial(primitive->material->name) : &g_MissingMaterial;
+            if (is_glb) {
+                if (primitive->material) {
+                    newMesh->material = (Material*)calloc(1, sizeof(Material));
+                    newMesh->material->roughness = -1.0f;
+                    newMesh->material->metalness = -1.0f;
+                    if (primitive->material->name) {
+                        strncpy(newMesh->material->name, primitive->material->name, sizeof(newMesh->material->name) - 1);
+                    }
+
+                    newMesh->material->normalMap = defaultNormalMapID;
+                    newMesh->material->rmaMap = defaultRmaMapID;
+                    newMesh->material->isLoaded = true;
+
+                    TextureLoadContext context = g_is_thumbnail_mode ? TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL : TEXTURE_LOAD_CONTEXT_WORLD;
+
+                    if (primitive->material->has_pbr_metallic_roughness) {
+                        cgltf_texture_view* base_color_tex = &primitive->material->pbr_metallic_roughness.base_color_texture;
+                        if (base_color_tex->texture && base_color_tex->texture->image && base_color_tex->texture->image->buffer_view) {
+                            cgltf_buffer_view* bv = base_color_tex->texture->image->buffer_view;
+                            newMesh->material->diffuseMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, true, context);
+                        }
+                        else {
+                            newMesh->material->diffuseMap = missingTextureID;
+                        }
+
+                        cgltf_texture_view* metallic_roughness_tex = &primitive->material->pbr_metallic_roughness.metallic_roughness_texture;
+                        if (metallic_roughness_tex->texture && metallic_roughness_tex->texture->image && metallic_roughness_tex->texture->image->buffer_view) {
+                            cgltf_buffer_view* bv = metallic_roughness_tex->texture->image->buffer_view;
+                            newMesh->material->rmaMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, false, context);
+                        }
+                    }
+
+                    cgltf_texture_view* normal_tex = &primitive->material->normal_texture;
+                    if (normal_tex->texture && normal_tex->texture->image && normal_tex->texture->image->buffer_view) {
+                        cgltf_buffer_view* bv = normal_tex->texture->image->buffer_view;
+                        newMesh->material->normalMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, false, context);
+                    }
+                }
+                else {
+                    newMesh->material = &g_MissingMaterial;
+                }
+            }
+            else {
+                newMesh->material = (primitive->material && primitive->material->name) ? TextureManager_FindMaterial(primitive->material->name) : &g_MissingMaterial;
+            }
 
             float* positions = NULL, * normals = NULL, * texcoords = NULL, * tangents = NULL;
             cgltf_accessor* joints_accessor = NULL;
@@ -501,6 +551,18 @@ void Model_Free(LoadedModel* model) {
         glDeleteBuffers(1, &model->meshes[i].VBO);
         if (model->meshes[i].skinningVBO) {
             glDeleteBuffers(1, &model->meshes[i].skinningVBO);
+        }
+        if (model->meshes[i].material && model->meshes[i].material != &g_MissingMaterial && model->meshes[i].material != &g_NodrawMaterial) {
+            bool is_from_manager = false;
+            for (int m = 0; m < TextureManager_GetMaterialCount(); ++m) {
+                if (TextureManager_GetMaterial(m) == model->meshes[i].material) {
+                    is_from_manager = true;
+                    break;
+                }
+            }
+            if (!is_from_manager) {
+                free(model->meshes[i].material);
+            }
         }
         if (model->meshes[i].useEBO) {
             glDeleteBuffers(1, &model->meshes[i].EBO);

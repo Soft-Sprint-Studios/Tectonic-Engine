@@ -111,6 +111,93 @@ static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigne
     return texID;
 }
 
+GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrgb, TextureLoadContext context) {
+    if (!data || data_size <= 0) {
+        return missingTextureID;
+    }
+
+    SDL_RWops* rw = SDL_RWFromConstMem(data, data_size);
+    if (!rw) {
+        Console_Printf_Error("TextureManager ERROR: Failed to create RWops from memory.\n");
+        return missingTextureID;
+    }
+
+    SDL_Surface* surf = IMG_Load_RW(rw, 1);
+    if (!surf) {
+        Console_Printf_Error("TextureManager WARNING: Failed to load texture from memory: %s\n", IMG_GetError());
+        return missingTextureID;
+    }
+
+    if (context == TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL) {
+        int max_editor_dim = 128;
+        if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
+            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+        }
+    }
+    else {
+        int quality = Cvar_GetInt("r_texture_quality");
+        float scale_factor = 1.0f;
+        switch (quality) {
+        case 1: scale_factor = 0.25f; break;
+        case 2: scale_factor = 0.33f; break;
+        case 3: scale_factor = 0.5f; break;
+        case 4: scale_factor = 0.75f; break;
+        case 5: scale_factor = 1.0f; break;
+        default: scale_factor = 1.0f; break;
+        }
+        if (scale_factor < 1.0f && (surf->w > 16 || surf->h > 16)) {
+            int scaled_w = (int)(surf->w * scale_factor);
+            int scaled_h = (int)(surf->h * scale_factor);
+            if (scaled_w < 1) scaled_w = 1;
+            if (scaled_h < 1) scaled_h = 1;
+            SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
+            if (scaled_surf) {
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_FreeSurface(surf);
+                surf = scaled_surf;
+            }
+        }
+    }
+
+    SDL_Surface* fSurf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0);
+    SDL_FreeSurface(surf);
+
+    if (!fSurf) {
+        Console_Printf_Error("TextureManager ERROR: Failed to convert surface from memory data.\n");
+        return missingTextureID;
+    }
+
+    GLuint texID;
+    glGenTextures(1, &texID);
+    glBindTexture(GL_TEXTURE_2D, texID);
+    glTexImage2D(GL_TEXTURE_2D, 0, isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
+
+    if (context == TEXTURE_LOAD_CONTEXT_WORLD) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        GLfloat max_anisotropy;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
+    }
+    else {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    SDL_FreeSurface(fSurf);
+    return texID;
+}
+
 GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {

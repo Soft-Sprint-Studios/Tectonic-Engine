@@ -90,6 +90,7 @@ MATERIALS_API GLuint loadCubemap(const char* faces[6]);
 MATERIALS_API void TextureManager_LoadMaterialTextures(Material* material);
 MATERIALS_API GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
 MATERIALS_API GLuint TextureManager_LoadLUT(const char* filename_only);
+MATERIALS_API GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrgb, TextureLoadContext context);
 MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context);
 
 #ifdef __cplusplus
