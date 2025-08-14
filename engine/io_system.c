@@ -364,6 +364,36 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     Commands_Execute(1, disconnect_argv);
                 }
             }
+            else if (strcmp(ent->classname, "logic_branch") == 0) {
+                bool test_now = false;
+
+                if (strcmp(inputName, "SetValue") == 0) {
+                    ent->runtime_int_a = (parameter && atoi(parameter) != 0) ? 1 : 0;
+                }
+                else if (strcmp(inputName, "SetValueTest") == 0) {
+                    ent->runtime_int_a = (parameter && atoi(parameter) != 0) ? 1 : 0;
+                    test_now = true;
+                }
+                else if (strcmp(inputName, "Toggle") == 0) {
+                    ent->runtime_int_a = !ent->runtime_int_a;
+                }
+                else if (strcmp(inputName, "ToggleTest") == 0) {
+                    ent->runtime_int_a = !ent->runtime_int_a;
+                    test_now = true;
+                }
+                else if (strcmp(inputName, "Test") == 0) {
+                    test_now = true;
+                }
+
+                if (test_now) {
+                    if (ent->runtime_int_a == 1) {
+                        IO_FireOutput(ENTITY_LOGIC, i, "OnTrue", engine->lastFrame, NULL);
+                    }
+                    else {
+                        IO_FireOutput(ENTITY_LOGIC, i, "OnFalse", engine->lastFrame, NULL);
+                    }
+                }
+                }
         }
     }
     for (int i = 0; i < scene->numObjects; ++i) {

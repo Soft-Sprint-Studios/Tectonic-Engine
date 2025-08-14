@@ -317,6 +317,20 @@
     output OnGreaterThan ""
 )
 
+@PointClass = logic_branch
+[
+    InitialValue(checkbox) : "Initial Value (0=false, 1=true)" = "0"
+]
+(
+    input SetValue "Set the boolean value (0 or 1) without testing."
+    input SetValueTest "Set the boolean value (0 or 1) and immediately test."
+    input Toggle "Toggle the boolean value."
+    input ToggleTest "Toggle the boolean value and immediately test."
+    input Test "Test the current value and fire OnTrue or OnFalse."
+    output OnTrue "Fires when the value is true (1) and tested."
+    output OnFalse "Fires when the value is false (0) and tested."
+)
+
 @PointClass = logic_repeat
 [
     delay(float) : "Delay between triggers" = "1.0"

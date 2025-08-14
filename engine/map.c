@@ -2138,6 +2138,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "repeats", "-1"));
                 }
             }
+            else if (strcmp(ent->classname, "logic_branch") == 0) {
+                ent->runtime_int_a = atoi(LogicEntity_GetProperty(ent, "InitialValue", "0"));
+            }
             if (strcmp(ent->classname, "env_overlay") == 0) {
                 const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
                 ent->runtime_active = (atoi(starton_val) != 0);
