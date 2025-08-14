@@ -598,17 +598,11 @@ set_target_properties(TectonicModelImporter PROPERTIES
 )
 
 target_include_directories(TectonicModelImporter PRIVATE 
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/cgltf"
 )
 
 if(WIN32)
-    set_target_properties(TectonicModelImporter PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
-    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
-else()
-    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
-    target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
+    target_link_options(TectonicModelImporter PRIVATE /subsystem:console)
 endif()
 
 # Tectonic Particle Editor
