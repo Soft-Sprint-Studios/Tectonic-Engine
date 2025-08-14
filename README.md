@@ -24,8 +24,6 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Percentage-Closer Filtering (PCF): Implemented for soft shadow edges.
 
-- Global Illumination via Lightmapping and vertex lightmaps, the engine supports staticly baked lightmaps, including directional lightmaps for realistic specular and normal mapping for brushes, along with vertex lightmaps for models
-
 - High-Dynamic Range (HDR) Lighting: The entire lighting pipeline operates in HDR.
 
 - Auto-Exposure: The final image exposure is automatically adjusted based on scene luminance, simulating the human eye's adaptation to light and dark areas.
@@ -45,7 +43,18 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 - Procedural Skybox: A dynamic skybox system with procedural atmospheric scattering (Rayleigh & Mie) and animated clouds, removing the need for static 2D skybox images.
 
 # Post-Processing Stack
-- Includes a suite of configurable effects such as Film Grain, Chromatic Aberration, CRT screen curvature, Vignette, Sharpening, Black and White and Depth of Field.
+- Includes a suite of configurable effects such as Film Grain, Chromatic Aberration, CRT screen curvature, Vignette, Sharpening, Black and White, Invert Colors and Depth of Field.
+
+# Lightmapping
+- **Intel Embree-Powered Ray Tracing:** Static lightmaps for world geometry are baked using Intel Embree’s high-performance ray tracing kernels for accurate lighting.  
+
+- **Bounced Lighting:** Supports up to **4 light bounces** per surface, simulating realistic indirect illumination.  
+
+- **Directional Lightmaps:** Stores per-texel normal and directional information to enhance PBR shading on static brushes.  
+
+- **Vertex Lightmaps for Models:** Static models use **vertex lightmaps** instead of full texture lightmaps, providing precomputed ambient lighting while remaining efficient. 
+ 
+- **Integration with PBR Materials:** Baked lightmaps include diffuse and specular contributions, fully compatible with the engine’s physically-based rendering pipeline.
 
 # Engine & World
 - Brush-Based World Construction: World geometry is built using classic CSG (Constructive Solid Geometry) brush techniques, allowing for rapid and robust level design.
@@ -58,7 +67,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Dynamic Objects: Brushes and models can be configured with mass to become fully dynamic physics objects.
 
-- Input/Output (I/O) Logic System: A powerful, trigger-based system inspired by Source's entity I/O allows for complex scripting and level interactivity without writing code. Entities can fire outputs (e.g., OnTrigger, OnTimer) which connect to the inputs of other entities (TurnOn, PlaySound).
+- Input/Output (I/O) Logic System: A powerful, trigger-based system allows for complex scripting and level interactivity without writing code. Entities can fire outputs (e.g., OnTrigger, OnTimer) which connect to the inputs of other entities (TurnOn, PlaySound).
 
 - Hierarchical Undo/Redo System: The integrated editor features a robust, multi-level undo/redo stack for all entity creation, deletion, and modification actions.
 
@@ -73,7 +82,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Vertex Painting & Sculpting: Terrain and complex brushes can be directly painted with vertex colors for texture blending or sculpted for organic shapes.
 
-- Developer Console & CVars: A Quake-style dropdown console provides direct access to engine commands and tunable "CVars" for runtime configuration.
+- Developer Console & CVars: A console provides direct access to engine commands and tunable "CVars" for runtime configuration.
 
 # How to get running
 
