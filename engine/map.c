@@ -1979,6 +1979,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     fseek(file, current_pos, SEEK_SET);
                 }
                 Decal_UpdateMatrix(d);
+                char map_name_sanitized[128];
+                const char* last_slash = strrchr(scene->mapPath, '/');
+                const char* last_bslash = strrchr(scene->mapPath, '\\');
+                const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+                const char* dot = strrchr(map_filename, '.');
+                if (dot) {
+                    size_t len = dot - map_filename;
+                    strncpy(map_name_sanitized, map_filename, len);
+                    map_name_sanitized[len] = '\0';
+                }
+                else {
+                    strcpy(map_name_sanitized, map_filename);
+                }
+                Decal_LoadLightmaps(d, map_name_sanitized, scene->numDecals);
                 scene->numDecals++;
             }
         }
