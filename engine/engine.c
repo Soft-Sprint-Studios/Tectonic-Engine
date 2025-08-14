@@ -3544,6 +3544,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     bool ca_enabled = Cvar_GetInt("r_chromaticabberation") && g_scene.post.chromaticAberrationEnabled;
     bool bw_enabled = Cvar_GetInt("r_black_white") && g_scene.post.bwEnabled;
     bool sharpen_enabled = Cvar_GetInt("r_sharpening") && g_scene.post.sharpenEnabled;
+    bool invert_enabled = g_scene.post.invertEnabled;
 
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteStrength"), vignette_strength);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteRadius"), g_scene.post.vignetteRadius);
@@ -3557,6 +3558,8 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_sharpenAmount"), g_scene.post.sharpenAmount);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bwEnabled"), bw_enabled);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_bwStrength"), g_scene.post.bwStrength);
+    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_invertEnabled"), invert_enabled);
+    glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_invertStrength"), g_scene.post.invertStrength);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_isUnderwater"), g_scene.post.isUnderwater);
     glUniform3fv(glGetUniformLocation(g_renderer.postProcessShader, "u_underwaterColor"), 1, &g_scene.post.underwaterColor.x);
     glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));

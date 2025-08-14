@@ -1673,16 +1673,18 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             sscanf(line, "%*s %d", &scene->lightmapResolution);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
-            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int;
-            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
+            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int, invert_enabled_int;
+            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f %d %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
                 &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity,
-                &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount, &bw_enabled_int, &scene->post.bwStrength);
+                &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount,
+                &bw_enabled_int, &scene->post.bwStrength, &invert_enabled_int, &scene->post.invertStrength);
             scene->post.enabled = (bool)enabled_int;
             scene->post.lensFlareEnabled = (bool)flare_int;
             scene->post.dofEnabled = (bool)dof_enabled_int;
             scene->post.chromaticAberrationEnabled = (bool)ca_enabled_int;
             scene->post.sharpenEnabled = (bool)sharpen_enabled_int;
             scene->post.bwEnabled = (bool)bw_enabled_int;
+            scene->post.invertEnabled = (bool)invert_enabled_int;
         }
         else if (strcmp(keyword, "skybox") == 0) {
             int use_cubemap_int = 0;
@@ -2232,7 +2234,8 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture,
         (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength,
         (int)scene->post.sharpenEnabled, scene->post.sharpenAmount,
-        (int)scene->post.bwEnabled, scene->post.bwStrength
+        (int)scene->post.bwEnabled, scene->post.bwStrength,
+        (int)scene->post.invertEnabled, scene->post.invertStrength
     );
     fprintf(file, "skybox %d \"%s\"\n\n", (int)scene->use_cubemap_skybox, scene->skybox_path);
     fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f   %.4f %.4f %.4f %.4f\n\n",

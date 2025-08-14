@@ -8460,6 +8460,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_DragFloat("Black & White Strength", &scene->post.bwStrength, 0.0001f, 0.0f, 0.05f);
         }
         UI_Separator();
+        if (UI_Checkbox("Invert", &scene->post.invertEnabled)) {}
+        if (scene->post.invertEnabled) {
+            UI_DragFloat("Invert Strength", &scene->post.invertStrength, 0.01f, 0.0f, 1.0f);
+        }
+        UI_Separator();
         UI_Text("Depth of Field"); if (UI_Checkbox("Enabled##DOF", &scene->post.dofEnabled)) {} UI_DragFloat("Focus Distance", &scene->post.dofFocusDistance, 0.005f, 0.0f, 1.0f); UI_DragFloat("Aperture", &scene->post.dofAperture, 0.5f, 0.0f, 200.0f);
     }
     if (UI_CollapsingHeader("Color Correction", 1)) {

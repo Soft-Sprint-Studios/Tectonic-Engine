@@ -41,6 +41,8 @@ uniform bool u_sharpenEnabled;
 uniform float u_sharpenAmount;
 uniform bool u_bwEnabled;
 uniform float u_bwStrength;
+uniform bool u_invertEnabled;
+uniform float u_invertStrength;
 uniform bool u_isUnderwater;
 uniform vec3 u_underwaterColor;
 
@@ -320,6 +322,11 @@ void main()
 
     if (u_bwEnabled) {
         color = applyBlackAndWhite(color);
+    }
+	
+    if (u_invertEnabled) {
+        vec3 invertedColor = vec3(1.0) - color;
+        color = mix(color, invertedColor, u_invertStrength);
     }
 	
     if (u_isUnderwater) {
