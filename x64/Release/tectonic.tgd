@@ -107,6 +107,7 @@
     input Toggle "Toggle the door's state."
     output OnOpened "Fires when the door has finished opening."
     output OnClosed "Fires when the door has finished closing."
+    output OnUsed "Fires when the door is used via input."
 )
 
 @SolidClass = func_wall_toggle
@@ -449,6 +450,7 @@
     input TurnOn "Turn the beam on."
     input TurnOff "Turn the beam off."
     input Toggle "Toggle the beam on/off."
+	output OnUsed "Fires when the beam's state is changed via input."
 )
 
 @PointClass = env_glow

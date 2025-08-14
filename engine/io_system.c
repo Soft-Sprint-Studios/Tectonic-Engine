@@ -336,12 +336,15 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             else if (strcmp(ent->classname, "env_beam") == 0) {
                 if (strcmp(inputName, "TurnOn") == 0) {
                     ent->runtime_active = true;
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
                 }
                 else if (strcmp(inputName, "TurnOff") == 0) {
                     ent->runtime_active = false;
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
                 }
                 else if (strcmp(inputName, "Toggle") == 0) {
                     ent->runtime_active = !ent->runtime_active;
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
                 }
             }
             else if (strcmp(ent->classname, "env_glow") == 0) {
@@ -463,9 +466,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(b->classname, "func_door") == 0) {
                     if (strcmp(inputName, "Open") == 0) {
                         b->door_state = DOOR_STATE_OPENING;
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
                     }
                     else if (strcmp(inputName, "Close") == 0) {
                         b->door_state = DOOR_STATE_CLOSING;
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
                     }
                     else if (strcmp(inputName, "Toggle") == 0) {
                         if (b->door_state == DOOR_STATE_CLOSED || b->door_state == DOOR_STATE_CLOSING) {
@@ -474,6 +479,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         else if (b->door_state == DOOR_STATE_OPEN || b->door_state == DOOR_STATE_OPENING) {
                             b->door_state = DOOR_STATE_CLOSING;
                         }
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
                     }
                 }
                 else if (strcmp(b->classname, "func_pendulum") == 0) {
