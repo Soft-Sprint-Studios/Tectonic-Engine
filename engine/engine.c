@@ -1545,6 +1545,7 @@ void process_input() {
                                 else if (brush->door_state == DOOR_STATE_OPEN || brush->door_state == DOOR_STATE_OPENING) {
                                     brush->door_state = DOOR_STATE_CLOSING;
                                 }
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", g_engine->lastFrame, NULL);
                             }
                         }
                     }
