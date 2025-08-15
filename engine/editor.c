@@ -6289,7 +6289,7 @@ static void Editor_RenderTextureBrowser(Scene* scene) {
                     }
                     g_EditorState.show_texture_browser = false;
                 }
-                else if (primary && primary->type == ENTITY_DECAL) {
+                else if (primary && primary->type == ENTITY_DECAL && g_EditorState.texture_browser_target == 5) {
                     Decal* d = &scene->decals[primary->index];
                     Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
                     d->material = mat;
@@ -8193,6 +8193,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         const char* mat_name = d->material ? d->material->name : "___MISSING___";
         sprintf(decal_mat_button_label, "Material: %s", mat_name);
         if (UI_Button(decal_mat_button_label)) {
+            g_EditorState.texture_browser_target = 5;
             g_EditorState.show_texture_browser = true;
         }
 
