@@ -14,6 +14,8 @@
     input TurnOn "Turns the light on."
     input TurnOff "Turns the light off."
     input Toggle "Toggles the light on/off."
+    input SetLightStyle "Sets the light's appearance preset (0-12)."
+    input SetCustomLightStyle "Sets a custom light appearance style string."
 )
 
 @PointClass = _sound_base

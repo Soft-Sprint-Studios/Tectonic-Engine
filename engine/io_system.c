@@ -556,6 +556,24 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             if (strcmp(inputName, "TurnOn") == 0) scene->lights[i].is_on = true;
             else if (strcmp(inputName, "TurnOff") == 0) scene->lights[i].is_on = false;
             else if (strcmp(inputName, "Toggle") == 0) scene->lights[i].is_on = !scene->lights[i].is_on;
+            else if (strcmp(inputName, "SetLightStyle") == 0) {
+                if (parameter && strlen(parameter) > 0) {
+                    int style = atoi(parameter);
+                    if (style >= 0 && style <= 12) {
+                        scene->lights[i].preset = style;
+                    }
+                    else {
+                        Console_Printf_Warning("SetLightStyle: Invalid style index '%d'. Must be between 0 and 12.", style);
+                    }
+                }
+            }
+            else if (strcmp(inputName, "SetCustomLightStyle") == 0) {
+                if (parameter) {
+                    strncpy(scene->lights[i].custom_style_string, parameter, sizeof(scene->lights[i].custom_style_string) - 1);
+                    scene->lights[i].custom_style_string[sizeof(scene->lights[i].custom_style_string) - 1] = '\0';
+                    scene->lights[i].preset = 13;
+                }
+            }
         }
     }
     for (int i = 0; i < scene->numSoundEntities; ++i) {
