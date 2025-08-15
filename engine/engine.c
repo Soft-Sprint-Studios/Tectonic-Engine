@@ -912,6 +912,7 @@ void init_cvars() {
     Cvar_Register("r_lensflare", "1", "Enable lens flare (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_black_white", "1", "Enable black and white effect (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_sharpening", "1", "Enable sharpening (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_invert", "1", "Enable color invert (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vsync", "1", "Enable vertical sync (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_motionblur", "0", "Enable motion blur (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_fxaa", "1", "Enable depth-based anti-aliasing (0=off, 1=on)", CVAR_NONE);
@@ -3554,7 +3555,7 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     bool ca_enabled = Cvar_GetInt("r_chromaticabberation") && g_scene.post.chromaticAberrationEnabled;
     bool bw_enabled = Cvar_GetInt("r_black_white") && g_scene.post.bwEnabled;
     bool sharpen_enabled = Cvar_GetInt("r_sharpening") && g_scene.post.sharpenEnabled;
-    bool invert_enabled = g_scene.post.invertEnabled;
+    bool invert_enabled = Cvar_GetInt("r_invert") && g_scene.post.invertEnabled;
 
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteStrength"), vignette_strength);
     glUniform1f(glGetUniformLocation(g_renderer.postProcessShader, "u_vignetteRadius"), g_scene.post.vignetteRadius);
