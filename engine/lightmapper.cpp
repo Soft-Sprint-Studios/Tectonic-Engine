@@ -198,7 +198,7 @@ namespace
         m_rtc_device = rtcNewDevice(nullptr);
         if (!m_rtc_device)
         {
-            throw std::runtime_error("Failed to create Embree device.");
+            Console_Printf_Error("Failed to create Embree device.");
         }
         rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
         load_emissive_materials();
@@ -206,7 +206,7 @@ namespace
         m_oidn_device = oidnNewDevice(OIDN_DEVICE_TYPE_CPU);
         if (!m_oidn_device)
         {
-            throw std::runtime_error("Failed to create OIDN device.");
+            Console_Printf_Error("Failed to create OIDN device.");
         }
         oidnSetDeviceErrorFunction(m_oidn_device, oidn_error_function, nullptr);
         oidnCommitDevice(m_oidn_device);
