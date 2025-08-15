@@ -420,12 +420,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         obj->current_animation = anim_index;
                         obj->animation_time = 0.0f;
                         obj->animation_playing = true;
-                        if (strstr(parameter, "noloop") != NULL) {
-                            obj->animation_looping = false;
-                        }
-                        else {
-                            obj->animation_looping = true;
-                        }
+                        obj->animation_looping = false;
                     }
                     else {
                         Console_Printf_Warning("Animation '%s' not found for model '%s'", parameter, obj->targetname);
