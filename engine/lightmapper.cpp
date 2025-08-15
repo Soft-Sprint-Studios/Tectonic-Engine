@@ -1066,14 +1066,12 @@ namespace
     void Lightmapper::process_decal(const DecalJobData& data)
     {
         const Decal& decal = m_scene->decals[data.decal_index];
-        int lightmap_res = std::max(4, m_resolution / 4);
+        int lightmap_res = m_resolution;
 
         Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
         Vec3 y_axis = { transform.m[4], transform.m[5], transform.m[6] };
         Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
-        vec3_normalize(&x_axis);
-        vec3_normalize(&y_axis);
         vec3_normalize(&normal);
 
         std::vector<float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
@@ -1101,10 +1099,12 @@ namespace
                 Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
                 Vec3 world_pos = vec3_add(decal.pos, local_pos_on_quad);
 
+                Vec3 sampling_pos = vec3_add(world_pos, vec3_muls(normal, SHADOW_BIAS));
+
                 std::mt19937 rng(generate_seed_from_pos(world_pos));
                 Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
-                Vec3 direct_light = calculate_direct_light(world_pos, normal, dominant_dir);
-                Vec3 indirect_light = calculate_indirect_light(world_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
+                Vec3 direct_light = calculate_direct_light(sampling_pos, normal, dominant_dir);
+                Vec3 indirect_light = calculate_indirect_light(sampling_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
 
                 int idx = (y * lightmap_res + x) * 3;
 
