@@ -2967,7 +2967,17 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
 
     for (int i = 0; i < g_scene.numObjects; i++) {
         SceneObject* obj = &g_scene.objects[i];
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+        bool is_skinnable = obj->model && obj->model->num_skins > 0;
+        glUniform1i(glGetUniformLocation(g_renderer.zPrepassShader, "u_hasAnimation"), is_skinnable);
+        if (is_skinnable && obj->bone_matrices) {
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
+        }
+
+        Mat4 finalModelMatrix = obj->modelMatrix;
+        if (obj->model && obj->model->num_animations > 0 && obj->model->num_skins == 0) {
+            mat4_multiply(&finalModelMatrix, &obj->modelMatrix, &obj->animated_local_transform);
+        }
+        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, finalModelMatrix.m);
         if (obj->model) {
             for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                 Mesh* mesh = &obj->model->meshes[meshIdx];
