@@ -878,6 +878,17 @@ void Cmd_BuildLighting(int argc, char** argv) {
     Lightmapper_Generate(&g_scene, g_engine, resolution, bounces);
 }
 
+void Cmd_ScreenShake(int argc, char** argv) {
+    if (argc < 4) {
+        Console_Printf("Usage: screenshake <amplitude> <frequency> <duration>");
+        return;
+    }
+
+    g_engine->shake_amplitude = atof(argv[1]);
+    g_engine->shake_frequency = atof(argv[2]);
+    g_engine->shake_duration_timer = atof(argv[3]);
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -968,6 +979,7 @@ void init_commands() {
     Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.", CMD_NONE);
     Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
     Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
+    Commands_Register("screenshake", Cmd_ScreenShake, "Applies a screen shake effect. Usage: screenshake <amplitude> <frequency> <duration>", CMD_CHEAT);
     Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
     Commands_Register("exit", Cmd_Quit, "Alias for the 'quit' command.", CMD_NONE);
     Commands_Register("setpos", Cmd_SetPos, "Teleports the player to a specified XYZ coordinate.", CMD_CHEAT);
