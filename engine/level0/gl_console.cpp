@@ -346,7 +346,16 @@ extern "C" {
         return ImGui::InputFloat(label, v, step, step_fast, format);
     }
     bool UI_ColorEdit3(const char* label, float col[3]) { return ImGui::ColorEdit3(label, col); }
+    bool UI_IsItemClicked(int button) {
+        return ImGui::IsItemClicked((ImGuiMouseButton)button);
+    }
+    bool UI_IsItemActive(void) {
+        return ImGui::IsItemActive();
+    }
     void UI_Image(void* user_texture_id, float width, float height) { ImGui::Image((ImTextureID)user_texture_id, ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0)); }
+    void UI_Image_PaintCanvas(void* user_texture_id, float width, float height) {
+        ImGui::Image((ImTextureID)user_texture_id, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+    }
     bool UI_IsWindowFocused() { return ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows); }
     bool UI_IsWindowHovered() { return ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows); }
     bool UI_IsMouseDragging(int button) { return ImGui::IsMouseDragging(button); }
@@ -479,5 +488,26 @@ extern "C" {
 
     unsigned int UI_GetColorU32(int r, int g, int b, int a) {
         return IM_COL32(r, g, b, a);
+    }
+    void UI_GetItemRectMin(Vec2* p_out) {
+        if (p_out) {
+            ImVec2 min = ImGui::GetItemRectMin();
+            p_out->x = min.x;
+            p_out->y = min.y;
+        }
+    }
+
+    void UI_GetItemRectMax(Vec2* p_out) {
+        if (p_out) {
+            ImVec2 max = ImGui::GetItemRectMax();
+            p_out->x = max.x;
+            p_out->y = max.y;
+        }
+    }
+    bool UI_IsMouseDown(int button) {
+        return ImGui::IsMouseDown((ImGuiMouseButton)button);
+    }
+    bool UI_IsMouseClicked(int button) {
+        return ImGui::IsMouseClicked((ImGuiMouseButton)button);
     }
 }

@@ -183,6 +183,7 @@ typedef struct {
     int player_start_gizmo_vertex_count;
     bool is_painting;
     bool is_painting_mode_enabled;
+    SDL_Surface* active_blend_map_surface;
     float paint_brush_radius;
     float paint_brush_strength;
     bool show_texture_browser;
@@ -261,6 +262,10 @@ typedef struct {
     Vec3 transform_window_values;
     bool show_goto_coord_window;
     char goto_coord_input[64];
+    bool show_texture_paint_window;
+    int painting_brush_index;
+    int painting_face_index;
+    GLuint paint_window_texture_id;
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)
@@ -1544,7 +1549,14 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_map_info_window = false;
     g_EditorState.show_transform_window = false;
     g_EditorState.transform_window_mode = TRANSFORM_MODE_MOVE;
-    g_EditorState.transform_window_values = (Vec3){ 0,0,0 };
+    g_EditorState.transform_window_values = (Vec3){ 0,0,0 };  g_EditorState.show_texture_paint_window = false;
+    g_EditorState.painting_brush_index = -1;
+    g_EditorState.painting_face_index = -1;
+    g_EditorState.paint_window_texture_id = 0;
+    g_EditorState.show_texture_paint_window = false;
+    g_EditorState.painting_brush_index = -1;
+    g_EditorState.painting_face_index = -1;
+    g_EditorState.paint_window_texture_id = 0;
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -2261,25 +2273,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.sprinkle_timer = 0.0f;
             return;
         }
-        if (g_EditorState.is_painting_mode_enabled && primary && primary->type == ENTITY_BRUSH) {
-            if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
-                g_EditorState.is_painting = true;
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                return;
-            }
-            bool is_hovering_paint_viewport = false;
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
-                if (g_EditorState.is_viewport_hovered[i]) {
-                    is_hovering_paint_viewport = true;
-                    break;
-                }
-            }
-            if (is_hovering_paint_viewport) {
-                g_EditorState.is_painting = true;
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                return;
-            }
-        }
         if (g_EditorState.is_sculpting_mode_enabled && primary && primary->type == ENTITY_BRUSH) {
             if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
                 g_EditorState.is_sculpting = true;
@@ -2665,10 +2658,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         if (g_EditorState.is_sprinkling) {
             g_EditorState.is_sprinkling = false;
         }
-        if (g_EditorState.is_painting) {
-            g_EditorState.is_painting = false;
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Vertex Paint");
-        }
         if (g_EditorState.is_sculpting) {
             g_EditorState.is_sculpting = false;
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Vertex Sculpt");
@@ -2752,48 +2741,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 active_viewport = (ViewportType)i;
                 break;
-            }
-        }
-        if (g_EditorState.is_painting) {
-            Brush* b = &scene->brushes[primary->index];
-            bool needs_update = false;
-
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
-                if (g_EditorState.is_viewport_hovered[i]) {
-                    Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                    float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
-
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float dist_sq = 0;
-                        if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
-                        if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
-                        if (i == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
-
-                        if (dist_sq < radius_sq) {
-                            float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
-                            float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->deltaTime * 10.0f;
-                            float* channel_to_paint = NULL;
-                            if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
-                            else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
-                            else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
-
-                            if (channel_to_paint) {
-                                if (SDL_GetModState() & KMOD_SHIFT) {
-                                    *channel_to_paint -= blend_amount;
-                                }
-                                else {
-                                    *channel_to_paint += blend_amount;
-                                }
-                                *channel_to_paint = fmaxf(0.0f, fminf(1.0f, *channel_to_paint));
-                                needs_update = true;
-                            }
-                        }
-                    }
-                }
-            }
-            if (needs_update) {
-                Brush_CreateRenderData(b);
             }
         }
         if (g_EditorState.is_sculpting) {
@@ -3916,32 +3863,6 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     }
                 }
             }
-        }
-
-        if (g_EditorState.is_painting) {
-            bool needs_update = false;
-            float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
-
-                if (dist_sq < radius_sq) {
-                    float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
-                    float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
-                    float* channel_to_paint = NULL;
-                    if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
-                    else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
-                    else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
-
-                    if (channel_to_paint) {
-                        if (SDL_GetModState() & KMOD_SHIFT) *channel_to_paint -= blend_amount;
-                        else *channel_to_paint += blend_amount;
-                        *channel_to_paint = fmaxf(0.0f, fminf(1.0f, *channel_to_paint));
-                        needs_update = true;
-                    }
-                }
-            }
-            if (needs_update) Brush_CreateRenderData(b);
         }
 
         if (g_EditorState.is_sculpting) {
@@ -5879,74 +5800,6 @@ static void Editor_RenderVertexToolsWindow(Scene* scene) {
                 g_EditorState.show_sculpt_noise_popup = true;
             }
         }
-        else if (g_EditorState.is_painting_mode_enabled) {
-            UI_Text("Vertex Painting");
-            UI_Separator();
-            UI_DragFloat("Radius##Paint", &g_EditorState.paint_brush_radius, 0.1f, 0.1f, 50.0f);
-            UI_DragFloat("Strength##Paint", &g_EditorState.paint_brush_strength, 0.05f, 0.1f, 5.0f);
-
-            UI_Separator();
-            UI_Text("Paint Channel:");
-            if (UI_RadioButton("R (Tex 2)", g_EditorState.paint_channel == 0)) { g_EditorState.paint_channel = 0; }
-            if (UI_RadioButton("G (Tex 3)", g_EditorState.paint_channel == 1)) { g_EditorState.paint_channel = 1; }
-            if (UI_RadioButton("B (Tex 4)", g_EditorState.paint_channel == 2)) { g_EditorState.paint_channel = 2; }
-
-            UI_Separator();
-            if (UI_Button("Erase All Paint")) {
-                EditorSelection* primary = Editor_GetPrimarySelection();
-                if (primary && primary->type == ENTITY_BRUSH) {
-                    Brush* b = &scene->brushes[primary->index];
-                    if (b->numVertices > 0) {
-                        Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-
-                        for (int i = 0; i < b->numVertices; ++i) {
-                            b->vertices[i].color.x = 0.0f;
-                            b->vertices[i].color.y = 0.0f;
-                            b->vertices[i].color.z = 0.0f;
-                        }
-
-                        Brush_CreateRenderData(b);
-                        Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Erase All Vertex Paint");
-                    }
-                }
-            }
-            UI_SameLine();
-            if (UI_Button("Invert Channel")) {
-                if (g_EditorState.num_selections > 0) {
-                    Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
-
-                    bool modified_brushes[MAX_BRUSHES] = { false };
-
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
-                        EditorSelection* sel = &g_EditorState.selections[i];
-                        if (sel->type == ENTITY_BRUSH && sel->face_index != -1) {
-                            Brush* b = &scene->brushes[sel->index];
-                            BrushFace* face = &b->faces[sel->face_index];
-
-                            for (int j = 0; j < face->numVertexIndices; j++) {
-                                int vert_idx = face->vertexIndices[j];
-                                BrushVertex* vert = &b->vertices[vert_idx];
-
-                                switch (g_EditorState.paint_channel) {
-                                case 0: vert->color.x = 1.0f - vert->color.x; break;
-                                case 1: vert->color.y = 1.0f - vert->color.y; break;
-                                case 2: vert->color.z = 1.0f - vert->color.z; break;
-                                }
-                            }
-                            modified_brushes[sel->index] = true;
-                        }
-                    }
-
-                    for (int i = 0; i < scene->numBrushes; i++) {
-                        if (modified_brushes[i]) {
-                            Brush_CreateRenderData(&scene->brushes[i]);
-                        }
-                    }
-
-                    Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Invert Vertex Paint");
-                }
-            }
-        }
     }
     UI_End();
 
@@ -6653,6 +6506,82 @@ static void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                             Brush_CreateRenderData(b);
                             Undo_EndEntityModification(scene, ENTITY_BRUSH, sel->index, "Fit Texture to Face");
                         }
+                    }
+                }
+
+                UI_Separator();
+                UI_Text("Blend Map");
+                if (UI_Button("Edit Texture in 2D...")) {
+                    g_EditorState.show_texture_paint_window = true;
+                    g_EditorState.painting_brush_index = primary->index;
+                    g_EditorState.painting_face_index = primary->face_index;
+
+                    Brush* b = &scene->brushes[primary->index];
+                    BrushFace* face = &b->faces[primary->face_index];
+
+                    if (g_EditorState.active_blend_map_surface) { SDL_FreeSurface(g_EditorState.active_blend_map_surface); g_EditorState.active_blend_map_surface = NULL; }
+                    if (g_EditorState.paint_window_texture_id) { glDeleteTextures(1, &g_EditorState.paint_window_texture_id); g_EditorState.paint_window_texture_id = 0; }
+
+                    if (strlen(face->blendMapPath) == 0) {
+                        char map_name_sanitized[128];
+                        const char* map_filename = strrchr(scene->mapPath, '/');
+                        if (!map_filename) map_filename = strrchr(scene->mapPath, '\\');
+                        if (!map_filename) map_filename = scene->mapPath; else map_filename++;
+
+                        const char* dot = strrchr(map_filename, '.');
+                        if (dot) {
+                            size_t len = dot - map_filename;
+                            strncpy(map_name_sanitized, map_filename, len);
+                            map_name_sanitized[len] = '\0';
+                        }
+                        else {
+                            strncpy(map_name_sanitized, map_filename, sizeof(map_name_sanitized) - 1);
+                        }
+
+                        char brush_name_sanitized[128];
+                        if (strlen(b->targetname) > 0) {
+                            sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
+                        }
+                        else {
+                            sprintf(brush_name_sanitized, "Brush_%d", primary->index);
+                        }
+
+                        char final_brush_dir[1024];
+                        snprintf(final_brush_dir, sizeof(final_brush_dir), "lightmaps/%s/%s", map_name_sanitized, brush_name_sanitized);
+
+                        _mkdir("lightmaps");
+                        char map_dir[512];
+                        snprintf(map_dir, sizeof(map_dir), "lightmaps/%s", map_name_sanitized);
+                        _mkdir(map_dir);
+                        _mkdir(final_brush_dir);
+
+                        snprintf(face->blendMapPath, sizeof(face->blendMapPath), "%s/face_%d_blend.png", final_brush_dir, primary->face_index);
+
+                        int blend_res = 256;
+                        SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, blend_res, blend_res, 32, SDL_PIXELFORMAT_RGBA32);
+                        SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, 0, 0, 0, 255));
+                        IMG_SavePNG(surface, face->blendMapPath);
+                        g_EditorState.active_blend_map_surface = surface;
+
+                        if (face->blendMapTexture) glDeleteTextures(1, &face->blendMapTexture);
+                        face->blendMapTexture = loadTexture(face->blendMapPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
+                        Editor_SetMapDirty(true);
+                    }
+                    else {
+                        g_EditorState.active_blend_map_surface = IMG_Load(face->blendMapPath);
+                        if (g_EditorState.active_blend_map_surface) {
+                            SDL_Surface* converted_surface = SDL_ConvertSurfaceFormat(g_EditorState.active_blend_map_surface, SDL_PIXELFORMAT_RGBA32, 0);
+                            SDL_FreeSurface(g_EditorState.active_blend_map_surface);
+                            g_EditorState.active_blend_map_surface = converted_surface;
+                        }
+                    }
+
+                    if (g_EditorState.active_blend_map_surface) {
+                        glGenTextures(1, &g_EditorState.paint_window_texture_id);
+                        glBindTexture(GL_TEXTURE_2D, g_EditorState.paint_window_texture_id);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_EditorState.active_blend_map_surface->w, g_EditorState.active_blend_map_surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, g_EditorState.active_blend_map_surface->pixels);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                     }
                 }
 
@@ -7393,6 +7322,233 @@ static void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* 
     }
     g_pending_action = PENDING_ACTION_NONE;
 }
+
+static void DrawPaintDab(SDL_Surface* surface, int center_px, int center_py) {
+    uint32_t* pixels = (uint32_t*)surface->pixels;
+    int tex_w = surface->w;
+    int tex_h = surface->h;
+    int radius_px = (int)g_EditorState.paint_brush_radius;
+
+    for (int y = -radius_px; y <= radius_px; ++y) {
+        for (int x = -radius_px; x <= radius_px; ++x) {
+            int px = center_px + x;
+            int py = center_py + y;
+
+            if (px >= 0 && px < tex_w && py >= 0 && py < tex_h) {
+                float dist_sq = (float)(x * x + y * y);
+                if (dist_sq < (radius_px * radius_px)) {
+                    float falloff = 1.0f - sqrtf(dist_sq) / (float)radius_px;
+                    int blend_amount = (int)(g_EditorState.paint_brush_strength * falloff * 255.0f);
+                    if (blend_amount == 0) continue;
+
+                    int idx = py * tex_w + px;
+                    uint32_t* pixel = &pixels[idx];
+                    uint8_t r, g, b, a;
+                    SDL_GetRGBA(*pixel, surface->format, &r, &g, &b, &a);
+
+                    int channel_val = 0;
+                    if (g_EditorState.paint_channel == 0) channel_val = r;
+                    else if (g_EditorState.paint_channel == 1) channel_val = g;
+                    else if (g_EditorState.paint_channel == 2) channel_val = b;
+
+                    if (SDL_GetModState() & KMOD_SHIFT) {
+                        channel_val -= blend_amount;
+                    }
+                    else {
+                        channel_val += blend_amount;
+                    }
+                    channel_val = (channel_val < 0) ? 0 : (channel_val > 255) ? 255 : channel_val;
+
+                    if (g_EditorState.paint_channel == 0) r = (uint8_t)channel_val;
+                    else if (g_EditorState.paint_channel == 1) g = (uint8_t)channel_val;
+                    else if (g_EditorState.paint_channel == 2) b = (uint8_t)channel_val;
+
+                    *pixel = SDL_MapRGBA(surface->format, r, g, b, a);
+                }
+            }
+        }
+    }
+}
+
+static void DrawLineOfDabs(SDL_Surface* surface, int x0, int y0, int x1, int y1) {
+    int dx = abs(x1 - x0);
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0);
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+
+    while (1) {
+        DrawPaintDab(surface, x0, y0);
+        if (x0 == x1 && y0 == y1) break;
+        int e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
+static void Editor_RenderTexturePaintWindow(Scene* scene) {
+    if (!g_EditorState.show_texture_paint_window) {
+        return;
+    }
+
+    static int last_px = -1;
+    static int last_py = -1;
+    static bool is_painting_stroke = false;
+
+    UI_SetNextWindowSize(600, 700);
+    if (UI_Begin("2D Texture Paint", &g_EditorState.show_texture_paint_window)) {
+        if (!g_EditorState.active_blend_map_surface || g_EditorState.paint_window_texture_id == 0) {
+            UI_Text("Error: No texture loaded for painting.");
+            UI_End();
+            return;
+        }
+
+        UI_Text("Brush Settings (Hold Shift to Erase)");
+        UI_DragFloat("Radius##Paint", &g_EditorState.paint_brush_radius, 0.5f, 1.0f, 256.0f);
+        UI_DragFloat("Strength##Paint", &g_EditorState.paint_brush_strength, 0.01f, 0.01f, 1.0f);
+        UI_Separator();
+        UI_Text("Paint Channel:");
+        if (UI_RadioButton("R (Tex 2)", g_EditorState.paint_channel == 0)) { g_EditorState.paint_channel = 0; } UI_SameLine();
+        if (UI_RadioButton("G (Tex 3)", g_EditorState.paint_channel == 1)) { g_EditorState.paint_channel = 1; } UI_SameLine();
+        if (UI_RadioButton("B (Tex 4)", g_EditorState.paint_channel == 2)) { g_EditorState.paint_channel = 2; }
+        UI_Separator();
+
+        if (UI_Button("Erase All")) {
+            SDL_Surface* surface = g_EditorState.active_blend_map_surface;
+            SDL_FillRect(surface, NULL, SDL_MapRGBA(surface->format, 0, 0, 0, 255));
+            glBindTexture(GL_TEXTURE_2D, g_EditorState.paint_window_texture_id);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+            Brush* b = &scene->brushes[g_EditorState.painting_brush_index];
+            BrushFace* face = &b->faces[g_EditorState.painting_face_index];
+            if (face->blendMapTexture != 0) {
+                glBindTexture(GL_TEXTURE_2D, face->blendMapTexture);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+            }
+        }
+        UI_SameLine();
+        if (UI_Button("Invert Channel")) {
+            SDL_Surface* surface = g_EditorState.active_blend_map_surface;
+            SDL_LockSurface(surface);
+            uint32_t* pixels = (uint32_t*)surface->pixels;
+            for (int p = 0; p < surface->w * surface->h; ++p) {
+                uint8_t r, g, b, a;
+                SDL_GetRGBA(pixels[p], surface->format, &r, &g, &b, &a);
+                if (g_EditorState.paint_channel == 0) r = 255 - r;
+                else if (g_EditorState.paint_channel == 1) g = 255 - g;
+                else if (g_EditorState.paint_channel == 2) b = 255 - b;
+                pixels[p] = SDL_MapRGBA(surface->format, r, g, b, a);
+            }
+            SDL_UnlockSurface(surface);
+            glBindTexture(GL_TEXTURE_2D, g_EditorState.paint_window_texture_id);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+            Brush* b = &scene->brushes[g_EditorState.painting_brush_index];
+            BrushFace* face = &b->faces[g_EditorState.painting_face_index];
+            if (face->blendMapTexture != 0) {
+                glBindTexture(GL_TEXTURE_2D, face->blendMapTexture);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, surface->w, surface->h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+            }
+        }
+        UI_Separator();
+
+        float win_w = 0;
+        UI_GetContentRegionAvail(&win_w, NULL);
+        float tex_w = g_EditorState.active_blend_map_surface->w;
+        float tex_h = g_EditorState.active_blend_map_surface->h;
+        float aspect = tex_h / tex_w;
+
+        UI_Image_PaintCanvas((void*)(intptr_t)g_EditorState.paint_window_texture_id, win_w, win_w * aspect);
+
+        bool is_hovering_image = UI_IsItemHovered();
+
+        if (is_hovering_image && UI_IsMouseClicked(0)) {
+            is_painting_stroke = true;
+        }
+        if (!UI_IsMouseDown(0)) {
+            is_painting_stroke = false;
+            last_px = -1;
+            last_py = -1;
+        }
+
+        if (is_painting_stroke && is_hovering_image) {
+            Vec2 image_pos, image_max;
+            UI_GetItemRectMin(&image_pos);
+            UI_GetItemRectMax(&image_max);
+            Vec2 image_size = { image_max.x - image_pos.x, image_max.y - image_pos.y };
+
+            float mouse_x, mouse_y;
+            UI_GetMousePos(&mouse_x, &mouse_y);
+            Vec2 relative_mouse = { mouse_x - image_pos.x, mouse_y - image_pos.y };
+
+            int center_px = (int)((relative_mouse.x / image_size.x) * tex_w);
+            int center_py = (int)((relative_mouse.y / image_size.y) * tex_h);
+
+            SDL_Surface* surface = g_EditorState.active_blend_map_surface;
+            SDL_LockSurface(surface);
+
+            int x0 = (last_px == -1) ? center_px : last_px;
+            int y0 = (last_py == -1) ? center_py : last_py;
+            int x1 = center_px;
+            int y1 = center_py;
+
+            int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+            int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+            int err = dx + dy, e2;
+
+            for (;;) {
+                DrawPaintDab(surface, x0, y0);
+                if (x0 == x1 && y0 == y1) break;
+                e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x0 += sx; }
+                if (e2 <= dx) { err += dx; y0 += sy; }
+            }
+
+            last_px = center_px;
+            last_py = center_py;
+
+            SDL_UnlockSurface(surface);
+
+            Brush* b = &scene->brushes[g_EditorState.painting_brush_index];
+            BrushFace* face = &b->faces[g_EditorState.painting_face_index];
+
+            glBindTexture(GL_TEXTURE_2D, g_EditorState.paint_window_texture_id);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, (int)tex_w, (int)tex_h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+
+            if (face->blendMapTexture != 0) {
+                glBindTexture(GL_TEXTURE_2D, face->blendMapTexture);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, (int)tex_w, (int)tex_h, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+            }
+        }
+        else {
+            last_px = -1;
+            last_py = -1;
+        }
+    }
+
+    if (!g_EditorState.show_texture_paint_window) {
+        if (g_EditorState.active_blend_map_surface) {
+            Brush* b = &scene->brushes[g_EditorState.painting_brush_index];
+            BrushFace* face = &b->faces[g_EditorState.painting_face_index];
+            if (strlen(face->blendMapPath) > 0) {
+                IMG_SavePNG(g_EditorState.active_blend_map_surface, face->blendMapPath);
+                if (face->blendMapTexture) glDeleteTextures(1, &face->blendMapTexture);
+                face->blendMapTexture = loadTexture(face->blendMapPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
+            }
+            SDL_FreeSurface(g_EditorState.active_blend_map_surface);
+            g_EditorState.active_blend_map_surface = NULL;
+        }
+        if (g_EditorState.paint_window_texture_id) {
+            glDeleteTextures(1, &g_EditorState.paint_window_texture_id);
+            g_EditorState.paint_window_texture_id = 0;
+        }
+        g_EditorState.painting_brush_index = -1;
+        g_EditorState.painting_face_index = -1;
+        is_painting_stroke = false;
+        last_px = -1;
+        last_py = -1;
+    }
+
+    UI_End();
+}
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     char window_title[512];
     sprintf(window_title, "Tectonic Editor - %s", g_EditorState.currentMapPath);
@@ -7817,16 +7973,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Checkbox("Sculpt Mode", &g_EditorState.is_sculpting_mode_enabled)) {
             if (g_EditorState.is_sculpting_mode_enabled) {
                 g_EditorState.is_painting_mode_enabled = false;
-                g_EditorState.show_vertex_tools_window = true;
-            }
-            else {
-                g_EditorState.show_vertex_tools_window = false;
-            }
-        }
-        UI_SameLine();
-        if (UI_Checkbox("Paint Mode", &g_EditorState.is_painting_mode_enabled)) {
-            if (g_EditorState.is_painting_mode_enabled) {
-                g_EditorState.is_sculpting_mode_enabled = false;
                 g_EditorState.show_vertex_tools_window = true;
             }
             else {
@@ -8703,6 +8849,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderMapInfoWindow(scene);
     Editor_RenderTransformWindow(scene, engine);
     Editor_RenderGoToCoordinatesWindow();
+    Editor_RenderTexturePaintWindow(scene);
 
     if (g_pending_action != PENDING_ACTION_NONE) {
         UI_OpenPopup("Unsaved Changes");

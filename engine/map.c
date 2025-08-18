@@ -173,6 +173,7 @@ void Brush_FreeData(Brush* b) {
                 free(b->faces[i].vertexIndices);
                 b->faces[i].vertexIndices = NULL;
             }
+            if (b->faces[i].blendMapTexture) { glDeleteTextures(1, &b->faces[i].blendMapTexture); b->faces[i].blendMapTexture = 0; }
         }
         free(b->faces);
         b->faces = NULL;
@@ -1735,46 +1736,55 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     b->faces = calloc(b->numFaces, sizeof(BrushFace));
                     for (int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
+                        BrushFace* face = &b->faces[i];
+
+                        memset(face, 0, sizeof(BrushFace));
+                        face->lightmap_scale = 1.0f;
+
                         char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
+                        sscanf(line, " f %*d %63s %63s %63s %63s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
+                            mat_name, mat2_name, mat3_name, mat4_name,
+                            &face->uv_offset.x, &face->uv_offset.y, &face->uv_rotation, &face->uv_scale.x, &face->uv_scale.y,
+                            &face->uv_offset2.x, &face->uv_offset2.y, &face->uv_rotation2, &face->uv_scale2.x, &face->uv_scale2.y,
+                            &face->uv_offset3.x, &face->uv_offset3.y, &face->uv_rotation3, &face->uv_scale3.x, &face->uv_scale3.y,
+                            &face->uv_offset4.x, &face->uv_offset4.y, &face->uv_rotation4, &face->uv_scale4.x, &face->uv_scale4.y,
+                            &face->numVertexIndices);
 
-                        char* lightmap_scale_ptr = strstr(line, "lightmap_scale");
-                        if (lightmap_scale_ptr) {
-                            sscanf(lightmap_scale_ptr, "lightmap_scale %f", &b->faces[i].lightmap_scale);
-                            *lightmap_scale_ptr = '\0';
-                        }
+                        face->material = TextureManager_FindMaterial(mat_name);
+                        face->material2 = strcmp(mat2_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat2_name);
+                        face->material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
+                        face->material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
 
-                        char* grouped_ptr = strstr(line, "is_grouped");
+                        char* p = line;
+                        char* lightmap_scale_ptr = strstr(p, "lightmap_scale");
+                        if (lightmap_scale_ptr) sscanf(lightmap_scale_ptr, "lightmap_scale %f", &face->lightmap_scale);
+
+                        char* grouped_ptr = strstr(p, "is_grouped");
                         if (grouped_ptr) {
                             int grouped_int;
-                            if (sscanf(grouped_ptr, "is_grouped %d \"%63[^\"]\"", &grouped_int, b->faces[i].groupName) == 2) {
-                                b->faces[i].isGrouped = (bool)grouped_int;
+                            if (sscanf(grouped_ptr, "is_grouped %d \"%63[^\"]\"", &grouped_int, face->groupName) == 2) {
+                                face->isGrouped = (bool)grouped_int;
                             }
-                            *grouped_ptr = '\0';
-                        } else {
-                            b->faces[i].isGrouped = false;
-                            b->faces[i].groupName[0] = '\0';
                         }
 
-                        sscanf(line, " f %*d %63s %63s %63s %63s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d",
-                            mat_name, mat2_name, mat3_name, mat4_name, &b->faces[i].uv_offset.x, &b->faces[i].uv_offset.y, &b->faces[i].uv_rotation, &b->faces[i].uv_scale.x, &b->faces[i].uv_scale.y,
-                            &b->faces[i].uv_offset2.x, &b->faces[i].uv_offset2.y, &b->faces[i].uv_rotation2, &b->faces[i].uv_scale2.x, &b->faces[i].uv_scale2.y,
-                            &b->faces[i].uv_offset3.x, &b->faces[i].uv_offset3.y, &b->faces[i].uv_rotation3, &b->faces[i].uv_scale3.x, &b->faces[i].uv_scale3.y,
-                            &b->faces[i].uv_offset4.x, &b->faces[i].uv_offset4.y, &b->faces[i].uv_rotation4, &b->faces[i].uv_scale4.x, &b->faces[i].uv_scale4.y,
-                            &b->faces[i].numVertexIndices);
+                        if (map_file_version >= 17) {
+                            char* blendmap_ptr = strstr(p, "blendmap");
+                            if (blendmap_ptr) {
+                                sscanf(blendmap_ptr, "blendmap \"%127[^\"]\"", face->blendMapPath);
+                                if (strlen(face->blendMapPath) > 0) {
+                                    face->blendMapTexture = loadTexture(face->blendMapPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
+                                }
+                            }
+                        }
 
-                        b->faces[i].material = TextureManager_FindMaterial(mat_name);
-                        b->faces[i].material2 = strcmp(mat2_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat2_name);
-                        b->faces[i].material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
-                        b->faces[i].material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
-
-                        b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
-                        char* p = strchr(line, ':');
+                        face->vertexIndices = malloc(face->numVertexIndices * sizeof(int));
+                        p = strchr(line, ':');
                         if (p) {
                             p++;
                             int total_offset = 0;
-                            for (int j = 0; j < b->faces[i].numVertexIndices; ++j) {
+                            for (int j = 0; j < face->numVertexIndices; ++j) {
                                 int chars_read = 0;
-                                sscanf(p + total_offset, " %d %n", &b->faces[i].vertexIndices[j], &chars_read);
+                                sscanf(p + total_offset, " %d %n", &face->vertexIndices[j], &chars_read);
                                 total_offset += chars_read;
                             }
                         }
@@ -1795,10 +1805,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                         }
                     }
                 }
-                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) { 
-                    b->isGrouped = (bool)dummy_int; 
-                } else {
-                     b->groupName[0] = '\0';
+                else if (sscanf(line, " is_grouped %d \"%63[^\"]\"", &dummy_int, b->groupName) == 2) {
+                    b->isGrouped = (bool)dummy_int;
+                }
+                else {
+                    b->groupName[0] = '\0';
                 }
             }
             if (strcmp(b->classname, "env_reflectionprobe") == 0) {
@@ -2301,6 +2312,9 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
             for (int k = 0; k < face->numVertexIndices; ++k) fprintf(file, " %d", face->vertexIndices[k]);
             fprintf(file, " lightmap_scale %.4f", face->lightmap_scale);
             if (face->isGrouped && face->groupName[0] != '\0') fprintf(file, " is_grouped 1 \"%s\"", face->groupName);
+            if (strlen(face->blendMapPath) > 0) {
+                fprintf(file, " blendmap \"%s\"", face->blendMapPath);
+            }
             fprintf(file, "\n");
         }
         if (b->numProperties > 0) {

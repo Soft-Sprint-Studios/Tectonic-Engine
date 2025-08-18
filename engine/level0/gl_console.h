@@ -125,6 +125,9 @@ extern "C" {
 
 	LEVEL0_API bool UI_IsItemActivated(void);
 	LEVEL0_API bool UI_IsItemDeactivatedAfterEdit(void);
+	LEVEL0_API bool UI_IsItemClicked(int button);
+	LEVEL0_API void UI_Image_PaintCanvas(void* user_texture_id, float width, float height);
+	LEVEL0_API bool UI_IsItemActive(void);
 	LEVEL0_API bool UI_Checkbox(const char* label, bool* v);
 
 	LEVEL0_API bool UI_ImageButton(const char* str_id, unsigned int user_texture_id, float width, float height);
@@ -171,6 +174,11 @@ extern "C" {
 	LEVEL0_API void* UI_GetWindowDrawList();
 	LEVEL0_API void UI_DrawList_AddText(void* draw_list, float pos_x, float pos_y, unsigned int col, const char* text);
 	LEVEL0_API unsigned int UI_GetColorU32(int r, int g, int b, int a);
+
+	LEVEL0_API void UI_GetItemRectMin(Vec2* p_out);
+	LEVEL0_API void UI_GetItemRectMax(Vec2* p_out);
+	LEVEL0_API bool UI_IsMouseDown(int button);
+	LEVEL0_API bool UI_IsMouseClicked(int button);
 
 #ifdef __cplusplus
 }

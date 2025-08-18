@@ -62,7 +62,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 12
-#define MAP_VERSION 16
+#define MAP_VERSION 17
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -303,6 +303,8 @@ extern "C" {
         int numVertexIndices;
         Vec4 atlas_coords;
         float lightmap_scale;
+        char blendMapPath[128];
+        GLuint blendMapTexture;
         bool isGrouped;
         char groupName[64];
     } BrushFace;

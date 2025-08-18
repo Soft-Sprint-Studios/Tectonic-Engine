@@ -440,6 +440,12 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 b->faces[current_face_in_batch_idx].material3 == batch_material3 &&
                 b->faces[current_face_in_batch_idx].material4 == batch_material4) {
 
+                if (strlen(b->faces[current_face_in_batch_idx].blendMapPath) > 0) {
+                    if (b->faces[current_face_in_batch_idx].blendMapTexture == 0) {
+                        b->faces[current_face_in_batch_idx].blendMapTexture = loadTexture(b->faces[current_face_in_batch_idx].blendMapPath, false, TEXTURE_LOAD_CONTEXT_WORLD);
+                    }
+                }
+
                 if (b->faces[current_face_in_batch_idx].numVertexIndices >= 3) {
                     int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
                     batch_vertex_count += num_face_verts;
@@ -463,6 +469,15 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->normalMap : defaultNormalMapID);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->rmaMap : defaultRmaMapID);
             glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->heightMap : 0);
+            if (first_face_in_batch->blendMapTexture != 0) {
+                glUniform1i(glGetUniformLocation(shader, "useBlendMap"), 1);
+                glActiveTexture(GL_TEXTURE9);
+                glBindTexture(GL_TEXTURE_2D, first_face_in_batch->blendMapTexture);
+                glUniform1i(glGetUniformLocation(shader, "blendMap"), 9);
+            }
+            else {
+                glUniform1i(glGetUniformLocation(shader, "useBlendMap"), 0);
+            }
             glUniform1f(glGetUniformLocation(shader, "detailScale"), batch_material ? batch_material->detailScale : 1.0f);
             glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->detailDiffuseMap : 0);
 
