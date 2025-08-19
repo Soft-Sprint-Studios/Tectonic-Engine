@@ -41,6 +41,15 @@ uniform mat4 sunLightSpaceMatrix;
 uniform vec3 viewPos;
 uniform mat4 model;
 
+uniform sampler2D heightMap;
+uniform sampler2D heightMap2;
+uniform sampler2D heightMap3;
+uniform sampler2D heightMap4;
+uniform float heightScale;
+uniform bool u_useTesselation;
+uniform bool useBlendMap;
+uniform sampler2D blendMap;
+
 uniform float u_fadeStartDist;
 uniform float u_fadeEndDist;
 
@@ -87,6 +96,55 @@ void main()
     TexCoordsLightmap = lm_tc0 + lm_tc1 + lm_tc2;
 	
     isBrush = tes_in[0].isBrush;
+	
+    vec3 worldNormal_unnormalized;
+    if (tes_in[0].isBrush == 1)
+    {
+        vec3 edge1 = tes_in[1].worldPos - tes_in[0].worldPos;
+        vec3 edge2 = tes_in[2].worldPos - tes_in[0].worldPos;
+        worldNormal_unnormalized = cross(edge1, edge2);
+    }
+    else
+    {
+        vec3 n0 = gl_TessCoord.x * tes_in[0].worldNormal;
+        vec3 n1 = gl_TessCoord.y * tes_in[1].worldNormal;
+        vec3 n2 = gl_TessCoord.z * tes_in[2].worldNormal;
+        worldNormal_unnormalized = n0 + n1 + n2;
+    }
+
+    if(u_useTesselation && heightScale > 0.0)
+    {
+        float height1 = texture(heightMap, TexCoords).r;
+        float displacement = height1;
+
+        if (tes_in[0].isBrush == 1) {
+            float blendR = v_Color.r;
+            float blendG = v_Color.g;
+            float blendB = v_Color.b;
+            if (useBlendMap) {
+                vec4 blendWeights = texture(blendMap, TexCoordsLightmap);
+                blendR = blendWeights.r;
+                blendG = blendWeights.g;
+                blendB = blendWeights.b;
+            }
+            float totalWeight = max(blendR + blendG + blendB, 0.0001);
+            if (totalWeight > 1.0) {
+                blendR /= totalWeight;
+                blendG /= totalWeight;
+                blendB /= totalWeight;
+            }
+            float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
+            float blendBase = 1.0 - blendTotal;
+
+            float height2 = texture(heightMap2, TexCoords2).r;
+            float height3 = texture(heightMap3, TexCoords3).r;
+            float height4 = texture(heightMap4, TexCoords4).r;
+            
+            displacement = height1 * blendBase + height2 * blendR + height3 * blendG + height4 * blendB;
+        }
+
+        FragPos_world += normalize(worldNormal_unnormalized) * displacement * heightScale;
+    }
 	
     if (u_fadeEndDist > 0.0) {
         float dist = length(FragPos_world - viewPos);

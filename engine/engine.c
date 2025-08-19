@@ -323,7 +323,10 @@ void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const F
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == g_renderer.mainShader) {
-                bool parallaxEnabledForThisMesh = Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
+                bool isTesselationEnabled = material->useTesselation;
+                glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabled);
+
+                bool parallaxEnabledForThisMesh = !isTesselationEnabled && Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
                 glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), parallaxEnabledForThisMesh);
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
@@ -453,8 +456,15 @@ void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* f
                 current_face_in_batch_idx++;
             }
 
+            bool isTesselationEnabledForBatch = (batch_material && batch_material->useTesselation) ||
+                (batch_material2 && batch_material2->useTesselation) ||
+                (batch_material3 && batch_material3->useTesselation) ||
+                (batch_material4 && batch_material4->useTesselation);
+
+            glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabledForBatch);
+
             bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
-            bool isParallaxEnabledForBatch = parallaxEnabled && (
+            bool isParallaxEnabledForBatch = !isTesselationEnabledForBatch && parallaxEnabled && (
                 (batch_material && batch_material->heightScale > 0.0f) ||
                 (batch_material2 && batch_material2->heightScale > 0.0f) ||
                 (batch_material3 && batch_material3->heightScale > 0.0f) ||
@@ -1111,6 +1121,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
 
 void init_renderer() {
     g_renderer.zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");
+    g_renderer.zPrepassTessShader = createShaderProgramTess("shaders/zprepass_tess.vert", "shaders/zprepass_tess.tcs", "shaders/zprepass_tess.tes", "shaders/zprepass_tess.frag");
     g_renderer.wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
     g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     g_renderer.debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
@@ -2973,10 +2984,6 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
     glViewport(0, 0, g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(g_renderer.zPrepassShader);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "projection"), 1, GL_FALSE, projection->m);
-
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
@@ -2995,18 +3002,50 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
 
     for (int i = 0; i < g_scene.numObjects; i++) {
         SceneObject* obj = &g_scene.objects[i];
-        bool is_skinnable = obj->model && obj->model->num_skins > 0;
-        glUniform1i(glGetUniformLocation(g_renderer.zPrepassShader, "u_hasAnimation"), is_skinnable);
-        if (is_skinnable && obj->bone_matrices) {
-            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
+        if (!obj->model) continue;
+
+        bool hasTessellatedMesh = false;
+        for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+            if (obj->model->meshes[meshIdx].material && obj->model->meshes[meshIdx].material->useTesselation) {
+                hasTessellatedMesh = true;
+                break;
+            }
         }
 
-        Mat4 finalModelMatrix = obj->modelMatrix;
-        if (obj->model && obj->model->num_animations > 0 && obj->model->num_skins == 0) {
-            mat4_multiply(&finalModelMatrix, &obj->modelMatrix, &obj->animated_local_transform);
+        GLuint shader = hasTessellatedMesh ? g_renderer.zPrepassTessShader : g_renderer.zPrepassShader;
+        glUseProgram(shader);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, view->m);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, projection->m);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
+
+        if (hasTessellatedMesh) {
+            glPatchParameteri(GL_PATCH_VERTICES, 3);
+            for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                Mesh* mesh = &obj->model->meshes[meshIdx];
+                Material* mat = mesh->material;
+
+                if (mat && mat->useTesselation) {
+                    glUniform1i(glGetUniformLocation(shader, "useBlendMap"), 0);
+                    glUniform1f(glGetUniformLocation(shader, "heightScale"), mat->heightScale);
+                    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, mat->heightMap);
+                    glUniform1i(glGetUniformLocation(shader, "heightMap"), 0);
+                }
+
+                glBindVertexArray(mesh->VAO);
+                if (mat && mat->useTesselation) {
+                    glDrawElements(GL_PATCHES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+                }
+                else {
+                    glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
+                }
+            }
         }
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, finalModelMatrix.m);
-        if (obj->model) {
+        else {
+            bool is_skinnable = obj->model && obj->model->num_skins > 0;
+            glUniform1i(glGetUniformLocation(shader, "u_hasAnimation"), is_skinnable);
+            if (is_skinnable && obj->bone_matrices) {
+                glUniformMatrix4fv(glGetUniformLocation(shader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
+            }
             for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                 Mesh* mesh = &obj->model->meshes[meshIdx];
                 glBindVertexArray(mesh->VAO);
@@ -3022,15 +3061,57 @@ void render_zprepass(const Mat4* view, const Mat4* projection) {
 
     for (int i = 0; i < g_scene.numBrushes; i++) {
         Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
-            continue;
-        }
+        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) continue;
         if (strcmp(b->classname, "func_clip") == 0) continue;
         if (strcmp(b->classname, "env_glass") == 0) continue;
         if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-        glBindVertexArray(b->vao);
-        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+
+        bool hasTessellatedFace = false;
+        for (int faceIdx = 0; faceIdx < b->numFaces; ++faceIdx) {
+            Material* mat = b->faces[faceIdx].material;
+            if (mat && mat->useTesselation) {
+                hasTessellatedFace = true;
+                break;
+            }
+        }
+
+        if (hasTessellatedFace) {
+            glUseProgram(g_renderer.zPrepassTessShader);
+            glPatchParameteri(GL_PATCH_VERTICES, 3);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassTessShader, "view"), 1, GL_FALSE, view->m);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassTessShader, "projection"), 1, GL_FALSE, projection->m);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassTessShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+
+            glBindVertexArray(b->vao);
+            int vbo_offset = 0;
+            for (int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
+                BrushFace* face = &b->faces[face_idx];
+                int num_face_verts = (face->numVertexIndices - 2) * 3;
+                if (face->material && face->material->useTesselation) {
+                    glUniform1f(glGetUniformLocation(g_renderer.zPrepassTessShader, "heightScale"), face->material->heightScale);
+                    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, face->material->heightMap); glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "heightMap"), 0);
+
+                    bool useBlend = face->material2 || face->material3 || face->material4;
+                    glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "useBlendMap"), useBlend);
+                    if (useBlend) {
+                        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, face->material2 ? face->material2->heightMap : 0); glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "heightMap2"), 1);
+                        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, face->material3 ? face->material3->heightMap : 0); glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "heightMap3"), 2);
+                        glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, face->material4 ? face->material4->heightMap : 0); glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "heightMap4"), 3);
+                        glActiveTexture(GL_TEXTURE4); glBindTexture(GL_TEXTURE_2D, face->blendMapTexture); glUniform1i(glGetUniformLocation(g_renderer.zPrepassTessShader, "blendMap"), 4);
+                    }
+                    glDrawArrays(GL_PATCHES, vbo_offset, num_face_verts);
+                }
+                vbo_offset += num_face_verts;
+            }
+        }
+        else {
+            glUseProgram(g_renderer.zPrepassShader);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "view"), 1, GL_FALSE, view->m);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "projection"), 1, GL_FALSE, projection->m);
+            glUniformMatrix4fv(glGetUniformLocation(g_renderer.zPrepassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+            glBindVertexArray(b->vao);
+            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
+        }
     }
 
     glDisable(GL_POLYGON_OFFSET_FILL);

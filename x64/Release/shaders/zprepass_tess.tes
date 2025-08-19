@@ -1,0 +1,77 @@
+#version 450 core
+layout(triangles, equal_spacing, ccw) in;
+
+in TCS_OUT {
+    vec3 worldPos;
+    vec2 texCoords;
+	vec2 lightmapTexCoords;
+    vec4 color;
+} tes_in[];
+
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 model;
+
+uniform sampler2D heightMap;
+uniform sampler2D heightMap2;
+uniform sampler2D heightMap3;
+uniform sampler2D heightMap4;
+uniform float heightScale;
+uniform bool useBlendMap;
+uniform sampler2D blendMap;
+
+void main()
+{
+    vec3 p0_ws = gl_TessCoord.x * tes_in[0].worldPos;
+    vec3 p1_ws = gl_TessCoord.y * tes_in[1].worldPos;
+    vec3 p2_ws = gl_TessCoord.z * tes_in[2].worldPos;
+    vec3 FragPos_world = p0_ws + p1_ws + p2_ws;
+
+    vec2 tc0 = gl_TessCoord.x * tes_in[0].texCoords;
+    vec2 tc1 = gl_TessCoord.y * tes_in[1].texCoords;
+    vec2 tc2 = gl_TessCoord.z * tes_in[2].texCoords;
+    vec2 TexCoords = tc0 + tc1 + tc2;
+	
+	vec2 lm_tc0 = gl_TessCoord.x * tes_in[0].lightmapTexCoords;
+    vec2 lm_tc1 = gl_TessCoord.y * tes_in[1].lightmapTexCoords;
+    vec2 lm_tc2 = gl_TessCoord.z * tes_in[2].lightmapTexCoords;
+    vec2 TexCoordsLightmap = lm_tc0 + lm_tc1 + lm_tc2;
+	
+    vec4 c0 = gl_TessCoord.x * tes_in[0].color;
+    vec4 c1 = gl_TessCoord.y * tes_in[1].color;
+    vec4 c2 = gl_TessCoord.z * tes_in[2].color;
+    vec4 v_Color = c0 + c1 + c2;
+
+    vec3 edge1 = tes_in[1].worldPos - tes_in[0].worldPos;
+    vec3 edge2 = tes_in[2].worldPos - tes_in[0].worldPos;
+    vec3 worldNormal = normalize(cross(edge1, edge2));
+
+    float height1 = texture(heightMap, TexCoords).r;
+    float displacement = height1;
+
+    if (useBlendMap) {
+        vec4 blendWeights = texture(blendMap, TexCoordsLightmap);
+        float blendR = blendWeights.r;
+        float blendG = blendWeights.g;
+        float blendB = blendWeights.b;
+        
+        float totalWeight = max(blendR + blendG + blendB, 0.0001);
+        if (totalWeight > 1.0) {
+            blendR /= totalWeight;
+            blendG /= totalWeight;
+            blendB /= totalWeight;
+        }
+        float blendTotal = clamp(blendR + blendG + blendB, 0.0, 1.0);
+        float blendBase = 1.0 - blendTotal;
+
+        float height2 = texture(heightMap2, TexCoords).r;
+        float height3 = texture(heightMap3, TexCoords).r;
+        float height4 = texture(heightMap4, TexCoords).r;
+        
+        displacement = height1 * blendBase + height2 * blendR + height3 * blendG + height4 * blendB;
+    }
+
+    FragPos_world += worldNormal * displacement * heightScale;
+    
+    gl_Position = projection * view * vec4(FragPos_world, 1.0);
+}

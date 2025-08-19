@@ -188,6 +188,7 @@ extern "C" {
     typedef struct {
         GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
         GLuint zPrepassShader;
+        GLuint zPrepassTessShader;
         GLuint wireframeShader;
         GLuint lightingCompositeShader;
         GLuint postProcessShader;

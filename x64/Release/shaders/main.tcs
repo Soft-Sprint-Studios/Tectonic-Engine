@@ -37,6 +37,7 @@ out TCS_OUT {
 
 uniform vec3 viewPos;
 uniform bool isBrush;
+uniform bool u_useTesselation;
 
 void main()
 {
@@ -55,8 +56,18 @@ void main()
     tcs_out[gl_InvocationID].isBrush = tcs_in[gl_InvocationID].isBrush;
     tcs_out[gl_InvocationID].clipDist = tcs_in[gl_InvocationID].clipDist;
 
-    gl_TessLevelOuter[0] = 1.0;
-    gl_TessLevelOuter[1] = 1.0;
-    gl_TessLevelOuter[2] = 1.0;
-    gl_TessLevelInner[0] = 1.0;
+    if(u_useTesselation)
+    {
+        gl_TessLevelOuter[0] = 64.0;
+        gl_TessLevelOuter[1] = 64.0;
+        gl_TessLevelOuter[2] = 64.0;
+        gl_TessLevelInner[0] = 64.0;
+    }
+	else
+	{
+        gl_TessLevelOuter[0] = 1.0;
+        gl_TessLevelOuter[1] = 1.0;
+        gl_TessLevelOuter[2] = 1.0;
+        gl_TessLevelInner[0] = 1.0;
+	}
 }

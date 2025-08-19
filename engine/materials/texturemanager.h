@@ -63,6 +63,7 @@ typedef struct {
     float detailScale;
     float roughness;
     float metalness;
+    bool useTesselation;
 } Material;
 
 extern MATERIALS_API Material g_MissingMaterial;
