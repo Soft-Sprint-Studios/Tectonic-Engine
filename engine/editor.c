@@ -879,6 +879,8 @@ static void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* p
     memset(b, 0, sizeof(Brush));
     Brush_DeepCopy(b, preview);
     for (int i = 0; i < b->numFaces; i++) {
+        b->faces[i].blendMapPath[0] = '\0';
+        b->faces[i].blendMapTexture = 0;
         b->faces[i].isGrouped = false;
         b->faces[i].groupName[0] = '\0';
     }
