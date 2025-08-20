@@ -34,6 +34,7 @@
 #include "gl_skybox.h"
 #include "gl_sprites.h"
 #include "gl_blackholes.h"
+#include "gl_zprepass.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 
@@ -48,8 +49,6 @@ static float parallaxRoomVertices[] = {
 };
 
 void Renderer_Init(Renderer* renderer, Engine* engine) {
-    renderer->zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");
-    renderer->zPrepassTessShader = createShaderProgramTess("shaders/zprepass_tess.vert", "shaders/zprepass_tess.tcs", "shaders/zprepass_tess.tes", "shaders/zprepass_tess.frag");
     renderer->wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
     renderer->mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     renderer->debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
@@ -363,6 +362,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Decals_Init(renderer);
     Skybox_Init(renderer);
     Blackhole_Init(renderer);
+    Zprepass_Init(renderer);
     Sprites_Init(renderer);
     VideoPlayer_InitSystem();
     const GLubyte* gpu = glGetString(GL_RENDERER);
@@ -403,7 +403,6 @@ void Renderer_Present(GLuint source_fbo, Engine* engine) {
 void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->mainShader);
     glDeleteProgram(renderer->pointDepthShader);
-    glDeleteProgram(renderer->zPrepassShader);
     glDeleteProgram(renderer->debugBufferShader);
     glDeleteProgram(renderer->spotDepthShader);
     glDeleteProgram(renderer->skyboxShader);
@@ -467,6 +466,7 @@ void Renderer_Shutdown(Renderer* renderer) {
     Glow_Shutdown();
     Decals_Shutdown(renderer);
     Skybox_Shutdown(renderer);
+    Zprepass_Shutdown(renderer);
     Blackhole_Shutdown(renderer);
     Sprites_Shutdown(renderer);
     VideoPlayer_ShutdownSystem();

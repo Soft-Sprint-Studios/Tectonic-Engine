@@ -90,6 +90,7 @@ set(ENGINE_SOURCES
     engine/gl_glow.c
     engine/gl_decals.c
     engine/gl_sprites.c
+    engine/gl_zprepass.c
     engine/gl_blackholes.c
     engine/gl_skybox.c
     engine/lightmapper.cpp
@@ -108,6 +109,7 @@ set(ENGINE_HEADERS
     engine/gl_overlay.h
     engine/gl_glow.h
     engine/gl_decals.h
+    engine/gl_zprepass.h
     engine/gl_sprites.h
     engine/gl_blackholes.h
     engine/gl_skybox.h
