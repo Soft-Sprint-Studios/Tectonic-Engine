@@ -31,6 +31,7 @@
 #include "gl_overlay.h"
 #include "gl_glow.h"
 #include "gl_decals.h"
+#include "gl_skybox.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 
