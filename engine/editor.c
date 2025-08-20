@@ -4529,7 +4529,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
             ParticleEmitter_Render(&scene->particleEmitters[i], g_view_matrix[type], g_proj_matrix[type]);
         }
 
-        render_sprites(&g_view_matrix[type], &g_proj_matrix[type]);
+        Sprites_Render(renderer, scene, &g_view_matrix[type], &g_proj_matrix[type]);
 
         glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);

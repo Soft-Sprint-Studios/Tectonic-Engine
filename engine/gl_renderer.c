@@ -32,6 +32,7 @@
 #include "gl_glow.h"
 #include "gl_decals.h"
 #include "gl_skybox.h"
+#include "gl_sprites.h"
 #include "gl_blackholes.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
@@ -71,7 +72,6 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     renderer->waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
     renderer->reflectiveGlassShader = createShaderProgram("shaders/reflective_glass.vert", "shaders/reflective_glass.frag");
     renderer->parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
-    renderer->spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     const int LOW_RES_WIDTH = engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
     const int LOW_RES_HEIGHT = engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
@@ -363,6 +363,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Decals_Init(renderer);
     Skybox_Init(renderer);
     Blackhole_Init(renderer);
+    Sprites_Init(renderer);
     VideoPlayer_InitSystem();
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
@@ -467,5 +468,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     Decals_Shutdown(renderer);
     Skybox_Shutdown(renderer);
     Blackhole_Shutdown(renderer);
+    Sprites_Shutdown(renderer);
     VideoPlayer_ShutdownSystem();
 }

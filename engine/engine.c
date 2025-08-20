@@ -4071,7 +4071,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 }
             }
             if (Cvar_GetInt("r_sprites")) {
-                render_sprites(&view, &projection);
+                Sprites_Render(&g_renderer, &g_scene, &view, &projection);
             }
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
