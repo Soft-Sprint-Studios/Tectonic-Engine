@@ -11,6 +11,8 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Relief Mapping: Height maps can be used to create the illusion of depth and self-shadowing on surfaces, providing a more convincing 3D effect than standard normal mapping.
 
+- Tesselation Displacement Mapping: Height maps can be used to create the procedual geometry on surfaces using tesselation.
+
 # Dynamic Lighting System: Supports a large number of fully dynamic point and spot lights with configurable color, intensity, and radius.
 - Light Styles & Presets: Lights can utilize preset animation styles for effects such as flickering, strobing, and pulsing.
 
