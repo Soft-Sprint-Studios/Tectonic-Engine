@@ -31,7 +31,6 @@
 extern "C" {
 #endif
 
-#define SUN_SHADOW_MAP_SIZE 4096
 #define BLOOM_DOWNSAMPLE 8
 #define SSAO_DOWNSAMPLE 2
 #define VOLUMETRIC_DOWNSAMPLE 4

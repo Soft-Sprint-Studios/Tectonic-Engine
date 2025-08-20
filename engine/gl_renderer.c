@@ -35,6 +35,7 @@
 #include "gl_sprites.h"
 #include "gl_blackholes.h"
 #include "gl_zprepass.h"
+#include "gl_shadows.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 
@@ -52,8 +53,6 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     renderer->wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
     renderer->mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     renderer->debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
-    renderer->pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
-    renderer->spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
     renderer->postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
     renderer->histogramShader = createShaderProgramCompute("shaders/histogram.comp");
     renderer->exposureShader = createShaderProgramCompute("shaders/exposure.comp");
@@ -363,6 +362,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Skybox_Init(renderer);
     Blackhole_Init(renderer);
     Zprepass_Init(renderer);
+    Shadows_Init(renderer);
     Sprites_Init(renderer);
     VideoPlayer_InitSystem();
     const GLubyte* gpu = glGetString(GL_RENDERER);
@@ -402,9 +402,7 @@ void Renderer_Present(GLuint source_fbo, Engine* engine) {
 
 void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->mainShader);
-    glDeleteProgram(renderer->pointDepthShader);
     glDeleteProgram(renderer->debugBufferShader);
-    glDeleteProgram(renderer->spotDepthShader);
     glDeleteProgram(renderer->skyboxShader);
     glDeleteProgram(renderer->postProcessShader);
     glDeleteProgram(renderer->bloomShader);
@@ -467,6 +465,7 @@ void Renderer_Shutdown(Renderer* renderer) {
     Decals_Shutdown(renderer);
     Skybox_Shutdown(renderer);
     Zprepass_Shutdown(renderer);
+    Shadows_Shutdown(renderer);
     Blackhole_Shutdown(renderer);
     Sprites_Shutdown(renderer);
     VideoPlayer_ShutdownSystem();

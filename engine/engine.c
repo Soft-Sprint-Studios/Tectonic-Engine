@@ -30,9 +30,7 @@
 #include <time.h>
 #include "cvar.h"
 #include "commands.h"
-#include "gl_console.h"
 #include "gl_renderer.h"
-#include "gl_misc.h"
 #include "map.h"
 #include "physics_wrapper.h"
 #include "editor.h"
@@ -54,12 +52,7 @@
 #include "lightmapper.h"
 #include "ipc_system.h"
 #include "game_data.h"
-#include "gl_beams.h"
-#include "gl_cables.h"
-#include "gl_overlay.h"
-#include "gl_decals.h"
-#include "gl_skybox.h"
-#include "gl_glow.h"
+#include "gl_shadows.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
@@ -2154,32 +2147,6 @@ void update_state() {
     }
 }
 
-void render_sun_shadows(const Mat4* sunLightSpaceMatrix) {
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_FRONT);
-    glViewport(0, 0, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    glUseProgram(g_renderer.spotDepthShader);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
-
-    for (int j = 0; j < g_scene.numObjects; ++j) {
-        if (!g_scene.objects[j].casts_shadows) continue;
-        render_object(g_renderer.spotDepthShader, &g_scene.objects[j], false, NULL);
-    }
-    for (int j = 0; j < g_scene.numBrushes; ++j) {
-        Brush* b = &g_scene.brushes[j];
-        if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
-            continue;
-        }
-        if (strcmp(g_scene.brushes[j].classname, "env_reflectionprobe") == 0) continue;
-        render_brush(g_renderer.spotDepthShader, &g_scene.brushes[j], false, NULL);
-    }
-
-    glCullFace(GL_BACK);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
 void render_parallax_rooms(Mat4* view, Mat4* projection) {
     glUseProgram(g_renderer.parallaxInteriorShader);
     glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "view"), 1, GL_FALSE, view->m);
@@ -2284,59 +2251,6 @@ void render_reflective_glass(Mat4* view, Mat4* projection) {
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glBindVertexArray(0);
-}
-
-void render_shadows() {
-    glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT);  
-    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
-    if (shadow_map_size <= 0) {
-        shadow_map_size = 1024;
-    }
-    float max_shadow_dist = Cvar_GetFloat("r_shadow_distance_max");
-    float max_shadow_dist_sq = max_shadow_dist * max_shadow_dist;
-    glViewport(0, 0, shadow_map_size, shadow_map_size);
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
-        Light* light = &g_scene.lights[i];
-        if (light->is_static_shadow && light->has_rendered_static_shadow) {
-            continue;
-        }
-        if (light->is_static) continue;
-        if (light->intensity <= 0.0f) continue;
-        if (vec3_length_sq(vec3_sub(light->position, g_engine->camera.position)) > max_shadow_dist_sq) continue;
-        glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        GLuint current_shader;
-        if (light->type == LIGHT_POINT) {
-            current_shader = g_renderer.pointDepthShader; glUseProgram(current_shader);
-            Mat4 shadowProj = mat4_perspective(90.0f * M_PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
-            Mat4 shadowTransforms[6];
-            shadowTransforms[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[2] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 1, 0 }), (Vec3) { 0, 0, 1 });
-            shadowTransforms[3] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, -1, 0 }), (Vec3) { 0, 0, -1 });
-            shadowTransforms[4] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, 1 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[5] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, -1 }), (Vec3) { 0, -1, 0 });
-            for (int j = 0; j < 6; ++j) { mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]); char uName[64]; sprintf(uName, "shadowMatrices[%d]", j); glUniformMatrix4fv(glGetUniformLocation(current_shader, uName), 1, GL_FALSE, shadowTransforms[j].m); }
-            glUniform1f(glGetUniformLocation(current_shader, "far_plane"), light->shadowFarPlane); glUniform3fv(glGetUniformLocation(current_shader, "lightPos"), 1, &light->position.x);
-        }
-        else {
-            current_shader = g_renderer.spotDepthShader; glUseProgram(current_shader);
-            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
-            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
-            Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
-            Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
-            Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
-            glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
-        }
-        for (int j = 0; j < g_scene.numObjects; ++j) {
-            if (!g_scene.objects[j].casts_shadows) continue; render_object(current_shader, &g_scene.objects[j], false, NULL);
-        }
-        for (int j = 0; j < g_scene.numBrushes; ++j) render_brush(current_shader, &g_scene.brushes[j], false, NULL);
-        if (light->is_static_shadow) {
-            light->has_rendered_static_shadow = true;
-        }
-    }
-    glCullFace(GL_BACK); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
@@ -3405,12 +3319,12 @@ void BuildCubemaps(int resolution) {
             Mat4 view = mat4_lookAt(g_engine->camera.position, target_pos, ups[face_idx]);
             Mat4 projection = mat4_perspective(90.0f * (M_PI / 180.f), 1.0f, 0.1f, 1000.f);
 
-            render_shadows();
+            Shadows_RenderPointAndSpot(&g_renderer, &g_scene, g_engine);
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);
             if (g_scene.sun.enabled) {
                 Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
-                render_sun_shadows(&sunLightSpaceMatrix);
+                Shadows_RenderSun(&g_renderer, &g_scene, &sunLightSpaceMatrix);
             }
 
             render_geometry_pass(&view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
@@ -3879,13 +3793,13 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
 
             if (Cvar_GetInt("r_shadows")) {
                 if ((g_frame_counter % 2) == 0) {
-                    render_shadows();
+                    Shadows_RenderPointAndSpot(&g_renderer, &g_scene, g_engine);
                 }
 
                 if (g_scene.sun.enabled) {
                     Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
                     if ((g_frame_counter % 2) == 0) {
-                        render_sun_shadows(&sunLightSpaceMatrix);
+                        Shadows_RenderSun(&g_renderer, &g_scene, &sunLightSpaceMatrix);
                     }
                 }
             }

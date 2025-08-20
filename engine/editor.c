@@ -5270,13 +5270,13 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[0]);
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    render_shadows();
+    Shadows_RenderPointAndSpot(renderer, scene, engine);
 
     Mat4 sunLightSpaceMatrix;
     mat4_identity(&sunLightSpaceMatrix);
     if (scene->sun.enabled) {
         Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &scene->sun, g_EditorState.editor_camera.position);
-        render_sun_shadows(&sunLightSpaceMatrix);
+        Shadows_RenderSun(renderer, scene, &sunLightSpaceMatrix);
     }
 
     for (int i = 0; i < VIEW_COUNT; i++) {
