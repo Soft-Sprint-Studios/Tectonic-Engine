@@ -2286,85 +2286,6 @@ void render_reflective_glass(Mat4* view, Mat4* projection) {
     glBindVertexArray(0);
 }
 
-static void render_blackholes(Mat4* view, Mat4* projection) {
-    bool has_blackhole = false;
-    for (int i = 0; i < g_scene.numLogicEntities; ++i) {
-        LogicEntity* ent = &g_scene.logicEntities[i];
-        if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
-            has_blackhole = true;
-            break;
-        }
-    }
-    if (!has_blackhole) return;
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.postProcessFBO);
-    glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-    glDisable(GL_DEPTH_TEST);
-
-    glUseProgram(g_renderer.blackholeShader);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.postProcessTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.blackholeShader, "screenTexture"), 0);
-
-    for (int i = 0; i < g_scene.numLogicEntities; ++i) {
-        LogicEntity* ent = &g_scene.logicEntities[i];
-        if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
-            glUniform2f(glGetUniformLocation(g_renderer.blackholeShader, "screensize"), (float)g_engine->width, (float)g_engine->height);
-
-            Mat4 view_proj;
-            mat4_multiply(&view_proj, projection, view);
-            Vec4 clip_pos = mat4_mul_vec4(&view_proj, (Vec4) { ent->pos.x, ent->pos.y, ent->pos.z, 1.0f });
-
-            Vec2 screen_pos;
-            screen_pos.x = (clip_pos.x / clip_pos.w) * 0.5f + 0.5f;
-            screen_pos.y = (clip_pos.y / clip_pos.w) * 0.5f + 0.5f;
-
-            const char* scale_str = LogicEntity_GetProperty(ent, "scale", "1.0");
-            float scale = atof(scale_str);
-
-            const float deg_to_rad = 3.14159265359f / 180.0f;
-            float rotation_rad = ent->rot.y * deg_to_rad;
-
-            Vec3 offset_pos = vec3_add(ent->pos, (Vec3) { scale, 0.0f, 0.0f });
-            Vec4 clip_offset = mat4_mul_vec4(&view_proj, (Vec4) { offset_pos.x, offset_pos.y, offset_pos.z, 1.0f });
-
-            Vec2 offset_screen_pos;
-            offset_screen_pos.x = (clip_offset.x / clip_offset.w) * 0.5f + 0.5f;
-            offset_screen_pos.y = (clip_offset.y / clip_offset.w) * 0.5f + 0.5f;
-
-            float screen_radius_x = fabsf(offset_screen_pos.x - screen_pos.x);
-            float screen_radius_y = fabsf(offset_screen_pos.y - screen_pos.y);
-            float screen_radius = fmaxf(screen_radius_x, screen_radius_y);
-
-            bool visible =
-                clip_pos.w > 0.0f &&
-                screen_pos.x + screen_radius > 0.0f &&
-                screen_pos.x - screen_radius < 1.0f &&
-                screen_pos.y + screen_radius > 0.0f &&
-                screen_pos.y - screen_radius < 1.0f;
-
-            if (visible) {
-                glUniform2fv(glGetUniformLocation(g_renderer.blackholeShader, "screenpos"), 1, &screen_pos.x);
-
-                float distance_to_cam = vec3_length(vec3_sub(g_engine->camera.position, ent->pos));
-                glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "distance_uniform"), distance_to_cam);
-                glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "size"), scale);
-                glUniform1f(glGetUniformLocation(g_renderer.blackholeShader, "rotation_angle"), rotation_rad);
-
-                glBindVertexArray(g_renderer.quadVAO);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
-            }
-        }
-    }
-
-    glEnable(GL_DEPTH_TEST);
-    glBindVertexArray(0);
-}
-
 void render_shadows() {
     glEnable(GL_DEPTH_TEST); glCullFace(GL_FRONT);  
     int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
@@ -4132,7 +4053,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if(Cvar_GetInt("r_skybox")) {
                 Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             }
-            render_blackholes(&view, &projection);
+            Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             render_refractive_glass(&view, &projection);
             render_reflective_glass(&view, &projection);

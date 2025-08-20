@@ -32,6 +32,7 @@
 #include "gl_glow.h"
 #include "gl_decals.h"
 #include "gl_skybox.h"
+#include "gl_blackholes.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 
@@ -362,6 +363,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Glow_Init();
     Decals_Init(&renderer);
     Skybox_Init(renderer);
+    Blackhole_Init(&renderer);
     VideoPlayer_InitSystem();
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
@@ -421,7 +423,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->motionBlurShader);
     glDeleteProgram(renderer->waterShader);
     glDeleteProgram(renderer->glassShader);
-    glDeleteProgram(renderer->blackholeShader);
     glDeleteFramebuffers(1, &renderer->gBufferFBO);
     glDeleteTextures(1, &renderer->gLitColor);
     glDeleteTextures(1, &renderer->gPosition);
@@ -466,5 +467,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     Glow_Shutdown();
     Decals_Shutdown(&renderer);
     Skybox_Shutdown(renderer);
+    Blackhole_Shutdown(&renderer);
     VideoPlayer_ShutdownSystem();
 }
