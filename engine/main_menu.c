@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 #include "main_menu.h"
-#include "video_player.h"
+#include "gl_video_player.h"
 #include <SDL_ttf.h>
 #include <GL/glew.h>
 #include <stdio.h>

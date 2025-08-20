@@ -31,6 +31,7 @@
 #include "cvar.h"
 #include "commands.h"
 #include "gl_console.h"
+#include "gl_renderer.h"
 #include "gl_misc.h"
 #include "map.h"
 #include "physics_wrapper.h"
@@ -57,6 +58,7 @@
 #include "gl_cables.h"
 #include "gl_overlay.h"
 #include "gl_decals.h"
+#include "gl_skybox.h"
 #include "gl_glow.h"
 #include "engine_api.h"
 #include "cgltf/cgltf.h"
@@ -65,12 +67,6 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 #endif
-
-#define SUN_SHADOW_MAP_SIZE 4096
-
-#define BLOOM_DOWNSAMPLE 8
-#define SSAO_DOWNSAMPLE 2
-#define VOLUMETRIC_DOWNSAMPLE 4
 
 static const char* g_light_styles[] = {
     "m",
@@ -112,10 +108,8 @@ static HANDLE g_hMutex = NULL;
 static int g_lockFileFd = -1;
 #endif
 
-static void init_renderer(void);
 static void init_scene(void);
 void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit);
-void render_skybox(Mat4* view, Mat4* projection);
 
 static void Scene_UpdateAnimations(Scene* scene, float deltaTime);
 
@@ -1095,14 +1089,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Console_SetCommandHandler(Commands_Execute);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
-    VideoPlayer_InitSystem();
-    init_renderer();
+    Renderer_Init(&g_renderer, g_engine);
     DSP_Reverb_Thread_Init();
-    Beams_Init();
-    Cable_Init();
-    Overlay_Init();
-    Glow_Init();
-    Decals_Init(&g_renderer);
     init_scene();
     Discord_Init();
     Weapons_Init();
@@ -1116,347 +1104,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
     Console_Printf("Engine branch: %s\n", BRANCH_NAME);
     SDL_SetRelativeMouseMode(SDL_FALSE);
-}
-
-void init_renderer() {
-    g_renderer.zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");
-    g_renderer.zPrepassTessShader = createShaderProgramTess("shaders/zprepass_tess.vert", "shaders/zprepass_tess.tcs", "shaders/zprepass_tess.tes", "shaders/zprepass_tess.frag");
-    g_renderer.wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
-    g_renderer.mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
-    g_renderer.debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
-    g_renderer.pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
-    g_renderer.spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
-    g_renderer.skyboxShader = createShaderProgram("shaders/skybox.vert", "shaders/skybox.frag");
-    g_renderer.postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
-    g_renderer.histogramShader = createShaderProgramCompute("shaders/histogram.comp");
-    g_renderer.exposureShader = createShaderProgramCompute("shaders/exposure.comp");
-    g_renderer.bloomShader = createShaderProgram("shaders/bloom.vert", "shaders/bloom.frag");
-    g_renderer.bloomBlurShader = createShaderProgram("shaders/bloom_blur.vert", "shaders/bloom_blur.frag");
-    g_renderer.dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
-    g_renderer.volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
-    g_renderer.volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
-    g_renderer.motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
-    g_renderer.ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
-    g_renderer.ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
-    g_renderer.modelShadowShader = createShaderProgram("shaders/shadow_model.vert", "shaders/shadow_model.frag");
-    g_renderer.ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
-    g_renderer.glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
-    g_renderer.waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
-    g_renderer.reflectiveGlassShader = createShaderProgram("shaders/reflective_glass.vert", "shaders/reflective_glass.frag");
-    g_renderer.parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
-    g_renderer.spriteShader = createShaderProgram("shaders/sprite.vert", "shaders/sprite.frag");
-    g_renderer.blackholeShader = createShaderProgram("shaders/blackhole.vert", "shaders/blackhole.frag");
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-    const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-    glGenFramebuffers(1, &g_renderer.gBufferFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.gBufferFBO);
-    glGenTextures(1, &g_renderer.gLitColor); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.gLitColor, 0);
-    glGenTextures(1, &g_renderer.gPosition); glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_renderer.gPosition, 0);
-    glGenTextures(1, &g_renderer.gNormal); glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_renderer.gNormal, 0);
-    glGenTextures(1, &g_renderer.gAlbedo); glBindTexture(GL_TEXTURE_2D, g_renderer.gAlbedo);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, g_renderer.gAlbedo, 0);
-    glGenTextures(1, &g_renderer.gPBRParams); glBindTexture(GL_TEXTURE_2D, g_renderer.gPBRParams);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, g_renderer.gPBRParams, 0);
-    glGenTextures(1, &g_renderer.gVelocity);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gVelocity);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, g_renderer.gVelocity, 0);
-    glGenTextures(1, &g_renderer.gGeometryNormal);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gGeometryNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, g_renderer.gGeometryNormal, 0);
-    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
-    glDrawBuffers(7, attachments);
-    GLuint rboDepth; glGenRenderbuffers(1, &rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("G-Buffer Framebuffer not complete!\n");
-    const int bloom_width = g_engine->width / BLOOM_DOWNSAMPLE;
-    const int bloom_height = g_engine->height / BLOOM_DOWNSAMPLE;
-    glGenFramebuffers(1, &g_renderer.bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
-    glGenTextures(1, &g_renderer.bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.bloomBrightnessTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Bloom FBO not complete!\n");
-    glGenFramebuffers(2, g_renderer.pingpongFBO); glGenTextures(2, g_renderer.pingpongColorbuffers);
-    for (unsigned int i = 0; i < 2; i++) {
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[i]); glBindTexture(GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f }; glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.pingpongColorbuffers[i], 0);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Ping-pong FBO %d not complete!\n", i);
-    }
-    glGenFramebuffers(1, &g_renderer.finalRenderFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-    glGenTextures(1, &g_renderer.finalRenderTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.finalRenderTexture, 0);
-    glGenTextures(1, &g_renderer.finalDepthTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.finalDepthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, g_engine->width, g_engine->height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.finalDepthTexture, 0);
-    GLuint final_rboDepth; glGenRenderbuffers(1, &final_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, final_rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, g_engine->width, g_engine->height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, final_rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Final Render Framebuffer not complete!\n");
-    glGenFramebuffers(1, &g_renderer.postProcessFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.postProcessFBO);
-    glGenTextures(1, &g_renderer.postProcessTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.postProcessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.postProcessTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Post Process Framebuffer not complete!\n");
-    glGenFramebuffers(1, &g_renderer.ssrFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssrFBO);
-    glGenTextures(1, &g_renderer.ssrTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssrTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_engine->width, g_engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssrTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("SSR Framebuffer not complete!\n");
-    glGenFramebuffers(1, &g_renderer.volumetricFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
-    glGenTextures(1, &g_renderer.volumetricTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volumetricTexture, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Volumetric FBO not complete!\n");
-    glGenFramebuffers(2, g_renderer.volPingpongFBO);
-    glGenTextures(2, g_renderer.volPingpongTextures);
-    for (unsigned int i = 0; i < 2; i++) {
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[i]);
-        glBindTexture(GL_TEXTURE_2D, g_renderer.volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.volPingpongTextures[i], 0);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Volumetric Ping-Pong FBO %d not complete!\n", i);
-    }
-    glGenFramebuffers(1, &g_renderer.sunShadowFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.sunShadowFBO);
-    glGenTextures(1, &g_renderer.sunShadowMap);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    {
-        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    }
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.sunShadowMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        Console_Printf("Sun Shadow Framebuffer not complete!\n");
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glGenVertexArrays(1, &g_renderer.quadVAO); glGenBuffers(1, &g_renderer.quadVBO);
-    glBindVertexArray(g_renderer.quadVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float))); glEnableVertexAttribArray(1);
-    glGenVertexArrays(1, &g_renderer.skyboxVAO); glGenBuffers(1, &g_renderer.skyboxVBO);
-    glBindVertexArray(g_renderer.skyboxVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glGenVertexArrays(1, &g_renderer.parallaxRoomVAO); glGenBuffers(1, &g_renderer.parallaxRoomVBO);
-    glBindVertexArray(g_renderer.parallaxRoomVAO); glBindBuffer(GL_ARRAY_BUFFER, g_renderer.parallaxRoomVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(parallaxRoomVertices), parallaxRoomVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float))); glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float))); glEnableVertexAttribArray(3);
-    glBindVertexArray(0);
-    float sprite_vertices[] = {
-        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,
-    };
-    glGenVertexArrays(1, &g_renderer.spriteVAO);
-    glGenBuffers(1, &g_renderer.spriteVBO);
-    glBindVertexArray(g_renderer.spriteVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, g_renderer.spriteVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sprite_vertices), sprite_vertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-    g_renderer.brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
-    if (g_renderer.brdfLUTTexture == 0) {
-        Console_Printf_Error("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
-    }
-    glUseProgram(g_renderer.mainShader);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap"), 1);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap"), 2); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap"), 3); glUniform1i(glGetUniformLocation(g_renderer.mainShader, "detailDiffuseMap"), 7);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "environmentMap"), 10);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "brdfLUT"), 16);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap2"), 12);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap2"), 13);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap2"), 14);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap2"), 15);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap3"), 17);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap3"), 18);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap3"), 19);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap3"), 20);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "diffuseMap4"), 21);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "normalMap4"), 22);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "rmaMap4"), 23);
-    glUniform1i(glGetUniformLocation(g_renderer.mainShader, "heightMap4"), 24);
-    glUseProgram(g_renderer.volumetricShader);
-    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "gPosition"), 0);
-    glUseProgram(g_renderer.volumetricBlurShader);
-    glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "image"), 0);
-    glUseProgram(g_renderer.skyboxShader);
-    glUseProgram(g_renderer.postProcessShader);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "sceneTexture"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "bloomBlur"), 1);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "gPosition"), 2);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "volumetricTexture"), 3);
-    glUseProgram(g_renderer.bloomShader); glUniform1i(glGetUniformLocation(g_renderer.bloomShader, "sceneTexture"), 0);
-    glUseProgram(g_renderer.bloomBlurShader); glUniform1i(glGetUniformLocation(g_renderer.bloomBlurShader, "image"), 0);
-    glUseProgram(g_renderer.dofShader);
-    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "screenTexture"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
-    mat4_identity(&g_renderer.prevViewProjection);
-    glGenBuffers(1, &g_renderer.exposureSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.exposureSSBO);
-    struct GPUExposureData {
-        float exposure;
-    } initialData = { 1.0f };
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(initialData), &initialData, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, g_renderer.exposureSSBO);
-    glGenBuffers(1, &g_renderer.histogramSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, g_renderer.histogramSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    const int ssao_width = g_engine->width / SSAO_DOWNSAMPLE;
-    const int ssao_height = g_engine->height / SSAO_DOWNSAMPLE;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glGenFramebuffers(1, &g_renderer.ssaoFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
-    glGenTextures(1, &g_renderer.ssaoColorBuffer);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoColorBuffer, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        Console_Printf("SSAO Framebuffer not complete!\n");
-    glGenFramebuffers(1, &g_renderer.ssaoBlurFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
-    glGenTextures(1, &g_renderer.ssaoBlurColorBuffer);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.ssaoBlurColorBuffer, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        Console_Printf("SSAO Blur Framebuffer not complete!\n");
-    int downsample = Cvar_GetInt("r_planar_downsample");
-    if (downsample < 1) downsample = 1;
-    int reflection_width = g_engine->width / downsample;
-    int reflection_height = g_engine->height / downsample;
-    glGenFramebuffers(1, &g_renderer.reflectionFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.reflectionFBO);
-    glGenTextures(1, &g_renderer.reflectionTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.reflectionTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.reflectionTexture, 0);
-    glGenRenderbuffers(1, &g_renderer.reflectionDepthRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, g_renderer.reflectionDepthRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, reflection_width, reflection_height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_renderer.reflectionDepthRBO);
-
-    glGenFramebuffers(1, &g_renderer.refractionFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.refractionFBO);
-    glGenTextures(1, &g_renderer.refractionTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.refractionTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_renderer.refractionTexture, 0);
-    glGenTextures(1, &g_renderer.refractionDepthTexture);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.refractionDepthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, reflection_width, reflection_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, g_renderer.refractionDepthTexture, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glUseProgram(g_renderer.ssaoShader);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gPosition"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "gGeometryNormal"), 1);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoShader, "texNoise"), 2);
-    glUseProgram(g_renderer.ssaoBlurShader);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
-    glUseProgram(g_renderer.postProcessShader);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glUniform1i(glGetUniformLocation(g_renderer.ssaoBlurShader, "ssaoInput"), 0);
-    glUseProgram(g_renderer.postProcessShader);
-    glUniform1i(glGetUniformLocation(g_renderer.postProcessShader, "ssao"), 4);
-    glUseProgram(g_renderer.waterShader);
-    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "dudvMap"), 0);
-    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "normalMap"), 1);
-    glUniform1i(glGetUniformLocation(g_renderer.waterShader, "reflectionMap"), 2);
-    WaterManager_Init();
-    WaterManager_ParseWaters("waters.def");
-    g_renderer.cloudTexture = loadTexture("clouds.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
-    if (g_renderer.cloudTexture == 0) {
-        Console_Printf_Error("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
-    }
-    glGenBuffers(1, &g_renderer.lightSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.lightSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), NULL, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, g_renderer.lightSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    const GLubyte* gpu = glGetString(GL_RENDERER);
-    const GLubyte* gl_version = glGetString(GL_VERSION);
-    Console_Printf("------------------------------------------------------\n");
-    Console_Printf("Renderer Context Initialized:\n");
-    Console_Printf("  GPU: %s\n", (const char*)gpu);
-    Console_Printf("  OpenGL Version: %s\n", (const char*)gl_version);
-    Console_Printf("------------------------------------------------------\n");
 }
 
 void init_scene() {
@@ -2828,7 +2475,7 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.reflectionFBO);
     glViewport(0, 0, reflection_width, reflection_height);
-    render_skybox(&reflection_view, projection);
+    Skybox_Render(&g_renderer, &g_scene, g_engine, view, projection);
 
     glUseProgram(g_renderer.mainShader);
     glUniform4f(glGetUniformLocation(g_renderer.mainShader, "clipPlane"), 0, -1, 0, reflection_plane_height);
@@ -2842,7 +2489,7 @@ void render_planar_reflections(Mat4* view, Mat4* projection, const Mat4* sunLigh
 
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.refractionFBO);
     glViewport(0, 0, reflection_width, reflection_height);
-    render_skybox(view, projection);
+    Skybox_Render(&g_renderer, &g_scene, g_engine, view, projection);
 
     glDisable(GL_CLIP_DISTANCE0);
     glDisable(GL_FRAMEBUFFER_SRGB);
@@ -3728,36 +3375,6 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void render_skybox(Mat4* view, Mat4* projection) {
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-    glDepthFunc(GL_LEQUAL);
-    glUseProgram(g_renderer.skyboxShader);
-    glCullFace(GL_FRONT);
-    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "u_use_cubemap"), g_scene.use_cubemap_skybox);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, g_scene.skybox_cubemap);
-    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "u_skybox_cubemap"), 1);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.skyboxShader, "projection"), 1, GL_FALSE, projection->m);
-
-    Vec3 sunDirNormalized = g_scene.sun.direction;
-    vec3_normalize(&sunDirNormalized);
-
-    glUniform3fv(glGetUniformLocation(g_renderer.skyboxShader, "sunDirection"), 1, &sunDirNormalized.x);
-    glUniform3fv(glGetUniformLocation(g_renderer.skyboxShader, "cameraPos"), 1, &g_engine->camera.position.x);
-    glUniform1i(glGetUniformLocation(g_renderer.skyboxShader, "cloudMap"), 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.cloudTexture);
-
-    glUniform1f(glGetUniformLocation(g_renderer.skyboxShader, "time"), g_engine->scaledTime);
-
-    glBindVertexArray(g_renderer.skyboxVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glCullFace(GL_BACK);
-    glDepthFunc(GL_LESS);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void present_final_image(GLuint source_fbo) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -3788,74 +3405,8 @@ void cleanup() {
         free(g_scene.objects);
         g_scene.objects = NULL;
     }
-    glDeleteProgram(g_renderer.mainShader);
-    glDeleteProgram(g_renderer.pointDepthShader);
-    glDeleteProgram(g_renderer.zPrepassShader);
-    glDeleteProgram(g_renderer.debugBufferShader);
-    glDeleteProgram(g_renderer.spotDepthShader);
-    glDeleteProgram(g_renderer.skyboxShader);
-    glDeleteProgram(g_renderer.postProcessShader);
-    glDeleteProgram(g_renderer.bloomShader);
-    glDeleteProgram(g_renderer.bloomBlurShader);
-    glDeleteProgram(g_renderer.dofShader);
-    glDeleteProgram(g_renderer.ssaoShader);
-    glDeleteProgram(g_renderer.ssaoBlurShader);
-    glDeleteProgram(g_renderer.parallaxInteriorShader);
-    glDeleteProgram(g_renderer.ssrShader);
-    glDeleteProgram(g_renderer.volumetricShader);
-    glDeleteProgram(g_renderer.volumetricBlurShader);
-    glDeleteProgram(g_renderer.histogramShader);
-    glDeleteProgram(g_renderer.exposureShader);
-    glDeleteProgram(g_renderer.modelShadowShader);
-    glDeleteProgram(g_renderer.motionBlurShader);
-    glDeleteProgram(g_renderer.waterShader);
-    glDeleteProgram(g_renderer.glassShader);
-    glDeleteProgram(g_renderer.blackholeShader);
-    glDeleteFramebuffers(1, &g_renderer.gBufferFBO);
-    glDeleteTextures(1, &g_renderer.gLitColor);
-    glDeleteTextures(1, &g_renderer.gPosition);
-    glDeleteTextures(1, &g_renderer.gNormal);
-    glDeleteTextures(1, &g_renderer.gAlbedo);
-    glDeleteTextures(1, &g_renderer.gGeometryNormal);
-    glDeleteTextures(1, &g_renderer.gPBRParams);
-    glDeleteTextures(1, &g_renderer.gVelocity);
-    glDeleteFramebuffers(1, &g_renderer.ssaoFBO);
-    glDeleteFramebuffers(1, &g_renderer.ssaoBlurFBO);
-    glDeleteTextures(1, &g_renderer.ssaoColorBuffer);
-    glDeleteTextures(1, &g_renderer.ssaoBlurColorBuffer);
-    glDeleteFramebuffers(1, &g_renderer.ssrFBO);
-    glDeleteTextures(1, &g_renderer.ssrTexture);
-    glDeleteFramebuffers(1, &g_renderer.finalRenderFBO);
-    glDeleteTextures(1, &g_renderer.finalRenderTexture);
-    glDeleteTextures(1, &g_renderer.finalDepthTexture);
-    glDeleteFramebuffers(1, &g_renderer.postProcessFBO);
-    glDeleteTextures(1, &g_renderer.postProcessTexture);
-    glDeleteVertexArrays(1, &g_renderer.quadVAO);
-    glDeleteBuffers(1, &g_renderer.quadVBO);
-    glDeleteVertexArrays(1, &g_renderer.skyboxVAO);
-    glDeleteBuffers(1, &g_renderer.skyboxVBO);
-    glDeleteProgram(g_renderer.spriteShader);
-    glDeleteVertexArrays(1, &g_renderer.spriteVAO);
-    glDeleteBuffers(1, &g_renderer.spriteVBO);
-    glDeleteFramebuffers(1, &g_renderer.sunShadowFBO);
-    glDeleteTextures(1, &g_renderer.sunShadowMap);
-    glDeleteVertexArrays(1, &g_renderer.parallaxRoomVAO); glDeleteBuffers(1, &g_renderer.parallaxRoomVBO);
-    glDeleteFramebuffers(1, &g_renderer.bloomFBO); glDeleteTextures(1, &g_renderer.bloomBrightnessTexture);
-    glDeleteFramebuffers(2, g_renderer.pingpongFBO); glDeleteTextures(2, g_renderer.pingpongColorbuffers);
-    glDeleteFramebuffers(1, &g_renderer.volumetricFBO);
-    glDeleteTextures(1, &g_renderer.volumetricTexture);
-    glDeleteFramebuffers(2, g_renderer.volPingpongFBO);
-    glDeleteTextures(2, g_renderer.volPingpongTextures);
-    glDeleteBuffers(1, &g_renderer.lightSSBO);
+    Renderer_Shutdown(&g_renderer);
     WaterManager_Shutdown();
-    glDeleteBuffers(1, &g_renderer.histogramSSBO);
-    glDeleteBuffers(1, &g_renderer.exposureSSBO);
-    Beams_Shutdown();
-    Cable_Shutdown();
-    Overlay_Shutdown();
-    Glow_Shutdown();
-    Decals_Shutdown(&g_renderer);
-    VideoPlayer_ShutdownSystem();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
     SoundSystem_DeleteBuffer(g_jump_sound_buffer);
@@ -4108,7 +3659,7 @@ void BuildCubemaps(int resolution) {
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, resolution, resolution, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
-            render_skybox(&view, &projection);
+            Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
 
             glDisable(GL_FRAMEBUFFER_SRGB);
 
@@ -4605,7 +4156,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             if(Cvar_GetInt("r_skybox")) {
-               render_skybox(&view, &projection);
+                Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             }
             render_blackholes(&view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
