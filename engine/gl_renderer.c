@@ -371,6 +371,13 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Console_Printf("------------------------------------------------------\n");
 }
 
+void Renderer_Present(GLuint source_fbo, Engine* engine) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, engine->width, engine->height, 0, 0, engine->width, engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->mainShader);
     glDeleteProgram(renderer->pointDepthShader);

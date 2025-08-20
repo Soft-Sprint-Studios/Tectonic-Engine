@@ -3375,13 +3375,6 @@ void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void present_final_image(GLuint source_fbo) {
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void cleanup() {
     Physics_DestroyWorld(g_engine->physicsWorld);
     for (int i = 0; i < g_scene.numParticleEmitters; i++) {
@@ -4212,7 +4205,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             else if (Cvar_GetInt("r_debug_bloom")) { render_debug_buffer(g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
 
             if (!debug_view_active) {
-                present_final_image(source_fbo);
+                Renderer_Present(source_fbo, g_engine);
             }
             Overlay_Render(&g_scene, g_engine);
             Mat4 currentViewProjection;
