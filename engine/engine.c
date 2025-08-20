@@ -3860,25 +3860,6 @@ static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
     }
 }
 
-static void render_debug_buffer(GLuint textureID, int viewMode) {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, g_engine->width, g_engine->height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glUseProgram(g_renderer.debugBufferShader);
-    glUniform1i(glGetUniformLocation(g_renderer.debugBufferShader, "viewMode"), viewMode);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glUniform1i(glGetUniformLocation(g_renderer.debugBufferShader, "debugTexture"), 0);
-
-    glBindVertexArray(g_renderer.quadVAO);
-    glDisable(GL_DEPTH_TEST);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glEnable(GL_DEPTH_TEST);
-    glBindVertexArray(0);
-}
-
 void ParseCommandLineArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         if (_stricmp(argv[i], "-fullscreen") == 0) {
@@ -4194,15 +4175,15 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
 
             bool debug_view_active = false;
-            if (Cvar_GetInt("r_debug_albedo")) { render_debug_buffer(g_renderer.gAlbedo, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_normals")) { render_debug_buffer(g_renderer.gNormal, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_position")) { render_debug_buffer(g_renderer.gPosition, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_metallic")) { render_debug_buffer(g_renderer.gPBRParams, 1); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_roughness")) { render_debug_buffer(g_renderer.gPBRParams, 2); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_ao")) { render_debug_buffer(g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_velocity")) { render_debug_buffer(g_renderer.gVelocity, 0); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_volumetric")) { render_debug_buffer(g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_bloom")) { render_debug_buffer(g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
+            if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_normals")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gNormal, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_position")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPosition, 5); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_metallic")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 1); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_roughness")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 2); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_ao")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_velocity")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gVelocity, 0); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_volumetric")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
+            else if (Cvar_GetInt("r_debug_bloom")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
 
             if (!debug_view_active) {
                 Renderer_Present(source_fbo, g_engine);

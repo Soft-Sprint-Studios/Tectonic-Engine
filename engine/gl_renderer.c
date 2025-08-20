@@ -372,6 +372,25 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Console_Printf("------------------------------------------------------\n");
 }
 
+void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, int viewMode) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, engine->width, engine->height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(renderer->debugBufferShader);
+    glUniform1i(glGetUniformLocation(renderer->debugBufferShader, "viewMode"), viewMode);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glUniform1i(glGetUniformLocation(renderer->debugBufferShader, "debugTexture"), 0);
+
+    glBindVertexArray(renderer->quadVAO);
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+}
+
 void Renderer_Present(GLuint source_fbo, Engine* engine) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, source_fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
