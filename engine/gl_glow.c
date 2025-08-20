@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "glow.h"
+#include "gl_glow.h"
 #include "gl_misc.h"
 #include "io_system.h"
 

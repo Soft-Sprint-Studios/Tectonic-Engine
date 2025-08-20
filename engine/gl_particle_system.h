@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef PARTICLE_SYSTEM_H
-#define PARTICLE_SYSTEM_H
+#ifndef GL_PARTICLE_SYSTEM_H
+#define GL_PARTICLE_SYSTEM_H
 
 //----------------------------------------//
 // Brief: Particles rendering and update
@@ -92,4 +92,4 @@ void ParticleEmitter_Free(struct ParticleEmitter* emitter);
 }
 #endif
 
-#endif // PARTICLE_SYSTEM_H
+#endif // GL_PARTICLE_SYSTEM_H

@@ -22,22 +22,20 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef DECALS_H
-#define DECALS_H
-
+#ifndef GL_CABLES_H
+#define GL_CABLES_H
 #include "map.h"
-#include "gl_misc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void Decals_Init(Renderer* renderer);
-	void Decals_Shutdown(Renderer* renderer);
-	void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program);
-
+	void Cable_Init(void);
+	void Cable_Shutdown(void);
+	void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
+	
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DECALS_H
+#endif // GL_CABLES_H

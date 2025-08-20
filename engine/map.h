@@ -37,7 +37,7 @@
 #include "water_manager.h"
 #include "model_loader.h"
 #include "physics_wrapper.h"
-#include "particle_system.h"
+#include "gl_particle_system.h"
 #include "dsp_reverb.h"
 #include <AL/al.h>
 

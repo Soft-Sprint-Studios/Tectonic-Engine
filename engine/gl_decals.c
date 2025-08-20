@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "decals.h"
+#include "gl_decals.h"
 #include "texturemanager.h"
 
 static float decalQuadVertices[] = {

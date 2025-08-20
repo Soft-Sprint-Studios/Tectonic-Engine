@@ -22,20 +22,32 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef CABLES_H
-#define CABLES_H
+#ifndef GL_VIDEO_PLAYER_H
+#define GL_VIDEO_PLAYER_H
+
+//----------------------------------------//
+// Brief: Video player, no sound support yet
+//----------------------------------------//
+
 #include "map.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void Cable_Init(void);
-	void Cable_Shutdown(void);
-	void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
-	
+	void VideoPlayer_UpdateAll(Scene* scene, float deltaTime);
+	void VideoPlayer_InitSystem(void);
+	void VideoPlayer_ShutdownSystem(void);
+
+	void VideoPlayer_Load(VideoPlayer* vp);
+	void VideoPlayer_Free(VideoPlayer* vp);
+	void VideoPlayer_Play(VideoPlayer* vp);
+	void VideoPlayer_Stop(VideoPlayer* vp);
+	void VideoPlayer_Restart(VideoPlayer* vp);
+	void VideoPlayer_Update(VideoPlayer* vp, float deltaTime);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CABLES_H
+#endif // GL_VIDEO_PLAYER_H

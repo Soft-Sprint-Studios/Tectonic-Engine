@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "video_player.h"
+#include "gl_video_player.h"
 #include "gl_console.h"
 #include <stdio.h>
 #include <AL/al.h>

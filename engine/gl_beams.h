@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef GLOW_H
-#define GLOW_H
+#ifndef GL_BEAMS_H
+#define GL_BEAMS_H
 
 #include "map.h"
 
@@ -31,12 +31,12 @@
 extern "C" {
 #endif
 
-	void Glow_Init(void);
-	void Glow_Shutdown(void);
-	void Glow_Render(Scene* scene, Mat4 view, Mat4 projection);
+	void Beams_Init(void);
+	void Beams_Shutdown(void);
+	void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // GLOW_H
+#endif // GL_BEAMS_H

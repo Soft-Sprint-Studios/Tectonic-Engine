@@ -42,7 +42,7 @@
 #include "texturemanager.h"
 #include "water_manager.h"
 #include "io_system.h"
-#include "video_player.h"
+#include "gl_video_player.h"
 #include "game_data.h"
 #include "cvar.h"
 

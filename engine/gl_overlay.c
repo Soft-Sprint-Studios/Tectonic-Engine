@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "overlay.h"
+#include "gl_overlay.h"
 #include "gl_misc.h"
 #include "io_system.h"
 

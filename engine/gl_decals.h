@@ -22,32 +22,22 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef VIDEO_PLAYER_H
-#define VIDEO_PLAYER_H
-
-//----------------------------------------//
-// Brief: Video player, no sound support yet
-//----------------------------------------//
+#ifndef GL_DECALS_H
+#define GL_DECALS_H
 
 #include "map.h"
+#include "gl_misc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void VideoPlayer_UpdateAll(Scene* scene, float deltaTime);
-	void VideoPlayer_InitSystem(void);
-	void VideoPlayer_ShutdownSystem(void);
-
-	void VideoPlayer_Load(VideoPlayer* vp);
-	void VideoPlayer_Free(VideoPlayer* vp);
-	void VideoPlayer_Play(VideoPlayer* vp);
-	void VideoPlayer_Stop(VideoPlayer* vp);
-	void VideoPlayer_Restart(VideoPlayer* vp);
-	void VideoPlayer_Update(VideoPlayer* vp, float deltaTime);
+	void Decals_Init(Renderer* renderer);
+	void Decals_Shutdown(Renderer* renderer);
+	void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // VIDEO_PLAYER_H
+#endif // GL_DECALS_H

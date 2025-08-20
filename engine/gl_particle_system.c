@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "particle_system.h"
+#include "gl_particle_system.h"
 #include "map.h"
 #include "gl_misc.h"
 #include <stdio.h>

@@ -23,7 +23,7 @@
  */
 #include "io_system.h"
 #include "sound_system.h"
-#include "video_player.h"
+#include "gl_video_player.h"
 #include "cvar.h"
 #include "gl_console.h"
 #include <string.h>

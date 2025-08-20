@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef OVERLAY_H
-#define OVERLAY_H
+#ifndef GL_OVERLAY_H
+#define GL_OVERLAY_H
 
 #include "map.h"
 
@@ -39,4 +39,4 @@ extern "C" {
 }
 #endif
 
-#endif // OVERLAY_H
+#endif // GL_OVERLAY_H

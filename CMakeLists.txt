@@ -81,14 +81,14 @@ set(ENGINE_SOURCES
     engine/editor.c engine/editor_undo.c
     engine/game_data.c
     engine/gl_misc.c engine/io_system.c engine/engine.c engine/main_menu.c
-    engine/map.c engine/particle_system.c
-    engine/video_player.c engine/weapons.c
+    engine/map.c engine/gl_particle_system.c
+    engine/gl_video_player.c engine/weapons.c
     engine/sentry_wrapper.c engine/checksum.c
-    engine/beams.c
-    engine/cables.c
-    engine/overlay.c
-    engine/glow.c
-    engine/decals.c
+    engine/gl_beams.c
+    engine/gl_cables.c
+    engine/gl_overlay.c
+    engine/gl_glow.c
+    engine/gl_decals.c
     engine/lightmapper.cpp
     mikktspace/mikktspace.c
 )
@@ -98,13 +98,13 @@ set(ENGINE_HEADERS
     engine/editor.h engine/editor_undo.h
     engine/game_data.h
     engine/gl_misc.h engine/io_system.h engine/main_menu.h engine/map.h
-    engine/particle_system.h
-    engine/video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
-    engine/beams.h
-    engine/cables.h
-    engine/overlay.h
-    engine/glow.h
-    engine/decals.h
+    engine/gl_particle_system.h
+    engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
+    engine/gl_beams.h
+    engine/gl_cables.h
+    engine/gl_overlay.h
+    engine/gl_glow.h
+    engine/gl_decals.h
     engine/lightmapper.h
 )
 
