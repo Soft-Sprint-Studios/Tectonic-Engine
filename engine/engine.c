@@ -1788,69 +1788,6 @@ void update_state() {
     }
 }
 
-void render_parallax_rooms(Mat4* view, Mat4* projection) {
-    glUseProgram(g_renderer.parallaxInteriorShader);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform3fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "viewPos"), 1, &g_engine->camera.position.x);
-
-    for (int i = 0; i < g_scene.numParallaxRooms; ++i) {
-        ParallaxRoom* p = &g_scene.parallaxRooms[i];
-        if (p->cubemapTexture == 0) continue;
-
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.parallaxInteriorShader, "model"), 1, GL_FALSE, p->modelMatrix.m);
-        glUniform1f(glGetUniformLocation(g_renderer.parallaxInteriorShader, "roomDepth"), p->roomDepth);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, p->cubemapTexture);
-        glUniform1i(glGetUniformLocation(g_renderer.parallaxInteriorShader, "roomCubemap"), 0);
-
-        glBindVertexArray(g_renderer.parallaxRoomVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
-    glBindVertexArray(0);
-}
-
-void render_refractive_glass(Mat4* view, Mat4* projection) {
-    glUseProgram(g_renderer.glassShader);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "projection"), 1, GL_FALSE, projection->m);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.finalRenderTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.glassShader, "sceneTexture"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glUniform1i(glGetUniformLocation(g_renderer.glassShader, "normalMap"), 1);
-
-    for (int i = 0; i < g_scene.numBrushes; i++) {
-        Brush* b = &g_scene.brushes[i];
-        if (strcmp(b->classname, "env_glass") != 0) continue;
-
-        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
-        Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
-        if (normal_mat && normal_mat != &g_MissingMaterial) {
-            glBindTexture(GL_TEXTURE_2D, normal_mat->normalMap);
-        }
-        else {
-            glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
-        }
-
-        glUniform1f(glGetUniformLocation(g_renderer.glassShader, "refractionStrength"), atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.glassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-        glBindVertexArray(b->vao);
-        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
-    }
-
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-    glBindVertexArray(0);
-}
-
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glViewport(0, 0, g_engine->width, g_engine->height);
@@ -2010,70 +1947,6 @@ void cleanup() {
     SDL_DestroyWindow(g_engine->window);
     IMG_Quit();
     SDL_Quit();
-}
-
-void render_autoexposure_pass() {
-    bool auto_exposure_enabled = Cvar_GetInt("r_autoexposure");
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_renderer.histogramSSBO);
-    GLuint zero = 0;
-    glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
-
-    glUseProgram(g_renderer.histogramShader);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
-    glUniform1i(glGetUniformLocation(g_renderer.histogramShader, "u_inputTexture"), 0);
-    glDispatchCompute((GLuint)(g_engine->width / 16), (GLuint)(g_engine->height / 16), 1);
-
-    glUseProgram(g_renderer.exposureShader);
-    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_key"), Cvar_GetFloat("r_autoexposure_key"));
-    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_speed"), Cvar_GetFloat("r_autoexposure_speed"));
-    glUniform1f(glGetUniformLocation(g_renderer.exposureShader, "u_deltaTime"), g_engine->deltaTime);
-    glUniform1i(glGetUniformLocation(g_renderer.exposureShader, "u_autoexposure_enabled"), auto_exposure_enabled);
-
-    glDispatchCompute(1, 1, 1);
-
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
-void render_dof_pass(GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO) {
-    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glUseProgram(g_renderer.dofShader);
-    glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_focusDistance"), g_scene.post.dofFocusDistance);
-    glUniform1f(glGetUniformLocation(g_renderer.dofShader, "u_aperture"), g_scene.post.dofAperture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "screenTexture"), 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, sourceDepthTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.dofShader, "depthTexture"), 1);
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void render_motion_blur_pass(GLuint sourceTexture, GLuint destFBO) {
-    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(g_renderer.motionBlurShader);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.motionBlurShader, "sceneTexture"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gVelocity);
-    glUniform1i(glGetUniformLocation(g_renderer.motionBlurShader, "velocityTexture"), 1);
-
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
@@ -2697,7 +2570,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if (Cvar_GetInt("r_bloom")) {
                 Bloom_RenderPass(&g_renderer, g_engine);
             }
-            render_autoexposure_pass();
+            MiscRender_AutoexposurePass(&g_renderer, g_engine);
             render_lighting_composite_pass(&view, &projection);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
@@ -2709,7 +2582,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            render_refractive_glass(&view, &projection);
+            MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
                 VideoPlayer_Render(&g_scene.videoPlayers[i], &view, &projection);
@@ -2737,14 +2610,14 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 source_tex = g_renderer.postProcessTexture;
             }
             if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
-                render_dof_pass(source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
+                MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
                 source_fbo = g_renderer.postProcessFBO;
                 source_tex = g_renderer.postProcessTexture;
             }
 
             if (Cvar_GetInt("r_motionblur")) {
                 GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
-                render_motion_blur_pass(source_tex, target_fbo);
+                MiscRender_MotionBlurPass(&g_renderer, source_tex, target_fbo);
                 source_fbo = target_fbo;
                 source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
             }

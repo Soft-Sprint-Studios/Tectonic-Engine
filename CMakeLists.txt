@@ -99,6 +99,7 @@ set(ENGINE_SOURCES
     engine/gl_ssr.c
     engine/gl_bloom.c
     engine/gl_volumetrics.c
+    engine/gl_render_misc.c
     engine/gl_skybox.c
     engine/lightmapper.cpp
     mikktspace/mikktspace.c
@@ -126,6 +127,7 @@ set(ENGINE_HEADERS
     engine/gl_ssr.h
     engine/gl_bloom.h
     engine/gl_volumetrics.h
+    engine/gl_render_misc.h
     engine/gl_skybox.h
     engine/lightmapper.h
 )

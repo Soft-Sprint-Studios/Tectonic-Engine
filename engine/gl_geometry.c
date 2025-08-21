@@ -31,8 +31,6 @@
 #include "gl_cables.h"
 #include "gl_glow.h"
 
-void render_parallax_rooms(Mat4* view, Mat4* projection);
-
 static int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -542,7 +540,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         }
         render_brush(renderer, scene, renderer->mainShader, &scene->brushes[i], false, &frustum);
     }
-    render_parallax_rooms(view, projection);
+    MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);
     Decals_Render(scene, renderer, renderer->mainShader);
 
     if (Cvar_GetInt("r_physics_shadows")) {

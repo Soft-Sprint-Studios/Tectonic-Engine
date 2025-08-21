@@ -4469,7 +4469,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         if (Cvar_GetInt("r_bloom")) {
             Bloom_RenderPass(renderer, engine);
         }
-        render_autoexposure_pass();
+        MiscRender_AutoexposurePass(renderer, engine);
 
         glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
         glViewport(0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
