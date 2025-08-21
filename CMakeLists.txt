@@ -110,6 +110,7 @@ set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor.h engine/editor_undo.h
     engine/game_data.h
+    engine/engine.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h
     engine/gl_particle_system.h
     engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h

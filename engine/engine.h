@@ -22,38 +22,42 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef GAMECONFIG_H
-#define GAMECONFIG_H
+#ifndef ENGINE_H
+#define ENGINE_H
 
-//----------------------------------------//
-// Brief: The "gameconf.txt"
-//----------------------------------------//
-
-#include "level1_api.h"
+#include "map.h"
+#include "engine_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-    char startmap[128];
-    char gamename[128];
-} GameConfig;
+typedef enum { 
+    MODE_GAME, 
+    MODE_EDITOR, 
+    MODE_MAINMENU, 
+    MODE_INGAMEMENU 
+} EngineMode;
 
-extern LEVEL1_API bool g_start_fullscreen;
-extern LEVEL1_API bool g_start_windowed;
-extern LEVEL1_API bool g_start_with_console;
-extern LEVEL1_API bool g_dev_mode_requested;
-extern LEVEL1_API int g_startup_width;
-extern LEVEL1_API int g_startup_height;
+typedef enum {
+    TRANSITION_NONE,
+    TRANSITION_TO_EDITOR,
+    TRANSITION_TO_GAME
+} EngineModeTransition;
 
-LEVEL1_API void GameConfig_Init(void);
-LEVEL1_API const GameConfig* GameConfig_Get(void);
-LEVEL1_API void PreParse_GetResolution(int* width, int* height);
-LEVEL1_API void GameConfig_ParseCommandLine(int argc, char* argv[]);
+extern Engine* g_engine;
+extern Renderer g_renderer;
+extern Scene g_scene;
+extern EngineMode g_current_mode;
+extern int g_last_water_cvar_state;
+extern EngineModeTransition g_pending_mode_transition;
+extern bool g_player_input_disabled;
+extern bool g_screenshot_requested;
+extern char g_screenshot_path[256];
+extern bool g_is_editor_mode;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // GAMECONFIG_H
+#endif // ENGINE_H

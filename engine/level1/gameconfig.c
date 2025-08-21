@@ -28,6 +28,12 @@
 #include <ctype.h>
 
 static GameConfig g_GameConfig;
+bool g_start_fullscreen = false;
+bool g_start_windowed = false;
+bool g_start_with_console = false;
+bool g_dev_mode_requested = false;
+int g_startup_width = 1920;
+int g_startup_height = 1080;
 
 void GameConfig_Init(void) {
     memset(&g_GameConfig, 0, sizeof(g_GameConfig));
@@ -81,4 +87,33 @@ void PreParse_GetResolution(int* width, int* height) {
         }
     }
     fclose(file);
+}
+
+void GameConfig_ParseCommandLine(int argc, char* argv[]) {
+    for (int i = 1; i < argc; ++i) {
+        if (_stricmp(argv[i], "-fullscreen") == 0) {
+            g_start_fullscreen = true;
+            g_start_windowed = false;
+        }
+        else if (_stricmp(argv[i], "-window") == 0) {
+            g_start_windowed = true;
+            g_start_fullscreen = false;
+        }
+        else if (_stricmp(argv[i], "-console") == 0) {
+            g_start_with_console = true;
+        }
+        else if (_stricmp(argv[i], "-dev") == 0) {
+            g_dev_mode_requested = true;
+        }
+        else if (_stricmp(argv[i], "-w") == 0) {
+            if (i + 1 < argc) {
+                g_startup_width = atoi(argv[++i]);
+            }
+        }
+        else if (_stricmp(argv[i], "-h") == 0) {
+            if (i + 1 < argc) {
+                g_startup_height = atoi(argv[++i]);
+            }
+        }
+    }
 }

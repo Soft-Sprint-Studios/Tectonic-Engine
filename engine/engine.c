@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "engine.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <GL/glew.h>
@@ -84,14 +85,6 @@ static int g_last_deactivation_cvar_state = -1;
 
 bool g_player_input_disabled = false;
 
-static bool g_start_fullscreen = false;
-static bool g_start_windowed = false;
-static bool g_start_with_console = false;
-static bool g_dev_mode_requested = false;
-
-static int g_startup_width = 1920;
-static int g_startup_height = 1080;
-
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
 void BuildCubemaps();
 
@@ -105,21 +98,14 @@ static void init_scene(void);
 
 static void Scene_UpdateAnimations(Scene* scene, float deltaTime);
 
-typedef enum { MODE_GAME, MODE_EDITOR, MODE_MAINMENU, MODE_INGAMEMENU } EngineMode;
-
-static Engine g_engine_instance;
-static Engine* g_engine = &g_engine_instance;
-static Renderer g_renderer;
-static Scene g_scene;
-static EngineMode g_current_mode = MODE_GAME;
-
-typedef enum {
-    TRANSITION_NONE,
-    TRANSITION_TO_EDITOR,
-    TRANSITION_TO_GAME
-} EngineModeTransition;
-static EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
-static int g_last_water_cvar_state = -1;
+Engine g_engine_instance;
+Engine* g_engine = &g_engine_instance;
+Renderer g_renderer;
+Scene g_scene;
+EngineMode g_current_mode = MODE_GAME;
+EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
+bool g_is_editor_mode;
+int g_last_water_cvar_state = -1;
 
 static Uint32 g_fps_last_update = 0;
 static int g_fps_frame_count = 0;
@@ -127,15 +113,15 @@ static float g_fps_display = 0.0f;
 
 static unsigned int g_frame_counter = 0;
 
-static unsigned int g_flashlight_sound_buffer = 0;
-static unsigned int g_footstep_sound_buffer = 0;
-static unsigned int g_jump_sound_buffer = 0;
+unsigned int g_flashlight_sound_buffer = 0;
+unsigned int g_footstep_sound_buffer = 0;
+unsigned int g_jump_sound_buffer = 0;
 #define FPS_GRAPH_SAMPLES 14400
 static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
 static int g_fps_history_index = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
 static float g_distance_walked = 0.0f;
-const float FOOTSTEP_DISTANCE = 2.0f;
+float FOOTSTEP_DISTANCE = 2.0f;
 static int g_current_reverb_zone_index = -1;
 static int g_last_vsync_cvar_state = -1;
 static float g_current_friction_modifier = 1.0f;
@@ -2020,37 +2006,8 @@ static void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
     }
 }
 
-void ParseCommandLineArgs(int argc, char* argv[]) {
-    for (int i = 1; i < argc; ++i) {
-        if (_stricmp(argv[i], "-fullscreen") == 0) {
-            g_start_fullscreen = true;
-            g_start_windowed = false;
-        }
-        else if (_stricmp(argv[i], "-window") == 0) {
-            g_start_windowed = true;
-            g_start_fullscreen = false;
-        }
-        else if (_stricmp(argv[i], "-console") == 0) {
-            g_start_with_console = true;
-        }
-        else if (_stricmp(argv[i], "-dev") == 0) {
-            g_dev_mode_requested = true;
-        }
-        else if (_stricmp(argv[i], "-w") == 0) {
-            if (i + 1 < argc) {
-                g_startup_width = atoi(argv[++i]);
-            }
-        }
-        else if (_stricmp(argv[i], "-h") == 0) {
-            if (i + 1 < argc) {
-                g_startup_height = atoi(argv[++i]);
-            }
-        }
-    }
-}
-
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
-    ParseCommandLineArgs(argc, argv);
+    GameConfig_ParseCommandLine(argc, argv);
 #ifdef ENABLE_CHECKSUM
     char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
