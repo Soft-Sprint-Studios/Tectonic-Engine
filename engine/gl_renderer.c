@@ -39,6 +39,7 @@
 #include "gl_geometry.h"
 #include "gl_planar.h"
 #include "gl_ssao.h"
+#include "gl_ssr.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 

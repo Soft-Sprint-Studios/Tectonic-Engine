@@ -1942,48 +1942,6 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
     glViewport(0, 0, g_engine->width, g_engine->height);
 }
 
-void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* projection) {
-    if (!Cvar_GetInt("r_ssr")) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destFBO);
-        glBlitFramebuffer(0, 0, g_engine->width, g_engine->height, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glViewport(0, 0, g_engine->width, g_engine->height);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-
-    glUseProgram(g_renderer.ssrShader);
-
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssrShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssrShader, "view"), 1, GL_FALSE, view->m);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "colorBuffer"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gNormal);
-    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "gNormal"), 1);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPBRParams);
-    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "ssrValuesMap"), 2);
-
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-    glUniform1i(glGetUniformLocation(g_renderer.ssrShader, "gPosition"), 3);
-
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glEnable(GL_DEPTH_TEST);
-}
-
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glViewport(0, 0, g_engine->width, g_engine->height);
@@ -2865,7 +2823,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
             if (Cvar_GetInt("r_ssr")) {
-                render_ssr_pass(source_tex, g_renderer.postProcessFBO, &view, &projection);
+                SSR_RenderPass(&g_renderer, g_engine, source_tex, g_renderer.postProcessFBO, &view, &projection);
                 source_fbo = g_renderer.postProcessFBO;
                 source_tex = g_renderer.postProcessTexture;
             }

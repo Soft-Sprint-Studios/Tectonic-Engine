@@ -96,6 +96,7 @@ set(ENGINE_SOURCES
     engine/gl_geometry.c
     engine/gl_planar.c
     engine/gl_ssao.c
+    engine/gl_ssr.c
     engine/gl_skybox.c
     engine/lightmapper.cpp
     mikktspace/mikktspace.c
@@ -120,6 +121,7 @@ set(ENGINE_HEADERS
     engine/gl_geometry.h
     engine/gl_planar.h
     engine/gl_ssao.h 
+    engine/gl_ssr.h
     engine/gl_skybox.h
     engine/lightmapper.h
 )
