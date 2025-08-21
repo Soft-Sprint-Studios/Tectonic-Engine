@@ -2460,36 +2460,6 @@ static void render_water(Mat4* view, Mat4* projection, const Mat4* sunLightSpace
     glBindVertexArray(0);
 }
 
-void render_sprites(Mat4* view, Mat4* projection) {
-    glUseProgram(g_renderer.spriteShader);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spriteShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.spriteShader, "projection"), 1, GL_FALSE, projection->m);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-
-    glBindVertexArray(g_renderer.spriteVAO);
-
-    for (int i = 0; i < g_scene.numSprites; ++i) {
-        Sprite* s = &g_scene.sprites[i];
-        if (!s->visible) continue;
-
-        glUniform3fv(glGetUniformLocation(g_renderer.spriteShader, "spritePos"), 1, &s->pos.x);
-        glUniform1f(glGetUniformLocation(g_renderer.spriteShader, "spriteScale"), s->scale);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s->material->diffuseMap);
-        glUniform1i(glGetUniformLocation(g_renderer.spriteShader, "spriteTexture"), 0);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
-
-    glBindVertexArray(0);
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-}
-
 void render_geometry_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit) {
     Frustum frustum;
     Mat4 view_proj;
