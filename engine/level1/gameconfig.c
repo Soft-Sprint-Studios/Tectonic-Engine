@@ -60,3 +60,25 @@ void GameConfig_Init(void) {
 const GameConfig* GameConfig_Get(void) {
     return &g_GameConfig;
 }
+
+void PreParse_GetResolution(int* width, int* height) {
+    FILE* file = fopen("cvars.txt", "r");
+    if (!file) {
+        return;
+    }
+
+    char line[256];
+    char name[64];
+    char value_str[128];
+    while (fgets(line, sizeof(line), file)) {
+        if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value_str) == 2) {
+            if (_stricmp(name, "r_width") == 0) {
+                *width = atoi(value_str);
+            }
+            else if (_stricmp(name, "r_height") == 0) {
+                *height = atoi(value_str);
+            }
+        }
+    }
+    fclose(file);
+}

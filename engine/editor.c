@@ -5915,7 +5915,7 @@ static void Editor_RenderSprinkleToolWindow(void) {
     }
     UI_End();
 }
-static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
+static void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, Engine* engine) {
     if (!g_EditorState.show_build_cubemaps_popup) {
         return;
     }
@@ -5933,7 +5933,7 @@ static void Editor_RenderBuildCubemapsWindow(Scene* scene) {
         int resolution_values[] = { 64, 128, 256, 512, 1024 };
         int resolution = resolution_values[g_EditorState.cubemap_resolution_index];
 
-        BuildCubemaps(resolution);
+        MiscRender_BuildCubemaps(renderer, scene, engine, resolution);
 
         for (int i = 0; i < scene->numBrushes; ++i) {
             Brush* b = &scene->brushes[i];
@@ -8846,7 +8846,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
     Editor_RenderBakeLightingWindow(scene, engine);
-    Editor_RenderBuildCubemapsWindow(scene);
+    Editor_RenderBuildCubemapsWindow(renderer, scene, engine);
     Editor_RenderArchPropertiesWindow(scene, engine);
     Editor_RenderMapInfoWindow(scene);
     Editor_RenderTransformWindow(scene, engine);

@@ -45,6 +45,8 @@ void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, 
 void MiscRender_MotionBlurPass(Renderer* renderer, GLuint sourceTexture, GLuint destFBO);
 void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+void MiscRender_SaveScreenshot(Engine* engine, const char* filepath);
+void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution);
 
 #ifdef __cplusplus
 }

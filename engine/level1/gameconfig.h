@@ -42,6 +42,7 @@ typedef struct {
 
 LEVEL1_API void GameConfig_Init(void);
 LEVEL1_API const GameConfig* GameConfig_Get(void);
+LEVEL1_API void PreParse_GetResolution(int* width, int* height);
 
 #ifdef __cplusplus
 }

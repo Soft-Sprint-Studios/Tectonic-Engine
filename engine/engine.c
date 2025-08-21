@@ -143,15 +143,6 @@ static bool g_player_on_ladder = false;
 static Vec3 g_ladder_normal;
 
 float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
-float parallaxRoomVertices[] = {
-    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
-    -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
-     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
-
-    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
-     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
-     0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f
-};
 
 void handle_command(int argc, char** argv) {
     Commands_Execute(argc, argv);
@@ -348,7 +339,7 @@ void Cmd_BuildCubemaps(int argc, char** argv) {
             Console_Printf_Warning("[WARNING] Invalid cubemap resolution '%s'. Must be a power of two. Using default 256.", argv[1]);
         }
     }
-    BuildCubemaps(resolution);
+    MiscRender_BuildCubemaps(&g_renderer, &g_scene, g_engine, resolution);
 }
 
 void Cmd_Screenshot(int argc, char** argv) {
@@ -1850,186 +1841,6 @@ void cleanup() {
     SDL_Quit();
 }
 
-void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
-    if (!pixels) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
-
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height, 32, width * 4,
-        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-
-    if (!surface) {
-        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
-    }
-    else {
-        if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
-        }
-        else {
-            Console_Printf("Saved cubemap face to %s", filepath);
-        }
-        SDL_FreeSurface(surface);
-    }
-
-    free(pixels);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-static void SaveScreenshotToPNG(const char* filepath) {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    unsigned char* pixels = (unsigned char*)malloc(g_engine->width * g_engine->height * 4);
-    if (!pixels) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
-        return;
-    }
-
-    glReadPixels(0, 0, g_engine->width, g_engine->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    int row_size = g_engine->width * 4;
-    unsigned char* temp_row = (unsigned char*)malloc(row_size);
-    if (!temp_row) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot row buffer.");
-        free(pixels);
-        return;
-    }
-
-    for (int y = 0; y < g_engine->width / 2; ++y) {
-        unsigned char* top = pixels + y * row_size;
-        unsigned char* bottom = pixels + (g_engine->width - 1 - y) * row_size;
-        memcpy(temp_row, top, row_size);
-        memcpy(top, bottom, row_size);
-        memcpy(bottom, temp_row, row_size);
-    }
-    free(temp_row);
-
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, g_engine->width, g_engine->height, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-
-    if (!surface) {
-        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
-    }
-    else {
-        if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
-        }
-        else {
-            Console_Printf("Screenshot saved to %s", filepath);
-        }
-        SDL_FreeSurface(surface);
-    }
-    free(pixels);
-}
-void BuildCubemaps(int resolution) {
-    Console_Printf("Starting cubemap build with %dx%d resolution...", resolution, resolution);
-    glFinish();
-
-    Camera original_camera = g_engine->camera;
-
-    Vec3 targets[] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
-    Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
-    const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
-
-    GLuint cubemap_fbo, cubemap_texture, cubemap_rbo;
-    glGenFramebuffers(1, &cubemap_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
-    glGenTextures(1, &cubemap_texture);
-    glBindTexture(GL_TEXTURE_2D, cubemap_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, resolution, resolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cubemap_texture, 0);
-    glGenRenderbuffers(1, &cubemap_rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, cubemap_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution, resolution);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cubemap_rbo);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Console_Printf_Error("[ERROR] Cubemap face FBO not complete!");
-        glDeleteFramebuffers(1, &cubemap_fbo);
-        glDeleteTextures(1, &cubemap_texture);
-        glDeleteRenderbuffers(1, &cubemap_rbo);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
-        Brush* b = &g_scene.brushes[i];
-        if (!strcmp(b->classname, "env_reflectionprobe") == 0) {
-            continue;
-        }
-        if (strlen(b->name) == 0) {
-            Console_Printf_Warning("[WARNING] Skipping unnamed reflection probe at index %d.", i);
-            continue;
-        }
-
-        Console_Printf("Building cubemap for probe '%s'...", b->name);
-
-        for (int face_idx = 0; face_idx < 6; ++face_idx) {
-            g_engine->camera.position = b->pos;
-            Vec3 target_pos = vec3_add(g_engine->camera.position, targets[face_idx]);
-            Mat4 view = mat4_lookAt(g_engine->camera.position, target_pos, ups[face_idx]);
-            Mat4 projection = mat4_perspective(90.0f * (M_PI / 180.f), 1.0f, 0.1f, 1000.f);
-
-            Shadows_RenderPointAndSpot(&g_renderer, &g_scene, g_engine);
-            Mat4 sunLightSpaceMatrix;
-            mat4_identity(&sunLightSpaceMatrix);
-            if (g_scene.sun.enabled) {
-                Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
-                Shadows_RenderSun(&g_renderer, &g_scene, &sunLightSpaceMatrix);
-            }
-
-            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
-            glViewport(0, 0, resolution, resolution);
-            if (Cvar_GetInt("r_clear")) {
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            }
-
-            glEnable(GL_FRAMEBUFFER_SRGB);
-
-            const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-            const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, resolution, resolution, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, resolution, resolution, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
-            Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
-
-            glDisable(GL_FRAMEBUFFER_SRGB);
-
-            char filepath[256];
-            sprintf(filepath, "cubemaps/%s_%s.png", b->name, suffixes[face_idx]);
-            SaveFramebufferToPNG(cubemap_fbo, resolution, resolution, filepath);
-        }
-
-        const char* face_paths[6];
-        char paths_storage[6][256];
-        for (int k = 0; k < 6; ++k) {
-            sprintf(paths_storage[k], "cubemaps/%s_%s.png", b->name, suffixes[k]);
-            face_paths[k] = paths_storage[k];
-        }
-        b->cubemapTexture = TextureManager_ReloadCubemap(face_paths, b->cubemapTexture);
-    }
-
-    glDeleteFramebuffers(1, &cubemap_fbo);
-    glDeleteTextures(1, &cubemap_texture);
-    glDeleteRenderbuffers(1, &cubemap_rbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    g_engine->camera = original_camera;
-    glViewport(0, 0, g_engine->width, g_engine->height);
-
-    Console_Printf("Cubemap build finished.");
-}
-
 void evaluate_animation(SceneObject* obj, float time) {
     if (!obj->model || obj->model->num_animations == 0 || obj->current_animation < 0) return;
 
@@ -2236,28 +2047,6 @@ void ParseCommandLineArgs(int argc, char* argv[]) {
             }
         }
     }
-}
-
-static void PreParse_GetResolution(int* width, int* height) {
-    FILE* file = fopen("cvars.txt", "r");
-    if (!file) {
-        return;
-    }
-
-    char line[256];
-    char name[64];
-    char value_str[128];
-    while (fgets(line, sizeof(line), file)) {
-        if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value_str) == 2) {
-            if (_stricmp(name, "r_width") == 0) {
-                *width = atoi(value_str);
-            }
-            else if (_stricmp(name, "r_height") == 0) {
-                *height = atoi(value_str);
-            }
-        }
-    }
-    fclose(file);
 }
 
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
@@ -2558,7 +2347,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         Console_Draw(); 
         if (g_screenshot_requested) {
-            SaveScreenshotToPNG(g_screenshot_path);
+            MiscRender_SaveScreenshot(g_engine, g_screenshot_path);
             g_screenshot_requested = false;
         }
         int vsync_enabled = Cvar_GetInt("r_vsync");
