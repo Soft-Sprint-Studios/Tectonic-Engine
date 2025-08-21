@@ -82,7 +82,7 @@ set(ENGINE_SOURCES
     engine/game_data.c
     engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/gl_particle_system.c
-    engine/gl_video_player.c engine/weapons.c
+    engine/gl_video_player.c engine/weapons.cpp
     engine/sentry_wrapper.c engine/checksum.c
     engine/gl_beams.c
     engine/gl_cables.c
