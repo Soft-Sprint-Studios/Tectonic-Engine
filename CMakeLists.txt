@@ -576,7 +576,7 @@ else()
 endif()
 
 # launcher executable
-add_executable(launcher launcher/launcher.c)
+add_executable(launcher launcher/launcher.cpp)
 
 if(UNIX AND NOT APPLE)
     target_link_options(launcher PRIVATE "-Wl,-rpath,$<TARGET_FILE_DIR:engine>")

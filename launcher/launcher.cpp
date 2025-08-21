@@ -21,31 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 
-typedef int (*EngineMainFunc)(int argc, char* argv[]);
+using EngineMainFunc = int(*)(int argc, char* argv[]);
 
 #ifdef PLATFORM_WINDOWS
-__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-__declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+
+extern "C" {
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     HMODULE engineLib = LoadLibraryA("engine.dll");
     if (!engineLib) {
-        MessageBoxA(NULL, "Failed to load engine.dll", "Engine Error", MB_ICONERROR);
+        MessageBoxA(nullptr, "Failed to load engine.dll", "Engine Error", MB_ICONERROR | MB_OK);
         return -1;
     }
 
-    EngineMainFunc Engine_Main = (EngineMainFunc)GetProcAddress(engineLib, "Engine_Main");
+    auto Engine_Main = reinterpret_cast<EngineMainFunc>(GetProcAddress(engineLib, "Engine_Main"));
     if (!Engine_Main) {
-        MessageBoxA(NULL, "Failed to find Engine_Main in engine.dll", "Engine Error", MB_ICONERROR);
+        MessageBoxA(nullptr, "Failed to find Engine_Main in engine.dll", "Engine Error", MB_ICONERROR | MB_OK);
         FreeLibrary(engineLib);
         return -1;
     }
@@ -58,15 +63,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int main(int argc, char* argv[]) {
     void* engineLib = dlopen("./libengine.so", RTLD_NOW);
     if (!engineLib) {
-        fprintf(stderr, "Failed to load libengine.so: %s\n", dlerror());
+        cerr << "Failed to load libengine.so: " << dlerror() << endl;
         return -1;
     }
 
     dlerror();
-    EngineMainFunc Engine_Main = (EngineMainFunc)dlsym(engineLib, "Engine_Main");
-    const char* dlsym_error = dlerror();
-    if (dlsym_error) {
-        fprintf(stderr, "Failed to find Engine_Main: %s\n", dlsym_error);
+    auto Engine_Main = reinterpret_cast<EngineMainFunc>(dlsym(engineLib, "Engine_Main"));
+    if (const char* error = dlerror()) {
+        cerr << "Failed to find Engine_Main: " << error << endl;
         dlclose(engineLib);
         return -1;
     }
