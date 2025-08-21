@@ -1851,97 +1851,6 @@ void render_refractive_glass(Mat4* view, Mat4* projection) {
     glBindVertexArray(0);
 }
 
-void render_bloom_pass() {
-    glUseProgram(g_renderer.bloomShader); glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.bloomFBO);
-    glViewport(0, 0, g_engine->width / BLOOM_DOWNSAMPLE, g_engine->height / BLOOM_DOWNSAMPLE);
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_renderer.gLitColor);
-    glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
-    bool horizontal = true, first_iteration = true; unsigned int amount = 10; glUseProgram(g_renderer.bloomBlurShader);
-    for (unsigned int i = 0; i < amount; i++) {
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.pingpongFBO[horizontal]); glUniform1i(glGetUniformLocation(g_renderer.bloomBlurShader, "horizontal"), horizontal);
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, first_iteration ? g_renderer.bloomBrightnessTexture : g_renderer.pingpongColorbuffers[!horizontal]);
-        glBindVertexArray(g_renderer.quadVAO); glDrawArrays(GL_TRIANGLES, 0, 6);
-        horizontal = !horizontal; if (first_iteration) first_iteration = false;
-    }
-    glViewport(0, 0, g_engine->width, g_engine->height);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
-    bool should_render_volumetrics = false;
-    if (g_scene.sun.enabled && g_scene.sun.volumetricIntensity > 0.001f) {
-        should_render_volumetrics = true;
-    }
-    if (!should_render_volumetrics) {
-        for (int i = 0; i < g_scene.numActiveLights; ++i) {
-            if (g_scene.lights[i].intensity > 0.001f && g_scene.lights[i].volumetricIntensity > 0.001f) {
-                should_render_volumetrics = true;
-                break;
-            }
-        }
-    }
-
-    if (!should_render_volumetrics) {
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[0]);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volumetricFBO);
-    glViewport(0, 0, g_engine->width / VOLUMETRIC_DOWNSAMPLE, g_engine->height / VOLUMETRIC_DOWNSAMPLE);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(g_renderer.volumetricShader);
-    glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "viewPos"), 1, &g_engine->camera.position.x);
-
-    Mat4 invView, invProj;
-    mat4_inverse(view, &invView);
-    mat4_inverse(projection, &invProj);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "invView"), 1, GL_FALSE, invView.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "invProjection"), 1, GL_FALSE, invProj.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "view"), 1, GL_FALSE, view->m);
-
-    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "numActiveLights"), g_scene.numActiveLights);
-
-    glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "sun.enabled"), g_scene.sun.enabled);
-    if (g_scene.sun.enabled) {
-        glActiveTexture(GL_TEXTURE15);
-        glBindTexture(GL_TEXTURE_2D, g_renderer.sunShadowMap);
-        glUniform1i(glGetUniformLocation(g_renderer.volumetricShader, "sunShadowMap"), 15);
-        glUniformMatrix4fv(glGetUniformLocation(g_renderer.volumetricShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
-        glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.direction"), 1, &g_scene.sun.direction.x);
-        glUniform3fv(glGetUniformLocation(g_renderer.volumetricShader, "sun.color"), 1, &g_scene.sun.color.x);
-        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.intensity"), g_scene.sun.intensity);
-        glUniform1f(glGetUniformLocation(g_renderer.volumetricShader, "sun.volumetricIntensity"), g_scene.sun.volumetricIntensity / 100.0f);
-    }
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    bool horizontal = true, first_iteration = true;
-    unsigned int amount = 4;
-    glUseProgram(g_renderer.volumetricBlurShader);
-    for (unsigned int i = 0; i < amount; i++) {
-        glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.volPingpongFBO[horizontal]);
-        glUniform1i(glGetUniformLocation(g_renderer.volumetricBlurShader, "horizontal"), horizontal);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, first_iteration ? g_renderer.volumetricTexture : g_renderer.volPingpongTextures[!horizontal]);
-        glBindVertexArray(g_renderer.quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        horizontal = !horizontal;
-        if (first_iteration) first_iteration = false;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, g_engine->width, g_engine->height);
-}
-
 void render_lighting_composite_pass(Mat4* view, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glViewport(0, 0, g_engine->width, g_engine->height);
@@ -2783,10 +2692,10 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 SSAO_RenderPass(&g_renderer, g_engine, &projection);
             }
             if (Cvar_GetInt("r_volumetrics")) {
-                render_volumetric_pass(&view, &projection, &sunLightSpaceMatrix);
+                Volumetrics_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
             }
             if (Cvar_GetInt("r_bloom")) {
-                render_bloom_pass();
+                Bloom_RenderPass(&g_renderer, g_engine);
             }
             render_autoexposure_pass();
             render_lighting_composite_pass(&view, &projection);

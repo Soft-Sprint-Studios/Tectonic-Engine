@@ -4467,7 +4467,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         }
 
         if (Cvar_GetInt("r_bloom")) {
-            render_bloom_pass();
+            Bloom_RenderPass(renderer, engine);
         }
         render_autoexposure_pass();
 
