@@ -1942,33 +1942,6 @@ void render_volumetric_pass(Mat4* view, Mat4* projection, const Mat4* sunLightSp
     glViewport(0, 0, g_engine->width, g_engine->height);
 }
 
-void render_ssao_pass(Mat4* projection) {
-    const int ssao_width = g_engine->width / SSAO_DOWNSAMPLE;
-    const int ssao_height = g_engine->height / SSAO_DOWNSAMPLE;
-    glViewport(0, 0, ssao_width, ssao_height);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoFBO);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glUseProgram(g_renderer.ssaoShader);
-    glUniformMatrix4fv(glGetUniformLocation(g_renderer.ssaoShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(g_renderer.ssaoShader, "screenSize"), (float)ssao_width, (float)ssao_height);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gPosition);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.gGeometryNormal);
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.ssaoBlurFBO);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glUseProgram(g_renderer.ssaoBlurShader);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_renderer.ssaoColorBuffer);
-    glBindVertexArray(g_renderer.quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glViewport(0, 0, g_engine->width, g_engine->height);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void render_ssr_pass(GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* projection) {
     if (!Cvar_GetInt("r_ssr")) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.finalRenderFBO);
@@ -2849,7 +2822,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
             if (Cvar_GetInt("r_ssao")) {
-                render_ssao_pass(&projection);
+                SSAO_RenderPass(&g_renderer, g_engine, &projection);
             }
             if (Cvar_GetInt("r_volumetrics")) {
                 render_volumetric_pass(&view, &projection, &sunLightSpaceMatrix);

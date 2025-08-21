@@ -4463,7 +4463,7 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         g_proj_matrix[type] = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 10000.0f);
         Geometry_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode);
         if (Cvar_GetInt("r_ssao")) {
-            render_ssao_pass(&g_proj_matrix[type]);
+            SSAO_RenderPass(renderer, engine, &g_proj_matrix[type]);
         }
 
         if (Cvar_GetInt("r_bloom")) {
