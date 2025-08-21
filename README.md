@@ -82,7 +82,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - CSG Tools: Includes tools for brush creation, clipping, and vertex manipulation.
 
-- Vertex Painting & Sculpting: Terrain and complex brushes can be directly painted with vertex colors for texture blending or sculpted for organic shapes.
+- Splat texture mapping Painting & Sculpting: brushes can be directly painted with splat texture mapping for texture blending or sculpted for organic shapes.
 
 - Developer Console & CVars: A console provides direct access to engine commands and tunable "CVars" for runtime configuration.
 
