@@ -36,6 +36,7 @@
 #include "gl_blackholes.h"
 #include "gl_zprepass.h"
 #include "gl_shadows.h"
+#include "gl_geometry.h"
 #include "gl_video_player.h"
 #include "model_loader.h"
 

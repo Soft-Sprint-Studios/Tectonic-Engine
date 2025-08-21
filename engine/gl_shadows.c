@@ -1,9 +1,29 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025 Soft Sprint Studios
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include "gl_shadows.h"
 #include "gl_misc.h"
 #include "cvar.h"
-
-void render_object(GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
-void render_brush(GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
 
 void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine) {
     glEnable(GL_DEPTH_TEST);
@@ -60,10 +80,10 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         }
         for (int j = 0; j < scene->numObjects; ++j) {
             if (!scene->objects[j].casts_shadows) continue;
-            render_object(current_shader, &scene->objects[j], false, NULL);
+            render_object(renderer, scene, current_shader, &scene->objects[j], false, NULL);
         }
         for (int j = 0; j < scene->numBrushes; ++j) {
-            render_brush(current_shader, &scene->brushes[j], false, NULL);
+            render_brush(renderer, scene, current_shader, &scene->brushes[j], false, NULL);
         }
         if (light->is_static_shadow) {
             light->has_rendered_static_shadow = true;

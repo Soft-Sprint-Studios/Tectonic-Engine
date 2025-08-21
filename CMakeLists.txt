@@ -93,6 +93,7 @@ set(ENGINE_SOURCES
     engine/gl_zprepass.c
     engine/gl_shadows.c
     engine/gl_blackholes.c
+    engine/gl_geometry.c
     engine/gl_skybox.c
     engine/lightmapper.cpp
     mikktspace/mikktspace.c
@@ -114,6 +115,7 @@ set(ENGINE_HEADERS
     engine/gl_shadows.h
     engine/gl_sprites.h
     engine/gl_blackholes.h
+    engine/gl_geometry.h
     engine/gl_skybox.h
     engine/lightmapper.h
 )
