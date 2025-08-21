@@ -31,6 +31,15 @@
 extern "C" {
 #endif
 
+static float parallaxRoomVertices[] = {
+    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
+     0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f
+};
+
 void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine);
 void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO);
 void MiscRender_MotionBlurPass(Renderer* renderer, GLuint sourceTexture, GLuint destFBO);
