@@ -33,7 +33,11 @@
 #include <stdio.h>
 
 #ifdef __cplusplus
-extern "C" {
+    using namespace std;
+#endif
+
+#ifdef __cplusplus
+    extern "C" {
 #endif
 
 //#define GAME_RELEASE 1
