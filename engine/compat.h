@@ -100,6 +100,14 @@
     #error "Unknown architecture"
 #endif
 
+#if defined(_MSC_VER)
+    #define COMPILER_MSVC
+#elif defined(__GNUC__)
+    #define COMPILER_GNU
+#else
+    #error "Unsupported compiler"
+#endif
+
 #ifdef PLATFORM_WINDOWS
     #define OS_STRING "Windows"
 #else
@@ -247,21 +255,22 @@ static int Compat_GetBuildNumber() {
 
 static inline void cpuid(unsigned int function_id, unsigned int subfunction_id,
     unsigned int* eax, unsigned int* ebx,
-    unsigned int* ecx, unsigned int* edx) {
-#if defined(_MSC_VER)
+    unsigned int* ecx, unsigned int* edx) 
+{
+#if defined(COMPILER_MSVC)
     int regs[4];
     __cpuidex(regs, function_id, subfunction_id);
     *eax = regs[0];
     *ebx = regs[1];
     *ecx = regs[2];
     *edx = regs[3];
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(COMPILER_GNU)
     unsigned int _eax, _ebx, _ecx, _edx;
     __asm__ volatile (
         "cpuid"
         : "=a" (_eax), "=b" (_ebx), "=c" (_ecx), "=d" (_edx)
         : "a" (function_id), "c" (subfunction_id)
-        );
+    );
     *eax = _eax; *ebx = _ebx; *ecx = _ecx; *edx = _edx;
 #else
     #error "Unsupported compiler for cpuid"
