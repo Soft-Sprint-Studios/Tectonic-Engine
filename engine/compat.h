@@ -92,9 +92,9 @@
     #error "Unsupported platform"
 #endif
 
-#if defined(_WIN64) || defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
+#if defined(_WIN64) || defined(__x86_64__)
     #define ARCH_64BIT
-#elif defined(_WIN32) || defined(__i386__) || defined(__arm__) || defined(__arm)
+#elif defined(_WIN32) || defined(__i386__)
     #define ARCH_32BIT
 #else
     #error "Unknown architecture"
