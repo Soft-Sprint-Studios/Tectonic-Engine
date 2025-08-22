@@ -35,8 +35,8 @@ if(MSVC)
         set(CMAKE_EXE_LINKER_FLAGS_${config} "${CMAKE_EXE_LINKER_FLAGS_${config}} /DEBUG")
     endforeach()
 
-elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    message(STATUS "Applying GCC/Clang optimization settings")
+elseif(CMAKE_COMPILER_IS_GNUCXX)
+    message(STATUS "Applying GCC optimization settings")
 
     add_compile_options(
         $<$<CONFIG:RELEASE>:-O3>
@@ -152,7 +152,7 @@ target_include_directories(math_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/engine")
 
 target_compile_options(math_lib PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+   $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # IPC library
@@ -169,7 +169,7 @@ target_include_directories(ipc_lib PUBLIC
 )
 target_compile_options(ipc_lib PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # level0 library (core utilities)
@@ -205,7 +205,7 @@ target_include_directories(level0 PUBLIC
 )
 target_compile_options(level0 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # level1 library (mid-core utilities)
@@ -246,7 +246,7 @@ endif()
 
 target_compile_options(level1 PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # materials library
@@ -273,7 +273,7 @@ target_include_directories(materials PUBLIC
 
 target_compile_options(materials PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # models library
@@ -301,7 +301,7 @@ target_include_directories(models PUBLIC
 
 target_compile_options(models PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 if(WIN32)
@@ -352,7 +352,7 @@ target_include_directories(physics
 
 target_compile_options(physics PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 if(UNIX AND NOT APPLE)
@@ -402,7 +402,7 @@ target_include_directories(sound PUBLIC
 
 target_compile_options(sound PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 # engine library
@@ -445,7 +445,7 @@ target_include_directories(engine PUBLIC
 
 target_compile_options(engine PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 if(WIN32)
@@ -594,7 +594,7 @@ endif()
 
 target_compile_options(launcher PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 if(WIN32)
     target_link_options(launcher PRIVATE /subsystem:windows)
