@@ -1,6 +1,8 @@
 # Contributing to Tectonic Engine
 
-We love contributions from the community! There are many ways you can help make Tectonic Engine even better.
+We love contributions from the community! To ensure a welcoming and respectful environment for everyone, please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.  
+
+There are many ways you can help make Tectonic Engine even better.
 
 ## Ways to Contribute
 
@@ -18,3 +20,5 @@ We love contributions from the community! There are many ways you can help make 
 
 - **Spread the Word**  
   Help others discover Tectonic Engine! Sharing your experience, writing tutorials, or creating guides helps grow the community.
+
+Thank you for taking the time to contribute. Every bit of help, big or small, makes a difference!
