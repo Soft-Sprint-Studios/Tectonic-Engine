@@ -342,6 +342,13 @@ void Cmd_Exec(int argc, char** argv) {
     Console_Printf("Finished executing script: %s", filename);
 }
 
+void Cmd_Version(int argc, char** argv) {
+    Console_Printf("Map Version: %d", MAP_VERSION);
+    Console_Printf("Build: %d (%s, %s)", Compat_GetBuildNumber(), __DATE__, __TIME__);
+    Console_Printf("Architecture: %s", ARCH_STRING);
+    Console_Printf("Branch: %s", BRANCH_NAME);
+}
+
 void Cmd_SaveGame(int argc, char** argv) {
     if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR && g_current_mode != MODE_INGAMEMENU) {
         Console_Printf_Error("Can only save when a map is loaded.");
@@ -546,6 +553,7 @@ void init_commands() {
     Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
     Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.", CMD_NONE);
     Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.", CMD_NONE);
+    Commands_Register("version", Cmd_Version, "Displays engine and map version information.", CMD_NONE);
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
     Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
 
