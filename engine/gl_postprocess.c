@@ -35,6 +35,7 @@ void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glUniform2f(glGetUniformLocation(renderer->postProcessShader, "resolution"), engine->width, engine->height);
     glUniform1f(glGetUniformLocation(renderer->postProcessShader, "time"), engine->scaledTime);
     glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_exposure"), renderer->currentExposure);
+    glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_gamma"), Cvar_GetFloat("r_gamma"));
     glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_red_flash_intensity"), engine->red_flash_intensity);
     LogicEntity* fog_ent = FindActiveEntityByClass(scene, "env_fog");
     if (fog_ent) {

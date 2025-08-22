@@ -24,6 +24,7 @@ uniform float u_fogEnd;
 
 uniform float time;
 uniform vec2 resolution;
+uniform float u_gamma;
 uniform vec2 lightPosOnScreen;
 uniform float flareIntensity;
 
@@ -308,7 +309,7 @@ void main()
 	if (u_bloomEnabled) {
         color += texture(bloomBlur, uv).rgb;
     }
-    color = gammaCorrect(color, 2.2);
+    color = gammaCorrect(color, u_gamma);
 	
     if (u_colorCorrectionEnabled) {
         color = applyLUT(color);
