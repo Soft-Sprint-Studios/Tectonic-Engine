@@ -183,9 +183,15 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
     if (context == TEXTURE_LOAD_CONTEXT_WORLD) {
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        GLfloat max_anisotropy;
-        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
+        if (GLEW_EXT_texture_filter_anisotropic) {
+            GLfloat max_anisotropy;
+            glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+            float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
+            float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
+            if (final_anisotropy > 1.0f) {
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, final_anisotropy);
+            }
+        }
     }
     else {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -268,9 +274,15 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     if (context == TEXTURE_LOAD_CONTEXT_WORLD) {
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        GLfloat max_anisotropy;
-        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
+        if (GLEW_EXT_texture_filter_anisotropic) {
+            GLfloat max_anisotropy;
+            glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+            float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
+            float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
+            if (final_anisotropy > 1.0f) {
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, final_anisotropy);
+            }
+        }
     }
     else {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

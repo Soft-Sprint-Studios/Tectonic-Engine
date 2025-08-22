@@ -445,6 +445,7 @@ void init_cvars() {
     Cvar_Register("r_width", "1920", "Screen width in pixels", CVAR_NONE);
     Cvar_Register("r_height", "1080", "Screen height in pixels", CVAR_NONE);
     Cvar_Register("r_gamma", "2.2", "Screen gamma correction value.", CVAR_NONE);
+    Cvar_Register("r_anisotropy", "16.0", "Anisotropic filtering level (0.0 to 16.0).", CVAR_NONE);
     Cvar_Register("r_autoexposure", "1", "Enable auto-exposure (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_autoexposure_speed", "0.5", "Auto-exposure adaptation speed", CVAR_NONE);
     Cvar_Register("r_autoexposure_key", "0.18", "Auto-exposure middle-grey value", CVAR_NONE);
