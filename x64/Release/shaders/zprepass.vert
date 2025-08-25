@@ -20,4 +20,5 @@ void main()
         boneTransform += aBoneWeights[3] * u_boneMatrices[aBoneIndices[3]];
     }
     gl_Position = projection * view * model * boneTransform * vec4(aPos, 1.0);
+    gl_Position.z += 0.0001;
 }

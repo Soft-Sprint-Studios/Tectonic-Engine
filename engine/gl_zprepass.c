@@ -29,9 +29,6 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
         glDisable(GL_CULL_FACE);
     }
 
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.0f, 1.0f);
-
     for (int i = 0; i < scene->numObjects; i++) {
         SceneObject* obj = &scene->objects[i];
         if (!obj->model) continue;
@@ -146,7 +143,6 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
         }
     }
 
-    glDisable(GL_POLYGON_OFFSET_FILL);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDepthMask(GL_FALSE);
     glDepthFunc(GL_LEQUAL);
