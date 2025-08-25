@@ -74,23 +74,17 @@ private:
 
 static DiscordManager* g_manager = nullptr;
 
-// TODO: convert engine.c to cpp so we dont need this extern C anymore
+void Discord_Init() {
+     if (!g_manager)
+        g_manager = new DiscordManager();
+}
 
-extern "C" {
+void Discord__Shutdown() {
+     delete g_manager;
+     g_manager = nullptr;
+}
 
-    void Discord_Init() {
-        if (!g_manager)
-            g_manager = new DiscordManager();
-    }
-
-    void Discord__Shutdown() {
-        delete g_manager;
-        g_manager = nullptr;
-    }
-
-    void Discord_Update(const char* state, const char* details) {
-        if (g_manager)
-            g_manager->Update(state, details);
-    }
-
+void Discord_Update(const char* state, const char* details) {
+     if (g_manager)
+        g_manager->Update(state, details);
 }

@@ -59,18 +59,12 @@ public:
 
 static SentryManager* g_manager = nullptr;
 
-// TODO: convert engine.c to cpp so we dont need this extern C anymore
+void Sentry_Init() {
+    if (!g_manager)
+        g_manager = new SentryManager();
+}
 
-extern "C" {
-
-    void Sentry_Init() {
-        if (!g_manager)
-            g_manager = new SentryManager();
-    }
-
-    void Sentry_Shutdown() {
-        delete g_manager;
-        g_manager = nullptr;
-    }
-
+void Sentry_Shutdown() {
+    delete g_manager;
+    g_manager = nullptr;
 }

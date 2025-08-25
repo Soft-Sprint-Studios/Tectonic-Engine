@@ -144,34 +144,30 @@ private:
 
 static WeaponSystem g_weaponSystem;
 
-// TODO: convert engine.c to cpp so we dont need this extern C anymore
+void Weapons_Init(void) {
+    g_weaponSystem.Init();
+}
 
-extern "C" {
-    void Weapons_Init(void) {
-        g_weaponSystem.Init();
-    }
+void Weapons_Shutdown(void) {
+    g_weaponSystem.Shutdown();
+}
 
-    void Weapons_Shutdown(void) {
-        g_weaponSystem.Shutdown();
-    }
+void Weapons_Update(float deltaTime) {
+    g_weaponSystem.Update(deltaTime);
+}
 
-    void Weapons_Update(float deltaTime) {
-        g_weaponSystem.Update(deltaTime);
-    }
+void Weapons_Switch(WeaponType newWeapon) {
+    g_weaponSystem.Switch(newWeapon);
+}
 
-    void Weapons_Switch(WeaponType newWeapon) {
-        g_weaponSystem.Switch(newWeapon);
-    }
+void Weapons_SwitchNext(void) {
+    g_weaponSystem.SwitchNext();
+}
 
-    void Weapons_SwitchNext(void) {
-        g_weaponSystem.SwitchNext();
-    }
+void Weapons_SwitchPrev(void) {
+    g_weaponSystem.SwitchPrev();
+}
 
-    void Weapons_SwitchPrev(void) {
-        g_weaponSystem.SwitchPrev();
-    }
-
-    void Weapons_TryFire(Engine* engine, Scene* scene) {
-        g_weaponSystem.TryFire(engine, scene);
-    }
+void Weapons_TryFire(Engine* engine, Scene* scene) {
+    g_weaponSystem.TryFire(engine, scene);
 }

@@ -158,39 +158,42 @@ public:
 KeyBind Binds::binds[MAX_BINDS] = {};
 int Binds::num_binds = 0;
 
-// TODO: convert engine.c (and engine_commands.c) to cpp so we dont need this extern C anymore
+void Binds_Init()
+{
+    Binds::Init();
+}
 
-extern "C" {
-    void Binds_Init()
-    {
-        Binds::Init();
-    }
-    void Binds_Shutdown()
-    {
-        Binds::Shutdown();
-    }
-    void Binds_Load(const char* filename)
-    {
-        Binds::Load(filename);
-    }
-    void Binds_Save(const char* filename)
-    {
-        Binds::Save(filename);
-    }
-    void Binds_Set(const char* keyName, const char* command)
-    {
-        Binds::Set(keyName, command);
-    }
-    void Binds_Unset(const char* keyName)
-    {
-        Binds::Unset(keyName);
-    }
-    void Binds_UnbindAll()
-    {
-        Binds::UnbindAll();
-    }
-    const char* Binds_GetCommand(SDL_Keycode key)
-    {
-        return Binds::GetCommand(key);
-    }
+void Binds_Shutdown()
+{
+    Binds::Shutdown();
+}
+
+void Binds_Load(const char* f)
+{
+    Binds::Load(f);
+}
+
+void Binds_Save(const char* f)
+{
+    Binds::Save(f);
+}
+
+void Binds_Set(const char* k, const char* c)
+{
+    Binds::Set(k, c);
+}
+
+void Binds_Unset(const char* k)
+{
+    Binds::Unset(k);
+}
+
+void Binds_UnbindAll()
+{
+    Binds::UnbindAll();
+}
+
+const char* Binds_GetCommand(SDL_Keycode k)
+{
+    return Binds::GetCommand(k);
 }
