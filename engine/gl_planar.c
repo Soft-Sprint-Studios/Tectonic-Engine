@@ -31,6 +31,14 @@
 #include "io_system.h"
 
 void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
+    static int frameCounter = 0;
+    frameCounter++;
+
+    int updateEveryNFrames = 2;
+    if ((frameCounter % updateEveryNFrames) != 0) {
+        return;
+    }
+
     if (!Cvar_GetInt("r_planar")) return;
 
     float reflection_plane_height = 0.0;
