@@ -46,6 +46,7 @@
 #include "network.h"
 #include "dsp_reverb.h"
 #include "gl_video_player.h"
+#include "gl_keypad.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "checksum.h"
@@ -144,6 +145,9 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
     g_engine->active_camera_brush_index = -1;
     g_player_input_disabled = false;
+    g_engine->keypad_active = false;
+    g_engine->active_keypad_entity_index = -1;
+    memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
     g_engine->prev_health = g_engine->camera.health;
     g_engine->red_flash_intensity = 0.0f;
     g_engine->prev_player_y_velocity = 0.0f;
@@ -357,6 +361,12 @@ void process_input() {
                 }
             }
             if (event.key.keysym.sym == SDLK_ESCAPE) {
+                if (g_engine->keypad_active) {
+                    g_engine->keypad_active = false;
+                    g_player_input_disabled = false;
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    return;
+                }
                 if (g_current_mode == MODE_GAME) {
                     g_current_mode = MODE_INGAMEMENU;
                     bool map_is_currently_loaded = (g_scene.numObjects > 0 || g_scene.numBrushes > 0);
@@ -1823,6 +1833,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         else {
             UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_fps_history, FPS_GRAPH_SAMPLES, g_engine->canUse);
             UI_RenderDeveloperOverlay();
+            if (g_current_mode == MODE_GAME) {
+                Keypad_RenderUI(&g_scene, g_engine);
+            }
         }
         Console_Draw(); 
         if (g_screenshot_requested) {

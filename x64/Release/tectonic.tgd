@@ -292,6 +292,16 @@
     output OnEnd "Fires when the camera sequence is finished (after hold time)."
 )
 
+@PointClass = trigger_keypad
+[
+    password(string) : "Password" = "1234"
+]
+(
+    input Use "Shows the keypad UI."
+    output OnPasswordCorrect "Fires when the correct password is entered."
+    output OnPasswordIncorrect "Fires when an incorrect password is entered."
+)
+
 // ==================================================================
 // Point Entities
 // ==================================================================

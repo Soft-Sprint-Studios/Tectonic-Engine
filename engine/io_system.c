@@ -364,6 +364,15 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     Commands_Execute(1, disconnect_argv);
                 }
             }
+            else if (strcmp(ent->classname, "trigger_keypad") == 0) {
+                if (strcmp(inputName, "Use") == 0 && !engine->keypad_active) {
+                    engine->keypad_active = true;
+                    engine->active_keypad_entity_index = i;
+                    memset(engine->keypad_input_buffer, 0, sizeof(engine->keypad_input_buffer));
+                    g_player_input_disabled = true;
+                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                }
+            }
             else if (strcmp(ent->classname, "logic_branch") == 0) {
                 bool test_now = false;
 

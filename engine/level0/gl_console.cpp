@@ -323,6 +323,9 @@ extern "C" {
     bool UI_Begin_NoTitlebar_NoResize_NoMove(const char* name, bool* p_open) {
         return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     }
+    bool UI_Begin_WithFlags(const char* name, bool* p_open, int flags) {
+        return ImGui::Begin(name, p_open, (ImGuiWindowFlags)flags);
+    }
     bool UI_IsWindowOpen(const char* name) {
         ImGuiWindow* window = ImGui::FindWindowByName(name);
         return (window != NULL && window->WasActive);

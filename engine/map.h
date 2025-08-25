@@ -553,6 +553,9 @@ extern "C" {
         Vec3 camera_original_pos;
         float camera_original_yaw;
         float camera_original_pitch;
+        bool keypad_active;
+        int active_keypad_entity_index;
+        char keypad_input_buffer[32];
     } Engine;
 
     void Light_InitShadowMap(Light* light);
