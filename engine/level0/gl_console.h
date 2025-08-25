@@ -57,7 +57,7 @@ extern "C" {
 	LEVEL0_API void Console_Printf_Warning(const char* fmt, ...);
 	LEVEL0_API bool Console_IsVisible();
 	LEVEL0_API void Console_ClearLog();
-	LEVEL0_API void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size);
+	LEVEL0_API void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size, bool canUse);
 	LEVEL0_API void UI_RenderDeveloperOverlay(void);
 	typedef void (*command_callback_t)(int argc, char** argv);
 	LEVEL0_API void Console_SetCommandHandler(command_callback_t handler);

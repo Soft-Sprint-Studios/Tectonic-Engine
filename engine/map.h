@@ -547,6 +547,7 @@ extern "C" {
         PhysicsWorldHandle physicsWorld;
         int width;
         int height;
+        bool canUse;
         int active_camera_brush_index;
         float camera_transition_timer;
         Vec3 camera_original_pos;

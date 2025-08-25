@@ -584,6 +584,52 @@ void update_state() {
     }
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
+    g_engine->canUse = false;
+    if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
+        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+        vec3_normalize(&forward);
+        Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
+
+        for (int i = 0; i < g_scene.numBrushes; ++i) {
+            Brush* brush = &g_scene.brushes[i];
+            bool is_usable = false;
+            if (strcmp(brush->classname, "func_button") == 0) {
+                is_usable = true;
+            }
+            else if (strcmp(brush->classname, "func_door") == 0) {
+                if (atoi(Brush_GetProperty(brush, "OpenOnUse", "1")) == 1) {
+                    is_usable = true;
+                }
+            }
+            else if (strcmp(brush->classname, "func_healthcharger") == 0) {
+                is_usable = true;
+            }
+
+            if (is_usable) {
+                Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+                Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+                if (brush->numVertices > 0) {
+                    for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
+                        brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
+                        brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
+                        brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
+                        brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
+                        brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
+                        brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
+                    }
+                }
+                else {
+                    brush_local_min = (Vec3){ -0.5f, -0.5f, -0.5f };
+                    brush_local_max = (Vec3){ 0.5f, 0.5f, 0.5f };
+                }
+                float t;
+                if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                    g_engine->canUse = true;
+                    break;
+                }
+            }
+        }
+    }
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
     LogicSystem_Update(&g_scene, g_engine->deltaTime);
     Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
@@ -1775,7 +1821,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_fps_history, FPS_GRAPH_SAMPLES);
+            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_fps_history, FPS_GRAPH_SAMPLES, g_engine->canUse);
             UI_RenderDeveloperOverlay();
         }
         Console_Draw(); 

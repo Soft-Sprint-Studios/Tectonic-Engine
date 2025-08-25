@@ -223,7 +223,7 @@ extern "C" {
         console_instance.ClearLog();
     }
 
-    void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size) {
+    void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size, bool canUse) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
@@ -267,15 +267,21 @@ extern "C" {
 
             ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-            float line_length = 8.0f;
-            float gap_size = 6.0f;
-            float thickness = 2.0f;
             ImU32 color = IM_COL32(255, 255, 255, 200);
+            float thickness = 2.0f;
 
-            draw_list->AddLine(ImVec2(center_x, center_y - gap_size - line_length), ImVec2(center_x, center_y - gap_size), color, thickness);
-            draw_list->AddLine(ImVec2(center_x, center_y + gap_size), ImVec2(center_x, center_y + gap_size + line_length), color, thickness);
-            draw_list->AddLine(ImVec2(center_x - gap_size - line_length, center_y), ImVec2(center_x - gap_size, center_y), color, thickness);
-            draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
+            if (canUse) {
+                float radius = 10.0f;
+                draw_list->AddCircle(ImVec2(center_x, center_y), radius, color, 32, thickness);
+            }
+            else {
+                float line_length = 8.0f;
+                float gap_size = 6.0f;
+                draw_list->AddLine(ImVec2(center_x, center_y - gap_size - line_length), ImVec2(center_x, center_y - gap_size), color, thickness);
+                draw_list->AddLine(ImVec2(center_x, center_y + gap_size), ImVec2(center_x, center_y + gap_size + line_length), color, thickness);
+                draw_list->AddLine(ImVec2(center_x - gap_size - line_length, center_y), ImVec2(center_x - gap_size, center_y), color, thickness);
+                draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
+            }
         }
     }
     void UI_RenderDeveloperOverlay(void) {
