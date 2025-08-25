@@ -214,7 +214,7 @@ target_compile_options(level0 PRIVATE
 add_library(level1 SHARED
     engine/level1/gameconfig.c
     engine/level1/network.c
-    engine/level1/binds.c
+    engine/level1/binds.cpp
     engine/level1/gameconfig.h
     engine/level1/network.h
     engine/level1/binds.h
