@@ -212,7 +212,7 @@ target_compile_options(level0 PRIVATE
 
 # level1 library (mid-core utilities)
 add_library(level1 SHARED
-    engine/level1/gameconfig.c
+    engine/level1/gameconfig.cpp
     engine/level1/network.c
     engine/level1/binds.cpp
     engine/level1/gameconfig.h

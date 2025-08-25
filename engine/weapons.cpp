@@ -144,6 +144,8 @@ private:
 
 static WeaponSystem g_weaponSystem;
 
+// TODO: convert engine.c to cpp so we dont need this extern C anymore
+
 extern "C" {
     void Weapons_Init(void) {
         g_weaponSystem.Init();
