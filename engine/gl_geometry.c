@@ -247,6 +247,7 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
             Material* batch_material2 = first_face_in_batch->material2;
             Material* batch_material3 = first_face_in_batch->material3;
             Material* batch_material4 = first_face_in_batch->material4;
+            GLuint batch_blendMapTexture = first_face_in_batch->blendMapTexture;
 
             int batch_start_vbo_offset = vbo_offset;
             int batch_vertex_count = 0;
@@ -256,7 +257,8 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 b->faces[current_face_in_batch_idx].material == batch_material &&
                 b->faces[current_face_in_batch_idx].material2 == batch_material2 &&
                 b->faces[current_face_in_batch_idx].material3 == batch_material3 &&
-                b->faces[current_face_in_batch_idx].material4 == batch_material4) {
+                b->faces[current_face_in_batch_idx].material4 == batch_material4 &&
+                b->faces[current_face_in_batch_idx].blendMapTexture == batch_blendMapTexture) {
 
                 if (strlen(b->faces[current_face_in_batch_idx].blendMapPath) > 0) {
                     if (b->faces[current_face_in_batch_idx].blendMapTexture == 0) {
@@ -294,10 +296,10 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->normalMap : defaultNormalMapID);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->rmaMap : defaultRmaMapID);
             glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->heightMap : 0);
-            if (first_face_in_batch->blendMapTexture != 0) {
+            if (batch_blendMapTexture != 0) {
                 glUniform1i(glGetUniformLocation(shader, "useBlendMap"), 1);
                 glActiveTexture(GL_TEXTURE9);
-                glBindTexture(GL_TEXTURE_2D, first_face_in_batch->blendMapTexture);
+                glBindTexture(GL_TEXTURE_2D, batch_blendMapTexture);
                 glUniform1i(glGetUniformLocation(shader, "blendMap"), 9);
             }
             else {
