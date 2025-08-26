@@ -228,6 +228,7 @@ extern "C" {
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
         bool show_graph = Cvar_GetInt("r_showgraph");
+        bool show_watermark = Cvar_GetInt("r_watermark");
 
         const float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE);
@@ -282,6 +283,27 @@ extern "C" {
                 draw_list->AddLine(ImVec2(center_x - gap_size - line_length, center_y), ImVec2(center_x - gap_size, center_y), color, thickness);
                 draw_list->AddLine(ImVec2(center_x + gap_size, center_y), ImVec2(center_x + gap_size + line_length, center_y), color, thickness);
             }
+        }
+
+        if (show_watermark) {
+            const float PADDING = 10.0f;
+            ImGuiIO& io = ImGui::GetIO();
+            ImVec2 window_pos = ImVec2(io.DisplaySize.x - PADDING, PADDING);
+            ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
+            ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+            ImGui::SetNextWindowBgAlpha(0.0f);
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+
+            if (ImGui::Begin("Watermark", NULL, window_flags)) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.6f));
+
+                ImGui::Text("Tectonic Engine");
+                ImGui::Text("Build: %d", Compat_GetBuildNumber());
+
+                ImGui::PopStyleColor();
+            }
+            ImGui::End();
         }
     }
     void UI_RenderDeveloperOverlay(void) {

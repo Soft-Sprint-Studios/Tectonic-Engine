@@ -449,6 +449,7 @@ void init_cvars() {
     Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
     Cvar_Register("engine_running", "1", "Engine state (0=off, 1=on)", CVAR_HIDDEN);
+    Cvar_Register("r_watermark", "1", "Show engine watermark (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_width", "1920", "Screen width in pixels", CVAR_NONE);
     Cvar_Register("r_height", "1080", "Screen height in pixels", CVAR_NONE);
     Cvar_Register("r_gamma", "2.2", "Screen gamma correction value.", CVAR_NONE);
