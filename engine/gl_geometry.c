@@ -215,21 +215,18 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
     glBindVertexArray(b->vao);
 
-    if (b->lightmapAtlas != 0) {
+    if (b->lightmapAtlasHandle != 0) {
         glUniform1i(glGetUniformLocation(shader, "useLightmap"), 1);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-        glUniform1i(glGetUniformLocation(shader, "lightmap"), 5);
+        glUniformHandleui64ARB(glGetUniformLocation(shader, "lightmap"), b->lightmapAtlasHandle);
+        glUniform2fv(glGetUniformLocation(shader, "u_lightmap_sampler_size"), 1, &b->lightmap_atlas_size.x);
     }
     else {
         glUniform1i(glGetUniformLocation(shader, "useLightmap"), 0);
     }
 
-    if (b->directionalLightmapAtlas != 0) {
+    if (b->directionalLightmapAtlasHandle != 0) {
         glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 1);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
-        glUniform1i(glGetUniformLocation(shader, "directionalLightmap"), 6);
+        glUniformHandleui64ARB(glGetUniformLocation(shader, "directionalLightmap"), b->directionalLightmapAtlasHandle);
     }
     else {
         glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 0);

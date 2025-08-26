@@ -77,9 +77,10 @@ uniform sampler2D heightMap4;
 uniform bool useBlendMap;
 uniform sampler2D blendMap;
 
-uniform sampler2D lightmap;
+layout(bindless_sampler) uniform sampler2D lightmap;
+layout(bindless_sampler) uniform sampler2D directionalLightmap;
+uniform vec2 u_lightmap_sampler_size;
 uniform bool useLightmap;
-uniform sampler2D directionalLightmap;
 uniform bool useDirectionalLightmap;
 
 uniform sampler2D sunShadowMap;
@@ -373,10 +374,10 @@ float h1(float a) {
 	return 1.0 + w3(a) / (w2(a) + w3(a));
 }
 
-vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
-	vec2 texel_size = vec2(1.0) / texture_size;
+vec4 texture_bicubic(sampler2D tex, vec2 uv) {
+	vec2 texel_size = vec2(1.0) / u_lightmap_sampler_size;
 
-	uv = uv * texture_size + vec2(0.5);
+	uv = uv * u_lightmap_sampler_size + vec2(0.5);
 
 	vec2 iuv = floor(uv);
 	vec2 fuv = fract(uv);
@@ -611,7 +612,7 @@ void main()
 	vec3 bakedRadiance = vec3(0.0);
     if (isBrush == 1) {
         if (useLightmap) {
-            bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb : texture(lightmap, TexCoordsLightmap).rgb;
+            bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
             if (useDirectionalLightmap) {
                 vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
                 vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
@@ -715,7 +716,7 @@ void main()
     if (r_debug_lightmaps) {
         if (isBrush == 1 && useLightmap) {
             if (r_lightmaps_bicubic) {
-                finalColor = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
+                finalColor = texture_bicubic(lightmap, TexCoordsLightmap).rgb;
             } else {
                 finalColor = texture(lightmap, TexCoordsLightmap).rgb;
             }
@@ -726,7 +727,7 @@ void main()
     else if (r_debug_lightmaps_directional) {
         if (isBrush == 1 && useDirectionalLightmap) {
             if (r_lightmaps_bicubic) {
-                finalColor = texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(directionalLightmap, 0)).rgb;
+                finalColor = texture_bicubic(directionalLightmap, TexCoordsLightmap).rgb;
             } else {
                 finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
             }

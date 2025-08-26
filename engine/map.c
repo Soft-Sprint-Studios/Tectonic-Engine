@@ -164,8 +164,16 @@ void Brush_FreeData(Brush* b) {
     if (!b) return;
     if (b->vao) { glDeleteVertexArrays(1, &b->vao); b->vao = 0; }
     if (b->vbo) { glDeleteBuffers(1, &b->vbo); b->vbo = 0; }
-    if (b->lightmapAtlas) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
-    if (b->directionalLightmapAtlas) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
+    if (b->lightmapAtlas) {
+        if (b->lightmapAtlasHandle) {
+            glMakeTextureHandleNonResidentARB(b->lightmapAtlasHandle);
+            b->lightmapAtlasHandle = 0;
+        } glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
+    if (b->directionalLightmapAtlas) {
+        if (b->directionalLightmapAtlasHandle) {
+            glMakeTextureHandleNonResidentARB(b->directionalLightmapAtlasHandle);
+            b->directionalLightmapAtlasHandle = 0;
+        } glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
     if (b->vertices) { free(b->vertices); b->vertices = NULL; }
     if (b->faces) {
         for (int i = 0; i < b->numFaces; i++) {
@@ -227,6 +235,9 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->vbo = 0;
     dest->lightmapAtlas = 0;
     dest->directionalLightmapAtlas = 0;
+    dest->lightmapAtlasHandle = 0;
+    dest->directionalLightmapAtlasHandle = 0;
+    dest->lightmap_atlas_size = (Vec2){ 0.0, 0.0 };
     dest->totalRenderVertexCount = 0;
     dest->physicsBody = NULL;
     dest->mass = src->mass;
@@ -1504,6 +1515,22 @@ void Scene_LoadAmbientProbes(Scene* scene) {
 }
 
 void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
+    if (b->lightmapAtlasHandle) {
+        glMakeTextureHandleNonResidentARB(b->lightmapAtlasHandle);
+        b->lightmapAtlasHandle = 0;
+    }
+    if (b->lightmapAtlas != 0) {
+        glDeleteTextures(1, &b->lightmapAtlas);
+        b->lightmapAtlas = 0;
+    }
+    if (b->directionalLightmapAtlasHandle) {
+        glMakeTextureHandleNonResidentARB(b->directionalLightmapAtlasHandle);
+        b->directionalLightmapAtlasHandle = 0;
+    }
+    if (b->directionalLightmapAtlas != 0) {
+        glDeleteTextures(1, &b->directionalLightmapAtlas);
+        b->directionalLightmapAtlas = 0;
+    }
     if (b->numFaces == 0) return;
 
     typedef struct {
@@ -1565,6 +1592,8 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int b
     int atlas_rows = (int)ceil((double)valid_faces / atlas_cols);
     int atlas_width = atlas_cols * max_width;
     int atlas_height = atlas_rows * max_height;
+    b->lightmap_atlas_size.x = (float)atlas_width;
+    b->lightmap_atlas_size.y = (float)atlas_height;
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
@@ -1617,6 +1646,15 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int b
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (b->lightmapAtlas != 0) {
+        b->lightmapAtlasHandle = glGetTextureHandleARB(b->lightmapAtlas);
+        glMakeTextureHandleResidentARB(b->lightmapAtlasHandle);
+    }
+    if (b->directionalLightmapAtlas != 0) {
+        b->directionalLightmapAtlasHandle = glGetTextureHandleARB(b->directionalLightmapAtlas);
+        glMakeTextureHandleResidentARB(b->directionalLightmapAtlasHandle);
+    }
 
     for (int i = 0; i < b->numFaces; ++i) {
         if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);

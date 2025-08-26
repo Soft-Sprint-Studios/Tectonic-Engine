@@ -341,7 +341,10 @@ extern "C" {
         int numFaces;
         GLuint vao, vbo;
         GLuint lightmapAtlas;
+        uint64_t lightmapAtlasHandle;
         GLuint directionalLightmapAtlas;
+        uint64_t directionalLightmapAtlasHandle;
+        Vec2 lightmap_atlas_size;
         int totalRenderVertexCount;
         RigidBodyHandle physicsBody;
         float mass;
