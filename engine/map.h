@@ -243,9 +243,6 @@ extern "C" {
         GLuint reflectionFBO;
         GLuint reflectionTexture;
         GLuint reflectionDepthRBO;
-        GLuint refractionFBO;
-        GLuint refractionTexture;
-        GLuint refractionDepthTexture;
         float currentExposure;
         Mat4 prevViewProjection;
     } Renderer;

@@ -97,20 +97,6 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     glViewport(0, 0, reflection_width, reflection_height);
     Skybox_Render(renderer, scene, engine, &reflection_view, projection);
 
-    glUseProgram(renderer->mainShader);
-    glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, -1, 0, reflection_plane_height);
-    glViewport(0, 0, reflection_width, reflection_height);
-    Geometry_RenderPass(renderer, scene, engine, view, projection, sunLightSpaceMatrix, camera->position, false);
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderer->refractionFBO);
-    glBlitFramebuffer(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBlitFramebuffer(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, 0, 0, reflection_width, reflection_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, renderer->refractionFBO);
-    glViewport(0, 0, reflection_width, reflection_height);
-    Skybox_Render(renderer, scene, engine, view, projection);
-
     glDisable(GL_CLIP_DISTANCE0);
     glDisable(GL_FRAMEBUFFER_SRGB);
     glUseProgram(renderer->mainShader);
@@ -157,14 +143,6 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
     glUniform1i(glGetUniformLocation(renderer->waterShader, "reflectionTexture"), 2);
-
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, renderer->refractionTexture);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "refractionTexture"), 4);
-
-    glActiveTexture(GL_TEXTURE8);
-    glBindTexture(GL_TEXTURE_2D, renderer->refractionDepthTexture);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "refractionDepthTexture"), 8);
 
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -245,10 +223,6 @@ void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engi
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
     glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "reflectionTexture"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, renderer->refractionTexture);
-    glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "refractionTexture"), 1);
 
     glActiveTexture(GL_TEXTURE2);
     glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "normalMap"), 2);

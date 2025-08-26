@@ -1,8 +1,6 @@
 #version 450 core
 #extension GL_ARB_bindless_texture : require
 
-const float Eta = 0.25;
-
 out vec4 fragColor;
 
 in vec3 v_incident;
@@ -16,8 +14,6 @@ in vec2 v_texCoordLightmap;
 in vec4 v_clipSpace;
 
 uniform sampler2D reflectionTexture;
-uniform sampler2D refractionTexture;
-uniform sampler2D refractionDepthTexture;
 uniform sampler2D flowMap;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
@@ -163,15 +159,11 @@ void main() {
 
     vec2 ndc = (v_clipSpace.xy / v_clipSpace.w) / 2.0 + 0.5;
     vec2 reflectTexCoords = vec2(ndc.x, 1.0 - ndc.y);
-    vec2 refractTexCoords = ndc;
 
-    refractTexCoords += distortion;
     reflectTexCoords += distortion;
     
     vec3 reflectionColor = 2.0 * texture(reflectionTexture, reflectTexCoords).rgb;
-    vec3 refractionColor = texture(refractionTexture, refractTexCoords).rgb;
-    float fresnel = Eta + (1.0 - Eta) * pow(max(0.0, 1.0 - dot(V, N)), 5.0);
-    vec3 baseWaterColor = mix(refractionColor, reflectionColor, fresnel);
+    vec3 baseWaterColor = reflectionColor;
 
     vec3 ambient = 0.05 * baseWaterColor;
     vec3 diffuse = vec3(0.0);
@@ -289,5 +281,5 @@ void main() {
         finalColor = reflectionColor;
     }
 
-    fragColor = vec4(finalColor, 1.0);
+    fragColor = vec4(finalColor, 0.95); 
 }
