@@ -188,6 +188,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     }
                 }
             }
+            else if (strcmp(ent->classname, "point_radiation_source") == 0) {
+                if (strcmp(inputName, "TurnOn") == 0) ent->runtime_active = true;
+                else if (strcmp(inputName, "TurnOff") == 0) ent->runtime_active = false;
+                else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
+            }
             else if (strcmp(ent->classname, "math_counter") == 0) {
                 int min = atoi(LogicEntity_GetProperty(ent, "min", "0"));
                 int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));

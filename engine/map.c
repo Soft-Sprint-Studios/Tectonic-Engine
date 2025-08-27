@@ -2230,6 +2230,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
                 ent->runtime_active = (atoi(starton_val) != 0);
             }
+            if (strcmp(ent->classname, "point_radiation_source") == 0) {
+                const char* starton_val = LogicEntity_GetProperty(ent, "starton", "1");
+                ent->runtime_active = (atoi(starton_val) != 0);
+            }
             scene->numLogicEntities++;
         }
         else if (strcmp(keyword, "io_connection") == 0) {

@@ -183,6 +183,8 @@ extern "C" {
         float currentHeight;
         RigidBodyHandle physicsBody;
         float health;
+        float radiation_level;
+        float rads_per_second;
     } Camera;
 
     typedef struct {

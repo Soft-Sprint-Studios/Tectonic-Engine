@@ -414,6 +414,18 @@
     input Command ""
 )
 
+@PointClass = point_radiation_source
+[
+    radius(float) : "Radius of effect" = "500"
+    rad_s(float) : "Radiation per second at distance 1" = "10.0"
+    starton(checkbox) : "Start On" = "1"
+]
+(
+    input TurnOn "Turns the radiation source on."
+    input TurnOff "Turns the radiation source off."
+    input Toggle "Toggles the radiation source on/off."
+)
+
 @PointClass = game_end
 [
 ]

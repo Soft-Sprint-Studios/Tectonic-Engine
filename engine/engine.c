@@ -118,6 +118,8 @@ static unsigned int g_frame_counter = 0;
 unsigned int g_flashlight_sound_buffer = 0;
 unsigned int g_footstep_sound_buffer = 0;
 unsigned int g_jump_sound_buffer = 0;
+unsigned int g_geiger_tick_sound_buffer = 0;
+static float g_geiger_timer = 0.0f;
 #define FPS_GRAPH_SAMPLES 14400
 static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
 static int g_fps_history_index = 0;
@@ -143,6 +145,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
     IPC_Init();
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
+    g_engine->camera.radiation_level = 0.0f;
+    g_engine->camera.rads_per_second = 0.0f;
     g_engine->active_camera_brush_index = -1;
     g_player_input_disabled = false;
     g_engine->keypad_active = false;
@@ -177,6 +181,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
     g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
     g_jump_sound_buffer = SoundSystem_LoadSound("sounds/jump.wav");
+    g_geiger_tick_sound_buffer = SoundSystem_LoadSound("sounds/geiger_tick.wav");
     Console_SetCommandHandler(Commands_Execute);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
@@ -594,6 +599,52 @@ void update_state() {
     }
     g_engine->running = Cvar_GetInt("engine_running");
     SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
+    g_engine->camera.rads_per_second = 0.0f;
+    if (g_current_mode == MODE_GAME) {
+        for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+            LogicEntity* ent = &g_scene.logicEntities[i];
+            if (strcmp(ent->classname, "point_radiation_source") == 0 && ent->runtime_active) {
+                float radius = atof(LogicEntity_GetProperty(ent, "radius", "500"));
+                float rad_s = atof(LogicEntity_GetProperty(ent, "rad_s", "10.0"));
+
+                float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                if (dist_sq < radius * radius) {
+                    g_engine->camera.rads_per_second += rad_s / fmaxf(1.0f, dist_sq);
+                }
+            }
+        }
+
+        if (g_engine->camera.rads_per_second > 0.01f) {
+            g_engine->camera.radiation_level += g_engine->camera.rads_per_second * g_engine->deltaTime;
+        }
+        else {
+            float decay_rate = 1.5f;
+            g_engine->camera.radiation_level -= decay_rate * g_engine->deltaTime;
+            if (g_engine->camera.radiation_level < 0.0f) {
+                g_engine->camera.radiation_level = 0.0f;
+            }
+        }
+
+        if (g_engine->camera.radiation_level > 1000.0f) {
+            g_engine->camera.radiation_level = 1000.0f;
+        }
+        if (g_engine->camera.radiation_level >= 1000.0f && Cvar_GetInt("god") == 0) {
+            g_engine->camera.health = 0.0f;
+        }
+
+        if (g_engine->camera.rads_per_second > 0.1f) {
+            g_geiger_timer -= g_engine->deltaTime;
+            if (g_geiger_timer <= 0.0f) {
+                float interval = 1.0f / (1.0f + g_engine->camera.rads_per_second * 1.5f);
+                float pitch = 1.0f + (g_engine->camera.rads_per_second / 50.0f);
+                pitch = fminf(pitch, 3.0f);
+
+                SoundSystem_PlaySound(g_geiger_tick_sound_buffer, g_engine->camera.position, 0.5f, pitch, 10.0f, false);
+
+                g_geiger_timer = interval + rand_float_range(0.0f, interval * 0.5f);
+            }
+        }
+    }
     g_engine->canUse = false;
     if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
         Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -1325,6 +1376,7 @@ void cleanup() {
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
     SoundSystem_DeleteBuffer(g_jump_sound_buffer);
+    SoundSystem_DeleteBuffer(g_geiger_tick_sound_buffer);
     ModelLoader_Shutdown();
     TextureManager_Shutdown();
     SoundSystem_Shutdown();
@@ -1831,7 +1883,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_fps_history, FPS_GRAPH_SAMPLES, g_engine->canUse);
+            UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
             UI_RenderDeveloperOverlay();
             if (g_current_mode == MODE_GAME) {
                 Keypad_RenderUI(&g_scene, g_engine);

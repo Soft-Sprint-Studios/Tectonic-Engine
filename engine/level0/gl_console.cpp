@@ -223,7 +223,7 @@ extern "C" {
         console_instance.ClearLog();
     }
 
-    void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, const float* fps_history, int history_size, bool canUse) {
+    void UI_RenderGameHUD(float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
@@ -247,6 +247,11 @@ extern "C" {
                     ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
                 }
                 ImGui::Text("Health: %.0f", health);
+                if (radiation > 0.1f) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 1.0f, 0.6f, 1.0f));
+                    ImGui::Text("RAD: %.1f | RAD/s: %.2f", radiation, rads_per_second);
+                    ImGui::PopStyleColor();
+                }
             }
             if (show_graph && history_size > 0) {
                 float max_fps = 0.0f;
