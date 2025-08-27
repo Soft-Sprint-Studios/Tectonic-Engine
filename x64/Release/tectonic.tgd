@@ -140,6 +140,10 @@
 @SolidClass = func_clip
 [
 ]
+(
+    input Enable "Enables collision for this clip brush."
+    input Disable "Disables collision for this clip brush."
+)
 
 @SolidClass = func_blocklight
 [

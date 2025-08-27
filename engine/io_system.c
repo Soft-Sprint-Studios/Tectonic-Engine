@@ -454,6 +454,28 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, NULL);
                     }
                 }
+                else if (strcmp(b->classname, "func_clip") == 0) {
+                    if (!b->runtime_hasFired) {
+                        b->runtime_active = true;
+                        b->runtime_hasFired = true;
+                    }
+                    if (strcmp(inputName, "Enable") == 0) {
+                        if (!b->runtime_active) {
+                            b->runtime_active = true;
+                            if (b->physicsBody) {
+                                Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, true);
+                            }
+                        }
+                    }
+                    else if (strcmp(inputName, "Disable") == 0) {
+                        if (b->runtime_active) {
+                            b->runtime_active = false;
+                            if (b->physicsBody) {
+                                Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
+                            }
+                        }
+                    }
+                }
                 else if (strcmp(b->classname, "func_rotating") == 0) {
                     float speed = atof(Brush_GetProperty(b, "speed", "10"));
                     if (strcmp(inputName, "Start") == 0) {
