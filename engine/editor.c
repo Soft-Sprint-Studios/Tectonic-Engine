@@ -5196,6 +5196,63 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
     glLineWidth(1.0f);
     glBindVertexArray(0);
 
+    if (type != VIEW_PERSPECTIVE) {
+#define RADIUS_GIZMO_SEGMENTS 32
+        glUseProgram(g_EditorState.debug_shader);
+        Mat4 model_ident;
+        mat4_identity(&model_ident);
+        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_ident.m);
+        float radius_color[] = { 1.0f, 0.65f, 0.0f, 0.7f };
+        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, radius_color);
+        glLineWidth(1.0f);
+        glDisable(GL_DEPTH_TEST);
+
+        for (int i = 0; i < scene->numLogicEntities; ++i) {
+            LogicEntity* ent = &scene->logicEntities[i];
+            const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
+            if (!def) continue;
+
+            for (int j = 0; j < def->num_properties; ++j) {
+                if (def->properties[j].type == TGD_PROP_RADIUS) {
+                    const char* radius_str = LogicEntity_GetProperty(ent, def->properties[j].key, "0");
+                    float radius = atof(radius_str);
+                    if (radius > 0.0f) {
+                        Vec3 circle_verts[RADIUS_GIZMO_SEGMENTS * 2];
+                        for (int k = 0; k < RADIUS_GIZMO_SEGMENTS; ++k) {
+                            float angle1 = (k / (float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
+                            float angle2 = ((k + 1) / (float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
+                            float x1 = radius * cosf(angle1);
+                            float y1 = radius * sinf(angle1);
+                            float x2 = radius * cosf(angle2);
+                            float y2 = radius * sinf(angle2);
+
+                            if (type == VIEW_TOP_XZ) {
+                                circle_verts[k * 2] = (Vec3){ ent->pos.x + x1, ent->pos.y, ent->pos.z + y1 };
+                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x + x2, ent->pos.y, ent->pos.z + y2 };
+                            }
+                            else if (type == VIEW_FRONT_XY) {
+                                circle_verts[k * 2] = (Vec3){ ent->pos.x + x1, ent->pos.y + y1, ent->pos.z };
+                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x + x2, ent->pos.y + y2, ent->pos.z };
+                            }
+                            else {
+                                circle_verts[k * 2] = (Vec3){ ent->pos.x, ent->pos.y + y1, ent->pos.z + x1 };
+                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x, ent->pos.y + y2, ent->pos.z + x2 };
+                            }
+                        }
+                        glBindVertexArray(g_EditorState.vertex_points_vao);
+                        glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+                        glBufferData(GL_ARRAY_BUFFER, sizeof(circle_verts), circle_verts, GL_DYNAMIC_DRAW);
+                        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+                        glEnableVertexAttribArray(0);
+                        glDrawArrays(GL_LINES, 0, RADIUS_GIZMO_SEGMENTS * 2);
+                    }
+                    break;
+                }
+            }
+        }
+        glEnable(GL_DEPTH_TEST);
+    }
+
     Editor_RenderGizmo(g_view_matrix[type], g_proj_matrix[type], type);
     if (type == VIEW_PERSPECTIVE && primary && primary->type == ENTITY_BRUSH &&
         primary->vertex_index != -1 &&

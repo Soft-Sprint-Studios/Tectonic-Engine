@@ -416,7 +416,7 @@
 
 @PointClass = point_radiation_source
 [
-    radius(float) : "Radius of effect" = "500"
+    radius(radius) : "Radius of effect" = "500"
     rad_s(float) : "Radiation per second at distance 1" = "10.0"
     starton(checkbox) : "Start On" = "1"
 ]
@@ -459,7 +459,7 @@
 @PointClass = env_shake
 [
     amplitude(float) : "Amplitude" = "4.0"
-    radius(float) : "Radius" = "500.0"
+    radius(radius) : "Radius" = "500.0"
     duration(float) : "Duration" = "1.0"
     frequency(float) : "Frequency" = "40.0"
     GlobalShake(checkbox) : "Global Shake" = "0"
