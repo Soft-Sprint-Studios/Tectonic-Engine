@@ -228,7 +228,7 @@ extern "C" {
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
         bool show_graph = Cvar_GetInt("r_showgraph");
-        bool show_watermark = Cvar_GetInt("r_watermark");
+        bool show_watermark = Cvar_GetInt("watermark");
 
         const float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE);
