@@ -166,6 +166,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
                 else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
             }
+            renderer->stats.drawCalls++;
         }
     }
 }
@@ -330,6 +331,7 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 else {
                     glDrawArrays(GL_TRIANGLES, batch_start_vbo_offset, batch_vertex_count);
                 }
+                renderer->stats.drawCalls++;
             }
 
             vbo_offset += batch_vertex_count;
@@ -348,6 +350,12 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
     extract_frustum_planes(&view_proj, &frustum, true);
+
+    renderer->stats.modelsDrawn = 0;
+    renderer->stats.brushesDrawn = 0;
+    renderer->stats.drawCalls = 0;
+    renderer->stats.totalModels = scene->numObjects;
+    renderer->stats.totalBrushes = scene->numBrushes;
 
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
     glViewport(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
@@ -517,6 +525,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 continue;
             }
         }
+        renderer->stats.modelsDrawn++;
         render_object(renderer, scene, renderer->mainShader, &scene->objects[i], false, &frustum);
     }
     for (int i = 0; i < scene->numBrushes; i++) {
@@ -537,6 +546,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 continue;
             }
         }
+        renderer->stats.brushesDrawn++;
         render_brush(renderer, scene, renderer->mainShader, &scene->brushes[i], false, &frustum);
     }
     MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);

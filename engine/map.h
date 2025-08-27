@@ -188,6 +188,14 @@ extern "C" {
     } Camera;
 
     typedef struct {
+        int modelsDrawn;
+        int brushesDrawn;
+        int totalModels;
+        int totalBrushes;
+        int drawCalls;
+    } RenderStats;
+
+    typedef struct {
         GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
         GLuint zPrepassShader;
         GLuint zPrepassTessShader;
@@ -247,6 +255,7 @@ extern "C" {
         GLuint reflectionDepthRBO;
         float currentExposure;
         Mat4 prevViewProjection;
+        RenderStats stats;
     } Renderer;
 
     typedef struct {
