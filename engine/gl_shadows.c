@@ -105,7 +105,7 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
 
     for (int j = 0; j < scene->numObjects; ++j) {
         if (!scene->objects[j].casts_shadows) continue;
-        render_object(renderer->spotDepthShader, &scene->objects[j], false, NULL);
+        render_object(renderer, scene, renderer->spotDepthShader, &scene->objects[j], false, NULL);
     }
     for (int j = 0; j < scene->numBrushes; ++j) {
         Brush* b = &scene->brushes[j];
@@ -113,7 +113,7 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
             continue;
         }
         if (strcmp(scene->brushes[j].classname, "env_reflectionprobe") == 0) continue;
-        render_brush(renderer->spotDepthShader, &scene->brushes[j], false, NULL);
+        render_brush(renderer, scene, renderer->spotDepthShader, &scene->brushes[j], false, NULL);
     }
 
     glCullFace(GL_BACK);
