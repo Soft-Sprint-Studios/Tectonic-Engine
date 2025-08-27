@@ -569,6 +569,7 @@ void process_input() {
 }
 
 void update_state() {
+    g_is_unlit_mode = Cvar_GetInt("r_fullbright");
     int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
     if (deactivation_cvar != g_last_deactivation_cvar_state) {
         if (g_engine->physicsWorld) {
@@ -1791,7 +1792,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if (Cvar_GetInt("r_planar")) {
                 Planar_RenderReflections(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
             }
-            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, false);
+            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode);
             if (Cvar_GetInt("r_ssao")) {
                 SSAO_RenderPass(&g_renderer, g_engine, &projection);
             }
