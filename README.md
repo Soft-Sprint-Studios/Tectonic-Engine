@@ -7,6 +7,8 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 # Rendering & Lighting
 - Physically-Based Rendering (PBR) Pipeline: Core rendering is built on a deferred PBR model using a metallic/roughness workflow, enabling realistic material interactions with light.
 
+- Anisotropic Filtering: Improves texture quality on surfaces viewed at oblique angles, reducing blurriness and preserving high-frequency detail in textures such as ground, walls, and fabrics.
+
 - Normal Mapping: Supported on both world geometry (brushes) and models for high-frequency surface detail.
 
 - Relief Mapping: Height maps can be used to create the illusion of depth and self-shadowing on surfaces, providing a more convincing 3D effect than standard normal mapping.
