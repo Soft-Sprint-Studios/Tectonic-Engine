@@ -1416,7 +1416,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.is_hovering_preview_brush_body = false;
     g_EditorState.is_dragging_preview_brush_body = false;
     g_EditorState.is_in_z_mode = false;
-    g_is_unlit_mode = false;
     g_EditorState.is_dragging_selected_brush_handle = false;
     g_EditorState.selected_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
     g_EditorState.captured_viewport = VIEW_COUNT;
@@ -8710,7 +8709,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat("Wall Thickness", &g_EditorState.tube_wall_thickness, 0.05f, 0.1f, 16.0f);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.0625f, 0.0625f, 64.0f);
-    UI_Checkbox("Unlit Mode", &g_is_unlit_mode);
+    bool is_unlit = Cvar_GetInt("r_fullbright");
+    if (UI_Checkbox("Unlit Mode", &is_unlit)) {
+        Cvar_Set("r_fullbright", is_unlit ? "1" : "0");
+    }
     for (int i = 0; i < 5; i++) {
         UI_Spacing();
     }
