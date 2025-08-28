@@ -1884,7 +1884,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
-            UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_renderer.stats.drawCalls, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
+            UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
             UI_RenderDeveloperOverlay();
             if (g_current_mode == MODE_GAME) {
                 Keypad_RenderUI(&g_scene, g_engine);

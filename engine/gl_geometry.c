@@ -166,7 +166,6 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 if (mesh->useEBO) { glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0); }
                 else { glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount); }
             }
-            renderer->stats.drawCalls++;
         }
     }
 }
@@ -331,7 +330,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 else {
                     glDrawArrays(GL_TRIANGLES, batch_start_vbo_offset, batch_vertex_count);
                 }
-                renderer->stats.drawCalls++;
             }
 
             vbo_offset += batch_vertex_count;
@@ -353,7 +351,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
 
     renderer->stats.modelsDrawn = 0;
     renderer->stats.brushesDrawn = 0;
-    renderer->stats.drawCalls = 0;
     renderer->stats.totalModels = scene->numObjects;
     renderer->stats.totalBrushes = scene->numBrushes;
 

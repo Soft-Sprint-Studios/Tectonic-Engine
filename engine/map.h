@@ -192,7 +192,6 @@ extern "C" {
         int brushesDrawn;
         int totalModels;
         int totalBrushes;
-        int drawCalls;
     } RenderStats;
 
     typedef struct {

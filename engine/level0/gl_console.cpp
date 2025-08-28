@@ -223,7 +223,7 @@ extern "C" {
         console_instance.ClearLog();
     }
 
-    void UI_RenderGameHUD(int modelsDrawn, int totalModels, int brushesDrawn, int totalBrushes, int drawCalls, float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size) {
+    void UI_RenderGameHUD(int modelsDrawn, int totalModels, int brushesDrawn, int totalBrushes, float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
         bool show_crosshair = Cvar_GetInt("crosshair");
@@ -271,10 +271,6 @@ extern "C" {
             ImGui::SetNextWindowPos(speed_pos, ImGuiCond_Always, speed_pos_pivot);
             ImGui::SetNextWindowBgAlpha(0.35f);
             if (ImGui::Begin("SpeedsDisplay", NULL, window_flags)) {
-                ImGui::Text("Draw Calls: %d", drawCalls);
-                ImGui::SameLine();
-                ImGui::Text("  |  ");
-                ImGui::SameLine();
                 ImGui::Text("Models: %d/%d", modelsDrawn, totalModels);
                 ImGui::SameLine();
                 ImGui::Text("  |  ");
