@@ -246,17 +246,17 @@ void main() {
         vec3 L = normalize(flashlight.position - FragPos_world);
         float NdotL = max(dot(N, L), 0.0);
         float distance = length(flashlight.position - FragPos_world);
-        float attenuation = pow(max(0.0, 1.0 - distance / 35.0), 2.0);
+        float attenuation = pow(max(0.0, 1.0 - distance / 35.0), 2.0) / (distance * distance + 1.0);
         float theta = dot(L, -flashlight.direction);
         float innerCutOff = cos(radians(12.5));
         float outerCutOff = cos(radians(17.5));
         if (theta > outerCutOff) {
             float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
-            diffuse += vec3(1.0) * 3.0 * NdotL * attenuation * cone_intensity;
+            diffuse += vec3(1.0) * NdotL * attenuation * cone_intensity;
             if (NdotL > 0.0) {
                 vec3 H = normalize(L + V);
                 float NdotH = max(dot(N, H), 0.0);
-                specular += vec3(1.0) * 3.0 * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
+                specular += vec3(1.0) * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
             }
         }
     }
