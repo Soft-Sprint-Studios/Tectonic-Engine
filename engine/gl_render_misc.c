@@ -287,7 +287,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
                 Shadows_RenderSun(renderer, scene, &sunLightSpaceMatrix);
             }
 
-            Geometry_RenderPass(renderer, scene, engine, &view, &projection, &sunLightSpaceMatrix, engine->camera.position, false);
+            Geometry_RenderPass(renderer, scene, engine, &view, &projection, &sunLightSpaceMatrix, engine->camera.position, false, false);
 
             glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
             glViewport(0, 0, resolution, resolution);

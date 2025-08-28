@@ -86,7 +86,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, 1, 0, -reflection_plane_height + 0.1f);
 
     glViewport(0, 0, reflection_width, reflection_height);
-    Geometry_RenderPass(renderer, scene, engine, &reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false);
+    Geometry_RenderPass(renderer, scene, engine, &reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false, true);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderer->reflectionFBO);

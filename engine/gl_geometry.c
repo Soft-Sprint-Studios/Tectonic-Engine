@@ -343,7 +343,7 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
     }
 }
 
-void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit) {
+void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit, bool is_reflection_pass) {
     Frustum frustum;
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
@@ -357,20 +357,16 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
     glViewport(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
 
-    if (Cvar_GetInt("r_zprepass")) {
+    if (Cvar_GetInt("r_zprepass") && !is_reflection_pass) {
         Zprepass_Render(renderer, scene, engine, view, projection);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
     else {
         glDepthMask(GL_TRUE);
         glDepthFunc(GL_LESS);
-    }
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    if (!Cvar_GetInt("r_zprepass")) {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-    else {
-        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
@@ -579,7 +575,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }
-    if (Cvar_GetInt("r_zprepass")) {
+    if (Cvar_GetInt("r_zprepass") && !is_reflection_pass) {
         glDepthFunc(GL_LESS);
     }
     glDepthMask(GL_TRUE);

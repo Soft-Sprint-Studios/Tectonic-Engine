@@ -91,6 +91,8 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
     for (int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) continue;
+        if (strcmp(b->classname, "func_water") == 0) continue;
+        if (strcmp(b->classname, "func_reflective_glass") == 0) continue;
         if (strcmp(b->classname, "func_clip") == 0) continue;
         if (strcmp(b->classname, "env_glass") == 0) continue;
         if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;

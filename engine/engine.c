@@ -1792,7 +1792,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if (Cvar_GetInt("r_planar")) {
                 Planar_RenderReflections(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
             }
-            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode);
+            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode, false);
             if (Cvar_GetInt("r_ssao")) {
                 SSAO_RenderPass(&g_renderer, g_engine, &projection);
             }
