@@ -4519,21 +4519,6 @@ static void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Render
         glBindVertexArray(renderer->skyboxVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthFunc(GL_LESS);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
-        glDisable(GL_DEPTH_TEST);
-
-        for (int i = 0; i < scene->numParticleEmitters; ++i) {
-            ParticleEmitter_Render(&scene->particleEmitters[i], g_view_matrix[type], g_proj_matrix[type]);
-        }
-
-        Sprites_Render(renderer, scene, &g_view_matrix[type], &g_proj_matrix[type]);
-
-        glDepthMask(GL_TRUE);
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-
         break;
     }
     case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt((Vec3) { p.x, 1000.0f, p.z }, (Vec3) { p.x, 0.0f, p.z }, (Vec3) { 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }

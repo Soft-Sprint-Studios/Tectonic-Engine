@@ -545,6 +545,25 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);
     Decals_Render(scene, renderer, renderer->mainShader);
 
+    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+        VideoPlayer_Render(&scene->videoPlayers[i], view, projection);
+    }
+
+    glEnable(GL_BLEND);
+    glDepthMask(GL_FALSE);
+
+    if (Cvar_GetInt("r_particles")) {
+        for (int i = 0; i < scene->numParticleEmitters; ++i) {
+            ParticleEmitter_Render(&scene->particleEmitters[i], *view, *projection);
+        }
+    }
+    if (Cvar_GetInt("r_sprites")) {
+        Sprites_Render(renderer, scene, view, projection);
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+
     if (Cvar_GetInt("r_physics_shadows")) {
         glUseProgram(renderer->modelShadowShader);
         glUniformMatrix4fv(glGetUniformLocation(renderer->modelShadowShader, "view"), 1, GL_FALSE, view->m);

@@ -1816,21 +1816,10 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            for (int i = 0; i < g_scene.numVideoPlayers; ++i) {
-                VideoPlayer_Render(&g_scene.videoPlayers[i], &view, &projection);
-            }
             glEnable(GL_BLEND);
             glDepthMask(GL_FALSE);
             if (Cvar_GetInt("r_water")) {
                 Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
-            }
-            if (Cvar_GetInt("r_particles")) {
-                for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
-                    ParticleEmitter_Render(&g_scene.particleEmitters[i], view, projection);
-                }
-            }
-            if (Cvar_GetInt("r_sprites")) {
-                Sprites_Render(&g_renderer, &g_scene, &view, &projection);
             }
             glDepthMask(GL_TRUE);
             glDisable(GL_BLEND);
