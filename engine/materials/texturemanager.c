@@ -180,7 +180,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8, fSurf->w, fSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, fSurf->pixels);
 
-    if (context == TEXTURE_LOAD_CONTEXT_WORLD) {
+    if (context == TEXTURE_LOAD_CONTEXT_WORLD && Cvar_GetInt("r_mipmapping") == 1) {
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         if (GLEW_EXT_texture_filter_anisotropic) {
@@ -329,8 +329,13 @@ GLuint loadCubemap(const char* faces[6]) {
             Console_Printf_Warning("Cubemap texture failed to load at path: %s\n", faces[i]);
         }
     }
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    if (Cvar_GetInt("r_mipmapping") == 1) {
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    }
+    else {
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
