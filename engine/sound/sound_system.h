@@ -60,6 +60,7 @@ extern "C" {
     SOUND_API void SoundSystem_SetMasterVolume(float volume);
     SOUND_API void SoundSystem_DeleteSource(unsigned int sourceID);
     SOUND_API void SoundSystem_DeleteBuffer(unsigned int bufferID);
+    SOUND_API void SoundSystem_Update(void);
 
 #ifdef __cplusplus
 }

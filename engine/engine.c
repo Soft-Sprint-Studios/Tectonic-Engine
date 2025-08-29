@@ -915,6 +915,7 @@ void update_state() {
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
     vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
+    SoundSystem_Update();
     bool noclip = Cvar_GetInt("noclip");
     if (!noclip) {
         Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);

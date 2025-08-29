@@ -619,3 +619,29 @@ void SoundSystem_DeleteBuffer(unsigned int bufferID) {
         g_buffer_count--;
     }
 }
+
+void SoundSystem_Update(void) {
+    if (g_playing_link_count == 0) {
+        return;
+    }
+
+    int write_idx = 0;
+    for (int read_idx = 0; read_idx < g_playing_link_count; ++read_idx) {
+        ALint state;
+        alGetSourcei(g_playing_source_links[read_idx].drySourceID, AL_SOURCE_STATE, &state);
+
+        if (state == AL_STOPPED) {
+            alDeleteSources(1, &g_playing_source_links[read_idx].drySourceID);
+            if (g_playing_source_links[read_idx].wetSourceID != 0) {
+                alDeleteSources(1, &g_playing_source_links[read_idx].wetSourceID);
+            }
+        }
+        else {
+            if (write_idx != read_idx) {
+                g_playing_source_links[write_idx] = g_playing_source_links[read_idx];
+            }
+            write_idx++;
+        }
+    }
+    g_playing_link_count = write_idx;
+}
