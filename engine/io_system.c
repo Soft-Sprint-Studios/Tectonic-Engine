@@ -378,6 +378,32 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     SDL_SetRelativeMouseMode(SDL_FALSE);
                 }
             }
+            else if (strcmp(ent->classname, "skybox_swapper") == 0) {
+                if (strcmp(inputName, "SwapSkybox") == 0) {
+                    const char* new_skybox_name = LogicEntity_GetProperty(ent, "skybox_name", "");
+                    if (strlen(new_skybox_name) > 0) {
+                        if (scene->skybox_cubemap) {
+                            glDeleteTextures(1, &scene->skybox_cubemap);
+                            scene->skybox_cubemap = 0;
+                        }
+
+                        strncpy(scene->skybox_path, new_skybox_name, sizeof(scene->skybox_path) - 1);
+
+                        const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+                        char face_paths[6][256];
+                        const char* face_pointers[6];
+                        for (int k = 0; k < 6; ++k) {
+                            sprintf(face_paths[k], "skybox/%s%s", scene->skybox_path, suffixes[k]);
+                            face_pointers[k] = face_paths[k];
+                        }
+                        scene->skybox_cubemap = loadCubemap(face_pointers);
+                        scene->use_cubemap_skybox = true;
+                    }
+                    else {
+                        Console_Printf_Warning("skybox_swapper '%s' triggered with no skybox_name set.", ent->targetname);
+                    }
+                }
+                }
             else if (strcmp(ent->classname, "logic_branch") == 0) {
                 bool test_now = false;
 

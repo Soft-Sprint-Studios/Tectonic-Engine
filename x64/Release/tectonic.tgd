@@ -426,6 +426,14 @@
     input Toggle "Toggles the radiation source on/off."
 )
 
+@PointClass = skybox_swapper
+[
+    skybox_name(string) : "Skybox Name (e.g. 'morning_sky')" = ""
+]
+(
+    input SwapSkybox "Swaps the skybox to the one specified."
+)
+
 @PointClass = game_end
 [
 ]
