@@ -443,7 +443,12 @@ void Cmd_ScreenShake(int argc, char** argv) {
 }
 
 void Cmd_PlayerPosition(int argc, char** argv) {
-    Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+    if (g_current_mode == MODE_GAME) {
+        Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+    }
+    else {
+        Console_Printf("Not currently in a map.");
+    }
 }
 
 void init_cvars() {
