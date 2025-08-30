@@ -5,7 +5,7 @@ A modern, feature-rich 3D game engine written in C, inspired by classic FPS engi
 An overview of the core technologies and rendering capabilities of the Tectonic Engine.
 
 # Rendering & Lighting
-- Physically-Based Rendering (PBR) Pipeline: Core rendering is built on a deferred PBR model using a metallic/roughness workflow, enabling realistic material interactions with light.
+- Physically-Based Rendering (PBR) Pipeline: Core rendering is built on a Foward PBR model using a metallic/roughness workflow, enabling realistic material interactions with light.
 
 - Anisotropic Filtering: Improves texture quality on surfaces viewed at oblique angles, reducing blurriness and preserving high-frequency detail in textures such as ground, walls, and fabrics.
 
