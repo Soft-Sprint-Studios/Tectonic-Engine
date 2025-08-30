@@ -541,6 +541,30 @@ extern "C" {
         int num_ambient_probes;
     } Scene;
 
+#define MAX_GAME_TEXT_MESSAGES 4
+
+    typedef enum {
+        TEXT_STATE_IDLE,
+        TEXT_STATE_FADING_IN,
+        TEXT_STATE_HOLDING,
+        TEXT_STATE_FADING_OUT
+    } GameTextState;
+
+    typedef struct {
+        char text[256];
+        float x, y;
+        Vec4 color;
+        float scale;
+        float fadeInTime;
+        float fadeOutTime;
+        float holdTime;
+        int channel;
+
+        GameTextState state;
+        float timer;
+        float currentAlpha;
+    } GameTextMessage;
+
     typedef struct {
         SDL_Window* window;
         SDL_GLContext context;
@@ -566,6 +590,7 @@ extern "C" {
         bool keypad_active;
         int active_keypad_entity_index;
         char keypad_input_buffer[32];
+        GameTextMessage active_messages[MAX_GAME_TEXT_MESSAGES];
     } Engine;
 
     void Light_InitShadowMap(Light* light);

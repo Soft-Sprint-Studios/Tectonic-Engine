@@ -245,6 +245,30 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "TurnOff") == 0) ent->runtime_active = false;
                 else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
             }
+            else if (strcmp(ent->classname, "game_text") == 0) {
+                if (strcmp(inputName, "Display") == 0) {
+                    int channel = atoi(LogicEntity_GetProperty(ent, "channel", "1")) - 1;
+                    if (channel >= 0 && channel < MAX_GAME_TEXT_MESSAGES) {
+                        GameTextMessage* msg = &engine->active_messages[channel];
+
+                        strncpy(msg->text, LogicEntity_GetProperty(ent, "message", ""), sizeof(msg->text) - 1);
+                        msg->x = atof(LogicEntity_GetProperty(ent, "x", "-1.0"));
+                        msg->y = atof(LogicEntity_GetProperty(ent, "y", "0.2"));
+
+                        sscanf(LogicEntity_GetProperty(ent, "color", "1.0 1.0 1.0"), "%f %f %f", &msg->color.x, &msg->color.y, &msg->color.z);
+                        msg->color.w = 1.0f;
+
+                        msg->scale = atof(LogicEntity_GetProperty(ent, "scale", "1.0"));
+                        msg->fadeInTime = atof(LogicEntity_GetProperty(ent, "fadein", "1.0"));
+                        msg->fadeOutTime = atof(LogicEntity_GetProperty(ent, "fadeout", "1.0"));
+                        msg->holdTime = atof(LogicEntity_GetProperty(ent, "holdtime", "4.0"));
+
+                        msg->state = TEXT_STATE_FADING_IN;
+                        msg->timer = 0.0f;
+                        msg->currentAlpha = 0.0f;
+                    }
+                }
+            }
             else if (strcmp(ent->classname, "point_servercommand") == 0) {
                 if (strcmp(inputName, "Command") == 0) {
                     if (parameter && strlen(parameter) > 0) {

@@ -441,6 +441,22 @@
     input EndGame ""
 )
 
+@PointClass = game_text
+[
+    message(string) : "Message Text" = "Hello, World!"
+    x(float) : "X Position (-1 for center)" = "-1.0"
+    y(float) : "Y Position (-1 for center)" = "0.2"
+    color(color) : "Text Color" = "1.0 1.0 1.0"
+    scale(float) : "Text Scale" = "1.0"
+    fadein(float) : "Fade-in Time (seconds)" = "1.0"
+    fadeout(float) : "Fade-out Time (seconds)" = "1.0"
+    holdtime(float) : "Hold Time (seconds)" = "4.0"
+    channel(integer) : "Text Channel (1-4)" = "1"
+]
+(
+    input Display "Shows the message."
+)
+
 @PointClass = env_blackhole
 [
     rotationspeed(float) : "Rotation Speed" = "10.0"

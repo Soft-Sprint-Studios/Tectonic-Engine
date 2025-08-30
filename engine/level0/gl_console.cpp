@@ -223,6 +223,43 @@ extern "C" {
         console_instance.ClearLog();
     }
 
+    void UI_RenderGameText(int num_messages, const char* texts[4], const float positions_x[4], const float positions_y[4], const Vec4 colors[4], const float alphas[4], const int states[4], const float scales[4]) {
+        ImGuiIO& io = ImGui::GetIO();
+        ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+
+        for (int i = 0; i < num_messages; ++i) {
+            if (states[i] == 0 || alphas[i] <= 0.0f) {
+                continue;
+            }
+
+            ImFont* font = io.Fonts->Fonts[0];
+            float base_font_size = ImGui::GetFontSize();
+            float current_scale = scales[i] > 0.0f ? scales[i] : 1.0f;
+            float scaled_font_size = base_font_size * current_scale;
+
+            ImVec2 text_size = font->CalcTextSizeA(scaled_font_size, FLT_MAX, 0.0f, texts[i]);
+
+            float pos_x, pos_y;
+
+            if (positions_x[i] == -1.0f) {
+                pos_x = (io.DisplaySize.x - text_size.x) * 0.5f;
+            }
+            else {
+                pos_x = io.DisplaySize.x * positions_x[i];
+            }
+
+            if (positions_y[i] == -1.0f) {
+                pos_y = (io.DisplaySize.y - text_size.y) * 0.5f;
+            }
+            else {
+                pos_y = io.DisplaySize.y * positions_y[i];
+            }
+
+            ImU32 color = IM_COL32(colors[i].x * 255, colors[i].y * 255, colors[i].z * 255, alphas[i] * 255);
+            draw_list->AddText(font, scaled_font_size, ImVec2(pos_x, pos_y), color, texts[i]);
+        }
+    }
+
     void UI_RenderGameHUD(int modelsDrawn, int totalModels, int brushesDrawn, int totalBrushes, float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");

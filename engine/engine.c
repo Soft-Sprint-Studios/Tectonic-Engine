@@ -151,6 +151,9 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->keypad_active = false;
     g_engine->active_keypad_entity_index = -1;
     memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
+    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+        g_engine->active_messages[i].state = TEXT_STATE_IDLE;
+    }
     g_engine->prev_health = g_engine->camera.health;
     g_engine->red_flash_intensity = 0.0f;
     g_engine->prev_player_y_velocity = 0.0f;
@@ -642,6 +645,43 @@ void update_state() {
                 SoundSystem_PlaySound(g_geiger_tick_sound_buffer, g_engine->camera.position, 0.5f, pitch, 10.0f, false);
 
                 g_geiger_timer = interval + rand_float_range(0.0f, interval * 0.5f);
+            }
+        }
+    }
+    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+        GameTextMessage* msg = &g_engine->active_messages[i];
+        if (msg->state == TEXT_STATE_IDLE) continue;
+
+        msg->timer += g_engine->deltaTime;
+
+        if (msg->state == TEXT_STATE_FADING_IN) {
+            if (msg->fadeInTime > 0.0f) {
+                msg->currentAlpha = fminf(1.0f, msg->timer / msg->fadeInTime);
+            }
+            else {
+                msg->currentAlpha = 1.0f;
+            }
+            if (msg->timer >= msg->fadeInTime) {
+                msg->state = TEXT_STATE_HOLDING;
+                msg->timer = 0.0f;
+            }
+        }
+        else if (msg->state == TEXT_STATE_HOLDING) {
+            msg->currentAlpha = 1.0f;
+            if (msg->timer >= msg->holdTime) {
+                msg->state = TEXT_STATE_FADING_OUT;
+                msg->timer = 0.0f;
+            }
+        }
+        else if (msg->state == TEXT_STATE_FADING_OUT) {
+            if (msg->fadeOutTime > 0.0f) {
+                msg->currentAlpha = 1.0f - fminf(1.0f, msg->timer / msg->fadeOutTime);
+            }
+            else {
+                msg->currentAlpha = 0.0f;
+            }
+            if (msg->timer >= msg->fadeOutTime) {
+                msg->state = TEXT_STATE_IDLE;
             }
         }
     }
@@ -1873,7 +1913,25 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         }
         else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
         else {
+            const char* texts[MAX_GAME_TEXT_MESSAGES];
+            float positions_x[MAX_GAME_TEXT_MESSAGES];
+            float positions_y[MAX_GAME_TEXT_MESSAGES];
+            Vec4 colors[MAX_GAME_TEXT_MESSAGES];
+            float alphas[MAX_GAME_TEXT_MESSAGES];
+            int states[MAX_GAME_TEXT_MESSAGES];
+            float scales[MAX_GAME_TEXT_MESSAGES];
+            for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+                texts[i] = g_engine->active_messages[i].text;
+                positions_x[i] = g_engine->active_messages[i].x;
+                positions_y[i] = g_engine->active_messages[i].y;
+                colors[i] = g_engine->active_messages[i].color;
+                alphas[i] = g_engine->active_messages[i].currentAlpha;
+                states[i] = g_engine->active_messages[i].state;
+                scales[i] = g_engine->active_messages[i].scale;
+            }
+
             UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
+            UI_RenderGameText(MAX_GAME_TEXT_MESSAGES, texts, positions_x, positions_y, colors, alphas, states, scales);
             UI_RenderDeveloperOverlay();
             if (g_current_mode == MODE_GAME) {
                 Keypad_RenderUI(&g_scene, g_engine);
