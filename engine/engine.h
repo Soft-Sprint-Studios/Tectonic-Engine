@@ -53,6 +53,7 @@ extern int g_last_water_cvar_state;
 extern EngineModeTransition g_pending_mode_transition;
 extern bool g_player_input_disabled;
 extern bool g_screenshot_requested;
+extern bool g_quit_requested;
 extern char g_screenshot_path[256];
 extern bool g_is_editor_mode;
 

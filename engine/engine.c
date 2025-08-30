@@ -90,6 +90,7 @@ Scene g_scene;
 EngineMode g_current_mode = MODE_GAME;
 EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
 bool g_is_editor_mode;
+bool g_quit_requested = false;
 int g_last_water_cvar_state = -1;
 
 static Uint32 g_fps_last_update = 0;
@@ -216,7 +217,7 @@ void process_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
-            Cvar_EngineSet("engine_running", "0");
+            g_quit_requested = true;
             return;
         }
         UI_ProcessEvent(&event);
@@ -247,7 +248,7 @@ void process_input() {
                 SDL_SetRelativeMouseMode(SDL_TRUE);
             }
             else if (action == MAINMENU_ACTION_QUIT) {
-                Cvar_EngineSet("engine_running", "0");
+                g_quit_requested = true;
             }
         }
         else if (g_current_mode == MODE_EDITOR) {
@@ -1892,6 +1893,22 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             if (frameTicks < targetFrameTimeMs) {
                 SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
             }
+        }
+        if (g_quit_requested) {
+            UI_OpenPopup("Quit Confirmation");
+        }
+        if (UI_BeginPopupModal("Quit Confirmation", NULL, 1 << 3)) {
+            UI_Text("Are you sure you want to quit?");
+            UI_Spacing();
+            if (UI_Button("Quit")) {
+                Cvar_EngineSet("engine_running", "0");
+            }
+            UI_SameLine();
+            if (UI_Button("Cancel")) {
+                g_quit_requested = false;
+                UI_CloseCurrentPopup();
+            }
+            UI_EndPopup();
         }
         g_frame_counter++;
         UI_EndFrame(window);

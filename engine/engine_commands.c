@@ -68,7 +68,7 @@ void Cmd_Edit(int argc, char** argv) {
 }
 
 void Cmd_Quit(int argc, char** argv) {
-    Cvar_EngineSet("engine_running", "0");
+    g_quit_requested = true;
 }
 
 void Cmd_SetPos(int argc, char** argv) {
