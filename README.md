@@ -42,7 +42,7 @@ An overview of the core technologies and rendering capabilities of the Tectonic 
 
 - Glass & Refraction: Supports translucent glass surfaces that refract the scene behind them, creating a realistic distortion effect. along with a reflective glass variant that uses Planar Reflections
 
-- Reflection Probes: Static cubemaps can be baked from any point in the world and applied to nearby geometry for accurate, parallax-corrected local reflections on PBR materials and water.
+- Reflection Probes: Static cubemaps can be baked from any point in the world and applied to nearby geometry for accurate, parallax-corrected local reflections on PBR materials.
 
 - Procedural Skybox: A dynamic skybox system with procedural atmospheric scattering (Rayleigh & Mie) and animated clouds, removing the need for static 2D skybox images.
 
