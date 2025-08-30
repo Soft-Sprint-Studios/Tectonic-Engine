@@ -64,23 +64,6 @@
 #include <dlfcn.h>
 #endif
 
-static const char* g_light_styles[] = {
-    "m",
-    "mmnmmommommnonmmonqnmmo",
-    "abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba",
-    "mmmmmaaaaammmmmaaaaaabcdefgabcdefg",
-    "mamamamamama",
-    "jklmnopqrstuvwxyzyxwvutsrqponmlkj",
-    "nmonqnmomnmomomno",
-    "mmmaaaabcdefgmmmmaaaammmaamm",
-    "mmmaaammmaaammmabcdefaaaammmmabcdefmmmaaaa",
-    "aaaaaaaazzzzzzzz",
-    "mmamammmmammamamaaamammma",
-    "abcdefghijklmnopqrrqponmlkjihgfedcba",
-    "mmnnmmnnnmmnn"
-};
-const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
-
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
@@ -132,7 +115,22 @@ static float g_current_friction_modifier = 1.0f;
 static bool g_player_on_ladder = false;
 static Vec3 g_ladder_normal;
 
-float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
+const char* g_light_styles[] = {
+    "m",
+    "mmnmmommommnonmmonqnmmo",
+    "abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba",
+    "mmmmmaaaaammmmmaaaaaabcdefgabcdefg",
+    "mamamamamama",
+    "jklmnopqrstuvwxyzyxwvutsrqponmlkj",
+    "nmonqnmomnmomomno",
+    "mmmaaaabcdefgmmmmaaaammmaamm",
+    "mmmaaammmaaammmabcdefaaaammmmabcdefmmmaaaa",
+    "aaaaaaaazzzzzzzz",
+    "mmamammmmammamamaaamammma",
+    "abcdefghijklmnopqrrqponmlkjihgfedcba",
+    "mmnnmmnnnmmnn"
+};
+const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 
 void handle_command(int argc, char** argv) {
     Commands_Execute(argc, argv);
