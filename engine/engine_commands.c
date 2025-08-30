@@ -442,6 +442,10 @@ void Cmd_ScreenShake(int argc, char** argv) {
     g_engine->shake_duration_timer = atof(argv[3]);
 }
 
+void Cmd_PlayerPosition(int argc, char** argv) {
+    Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -560,6 +564,7 @@ void init_commands() {
     Commands_Register("version", Cmd_Version, "Displays engine and map version information.", CMD_NONE);
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
     Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
+    Commands_Register("pos", Cmd_PlayerPosition, "Position of the player in the world.", CMD_NONE);
 
     Console_Printf("Engine commands registered.");
 }
