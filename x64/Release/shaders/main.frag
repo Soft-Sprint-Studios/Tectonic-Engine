@@ -624,7 +624,7 @@ void main()
                     float G = GeometrySmith(N, V, bakedLightDir, roughness);
                     vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
                     vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+                    bakedSpecular = specular * 2.0 * bakedRadiance * NdotL_baked;
                 }
             } else {
                 bakedDiffuse = bakedRadiance * albedo;
@@ -662,7 +662,7 @@ void main()
                     float G = GeometrySmith(N, V, bakedLightDir, roughness);
                     vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
                     vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked;
                }
         }
         } else if (v_Color.a > 0.5) {
@@ -677,7 +677,7 @@ void main()
                     float G = GeometrySmith(N, V, bakedLightDir, roughness);
                     vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
                     vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * bakedRadiance * NdotL_baked * ao;
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked;
                 }
             } else {
                 bakedDiffuse = bakedRadiance * albedo;
