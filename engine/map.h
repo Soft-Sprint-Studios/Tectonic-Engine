@@ -566,6 +566,7 @@ extern "C" {
     typedef struct {
         SDL_Window* window;
         SDL_GLContext context;
+        SDL_Cursor* cursor;
         bool running;
         bool flashlight_on;
         float shake_amplitude;

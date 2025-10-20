@@ -142,6 +142,22 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->height = g_startup_height;
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
+    g_engine->cursor = NULL;
+    SDL_Surface* cursor_surface = IMG_Load("media/cursor.png");
+    if (cursor_surface) {
+        g_engine->cursor = SDL_CreateColorCursor(cursor_surface, 0, 0);
+        SDL_FreeSurface(cursor_surface);
+        if (g_engine->cursor) {
+            SDL_SetCursor(g_engine->cursor);
+        }
+        else {
+            Console_Printf_Error("Failed to create cursor: %s", SDL_GetError());
+        }
+    }
+    else {
+        Console_Printf_Warning("Could not load cursor.png. Using system default cursor.");
+    }
+    SDL_ShowCursor(SDL_ENABLE);
     IPC_Init();
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
     g_engine->camera.radiation_level = 0.0f;
@@ -224,6 +240,7 @@ void process_input() {
             return;
         }
         UI_ProcessEvent(&event);
+        SDL_SetCursor(g_engine->cursor);
         if (event.type == SDL_MOUSEWHEEL && g_current_mode == MODE_GAME && !Console_IsVisible()) {
             if (event.wheel.y > 0) {
                 Weapons_SwitchPrev();
@@ -1435,6 +1452,10 @@ void cleanup() {
     Discord__Shutdown();
     Log_Shutdown();
     IPC_Shutdown();
+    if (g_engine->cursor) {
+        SDL_FreeCursor(g_engine->cursor);
+        g_engine->cursor = NULL;
+    }
 #ifdef PLATFORM_WINDOWS
     if (g_hMutex) {
         ReleaseMutex(g_hMutex);
