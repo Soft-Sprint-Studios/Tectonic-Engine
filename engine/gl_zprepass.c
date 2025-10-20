@@ -54,7 +54,6 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
                 Material* mat = mesh->material;
 
                 if (mat && mat->useTesselation) {
-                    glUniform1i(glGetUniformLocation(shader, "useBlendMap"), 0);
                     glUniform1f(glGetUniformLocation(shader, "heightScale"), mat->heightScale);
                     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, mat->heightMap);
                     glUniform1i(glGetUniformLocation(shader, "heightMap"), 0);
@@ -121,15 +120,9 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
                 if (face->material && face->material->useTesselation) {
                     glUniform1f(glGetUniformLocation(renderer->zPrepassTessShader, "heightScale"), face->material->heightScale);
                     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, face->material->heightMap); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap"), 0);
-
-                    bool useBlend = face->material2 || face->material3 || face->material4;
-                    glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "useBlendMap"), useBlend);
-                    if (useBlend) {
-                        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, face->material2 ? face->material2->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap2"), 1);
-                        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, face->material3 ? face->material3->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap3"), 2);
-                        glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, face->material4 ? face->material4->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap4"), 3);
-                        glActiveTexture(GL_TEXTURE4); glBindTexture(GL_TEXTURE_2D, face->blendMapTexture); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "blendMap"), 4);
-                    }
+                    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, face->material2 ? face->material2->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap2"), 1);
+                    glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, face->material3 ? face->material3->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap3"), 2);
+                    glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, face->material4 ? face->material4->heightMap : 0); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap4"), 3);
                     glDrawArrays(GL_PATCHES, vbo_offset, num_face_verts);
                 }
                 vbo_offset += num_face_verts;

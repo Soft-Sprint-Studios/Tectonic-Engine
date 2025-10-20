@@ -311,8 +311,6 @@ extern "C" {
         int numVertexIndices;
         Vec4 atlas_coords;
         float lightmap_scale;
-        char blendMapPath[128];
-        GLuint blendMapTexture;
         bool isGrouped;
         char groupName[64];
     } BrushFace;
