@@ -74,9 +74,6 @@ uniform sampler2D normalMap4;
 uniform sampler2D rmaMap4;
 uniform sampler2D heightMap4;
 
-uniform bool useBlendMap;
-uniform sampler2D blendMap;
-
 layout(bindless_sampler) uniform sampler2D lightmap;
 layout(bindless_sampler) uniform sampler2D directionalLightmap;
 uniform vec2 u_lightmap_sampler_size;
@@ -449,12 +446,6 @@ void main()
         float blendR = v_Color.r;
         float blendG = v_Color.g;
         float blendB = v_Color.b;
-        if (useBlendMap) {
-            vec4 blendWeights = texture(blendMap, TexCoordsLightmap);
-            blendR = blendWeights.r;
-            blendG = blendWeights.g;
-            blendB = blendWeights.b;
-        }
         float totalWeight = max(blendR + blendG + blendB, 0.0001);
         if (totalWeight > 1.0) {
             blendR /= totalWeight;
