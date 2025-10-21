@@ -42,11 +42,6 @@ static bool show_console = false;
 static command_callback_t command_handler = nullptr;
 static FILE* g_log_file = NULL;
 
-struct ConsoleItem {
-    char* text;
-    ConsoleTextColor color;
-};
-
 struct Console {
     char                  InputBuf[256];
     std::vector<ConsoleItem> Items;
@@ -221,6 +216,16 @@ extern "C" {
 
     void Console_ClearLog() {
         console_instance.ClearLog();
+    }
+
+    const ConsoleItem* Console_GetLogItems(int* count) {
+        if (count) {
+            *count = console_instance.Items.size();
+        }
+        if (console_instance.Items.empty()) {
+            return NULL;
+        }
+        return console_instance.Items.data();
     }
 
     void UI_RenderGameText(int num_messages, const char* texts[4], const float positions_x[4], const float positions_y[4], const Vec4 colors[4], const float alphas[4], const int states[4], const float scales[4]) {

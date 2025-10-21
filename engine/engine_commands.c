@@ -442,6 +442,41 @@ void Cmd_ScreenShake(int argc, char** argv) {
     g_engine->shake_duration_timer = atof(argv[3]);
 }
 
+void Cmd_Condump(int argc, char** argv) {
+    char filename[32];
+    FILE* file = NULL;
+
+    for (int i = 0; i < 1000; ++i) {
+        snprintf(filename, sizeof(filename), "condump%03d.txt", i);
+        file = fopen(filename, "r");
+        if (file == NULL) {
+            break;
+        }
+        fclose(file);
+        file = NULL;
+    }
+
+    if (file != NULL) {
+        fclose(file);
+    }
+
+    file = fopen(filename, "w");
+    if (!file) {
+        Console_Printf_Error("Could not open %s for writing.", filename);
+        return;
+    }
+
+    int count = 0;
+    const ConsoleItem* items = Console_GetLogItems(&count);
+
+    for (int i = 0; i < count; ++i) {
+        fprintf(file, "%s\n", items[i].text);
+    }
+
+    fclose(file);
+    Console_Printf("Console dumped to %s", filename);
+}
+
 void Cmd_PlayerPosition(int argc, char** argv) {
     if (g_current_mode == MODE_GAME) {
         Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
@@ -546,6 +581,7 @@ void init_cvars() {
 void init_commands() {
     Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.", CMD_NONE);
     Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
+    Commands_Register("condump", Cmd_Condump, "Dump the contents of the console into a condump file", CMD_NONE);
     Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
     Commands_Register("screenshake", Cmd_ScreenShake, "Applies a screen shake effect. Usage: screenshake <amplitude> <frequency> <duration>", CMD_CHEAT);
     Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
