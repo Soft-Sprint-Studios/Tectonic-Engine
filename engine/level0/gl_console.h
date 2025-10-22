@@ -38,15 +38,16 @@
 extern "C" {
 #endif
 
-	typedef struct {
-		char* text;
-		ConsoleTextColor color;
-	} ConsoleItem;
 	typedef enum {
 		CONSOLE_COLOR_WHITE,
 		CONSOLE_COLOR_RED,
 		CONSOLE_COLOR_YELLOW
 	} ConsoleTextColor;
+
+	typedef struct {
+		char* text;
+		ConsoleTextColor color;
+	} ConsoleItem;
 
 	LEVEL0_API void UI_Init(SDL_Window* window, SDL_GLContext context);
 	LEVEL0_API void UI_Shutdown();
