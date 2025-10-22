@@ -577,6 +577,13 @@ else()
     endif()
 endif()
 
+# Force /MD runtime for Debug builds on engine and physics
+if(MSVC)
+    message(STATUS "Using /MD runtime for Debug build of engine and physics")
+    set_property(TARGET engine PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:>")
+    set_property(TARGET physics PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:>")
+endif()
+
 # launcher executable
 add_executable(launcher launcher/launcher.cpp)
 
