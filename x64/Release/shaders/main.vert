@@ -11,6 +11,7 @@ layout (location = 8) in vec2 aTexCoordsLightmap;
 layout (location = 9) in vec4 aColor2;
 layout (location = 10) in ivec4 aBoneIndices;
 layout (location = 11) in vec4 aBoneWeights;
+layout (location = 12) in vec4 aColor3;
 
 out VS_OUT {
     vec3 worldPos;
@@ -23,6 +24,7 @@ out VS_OUT {
     mat3 tbn;
     vec4 color;
 	vec4 color2;
+    vec4 color3;
     ivec4 boneIndices;
     vec4 boneWeights;
     flat int isBrush;
@@ -77,6 +79,7 @@ void main()
 	vs_out.lightmapTexCoords = aTexCoordsLightmap;
     vs_out.color = aColor;
 	vs_out.color2 = aColor2;
+    vs_out.color3 = aColor3;
     vs_out.boneIndices = aBoneIndices;
     vs_out.boneWeights = aBoneWeights;
     vs_out.isBrush = (isBrush ? 1 : 0);

@@ -380,6 +380,9 @@ extern "C" {
         Vec3 move_dir;
         PlatState plat_state;
         float wait_timer;
+        bool useVertexLighting;
+        Vec4* bakedVertexColors;
+        Vec4* bakedVertexDirections;
     } Brush;
 
     typedef struct {
@@ -615,6 +618,8 @@ extern "C" {
     bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
     bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath);
     void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution);
+    void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath);
+    void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath);
     void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
     void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
     void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);

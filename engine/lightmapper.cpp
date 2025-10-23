@@ -86,6 +86,14 @@ namespace
         fs::path output_dir;
     };
 
+    struct BrushVertexJobData
+    {
+        int brush_index;
+        unsigned int vertex_index;
+        Vec4* output_color_buffer;
+        Vec4* output_direction_buffer;
+    };
+
     struct ModelVertexJobData
     {
         int model_index;
@@ -100,7 +108,7 @@ namespace
         float intensity;
     };
 
-    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData>;
+    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData>;
 
     uint32_t generate_seed_from_pos(const Vec3& pos)
     {
@@ -156,6 +164,7 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_decal(const DecalJobData& data);
+        void process_brush_vertex(const BrushVertexJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
@@ -184,6 +193,8 @@ namespace
 
         std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
         std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
+        std::vector<std::unique_ptr<Vec4[]>> m_brush_color_buffers;
+        std::vector<std::unique_ptr<Vec4[]>> m_brush_direction_buffers;
         std::map<const Material*, std::pair<Vec3, float>> m_emissive_materials;
         std::map<const Material*, Vec4> m_material_reflectivity;
         std::map<const BrushFace*, Vec4> m_face_reflectivity;
@@ -1181,6 +1192,57 @@ namespace
         stbi_write_png(dir_path.string().c_str(), lightmap_res, lightmap_res, 4, dir_data_u8.data(), lightmap_res * 4);
     }
 
+    void Lightmapper::process_brush_vertex(const BrushVertexJobData& data)
+    {
+        const Brush& b = m_scene->brushes[data.brush_index];
+        unsigned int v_idx = data.vertex_index;
+
+        Vec3 local_pos = b.vertices[v_idx].pos;
+        Vec3 local_normal = { 0, 1, 0 };
+
+        std::vector<Vec3> temp_normals(b.numVertices, Vec3{ 0,0,0 });
+
+        for (int i = 0; i < b.numFaces; ++i) {
+            BrushFace* face = &b.faces[i];
+            if (face->numVertexIndices < 3) continue;
+            for (int j = 0; j < face->numVertexIndices - 2; ++j) {
+                int idx0 = face->vertexIndices[0];
+                int idx1 = face->vertexIndices[j + 1];
+                int idx2 = face->vertexIndices[j + 2];
+                Vec3 p0 = b.vertices[idx0].pos;
+                Vec3 p1 = b.vertices[idx1].pos;
+                Vec3 p2 = b.vertices[idx2].pos;
+                Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
+                temp_normals[idx0] = vec3_add(temp_normals[idx0], face_normal);
+                temp_normals[idx1] = vec3_add(temp_normals[idx1], face_normal);
+                temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
+            }
+        }
+        for (int i = 0; i < b.numVertices; ++i) {
+            vec3_normalize(&temp_normals[i]);
+        }
+        local_normal = temp_normals[v_idx];
+
+        Vec3 world_pos = mat4_mul_vec3(&b.modelMatrix, local_pos);
+        Vec3 world_normal = mat4_mul_vec3_dir(&b.modelMatrix, local_normal);
+        vec3_normalize(&world_normal);
+
+        std::mt19937 rng(generate_seed_from_pos(world_pos));
+        Vec3 direction_accumulator = { 0,0,0 };
+        Vec3 indirect_dir = { 0,0,0 };
+        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
+        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
+        Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
+
+        Vec3 final_light_color = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+        direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
+        data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
+
+        if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
+        else direction_accumulator = { 0,0,0 };
+        data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
+    }
+
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
@@ -1219,6 +1281,8 @@ namespace
                 process_decal(arg);
             else if constexpr (std::is_same_v<T, ModelVertexJobData>)
                 process_model_vertex(arg);
+            else if constexpr (std::is_same_v<T, BrushVertexJobData>)
+                process_brush_vertex(arg);
             }, job);
     }
 
@@ -1270,6 +1334,9 @@ namespace
         m_model_color_buffers.resize(m_scene->numObjects);
         m_model_direction_buffers.resize(m_scene->numObjects);
 
+        m_brush_color_buffers.resize(m_scene->numBrushes);
+        m_brush_direction_buffers.resize(m_scene->numBrushes);
+
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
             if (m_scene->objects[i].model)
@@ -1283,12 +1350,23 @@ namespace
         {
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b)) continue;
-            std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
-            fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
-            fs::create_directories(brush_dir);
-            for (int j = 0; j < b.numFaces; ++j)
-            {
-                m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
+            if (b.useVertexLighting) {
+                if (b.numVertices > 0) {
+                    m_brush_color_buffers[i] = std::make_unique<Vec4[]>(b.numVertices);
+                    m_brush_direction_buffers[i] = std::make_unique<Vec4[]>(b.numVertices);
+                    for (unsigned int v = 0; v < b.numVertices; ++v) {
+                        m_jobs.emplace_back(BrushVertexJobData{ i, v, m_brush_color_buffers[i].get(), m_brush_direction_buffers[i].get() });
+                    }
+                }
+            }
+            else {
+                std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
+                fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
+                fs::create_directories(brush_dir);
+                for (int j = 0; j < b.numFaces; ++j)
+                {
+                    m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
+                }
             }
         }
 
@@ -1802,6 +1880,39 @@ namespace
         for (auto& t : threads)
         {
             t.join();
+        }
+
+        for (int i = 0; i < m_scene->numBrushes; ++i)
+        {
+            const Brush& b = m_scene->brushes[i];
+            if (!b.useVertexLighting || !m_brush_color_buffers[i] || !m_brush_direction_buffers[i]) continue;
+
+            std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
+            std::string sanitized_name = sanitize_filename(brush_name_str);
+            fs::path brush_dir = m_output_path / sanitized_name;
+            fs::create_directories(brush_dir);
+
+            fs::path vlm_path = brush_dir / "vertex_colors.vlm";
+            std::ofstream vlm_file(vlm_path, std::ios::binary);
+            if (vlm_file)
+            {
+                const char header[] = "VLM1";
+                unsigned int count = b.numVertices;
+                vlm_file.write(header, 4);
+                vlm_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
+                vlm_file.write(reinterpret_cast<const char*>(m_brush_color_buffers[i].get()), sizeof(Vec4) * count);
+            }
+
+            fs::path vld_path = brush_dir / "vertex_directions.vld";
+            std::ofstream vld_file(vld_path, std::ios::binary);
+            if (vld_file)
+            {
+                const char header[] = "VLD1";
+                unsigned int count = b.numVertices;
+                vld_file.write(header, 4);
+                vld_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
+                vld_file.write(reinterpret_cast<const char*>(m_brush_direction_buffers[i].get()), sizeof(Vec4) * count);
+            }
         }
 
         generate_ambient_probes();

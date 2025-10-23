@@ -22,6 +22,7 @@ in mat3 TBN;
 in vec4 FragPosSunLightSpace;
 in vec4 v_Color;
 in vec4 v_Color2;
+in vec4 v_Color3;
 in float fadeAlpha;
 
 flat in int isBrush;
@@ -123,6 +124,7 @@ uniform vec3 probeBoxMin;
 uniform vec3 probeBoxMax;
 uniform vec3 probePosition;
 
+uniform bool useVertexLighting;
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 uniform bool r_debug_vertex_light;
@@ -443,9 +445,9 @@ void main()
     float ao;
 
     if (isBrush == 1) {
-        float blendR = v_Color.r;
-        float blendG = v_Color.g;
-        float blendB = v_Color.b;
+        float blendR = v_Color3.r;
+        float blendG = v_Color3.g;
+        float blendB = v_Color3.b;
         float totalWeight = max(blendR + blendG + blendB, 0.0001);
         if (totalWeight > 1.0) {
             blendR /= totalWeight;
@@ -602,6 +604,24 @@ void main()
 	vec3 bakedSpecular = vec3(0.0);
 	vec3 bakedRadiance = vec3(0.0);
     if (isBrush == 1) {
+		 if (useVertexLighting) {
+            bakedRadiance = v_Color.rgb;
+            if (v_Color2.a > 0.0) {
+                vec3 bakedLightDir = normalize(v_Color2.rgb);
+                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
+                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
+                if (NdotL_baked > 0.0) {
+                    vec3 H_baked = normalize(bakedLightDir + V);
+                    float NDF = DistributionGGX(N, H_baked, roughness);
+                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
+                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
+                    bakedSpecular = specular * bakedRadiance * NdotL_baked;
+                }
+            } else {
+                bakedDiffuse = bakedRadiance * albedo;
+            }
+        } else
         if (useLightmap) {
             bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
             if (useDirectionalLightmap) {
@@ -704,7 +724,7 @@ void main()
 	
     vec3 finalColor = Lo + ambient + bakedDiffuse + bakedSpecular;
 	
-    if (r_debug_lightmaps) {
+        if (r_debug_lightmaps) {
         if (isBrush == 1 && useLightmap) {
             if (r_lightmaps_bicubic) {
                 finalColor = texture_bicubic(lightmap, TexCoordsLightmap).rgb;
@@ -714,7 +734,7 @@ void main()
         } else {
             finalColor = vec3(0.0);
         }
-	}
+    }
     else if (r_debug_lightmaps_directional) {
         if (isBrush == 1 && useDirectionalLightmap) {
             if (r_lightmaps_bicubic) {
@@ -726,15 +746,15 @@ void main()
             finalColor = vec3(0.0);
         }
     }
-	else if (r_debug_vertex_light) {
-        if (isBrush == 0 && v_Color.a > 0.5) {
+    else if (r_debug_vertex_light) {
+        if ((isBrush == 0 && v_Color.a > 0.5) || (isBrush == 1 && useVertexLighting)) {
             finalColor = v_Color.rgb;
         } else {
             finalColor = vec3(0.0);
         }
     }
     else if (r_debug_vertex_light_directional) {
-        if (isBrush == 0 && v_Color2.a > 0.0) {
+        if ((isBrush == 0 && v_Color2.a > 0.0) || (isBrush == 1 && useVertexLighting && v_Color2.a > 0.0)) {
             finalColor = normalize(v_Color2.rgb * 2.0 - 1.0) * 0.5 + 0.5;
         } else {
             finalColor = vec3(0.0);

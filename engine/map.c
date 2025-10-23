@@ -185,6 +185,8 @@ void Brush_FreeData(Brush* b) {
         free(b->faces);
         b->faces = NULL;
     }
+    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = NULL; }
+    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = NULL; }
     b->numVertices = 0;
     b->numFaces = 0;
 }
@@ -242,6 +244,9 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->mass = src->mass;
     dest->isPhysicsEnabled = src->isPhysicsEnabled;
     dest->isGrouped = src->isGrouped;
+    dest->useVertexLighting = src->useVertexLighting;
+    dest->bakedVertexColors = NULL;
+    dest->bakedVertexDirections = NULL;
     strncpy(dest->groupName, src->groupName, sizeof(dest->groupName) - 1);
     dest->groupName[sizeof(dest->groupName) - 1] = '\0';
 
@@ -1005,6 +1010,92 @@ static void setTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTan
     vbo_data[vbo_idx + 11] = fSign;
 }
 
+void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
+    if (!b || b->numVertices == 0) return;
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        size_t len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
+
+    char brush_name_sanitized[128];
+    if (strlen(b->targetname) > 0) {
+        sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
+    }
+    else {
+        sprintf(brush_name_sanitized, "Brush_%d", index);
+    }
+
+    char vlm_path[512];
+    snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s/vertex_colors.vlm", map_name_sanitized, brush_name_sanitized);
+
+    FILE* file = fopen(vlm_path, "rb");
+    if (file) {
+        char header[4];
+        unsigned int vertex_count;
+        fread(header, 1, 4, file);
+        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        if (strncmp(header, "VLM1", 4) == 0 && vertex_count == b->numVertices) {
+            b->bakedVertexColors = malloc(vertex_count * sizeof(Vec4));
+            if (b->bakedVertexColors) fread(b->bakedVertexColors, sizeof(Vec4), vertex_count, file);
+        }
+        else {
+            Console_Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
+        }
+        fclose(file);
+    }
+}
+
+void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath) {
+    if (!b || b->numVertices == 0) return;
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        size_t len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
+    char brush_name_sanitized[128];
+    if (strlen(b->targetname) > 0) {
+        sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
+    }
+    else {
+        sprintf(brush_name_sanitized, "Brush_%d", index);
+    }
+    char vld_path[512];
+    snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s/vertex_directions.vld", map_name_sanitized, brush_name_sanitized);
+
+    FILE* file = fopen(vld_path, "rb");
+    if (file) {
+        char header[4];
+        unsigned int vertex_count;
+        fread(header, 1, 4, file);
+        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        if (strncmp(header, "VLD1", 4) == 0 && vertex_count == b->numVertices) {
+            b->bakedVertexDirections = malloc(vertex_count * sizeof(Vec4));
+            if (b->bakedVertexDirections) fread(b->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
+        }
+        else {
+            Console_Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
+        }
+        fclose(file);
+    }
+}
+
 void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath) {
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
@@ -1164,7 +1255,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    const int stride_floats = 24;
+    const int stride_floats = 32;
     float* final_vbo_data = calloc(total_render_verts * stride_floats, sizeof(float));
     if (!final_vbo_data) {
         free(temp_normals);
@@ -1266,11 +1357,29 @@ void Brush_CreateRenderData(Brush* b) {
             memcpy(&final_vbo_data[vbo_idx + 0], &vert.pos, sizeof(Vec3));
             memcpy(&final_vbo_data[vbo_idx + 3], &norm, sizeof(Vec3));
             memcpy(&final_vbo_data[vbo_idx + 6], uv1, sizeof(Vec2));
-            memcpy(&final_vbo_data[vbo_idx + 12], &vert.color, sizeof(Vec4));
+
+            if (b->useVertexLighting && b->bakedVertexColors) {
+                memcpy(&final_vbo_data[vbo_idx + 12], &b->bakedVertexColors[vertex_index], sizeof(Vec4));
+            }
+            else {
+                memset(&final_vbo_data[vbo_idx + 12], 0, sizeof(Vec4));
+                final_vbo_data[vbo_idx + 15] = 0.0f;
+            }
+
             memcpy(&final_vbo_data[vbo_idx + 16], uv2, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 18], uv3, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 20], uv4, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 22], &vert.lightmap_uv, sizeof(Vec2));
+
+            if (b->useVertexLighting && b->bakedVertexDirections) {
+                memcpy(&final_vbo_data[vbo_idx + 24], &b->bakedVertexDirections[vertex_index], sizeof(Vec4));
+            }
+            else {
+                memset(&final_vbo_data[vbo_idx + 24], 0, sizeof(Vec4));
+                final_vbo_data[vbo_idx + 27] = 0.0f;
+            }
+
+            memcpy(&final_vbo_data[vbo_idx + 28], &vert.color, sizeof(Vec4));
         }
         free(face_tri_indices);
         vbo_vertex_offset += num_verts_in_face;
@@ -1290,7 +1399,9 @@ void Brush_CreateRenderData(Brush* b) {
     glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(5); offset += 2 * sizeof(float);
     glVertexAttribPointer(6, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(6); offset += 2 * sizeof(float);
     glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(7); offset += 2 * sizeof(float);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(8);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(8); offset += 2 * sizeof(float);
+    glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(9); offset += 4 * sizeof(float);
+    glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(12);
 
     glBindVertexArray(0);
     free(final_vbo_data);
@@ -1823,6 +1934,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
+                else if (sscanf(line, " useVertexLighting %d", &dummy_int) == 1) { b->useVertexLighting = (bool)dummy_int; }
                 else if (sscanf(line, " classname \"%63[^\"]\"", b->classname) == 1) {}
                 else if (strstr(line, "properties")) {
                     b->numProperties = 0;
@@ -1859,6 +1971,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             else { strcpy(map_name_sanitized, scene->mapPath); }
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
+            if (b->useVertexLighting) {
+                Brush_LoadVertexLighting(b, scene->numBrushes, scene->mapPath);
+                Brush_LoadVertexDirectionalLighting(b, scene->numBrushes, scene->mapPath);
+            }
             Brush_CreateRenderData(b);
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (strcmp(b->classname, "func_plat") == 0) {
@@ -2318,6 +2434,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
+        fprintf(file, "  useVertexLighting %d\n", (int)b->useVertexLighting);
         if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }

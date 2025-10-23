@@ -212,6 +212,8 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
     }
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
 
+    glUniform1i(glGetUniformLocation(shader, "useVertexLighting"), b->useVertexLighting);
+
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
     glBindVertexArray(b->vao);
 
