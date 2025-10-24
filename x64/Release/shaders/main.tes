@@ -125,9 +125,9 @@ void main()
         float displacement = height1;
 
         if (tes_in[0].isBrush == 1) {
-            float blendR = v_Color.r;
-            float blendG = v_Color.g;
-            float blendB = v_Color.b;
+            float blendR = v_Color3.r;
+            float blendG = v_Color3.g;
+            float blendB = v_Color3.b;
             if (useBlendMap) {
                 vec4 blendWeights = texture(blendMap, TexCoordsLightmap);
                 blendR = blendWeights.r;
