@@ -61,7 +61,14 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "projection"), 1, GL_FALSE, projection->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "view"), 1, GL_FALSE, view->m);
 
-    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numActiveLights"), scene->numActiveLights);
+    int num_dynamic_lights = 0;
+    for (int i = 0; i < scene->numActiveLights; ++i) {
+        Light* light = &scene->lights[i];
+        if (!light->is_static && light->intensity > 0.001f) {
+            num_dynamic_lights++;
+        }
+    }
+    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numActiveLights"), num_dynamic_lights);
 
     glUniform1i(glGetUniformLocation(renderer->volumetricShader, "sun.enabled"), scene->sun.enabled);
     if (scene->sun.enabled) {
