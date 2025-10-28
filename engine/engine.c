@@ -167,6 +167,9 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->keypad_active = false;
     g_engine->active_keypad_entity_index = -1;
     memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
+    g_engine->credits_active = false;
+    g_engine->credits_text = NULL;
+    g_engine->credits_entity_index = -1;
     for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
         g_engine->active_messages[i].state = TEXT_STATE_IDLE;
     }
@@ -780,6 +783,18 @@ void update_state() {
         }
         else {
             ExecuteInput(cam_brush->targetname, "Disable", "", &g_scene, g_engine);
+        }
+    }
+    if (g_engine->credits_active) {
+        g_engine->credits_timer += g_engine->unscaledDeltaTime;
+        if (g_engine->credits_timer >= g_engine->credits_duration) {
+            IO_FireOutput(ENTITY_LOGIC, g_engine->credits_entity_index, "OnCreditsDone", g_engine->lastFrame, NULL);
+            g_engine->credits_active = false;
+            if (g_engine->credits_text) {
+                free(g_engine->credits_text);
+                g_engine->credits_text = NULL;
+            }
+            g_engine->credits_entity_index = -1;
         }
     }
     Weapons_Update(g_engine->deltaTime);
@@ -1959,6 +1974,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
         }
         Console_Draw(); 
+        if (g_engine->credits_active) {
+            UI_RenderCredits(g_engine->credits_active, g_engine->credits_text, g_engine->credits_timer, g_engine->credits_duration);
+        }
         if (g_screenshot_requested) {
             MiscRender_SaveScreenshot(g_engine, g_screenshot_path);
             g_screenshot_requested = false;

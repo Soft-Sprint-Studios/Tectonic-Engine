@@ -531,6 +531,17 @@
     input Toggle "Toggle the glow on/off."
 )
 
+@PointClass = env_credits
+[
+    creditsfile(string) : "Credits File" = "credits.txt"
+    duration(float) : "Roll Duration (seconds)" = "30.0"
+]
+(
+    input Start "Start rolling the credits."
+    input End "Stops and hides the credits."
+    output OnCreditsDone "Fires when the credits have finished rolling."
+)
+
 @PointClass = env_cable
 [
     Target(entities) : "Target Entity" = ""

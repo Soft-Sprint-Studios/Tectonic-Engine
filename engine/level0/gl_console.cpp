@@ -368,6 +368,53 @@ extern "C" {
             ImGui::End();
         }
     }
+    void UI_RenderCredits(bool active, const char* text, float timer, float duration) {
+        if (!active || !text) {
+            return;
+        }
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+        ImFont* font = io.Fonts->Fonts[0];
+        float font_size = ImGui::GetFontSize() * 1.5f;
+
+        draw_list->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32(0, 0, 0, 255));
+
+        float total_text_height = 0;
+        char* text_copy = _strdup(text);
+        char* line = strtok(text_copy, "\n");
+        while (line) {
+            ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, line);
+            total_text_height += text_size.y + 5.0f;
+            line = strtok(NULL, "\n");
+        }
+        free(text_copy);
+
+        float progress = 0.0f;
+        if (duration > 0.0f) {
+            progress = timer / duration;
+        }
+        progress = fminf(progress, 1.0f);
+
+        float start_y = io.DisplaySize.y;
+        float end_y = -total_text_height;
+        float current_y = start_y + (end_y - start_y) * progress;
+
+        text_copy = _strdup(text);
+        line = strtok(text_copy, "\n");
+        while (line) {
+            ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, line);
+            float pos_x = (io.DisplaySize.x - text_size.x) * 0.5f;
+
+            if (current_y > -text_size.y && current_y < io.DisplaySize.y) {
+                draw_list->AddText(font, font_size, ImVec2(pos_x, current_y), IM_COL32(255, 255, 255, 255), line);
+            }
+
+            current_y += text_size.y + 5.0f;
+            line = strtok(NULL, "\n");
+        }
+        free(text_copy);
+    }
     void UI_RenderDeveloperOverlay(void) {
         if (Cvar_GetInt("developer") == 0) {
             return;

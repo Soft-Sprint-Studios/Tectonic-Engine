@@ -387,6 +387,48 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     ent->runtime_active = !ent->runtime_active;
                 }
             }
+            else if (strcmp(ent->classname, "env_credits") == 0) {
+                if (strcmp(inputName, "Start") == 0) {
+                    if (engine->credits_active) return;
+
+                    engine->credits_active = true;
+                    engine->credits_timer = 0.0f;
+                    engine->credits_entity_index = i;
+
+                    const char* filename = LogicEntity_GetProperty(ent, "creditsfile", "credits.txt");
+                    engine->credits_duration = atof(LogicEntity_GetProperty(ent, "duration", "30.0"));
+
+                    if (engine->credits_text) {
+                        free(engine->credits_text);
+                        engine->credits_text = NULL;
+                    }
+
+                    FILE* f = fopen(filename, "rb");
+                    if (f) {
+                        fseek(f, 0, SEEK_END);
+                        long length = ftell(f);
+                        fseek(f, 0, SEEK_SET);
+                        engine->credits_text = malloc(length + 1);
+                        if (engine->credits_text) {
+                            fread(engine->credits_text, 1, length, f);
+                            engine->credits_text[length] = '\0';
+                        }
+                        fclose(f);
+                    }
+                    else {
+                        Console_Printf_Error("Could not open credits file: %s", filename);
+                        engine->credits_active = false;
+                    }
+                }
+                else if (strcmp(inputName, "End") == 0) {
+                    engine->credits_active = false;
+                    if (engine->credits_text) {
+                        free(engine->credits_text);
+                        engine->credits_text = NULL;
+                    }
+                    engine->credits_entity_index = -1;
+                }
+            }
             else if (strcmp(ent->classname, "game_end") == 0) {
                 if (strcmp(inputName, "EndGame") == 0) {
                     char* disconnect_argv[] = { (char*)"disconnect" };

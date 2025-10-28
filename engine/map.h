@@ -592,6 +592,12 @@ extern "C" {
         bool keypad_active;
         int active_keypad_entity_index;
         char keypad_input_buffer[32];
+        bool credits_active;
+        char* credits_text;
+        float credits_scroll_y;
+        float credits_duration;
+        float credits_timer;
+        int credits_entity_index;
         GameTextMessage active_messages[MAX_GAME_TEXT_MESSAGES];
     } Engine;
 
