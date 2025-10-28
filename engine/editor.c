@@ -932,7 +932,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     Brush_CreateRenderData(new_brush);
     if (Brush_IsSolid(new_brush) && new_brush->numVertices > 0) {
         if (new_brush->mass > 0.0f) {
-            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)new_brush->vertices, new_brush->numVertices, new_brush->mass, new_brush->modelMatrix);
+            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
             if (!new_brush->isPhysicsEnabled) {
                 Physics_ToggleCollision(engine->physicsWorld, new_brush->physicsBody, false);
             }
@@ -7857,7 +7857,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
-                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
+                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
                 }
                 else {
                     Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));

@@ -1986,7 +1986,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     b->physicsBody = Physics_CreateKinematicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->modelMatrix);
                 }
                 else if (b->mass > 0.0f) {
-                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
+                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
                     if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
                 else {

@@ -62,7 +62,7 @@ extern "C" {
 	PHYSICS_API RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle world, float radius, float height, float mass, Vec3 startPos);
 	PHYSICS_API RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle world, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale);
 	PHYSICS_API RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle world, const float* points, int numPoints, float mass, Mat4 transform);
-	PHYSICS_API RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, float mass, Mat4 transform);
+	PHYSICS_API RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, int stride, float mass, Mat4 transform);
 	PHYSICS_API RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle world, const float* points, int numPoints);
 	PHYSICS_API RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, Mat4 transform);
 	PHYSICS_API void Physics_RemoveRigidBody(PhysicsWorldHandle world, RigidBodyHandle body);

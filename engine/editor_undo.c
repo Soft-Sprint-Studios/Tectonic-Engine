@@ -248,7 +248,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
 
         if (Brush_IsSolid(b) && b->numVertices > 0) {
             if (b->mass > 0.0f) {
-                b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->mass, b->modelMatrix);
+                b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
             }
             else {
                 Vec3* world_verts = (Vec3*)malloc(b->numVertices * sizeof(Vec3));

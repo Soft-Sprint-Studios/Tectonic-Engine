@@ -166,11 +166,11 @@ extern "C" {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, float mass, Mat4 transform) {
+    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, int stride, float mass, Mat4 transform) {
         if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return NULL;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(float));
+        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, stride);
         world->collisionShapes.push_back(hullShape);
 
         btTransform startTransform;
