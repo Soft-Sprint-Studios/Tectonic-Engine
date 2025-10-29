@@ -1158,9 +1158,18 @@ void update_state() {
                 Vec3 move_angles;
                 sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &move_angles.x, &move_angles.y, &move_angles.z);
 
-                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, move_angles, (Vec3) { 1, 1, 1 });
-                b->door_move_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
-                vec3_normalize(&b->door_move_dir);
+                if (move_angles.x == -90) {
+                    b->door_move_dir = (Vec3){ 0, 1, 0 };
+                }
+                else if (move_angles.x == 90) {
+                    b->door_move_dir = (Vec3){ 0, -1, 0 };
+                }
+                else {
+                    float yaw_rad = move_angles.y * (M_PI / 180.0f);
+                    b->door_move_dir.x = cosf(yaw_rad);
+                    b->door_move_dir.y = 0.0f;
+                    b->door_move_dir.z = -sinf(yaw_rad);
+                }
 
                 float move_dist = atof(Brush_GetProperty(b, "distance", "0"));
 
