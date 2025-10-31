@@ -1011,9 +1011,10 @@ void update_state() {
     if (g_engine->physicsWorld) {
         for (int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* b = &g_scene.brushes[i];
-            if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
-                Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
-            }
+            // This causes some problems where the player floats in the air temporarily disable
+            //if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
+            //    Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
+            //}
         }
     }
     g_current_friction_modifier = 1.0f;
