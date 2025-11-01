@@ -1365,6 +1365,9 @@ namespace
                 fs::create_directories(brush_dir);
                 for (int j = 0; j < b.numFaces; ++j)
                 {
+                    if (b.faces[j].material == &g_NodrawMaterial) {
+                        continue;
+                    }
                     m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
                 }
             }
