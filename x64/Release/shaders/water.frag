@@ -162,7 +162,7 @@ void main() {
 
     reflectTexCoords += distortion;
     
-    vec3 reflectionColor = 2.0 * texture(reflectionTexture, reflectTexCoords).rgb;
+    vec3 reflectionColor = 2.0 * texture(reflectionTexture, clamp(reflectTexCoords, 0.0, 1.0)).rgb;
     vec3 baseWaterColor = reflectionColor;
 
     vec3 ambient = 0.05 * baseWaterColor;
