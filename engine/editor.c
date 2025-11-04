@@ -3647,7 +3647,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_LEFTBRACKET) {
                 g_EditorState.grid_size /= 2.0f;
-                if (g_EditorState.grid_size < 0.0625f) g_EditorState.grid_size = 0.0625f;
+                if (g_EditorState.grid_size < 0.015625f) g_EditorState.grid_size = 0.015625f;
             }
             if (event->key.keysym.sym == SDLK_RIGHTBRACKET) {
                 g_EditorState.grid_size *= 2.0f;
@@ -8560,7 +8560,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (g_EditorState.current_brush_shape == BRUSH_SHAPE_TUBE) {
         UI_DragFloat("Wall Thickness", &g_EditorState.tube_wall_thickness, 0.05f, 0.1f, 16.0f);
     }
-    UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.0625f, 0.0625f, 64.0f);
+    UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Sapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.015625f, 0.015625f, 64.0f);
     bool is_unlit = Cvar_GetInt("r_fullbright");
     if (UI_Checkbox("Unlit Mode", &is_unlit)) {
         Cvar_Set("r_fullbright", is_unlit ? "1" : "0");
