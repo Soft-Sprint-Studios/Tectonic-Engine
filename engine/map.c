@@ -2398,11 +2398,24 @@ static void CreateMapBackup(const char* originalPath) {
         return;
     }
 
+    time_t now_for_folder = time(NULL);
+    struct tm* t_folder = localtime(&now_for_folder);
+    char month_folder_name[32];
+    strftime(month_folder_name, sizeof(month_folder_name), "%Y_%B", t_folder);
+
+    char monthly_backup_path[512];
+    snprintf(monthly_backup_path, sizeof(monthly_backup_path), "%s/%s", backup_dir, month_folder_name);
+
     struct stat st = { 0 };
-    if (stat(backup_dir, &st) == -1) {
-        if (_mkdir(backup_dir) != 0) {
-            Console_Printf_Error("Failed to create map backup directory: %s", backup_dir);
-            return;
+    if (stat(monthly_backup_path, &st) == -1) {
+        if (_mkdir(monthly_backup_path) != 0) {
+            if (stat(backup_dir, &st) == -1) {
+                _mkdir(backup_dir);
+            }
+            if (_mkdir(monthly_backup_path) != 0) {
+                Console_Printf_Error("Failed to create map backup directory: %s", monthly_backup_path);
+                return;
+            }
         }
     }
 
@@ -2423,7 +2436,7 @@ static void CreateMapBackup(const char* originalPath) {
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H-%M-%S", t);
 
     char backup_path[512];
-    snprintf(backup_path, sizeof(backup_path), "%s/%s_%s.map", backup_dir, base_name, timestamp);
+    snprintf(backup_path, sizeof(backup_path), "%s/%s_%s.map", monthly_backup_path, base_name, timestamp);
 
     FILE* source = fopen(originalPath, "rb");
     if (!source) {
