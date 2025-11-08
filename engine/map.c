@@ -35,6 +35,8 @@
 #include "water_manager.h"
 #include "mikktspace/mikktspace.h"
 #include <float.h>
+#include <time.h>
+#include <sys/stat.h>
 #include <SDL_image.h>
 #include "stb_image.h"
 
@@ -2390,6 +2392,62 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     return true;
 }
 
+static void CreateMapBackup(const char* originalPath) {
+    const char* backup_dir = Cvar_GetString("g_map_backup_path");
+    if (!backup_dir || strlen(backup_dir) == 0) {
+        return;
+    }
+
+    struct stat st = { 0 };
+    if (stat(backup_dir, &st) == -1) {
+        if (_mkdir(backup_dir) != 0) {
+            Console_Printf_Error("Failed to create map backup directory: %s", backup_dir);
+            return;
+        }
+    }
+
+    const char* filename_start = strrchr(originalPath, '/');
+    if (!filename_start) filename_start = strrchr(originalPath, '\\');
+    if (!filename_start) filename_start = originalPath;
+    else filename_start++;
+
+    char base_name[128];
+    strncpy(base_name, filename_start, sizeof(base_name) - 1);
+    base_name[sizeof(base_name) - 1] = '\0';
+    char* dot = strrchr(base_name, '.');
+    if (dot) *dot = '\0';
+
+    time_t now = time(NULL);
+    struct tm* t = localtime(&now);
+    char timestamp[64];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H-%M-%S", t);
+
+    char backup_path[512];
+    snprintf(backup_path, sizeof(backup_path), "%s/%s_%s.map", backup_dir, base_name, timestamp);
+
+    FILE* source = fopen(originalPath, "rb");
+    if (!source) {
+        Console_Printf_Error("Failed to open source map for backup: %s", originalPath);
+        return;
+    }
+
+    FILE* dest = fopen(backup_path, "wb");
+    if (!dest) {
+        Console_Printf_Error("Failed to create backup map file: %s", backup_path);
+        fclose(source);
+        return;
+    }
+
+    char buffer[4096];
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+        fwrite(buffer, 1, bytes_read, dest);
+    }
+
+    fclose(source);
+    fclose(dest);
+}
+
 bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     char backup_path[256];
     sprintf(backup_path, "%s.bak", mapPath);
@@ -2570,5 +2628,8 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         }
     }
     fclose(file);
+    if (!engine) {
+        CreateMapBackup(mapPath);
+    }
     return true;
 }
