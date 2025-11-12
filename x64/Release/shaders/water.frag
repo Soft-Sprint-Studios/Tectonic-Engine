@@ -26,6 +26,11 @@ uniform bool r_lightmaps_bicubic;
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 
+uniform int u_fogEnabled;
+uniform vec3 u_fogColor;
+uniform float u_fogStart;
+uniform float u_fogEnd;
+
 struct ShaderLight {
     vec4 position;
     vec4 direction;
@@ -279,6 +284,12 @@ void main() {
 
     if (u_debug_reflection) {
         finalColor = reflectionColor;
+    }
+	
+	if (u_fogEnabled == 1) {
+        float frag_dist = length(FragPos_world - viewPos);
+        float fogFactor = smoothstep(u_fogStart, u_fogEnd, frag_dist);
+        finalColor = mix(finalColor, u_fogColor, fogFactor);
     }
 
     fragColor = vec4(finalColor, 0.95); 

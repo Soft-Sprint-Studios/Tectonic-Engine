@@ -114,6 +114,19 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
     glUniform3fv(glGetUniformLocation(renderer->waterShader, "viewPos"), 1, &engine->camera.position.x);
     glUniform1i(glGetUniformLocation(renderer->waterShader, "u_debug_reflection"), Cvar_GetInt("r_debug_water_reflection"));
 
+    LogicEntity* fog_ent = FindActiveEntityByClass(scene, "env_fog");
+    if (fog_ent) {
+        glUniform1i(glGetUniformLocation(renderer->waterShader, "u_fogEnabled"), 1);
+        Vec3 fog_color;
+        sscanf(LogicEntity_GetProperty(fog_ent, "color", "0.5 0.6 0.7"), "%f %f %f", &fog_color.x, &fog_color.y, &fog_color.z);
+        glUniform3fv(glGetUniformLocation(renderer->waterShader, "u_fogColor"), 1, &fog_color.x);
+        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_fogStart"), atof(LogicEntity_GetProperty(fog_ent, "start", "50.0")));
+        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_fogEnd"), atof(LogicEntity_GetProperty(fog_ent, "end", "200.0")));
+    }
+    else {
+        glUniform1i(glGetUniformLocation(renderer->waterShader, "u_fogEnabled"), 0);
+    }
+
     glUniform1i(glGetUniformLocation(renderer->waterShader, "sun.enabled"), scene->sun.enabled);
     glUniform3fv(glGetUniformLocation(renderer->waterShader, "sun.direction"), 1, &scene->sun.direction.x);
     glUniform3fv(glGetUniformLocation(renderer->waterShader, "sun.color"), 1, &scene->sun.color.x);
