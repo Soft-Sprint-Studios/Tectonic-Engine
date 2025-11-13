@@ -14,7 +14,7 @@ void main()
     vec2 offset = normal.xy * refractionStrength;
     vec2 distortedUV = screenUV + offset;
     
-    vec3 refractedColor = texture(sceneTexture, distortedUV).rgb;
+    vec3 refractedColor = texture(sceneTexture, clamp(distortedUV, 0.0, 1.0)).rgb;
     
     FragColor = vec4(refractedColor, 0.85);
 }
