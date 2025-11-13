@@ -150,7 +150,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     GLuint final_rboDepth; glGenRenderbuffers(1, &final_rboDepth); glBindRenderbuffer(GL_RENDERBUFFER, final_rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, engine->width, engine->height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, final_rboDepth);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) printf("Final Render Framebuffer not complete!\n");
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("Final Render Framebuffer not complete!\n");
     glGenFramebuffers(1, &renderer->postProcessFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->postProcessFBO);
     glGenTextures(1, &renderer->postProcessTexture);
