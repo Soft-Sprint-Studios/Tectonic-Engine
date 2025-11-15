@@ -7909,6 +7909,23 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             else {
                 strcpy(b->classname, brush_classes[current_class_idx]);
+                if (strcmp(b->classname, "env_reflectionprobe") == 0) {
+                    int x = (int)roundf(b->pos.x);
+                    int y = (int)roundf(b->pos.y);
+                    int z = (int)roundf(b->pos.z);
+
+                    char name_buf[128];
+                    snprintf(name_buf, sizeof(name_buf), "Probe_%d_%d_%d", x, y, z);
+
+                    for (int k = 0; name_buf[k] != '\0'; ++k) {
+                        if (name_buf[k] == '-') {
+                            name_buf[k] = 'n';
+                        }
+                    }
+
+                    strncpy(b->name, name_buf, sizeof(b->name) - 1);
+                    strncpy(b->targetname, b->name, sizeof(b->targetname) - 1);
+                }
                 const TGD_EntityDef* def = GameData_FindEntityDef(b->classname);
                 if (def) {
                     b->numProperties = def->num_properties;
