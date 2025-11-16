@@ -388,10 +388,9 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glUniform1i(glGetUniformLocation(renderer->mainShader, "r_debug_vertex_light"), Cvar_GetInt("r_debug_vertex_light"));
     glUniform1i(glGetUniformLocation(renderer->mainShader, "r_debug_vertex_light_directional"), Cvar_GetInt("r_debug_vertex_light_directional"));
     glUniform1i(glGetUniformLocation(renderer->mainShader, "r_lightmaps_bicubic"), Cvar_GetInt("r_lightmaps_bicubic"));
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 0);
     glActiveTexture(GL_TEXTURE16);
     glBindTexture(GL_TEXTURE_2D, renderer->brdfLUTTexture);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), unlit);
+    glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), Cvar_GetInt("r_fullbright"));
     glUniform1i(glGetUniformLocation(renderer->mainShader, "u_numAmbientProbes"), scene->num_ambient_probes);
     glUniform1i(glGetUniformLocation(renderer->mainShader, "numActiveLights"), scene->numActiveLights);
 
