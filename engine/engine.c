@@ -1902,13 +1902,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            glEnable(GL_BLEND);
-            glDepthMask(GL_FALSE);
             if (Cvar_GetInt("r_water")) {
                 Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
             }
-            glDepthMask(GL_TRUE);
-            glDisable(GL_BLEND);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
             if (Cvar_GetInt("r_ssr")) {

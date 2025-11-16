@@ -7915,13 +7915,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     int z = (int)roundf(b->pos.z);
 
                     char name_buf[128];
-                    snprintf(name_buf, sizeof(name_buf), "Probe_%d_%d_%d", x, y, z);
-
-                    for (int k = 0; name_buf[k] != '\0'; ++k) {
-                        if (name_buf[k] == '-') {
-                            name_buf[k] = 'n';
-                        }
-                    }
+                    snprintf(name_buf, sizeof(name_buf), "Probe_%s%d_%s%d_%s%d",
+                        (x < 0 ? "n" : ""), abs(x),
+                        (y < 0 ? "n" : ""), abs(y),
+                        (z < 0 ? "n" : ""), abs(z));
 
                     strncpy(b->name, name_buf, sizeof(b->name) - 1);
                     strncpy(b->targetname, b->name, sizeof(b->targetname) - 1);
