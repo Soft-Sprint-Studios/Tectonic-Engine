@@ -592,6 +592,8 @@ extern "C" {
         bool keypad_active;
         int active_keypad_entity_index;
         char keypad_input_buffer[32];
+        RigidBodyHandle heldObject;
+        float holdDistance;
         bool credits_active;
         char* credits_text;
         float credits_scroll_y;

@@ -167,6 +167,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->keypad_active = false;
     g_engine->active_keypad_entity_index = -1;
     memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
+    g_engine->heldObject = NULL;
+    g_engine->holdDistance = 0.0f;
     g_engine->credits_active = false;
     g_engine->credits_text = NULL;
     g_engine->credits_entity_index = -1;
@@ -255,6 +257,16 @@ void process_input() {
 
         if (event.type == SDL_MOUSEBUTTONDOWN && g_current_mode == MODE_GAME && !Console_IsVisible()) {
             if (event.button.button == SDL_BUTTON_LEFT) {
+                if (g_engine->heldObject) {
+                    Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+                    vec3_normalize(&forward);
+
+                    Physics_SetCcdEnabled(g_engine->heldObject, true, 1e-7f);
+                    Physics_SetGravityEnabled(g_engine->heldObject, true);
+                    Physics_ApplyCentralImpulse(g_engine->heldObject, vec3_muls(forward, 10.0f));
+                    g_engine->heldObject = NULL;
+                    return;
+                }
                 Weapons_TryFire(g_engine, &g_scene);
             }
         }
@@ -280,6 +292,11 @@ void process_input() {
 
         if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
             if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                if (g_engine->heldObject) {
+                    Physics_SetGravityEnabled(g_engine->heldObject, true);
+                    g_engine->heldObject = NULL;
+                    return;
+                }
                 Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
                 vec3_normalize(&forward);
 
@@ -384,6 +401,16 @@ void process_input() {
                                 IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, NULL);
                             }
                         }
+                    }
+                }
+
+                RaycastHitInfo hitInfo;
+                if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
+                    if (hitInfo.hitBody && Physics_GetMass(hitInfo.hitBody) < 2.0f && Physics_GetMass(hitInfo.hitBody) > 0.0f) {
+                        g_engine->heldObject = hitInfo.hitBody;
+                        g_engine->holdDistance = vec3_length(vec3_sub(hitInfo.point, g_engine->camera.position));
+                        Physics_SetGravityEnabled(g_engine->heldObject, false);
+                        Physics_SetCcdEnabled(g_engine->heldObject, false, 0.0f);
                     }
                 }
             }
@@ -707,6 +734,7 @@ void update_state() {
     }
     g_engine->canUse = false;
     if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
+        if (g_engine->heldObject == NULL) {
         Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
         vec3_normalize(&forward);
         Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
@@ -750,9 +778,23 @@ void update_state() {
                 }
             }
         }
+        RaycastHitInfo hitInfo;
+        if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
+            if (hitInfo.hitBody && Physics_GetMass(hitInfo.hitBody) < 2.0f && Physics_GetMass(hitInfo.hitBody) > 0.0f) {
+                g_engine->canUse = true;
+            }
+        }
+        }
     }
     IO_ProcessPendingEvents(g_engine->lastFrame, &g_scene, g_engine);
     LogicSystem_Update(&g_scene, g_engine->deltaTime);
+    if (g_engine->heldObject) {
+        Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
+        vec3_normalize(&forward);
+        Vec3 targetPos = vec3_add(g_engine->camera.position, vec3_muls(forward, g_engine->holdDistance));
+
+        Physics_Teleport(g_engine->heldObject, targetPos);
+    }
     Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
     if (g_engine->active_camera_brush_index != -1) {
         Brush* cam_brush = &g_scene.brushes[g_engine->active_camera_brush_index];

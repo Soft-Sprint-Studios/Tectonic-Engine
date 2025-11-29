@@ -466,6 +466,31 @@ extern "C" {
         return false;
     }
 
+    float Physics_GetMass(RigidBodyHandle bodyHandle) {
+        if (!bodyHandle) return 0.0f;
+        RigidBody* rb = (RigidBody*)bodyHandle;
+        if (!rb->body) return 0.0f;
+        float invMass = rb->body->getInvMass();
+        if (invMass == 0.0f) {
+            return 0.0f;
+        }
+        return 1.0f / invMass;
+    }
+
+    void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, bool enabled, float motion_threshold) {
+        if (!bodyHandle) return;
+        RigidBody* rb = (RigidBody*)bodyHandle;
+        if (!rb->body) return;
+
+        if (enabled) {
+            rb->body->setCcdMotionThreshold(motion_threshold);
+            rb->body->setCcdSweptSphereRadius(1.0f);
+        }
+        else {
+            rb->body->setCcdMotionThreshold(0);
+        }
+    }
+
     void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;

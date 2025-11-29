@@ -80,6 +80,8 @@ extern "C" {
 	PHYSICS_API void Physics_RecheckCollision(PhysicsWorldHandle world, RigidBodyHandle body);
 
 	PHYSICS_API bool Physics_Raycast(PhysicsWorldHandle world, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo);
+	PHYSICS_API float Physics_GetMass(RigidBodyHandle bodyHandle);
+	PHYSICS_API void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, bool enabled, float motion_threshold);
 	PHYSICS_API void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos);
 	PHYSICS_API void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const float* vertices, int numVertices, const Mat4* transform);
 	PHYSICS_API void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, bool enabled);
