@@ -507,7 +507,7 @@ void init_cvars() {
     Cvar_Register("r_bloom", "1", "Enable bloom (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_zprepass", "1", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_zprepass", "0", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_physics_shadows", "1", "Enable Basic realtime shadows for physics props (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render in wireframe mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_fullbright", "0", "Render scene with full brightness, ignoring lighting.", CVAR_NONE);
