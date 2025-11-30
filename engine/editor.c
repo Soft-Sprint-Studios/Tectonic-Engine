@@ -5701,6 +5701,7 @@ static void Editor_RenderSoundBrowser(Scene* scene) {
                     s->pitch = 1.0f;
                     s->maxDistance = 50.0f;
                     s->bufferID = SoundSystem_LoadSound(s->soundPath);
+                    SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
                     scene->numSoundEntities++;
                     Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound");
                     g_EditorState.show_sound_browser_popup = false;
@@ -8294,6 +8295,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index);
             if (s->sourceID != 0) SoundSystem_SetSourceLooping(s->sourceID, s->is_looping);
             Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Toggle Sound Loop");
+        }
+        if (UI_Checkbox("Global Sound", &s->isGlobal)) {
+            Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index);
+            SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
+            if (!s->isGlobal) {
+                SoundSystem_SetSourcePosition(s->sourceID, s->pos);
+            }
+            Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Toggle Sound Global");
         }
         if (UI_Checkbox("Play on Start", &s->play_on_start)) {
             Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index);

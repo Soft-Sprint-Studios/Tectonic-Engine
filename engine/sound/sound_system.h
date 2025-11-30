@@ -56,6 +56,7 @@ extern "C" {
     SOUND_API unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping);
     SOUND_API void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position);
     SOUND_API void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance);
+    SOUND_API void SoundSystem_SetSourceIsGlobal(unsigned int sourceID, bool is_global);
     SOUND_API void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop);
     SOUND_API void SoundSystem_SetMasterVolume(float volume);
     SOUND_API void SoundSystem_DeleteSource(unsigned int sourceID);

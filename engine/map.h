@@ -62,7 +62,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 12
-#define MAP_VERSION 17
+#define MAP_VERSION 18
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -415,6 +415,7 @@ extern "C" {
         float maxDistance;
         bool is_looping;
         bool play_on_start;
+        bool isGlobal;
         bool isGrouped;
         char groupName[64];
     } SoundEntity;

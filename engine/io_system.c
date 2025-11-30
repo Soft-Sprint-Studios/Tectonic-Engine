@@ -711,6 +711,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
                 }
                 scene->soundEntities[i].sourceID = SoundSystem_PlaySound(scene->soundEntities[i].bufferID, scene->soundEntities[i].pos, scene->soundEntities[i].volume, scene->soundEntities[i].pitch, scene->soundEntities[i].maxDistance, scene->soundEntities[i].is_looping);
+                SoundSystem_SetSourceIsGlobal(scene->soundEntities[i].sourceID, scene->soundEntities[i].isGlobal);
             }
             else if (strcmp(inputName, "StopSound") == 0) {
                 if (scene->soundEntities[i].sourceID != 0) {

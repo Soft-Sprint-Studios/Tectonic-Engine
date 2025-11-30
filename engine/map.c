@@ -2180,13 +2180,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (scene->numSoundEntities < MAX_SOUNDS) {
                 SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
                 memset(s, 0, sizeof(SoundEntity));
-                int is_looping_int = 0, play_on_start_int = 0;
+                int is_looping_int = 0, play_on_start_int = 0, is_global_int = 0;
                 char* p = line + strlen(keyword); while (*p && isspace(*p)) p++;
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { size_t len = end - p; if (len < sizeof(s->targetname)) { strncpy(s->targetname, p, len); s->targetname[len] = '\0'; } p = end + 1; } }
                 while (*p && isspace(*p)) p++;
                 char* path_end = p; while (*path_end && !isspace(*path_end)) path_end++; size_t path_len = path_end - p;
                 if (path_len < sizeof(s->soundPath)) { strncpy(s->soundPath, p, path_len); s->soundPath[path_len] = '\0'; } p = path_end;
-                sscanf(p, "%f %f %f %f %f %f %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
+                if (map_file_version >= 18) {
+                    sscanf(p, "%f %f %f %f %f %f %d %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int, &is_global_int);
+                }
+                else {
+                    sscanf(p, "%f %f %f %f %f %f %d %d", &s->pos.x, &s->pos.y, &s->pos.z, &s->volume, &s->pitch, &s->maxDistance, &is_looping_int, &play_on_start_int);
+                    is_global_int = 0;
+                }
+                s->isGlobal = (bool)is_global_int;
                 s->is_looping = (bool)is_looping_int; s->play_on_start = (bool)play_on_start_int;
                 long current_pos = ftell(file); char next_line[256];
                 if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
@@ -2196,7 +2203,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     fseek(file, current_pos, SEEK_SET);
                 }
                 s->bufferID = SoundSystem_LoadSound(s->soundPath);
-                if (s->play_on_start) s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
+                if (s->play_on_start) {
+                    s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
+                    SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
+                }
                 scene->numSoundEntities++;
             }
         }
@@ -2581,7 +2591,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     fprintf(file, "\n");
     for (int i = 0; i < scene->numSoundEntities; ++i) {
         SoundEntity* s = &scene->soundEntities[i];
-        fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start);
+        fprintf(file, "sound_entity \"%s\" %s %.4f %.4f %.4f %.4f %.4f %.4f %d %d %d\n", s->targetname, s->soundPath, s->pos.x, s->pos.y, s->pos.z, s->volume, s->pitch, s->maxDistance, (int)s->is_looping, (int)s->play_on_start, (int)s->isGlobal);
         if (s->isGrouped && s->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", s->groupName);
     }
     fprintf(file, "\n");

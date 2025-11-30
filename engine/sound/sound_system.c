@@ -557,6 +557,24 @@ void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop) {
     }
 }
 
+void SoundSystem_SetSourceIsGlobal(unsigned int sourceID, bool is_global) {
+    if (sourceID == 0) return;
+
+    alSourcei(sourceID, AL_SOURCE_RELATIVE, is_global ? AL_TRUE : AL_FALSE);
+
+    if (is_global) {
+        alSource3f(sourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
+    }
+
+    ALuint wetSourceID = find_wet_source(sourceID);
+    if (wetSourceID != 0) {
+        alSourcei(wetSourceID, AL_SOURCE_RELATIVE, is_global ? AL_TRUE : AL_FALSE);
+        if (is_global) {
+            alSource3f(wetSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
+        }
+    }
+}
+
 void SoundSystem_SetMasterVolume(float volume) {
     if (volume < 0.0f) volume = 0.0f;
     if (volume > 4.0f) volume = 4.0f;
