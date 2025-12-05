@@ -236,9 +236,9 @@ vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec
         return texCoords;
     }
 
-    const float MAX_INITIAL_STEPS = 8.0;
+    const float MAX_INITIAL_STEPS = 12.0;
     const float MIN_INITIAL_STEPS = 1.0;
-    const int REFINEMENT_STEPS = 4;
+    const int REFINEMENT_STEPS = 6;
 
     float numLayers = mix(MAX_INITIAL_STEPS, MIN_INITIAL_STEPS, distanceFade);
     numLayers = mix(numLayers, MIN_INITIAL_STEPS, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
