@@ -55,6 +55,7 @@ void Cmd_Edit(int argc, char** argv) {
     if (g_current_mode == MODE_GAME) {
         g_last_water_cvar_state = Cvar_GetInt("r_water");
         Cvar_Set("r_water", "0");
+        g_engine->flashlight_on = false;
         g_pending_mode_transition = TRANSITION_TO_EDITOR;
     }
     else if (g_current_mode == MODE_EDITOR) {
