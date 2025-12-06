@@ -34,9 +34,6 @@
 
 #ifdef __cplusplus
     using namespace std;
-#endif
-
-#ifdef __cplusplus
     extern "C" {
 #endif
 
