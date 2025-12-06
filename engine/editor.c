@@ -7002,6 +7002,10 @@ static void Editor_RenderStatusBar()
     UI_SameLine(0, 20.0f);
     UI_SeparatorEx(1 << 1);
     UI_SameLine(0, 20.0f);
+    UI_Text("Speed: %.1f", g_EditorState.editor_camera_speed);
+    UI_SameLine(0, 20.0f);
+    UI_SeparatorEx(1 << 1);
+    UI_SameLine(0, 20.0f);
 
     UI_Text("Snap: %s", g_EditorState.snap_to_grid ? "On" : "Off");
     UI_SameLine(0, 20.0f);
