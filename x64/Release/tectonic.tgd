@@ -198,6 +198,7 @@
 @SolidClass = func_water
 [
     water_def(string) : "Water Definition" = "default_water"
+    uv_scale(float) : "Texture Scale (0 for auto)" = "0.0"
 ]
 
 @SolidClass = func_reflective_glass

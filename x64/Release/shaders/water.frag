@@ -30,6 +30,7 @@ uniform int u_fogEnabled;
 uniform vec3 u_fogColor;
 uniform float u_fogStart;
 uniform float u_fogEnd;
+uniform float u_uv_scale;
 
 struct ShaderLight {
     vec4 position;
@@ -144,11 +145,16 @@ vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
 }
 
 void main() {
-    vec2 waterUv = (FragPos_world.xz - u_waterAabbMin.xz) / (u_waterAabbMax.xz - u_waterAabbMin.xz);
+    vec2 base_uv;
+    if (u_uv_scale > 0.0) {
+        base_uv = FragPos_world.xz / u_uv_scale;
+    } else {
+        base_uv = (FragPos_world.xz - u_waterAabbMin.xz) / (u_waterAabbMax.xz - u_waterAabbMin.xz);
+    }
     vec2 flowDirection = vec2(0.0);
-    vec2 texCoord = waterUv;
+    vec2 texCoord = base_uv;
     if (useFlowMap) {
-        flowDirection = (texture(flowMap, waterUv).xy * 2.0 - 1.0);
+        flowDirection = (texture(flowMap, base_uv).xy * 2.0 - 1.0);
         texCoord += flowDirection * time * flowSpeed;
     }
 

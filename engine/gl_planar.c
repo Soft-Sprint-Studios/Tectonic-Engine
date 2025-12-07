@@ -164,6 +164,9 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
         WaterDef* water_def = WaterManager_FindWaterDef(water_def_name);
         if (!water_def) continue;
 
+        float uv_scale = atof(Brush_GetProperty(b, "uv_scale", "0.0"));
+        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_uv_scale"), uv_scale);
+
         Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
         if (b->numVertices > 0) {
