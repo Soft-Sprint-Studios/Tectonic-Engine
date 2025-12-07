@@ -176,12 +176,12 @@ void main() {
     vec3 reflectionColor = 2.0 * texture(reflectionTexture, clamp(reflectTexCoords, 0.0, 1.0)).rgb;
     vec3 baseWaterColor = reflectionColor;
 
-    vec3 ambient = 0.05 * baseWaterColor;
+    vec3 ambient = baseWaterColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     vec3 bakedDiffuse = vec3(0.0);
     vec3 bakedSpecular = vec3(0.0);
-    float shininess = 128.0;
+    float shininess = 512.0;
     float specularStrength = 3.0;
 
     if (useLightmap) {
