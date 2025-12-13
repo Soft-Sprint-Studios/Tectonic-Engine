@@ -33,7 +33,7 @@ extern "C" {
 
 #define BLOOM_DOWNSAMPLE 2
 #define SSAO_DOWNSAMPLE 2
-#define VOLUMETRIC_DOWNSAMPLE 4
+#define VOLUMETRIC_DOWNSAMPLE 2
 
 void Renderer_Init(Renderer* renderer, Engine* engine);
 void Renderer_Shutdown(Renderer* renderer);
