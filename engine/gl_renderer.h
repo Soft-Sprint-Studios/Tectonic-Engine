@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-#define BLOOM_DOWNSAMPLE 8
+#define BLOOM_DOWNSAMPLE 2
 #define SSAO_DOWNSAMPLE 2
 #define VOLUMETRIC_DOWNSAMPLE 4
 
