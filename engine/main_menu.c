@@ -40,9 +40,6 @@
 #include <sys/stat.h>
 #endif
 
-void Cmd_SaveGame(int argc, char** argv);
-void Cmd_LoadGame(int argc, char** argv);
-
 static VideoPlayer g_background_video;
 static bool g_has_background_video = false;
 bool g_show_options_menu = false;
