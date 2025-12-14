@@ -566,7 +566,7 @@ extern "C" {
         }
     }
 
-    PHYSICS_API bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance) {
+    bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance) {
         if (!handle || !bodyHandle) return false;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
