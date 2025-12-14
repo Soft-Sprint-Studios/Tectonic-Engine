@@ -1960,13 +1960,6 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 source_tex = g_renderer.postProcessTexture;
             }
 
-            if (Cvar_GetInt("r_motionblur")) {
-                GLuint target_fbo = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.postProcessFBO : g_renderer.finalRenderFBO;
-                MiscRender_MotionBlurPass(&g_renderer, source_tex, target_fbo);
-                source_fbo = target_fbo;
-                source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
-            }
-
             bool debug_view_active = false;
             if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
             else if (Cvar_GetInt("r_debug_normals")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gNormal, 5); debug_view_active = true; }

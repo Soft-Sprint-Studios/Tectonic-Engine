@@ -42,7 +42,6 @@ static float parallaxRoomVertices[] = {
 
 void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine);
 void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO);
-void MiscRender_MotionBlurPass(Renderer* renderer, GLuint sourceTexture, GLuint destFBO);
 void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 void MiscRender_SaveScreenshot(Engine* engine, const char* filepath);

@@ -241,7 +241,6 @@ extern "C" {
         GLuint modelShadowShader;
         GLuint histogramSSBO;
         GLuint exposureSSBO;
-        GLuint motionBlurShader;
         GLuint waterShader;
         GLuint reflectiveGlassShader;
         GLuint parallaxInteriorShader;

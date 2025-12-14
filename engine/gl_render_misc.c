@@ -70,26 +70,6 @@ void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void MiscRender_MotionBlurPass(Renderer* renderer, GLuint sourceTexture, GLuint destFBO) {
-    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(renderer->motionBlurShader);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sourceTexture);
-    glUniform1i(glGetUniformLocation(renderer->motionBlurShader, "sceneTexture"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, renderer->gVelocity);
-    glUniform1i(glGetUniformLocation(renderer->motionBlurShader, "velocityTexture"), 1);
-
-    glBindVertexArray(renderer->quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
     glUseProgram(renderer->parallaxInteriorShader);
     glUniformMatrix4fv(glGetUniformLocation(renderer->parallaxInteriorShader, "view"), 1, GL_FALSE, view->m);

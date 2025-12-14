@@ -148,8 +148,6 @@ static void MainMenu_RenderOptionsMenu() {
                 if (UI_Checkbox("Volumetric Lighting", &volumetrics)) { Cvar_Set("r_volumetrics", volumetrics ? "1" : "0"); }
                 bool relief = Cvar_GetInt("r_relief_mapping");
                 if (UI_Checkbox("Relief Mapping", &relief)) { Cvar_Set("r_relief_mapping", relief ? "1" : "0"); }
-                bool motionblur = Cvar_GetInt("r_motionblur");
-                if (UI_Checkbox("Motion Blur", &motionblur)) { Cvar_Set("r_motionblur", motionblur ? "1" : "0"); }
                 bool dof = Cvar_GetInt("r_dof");
                 if (UI_Checkbox("Depth of Field", &dof)) { Cvar_Set("r_dof", dof ? "1" : "0"); }
                 UI_EndTabItem();

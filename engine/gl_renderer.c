@@ -61,7 +61,6 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     renderer->dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
     renderer->volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
     renderer->volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
-    renderer->motionBlurShader = createShaderProgram("shaders/motion_blur.vert", "shaders/motion_blur.frag");
     renderer->ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     renderer->ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     renderer->modelShadowShader = createShaderProgram("shaders/shadow_model.vert", "shaders/shadow_model.frag");
@@ -408,7 +407,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->histogramShader);
     glDeleteProgram(renderer->exposureShader);
     glDeleteProgram(renderer->modelShadowShader);
-    glDeleteProgram(renderer->motionBlurShader);
     glDeleteProgram(renderer->waterShader);
     glDeleteProgram(renderer->glassShader);
     glDeleteFramebuffers(1, &renderer->gBufferFBO);
