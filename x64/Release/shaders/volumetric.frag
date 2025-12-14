@@ -206,7 +206,12 @@ void main()
             float attenuation = 0.0;
             if (lightType == 0) {
                 float radius = lights[l].params1.x;
-                attenuation = pow(1.0 - clamp(distToLight / radius, 0.0, 1.0), 2.0);
+
+                float dist2 = distToLight * distToLight + 1e-4;
+                float invSq = 1.0 / dist2;
+                float range = clamp(1.0 - distToLight / radius, 0.0, 1.0);
+
+                attenuation = invSq * range * range;
             } else {
                 float lightCutOff = lights[l].params1.y;
                 float lightOuterCutOff = lights[l].params1.z;
@@ -217,7 +222,12 @@ void main()
                     float epsilon = lightCutOff - lightOuterCutOff;
                     float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
                     float radius = lights[l].params1.x;
-                    attenuation = cone_intensity * pow(1.0 - clamp(distToLight / radius, 0.0, 1.0), 2.0);
+                    float dist2 = distToLight * distToLight + 1e-4;
+                    float invSq = 1.0 / dist2;
+
+                    float range = clamp(1.0 - distToLight / radius, 0.0, 1.0);
+
+                    attenuation = cone_intensity * invSq * range * range;
                 }
             }
 
