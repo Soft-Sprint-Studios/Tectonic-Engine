@@ -1942,11 +1942,11 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             if (Cvar_GetInt("r_water")) {
                 Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
             }
+            MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
             if (Cvar_GetInt("r_ssr")) {
