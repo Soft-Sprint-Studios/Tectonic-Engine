@@ -208,7 +208,7 @@ void main()
                 float radius = lights[l].params1.x;
 
                 float dist2 = distToLight * distToLight + 1e-4;
-                float invSq = 1.0 / dist2;
+                float invSq = 1.0 / (dist2 + radius * radius * 0.25);
                 float range = clamp(1.0 - distToLight / radius, 0.0, 1.0);
 
                 attenuation = invSq * range * range;
@@ -223,7 +223,7 @@ void main()
                     float cone_intensity = clamp((theta - lightOuterCutOff) / epsilon, 0.0, 1.0);
                     float radius = lights[l].params1.x;
                     float dist2 = distToLight * distToLight + 1e-4;
-                    float invSq = 1.0 / dist2;
+                    float invSq = 1.0 / (dist2 + radius * radius * 0.25);
 
                     float range = clamp(1.0 - distToLight / radius, 0.0, 1.0);
 
@@ -232,10 +232,17 @@ void main()
             }
 
             if (attenuation > 0.0) {
-                float scattering = ComputeScattering(dot(rayDirection, -lightDir));
+                float phaseHG = ComputeScattering(dot(rayDirection, -lightDir));
+                float phaseIso = 1.0 / (4.0 * PI);
+
+                float phase = mix(phaseIso, phaseHG, 0.7);
+
                 vec3 lightColor = lights[l].color.rgb;
                 float lightIntensity = lights[l].color.a;
-                accumFog += scattering * lightColor * lightIntensity * volumetricIntensity * lightVisibility * attenuation * stepLength;
+
+                accumFog += phase * lightColor * lightIntensity *
+                    volumetricIntensity * lightVisibility *
+                    attenuation * stepLength;
             }
         }
         currentPosition += step;
