@@ -4,7 +4,7 @@ The Tectonic Engine uses the **glTF 2.0** format for 3D models, providing a mode
 
 ## Supported Formats
 
-`.gltf` (JSON-based) is supported.
+`.glb` is supported.
 
 ## File Location
 
