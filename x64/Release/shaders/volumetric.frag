@@ -40,7 +40,7 @@ uniform sampler2D sunShadowMap;
 uniform mat4 sunLightSpaceMatrix;
 
 const float PI = 3.14159265359;
-const float G_SCATTERING = 0.4;
+const float G_SCATTERING = 0.0;
 const int NB_STEPS = 1024;
 
 float dither[16] = float[](
@@ -235,7 +235,7 @@ void main()
                 float phaseHG = ComputeScattering(dot(rayDirection, -lightDir));
                 float phaseIso = 1.0 / (4.0 * PI);
 
-                float phase = mix(phaseIso, phaseHG, 0.7);
+                float phase = mix(phaseIso, phaseHG, 0.1); 
 
                 vec3 lightColor = lights[l].color.rgb;
                 float lightIntensity = lights[l].color.a;
