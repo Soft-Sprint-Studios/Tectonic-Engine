@@ -8190,7 +8190,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Radius");
         }
 
-        UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 20.0f);
+        UI_DragFloat("Volumetric Intensity", &light->volumetricIntensity, 0.05f, 0.0f, 10.0f);
         if (UI_IsItemActivated()) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
         }
@@ -8498,7 +8498,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Checkbox("Enabled##Sun", &scene->sun.enabled);
         UI_ColorEdit3("Color##Sun", &scene->sun.color.x);
         UI_DragFloat("Intensity##Sun", &scene->sun.intensity, 0.05f, 0.0f, 100.0f);
-        UI_DragFloat("Volumetric Intensity##Sun", &scene->sun.volumetricIntensity, 0.05f, 0.0f, 20.0f);
+        UI_DragFloat("Volumetric Intensity##Sun", &scene->sun.volumetricIntensity, 0.05f, 0.0f, 10.0f);
         UI_DragFloat3("Direction##Sun", &scene->sun.direction.x, 0.01f, -1.0f, 1.0f);
 
         UI_Separator();

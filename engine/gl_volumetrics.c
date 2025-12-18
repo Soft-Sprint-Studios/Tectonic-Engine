@@ -79,7 +79,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
         glUniform3fv(glGetUniformLocation(renderer->volumetricShader, "sun.direction"), 1, &scene->sun.direction.x);
         glUniform3fv(glGetUniformLocation(renderer->volumetricShader, "sun.color"), 1, &scene->sun.color.x);
         glUniform1f(glGetUniformLocation(renderer->volumetricShader, "sun.intensity"), scene->sun.intensity);
-        glUniform1f(glGetUniformLocation(renderer->volumetricShader, "sun.volumetricIntensity"), scene->sun.volumetricIntensity / 100.0f);
+        glUniform1f(glGetUniformLocation(renderer->volumetricShader, "sun.volumetricIntensity"), scene->sun.volumetricIntensity);
     }
 
     glActiveTexture(GL_TEXTURE0);

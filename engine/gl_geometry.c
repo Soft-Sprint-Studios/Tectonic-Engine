@@ -418,7 +418,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         shader_light->params1.z = light->outerCutOff;
         shader_light->params2.x = light->shadowFarPlane;
         shader_light->params2.y = light->shadowBias;
-        shader_light->params2.z = light->volumetricIntensity / 100.0f;
+        shader_light->params2.z = light->volumetricIntensity;
         shader_light->shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
         shader_light->shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
         if (light->cookieMapHandle != 0) {
