@@ -608,8 +608,6 @@ void init_commands() {
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
     Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
     Commands_Register("pos", Cmd_PlayerPosition, "Position of the player in the world.", CMD_NONE);
-
-    Console_Printf("Engine commands registered.");
 }
 
 void PrintSystemInfo() {
