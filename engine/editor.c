@@ -1018,7 +1018,6 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     memcpy(new_vp, src_vp, sizeof(VideoPlayer));
     sprintf(new_vp->targetname, "Video_%d", scene->numVideoPlayers);
     new_vp->plm = NULL;
-    new_vp->textureID = 0;
     new_vp->audioSource = 0;
     new_vp->pos.x += 1.0f;
     VideoPlayer_Load(new_vp);
@@ -8342,10 +8341,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_Button("Stop")) { VideoPlayer_Stop(vp); }
         UI_SameLine();
         if (UI_Button("Restart")) { VideoPlayer_Restart(vp); }
-
-        if (vp->textureID != 0) {
-            UI_Image((void*)(intptr_t)vp->textureID, 256, 144);
-        }
     }
     else if (primary && primary->type == ENTITY_PARALLAX_ROOM) {
         ParallaxRoom* p = &scene->parallaxRooms[primary->index];

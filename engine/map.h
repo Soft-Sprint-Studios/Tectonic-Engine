@@ -440,10 +440,11 @@ extern "C" {
         VideoPlayerState state;
 
         plm_t* plm;
-        GLuint textureID;
+        GLuint textureY;
+        GLuint textureCb;
+        GLuint textureCr;
         ALuint audioSource;
         ALuint audioBuffers[4];
-        uint8_t* rgb_buffer;
         double time;
         double nextFrameTime;
         bool isGrouped;

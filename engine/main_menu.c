@@ -474,7 +474,7 @@ void MainMenu_Render() {
     glUniformMatrix4fv(glGetUniformLocation(g_menu_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
 
     if (g_has_background_video) {
-        render_textured_quad(g_background_video.textureID, 0, 0, g_screen_width, g_screen_height, (SDL_Color) { 255, 255, 255, 255 }, 0.0f);
+        VideoPlayer_Render2D(&g_background_video, 0, 0, (float)g_screen_width, (float)g_screen_height, g_screen_width, g_screen_height);
     }
 
     if (!g_is_in_game_menu) {

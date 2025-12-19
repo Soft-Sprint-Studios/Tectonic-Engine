@@ -45,6 +45,7 @@ extern "C" {
 	void VideoPlayer_Stop(VideoPlayer* vp);
 	void VideoPlayer_Restart(VideoPlayer* vp);
 	void VideoPlayer_Update(VideoPlayer* vp, float deltaTime);
+	void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH);
 
 #ifdef __cplusplus
 }

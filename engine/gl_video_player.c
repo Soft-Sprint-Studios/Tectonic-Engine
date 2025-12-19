@@ -81,16 +81,33 @@ void VideoPlayer_Load(VideoPlayer* vp) {
 
     int width = plm_get_width(vp->plm);
     int height = plm_get_height(vp->plm);
-    vp->rgb_buffer = (uint8_t*)malloc(width * height * 3);
-
     vp->time = 0;
     vp->nextFrameTime = 0;
 
-    glGenTextures(1, &vp->textureID);
-    glBindTexture(GL_TEXTURE_2D, vp->textureID);
+    glGenTextures(1, &vp->textureY);
+    glBindTexture(GL_TEXTURE_2D, vp->textureY);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, plm_get_width(vp->plm), plm_get_height(vp->plm), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+
+    glGenTextures(1, &vp->textureCb);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCb);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+
+    glGenTextures(1, &vp->textureCr);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
     alGenSources(1, &vp->audioSource);
@@ -106,14 +123,9 @@ void VideoPlayer_Free(VideoPlayer* vp) {
         plm_destroy(vp->plm);
         vp->plm = NULL;
     }
-    if (vp->rgb_buffer) {
-        free(vp->rgb_buffer);
-        vp->rgb_buffer = NULL;
-    }
-    if (vp->textureID) {
-        glDeleteTextures(1, &vp->textureID);
-        vp->textureID = 0;
-    }
+    if (vp->textureY) { glDeleteTextures(1, &vp->textureY); vp->textureY = 0; }
+    if (vp->textureCb) { glDeleteTextures(1, &vp->textureCb); vp->textureCb = 0; }
+    if (vp->textureCr) { glDeleteTextures(1, &vp->textureCr); vp->textureCr = 0; }
     if (vp->audioSource) {
         alSourceStop(vp->audioSource);
         alDeleteSources(1, &vp->audioSource);
@@ -153,12 +165,18 @@ void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
     if (vp->time >= vp->nextFrameTime) {
         plm_frame_t* vframe = plm_decode_video(vp->plm);
         if (vframe) {
-            plm_frame_to_rgb(vframe, vp->rgb_buffer, vframe->width * 3);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-            glBindTexture(GL_TEXTURE_2D, vp->textureID);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width, vframe->height,
-                GL_RGB, GL_UNSIGNED_BYTE, vp->rgb_buffer);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            glBindTexture(GL_TEXTURE_2D, vp->textureY);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width, vframe->height, GL_RED, GL_UNSIGNED_BYTE, vframe->y.data);
+
+            glBindTexture(GL_TEXTURE_2D, vp->textureCb);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width / 2, vframe->height / 2, GL_RED, GL_UNSIGNED_BYTE, vframe->cb.data);
+
+            glBindTexture(GL_TEXTURE_2D, vp->textureCr);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, vframe->width / 2, vframe->height / 2, GL_RED, GL_UNSIGNED_BYTE, vframe->cr.data);
+
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
             double frameDuration = 1.0 / plm_get_framerate(vp->plm);
             vp->nextFrameTime += frameDuration;
@@ -183,7 +201,7 @@ void VideoPlayer_UpdateAll(Scene* scene, float deltaTime) {
 }
 
 void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
-    if (!vp || vp->state == VP_STOPPED || vp->textureID == 0) return;
+    if (!vp || vp->state == VP_STOPPED || vp->textureY == 0) return;
 
     glUseProgram(video_shader);
 
@@ -194,10 +212,64 @@ void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
     glUniformMatrix4fv(glGetUniformLocation(video_shader, "projection"), 1, GL_FALSE, projection->m);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, vp->textureID);
-    glUniform1i(glGetUniformLocation(video_shader, "videoTexture"), 0);
+    glBindTexture(GL_TEXTURE_2D, vp->textureY);
+    glUniform1i(glGetUniformLocation(video_shader, "texY"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCb);
+    glUniform1i(glGetUniformLocation(video_shader, "texCb"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCr);
+    glUniform1i(glGetUniformLocation(video_shader, "texCr"), 2);
 
     glBindVertexArray(video_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+}
+
+void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH) {
+    if (!vp || vp->state == VP_STOPPED || vp->textureY == 0) return;
+
+    glUseProgram(video_shader);
+
+    glDisable(GL_DEPTH_TEST);
+
+    Mat4 projection = mat4_ortho(0.0f, (float)screenW, (float)screenH, 0.0f, -1.0f, 1.0f);
+    Mat4 view;
+    mat4_identity(&view);
+
+    Mat4 model = create_trs_matrix(
+        (Vec3) {
+        x + w * 0.5f, y + h * 0.5f, 0.0f
+    },
+        (Vec3) {
+        0.0f, 0.0f, 0.0f
+    },
+        (Vec3) {
+        w, -h, 1.0f
+    }
+    );
+
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "model"), 1, GL_FALSE, model.m);
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "view"), 1, GL_FALSE, view.m);
+    glUniformMatrix4fv(glGetUniformLocation(video_shader, "projection"), 1, GL_FALSE, projection.m);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, vp->textureY);
+    glUniform1i(glGetUniformLocation(video_shader, "texY"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCb);
+    glUniform1i(glGetUniformLocation(video_shader, "texCb"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, vp->textureCr);
+    glUniform1i(glGetUniformLocation(video_shader, "texCr"), 2);
+
+    glBindVertexArray(video_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    glEnable(GL_DEPTH_TEST);
 }
