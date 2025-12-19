@@ -543,6 +543,7 @@ void init_cvars() {
     Cvar_Register("r_showgraph", "0", "Show framerate graph (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_speeds", "0", "Show rendering statistics (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("show_pos", "0", "Show player position (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("show_health", "1", "Show player health (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show albedo buffer (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_normals", "0", "Show normals buffer (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_position", "0", "Show position buffer (0=off, 1=on)", CVAR_NONE);

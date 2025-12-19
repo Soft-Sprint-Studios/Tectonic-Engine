@@ -268,6 +268,7 @@ extern "C" {
     void UI_RenderGameHUD(int modelsDrawn, int totalModels, int brushesDrawn, int totalBrushes, float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size) {
         bool show_fps = Cvar_GetInt("show_fps");
         bool show_pos = Cvar_GetInt("show_pos");
+        bool show_health = Cvar_GetInt("show_health");
         bool show_crosshair = Cvar_GetInt("crosshair");
         bool show_graph = Cvar_GetInt("r_showgraph");
         bool show_watermark = Cvar_GetInt("watermark");
@@ -288,7 +289,9 @@ extern "C" {
                 if (show_pos) {
                     ImGui::Text("Pos: %.2f, %.2f, %.2f", px, py, pz);
                 }
-                ImGui::Text("Health: %.0f", health);
+                if (show_health) {
+                    ImGui::Text("Health: %.0f", health);
+                }
                 if (radiation > 0.1f) {
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 1.0f, 0.6f, 1.0f));
                     ImGui::Text("RAD: %.1f | RAD/s: %.2f", radiation, rads_per_second);
