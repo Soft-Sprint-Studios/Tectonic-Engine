@@ -46,6 +46,7 @@ extern LEVEL1_API bool g_start_with_console;
 extern LEVEL1_API bool g_dev_mode_requested;
 extern LEVEL1_API int g_startup_width;
 extern LEVEL1_API int g_startup_height;
+extern LEVEL1_API bool g_allow_multiple_instances;
 
 LEVEL1_API void GameConfig_Init(void);
 LEVEL1_API const GameConfig* GameConfig_Get(void);

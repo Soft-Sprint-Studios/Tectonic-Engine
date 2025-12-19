@@ -33,6 +33,7 @@ bool g_start_fullscreen = false;
 bool g_start_windowed = false;
 bool g_start_with_console = false;
 bool g_dev_mode_requested = false;
+bool g_allow_multiple_instances = false;
 int g_startup_width = 1920;
 int g_startup_height = 1080;
 
@@ -118,6 +119,9 @@ public:
             }
             else if (_stricmp(argv[i], "-h") == 0 && i + 1 < argc) {
                 g_startup_height = atoi(argv[++i]);
+            }
+            else if (_stricmp(argv[i], "-allowmultiple") == 0) {
+                g_allow_multiple_instances = true;
             }
         }
     }
