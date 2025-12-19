@@ -2094,6 +2094,28 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 &is_on_int
             );
 
+            if (items_scanned < 26) {
+                is_on_int = (light->base_intensity > 0.0f);
+                sscanf(line,
+                    "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"",
+                    light->targetname,
+                    &type_int,
+                    &light->position.x, &light->position.y, &light->position.z,
+                    &light->rot.x, &light->rot.y, &light->rot.z,
+                    &light->color.x, &light->color.y, &light->color.z,
+                    &light->base_intensity,
+                    &light->radius,
+                    &light->cutOff, &light->outerCutOff,
+                    &light->shadowFarPlane, &light->shadowBias,
+                    &light->volumetricIntensity,
+                    &preset_int, &is_static_int,
+                    light->cookiePath
+                );
+                is_static_shadow_int = 0;
+                light->width = 0.0f;
+                light->height = 0.0f;
+            }
+
             light->preset = preset_int;
             light->type = (LightType)type_int;
             light->is_on = (bool)is_on_int;
