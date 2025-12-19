@@ -498,7 +498,7 @@ void process_input() {
         const Uint8* state = SDL_GetKeyboardState(NULL);
 
         bool noclip = Cvar_GetInt("noclip");
-        float speed = (noclip ? 10.0f : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
+        float speed = (noclip ? Cvar_GetFloat("g_noclip_speed") : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
 
         if (g_player_input_disabled) {
             if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });

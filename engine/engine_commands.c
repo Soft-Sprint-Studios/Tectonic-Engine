@@ -561,6 +561,7 @@ void init_cvars() {
     Cvar_Register("r_texture_quality", "5", "Texture quality (1=very low to 5=very high)", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "Vertical field of view (degrees)", CVAR_NONE);
     Cvar_Register("g_speed", "6.0", "Player walking speed", CVAR_NONE);
+    Cvar_Register("g_noclip_speed", "20.0", "Noclip speed", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration", CVAR_NONE);
     Cvar_Register("g_friction", "2.0", "Player friction", CVAR_NONE);
