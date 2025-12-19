@@ -537,9 +537,14 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glDepthMask(GL_FALSE);
 
     if (Cvar_GetInt("r_particles")) {
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        float scrW = (float)(engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+        float scrH = (float)(engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+
         for (int i = 0; i < scene->numParticleEmitters; ++i) {
-            ParticleEmitter_Render(&scene->particleEmitters[i], *view, *projection);
+            ParticleEmitter_Render(&scene->particleEmitters[i], *view, *projection, renderer->gPosition, scrW, scrH);
         }
+        glDrawBuffers(7, attachments);
     }
     if (Cvar_GetInt("r_sprites")) {
         Sprites_Render(renderer, scene, view, projection);

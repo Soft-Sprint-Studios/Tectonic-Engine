@@ -56,6 +56,7 @@ struct ParticleProperties {
     float angleVariation;
     float startAngularVelocity;
     float angularVelocityVariation;
+    float softness;
     std::string texture;
     Vec3_t gravity;
     Vec4_t startColor;
@@ -73,6 +74,7 @@ Fl_Float_Input* g_lifetimeInput = nullptr;
 Fl_Float_Input* g_lifetimeVarInput = nullptr;
 Fl_Float_Input* g_startSizeInput = nullptr;
 Fl_Float_Input* g_endSizeInput = nullptr;
+Fl_Float_Input* g_softnessInput = nullptr;
 Fl_Float_Input* g_startAngleInput = nullptr;
 Fl_Float_Input* g_angleVarInput = nullptr;
 Fl_Float_Input* g_startAngVelInput = nullptr;
@@ -122,6 +124,7 @@ void update_ui_from_props() {
     static char buffer[32];
     snprintf(buffer, sizeof(buffer), "%d", g_currentProps.maxParticles); g_maxParticlesInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.spawnRate); g_spawnRateInput->value(buffer);
+    snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.softness); g_softnessInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.lifetime); g_lifetimeInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.lifetimeVariation); g_lifetimeVarInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.startSize); g_startSizeInput->value(buffer);
@@ -162,6 +165,7 @@ void update_props_from_ui() {
     g_currentProps.texture = g_textureInput->value();
     g_currentProps.maxParticles = atoi(g_maxParticlesInput->value());
     g_currentProps.spawnRate = atof(g_spawnRateInput->value());
+    g_currentProps.softness = atof(g_softnessInput->value());
     g_currentProps.lifetime = atof(g_lifetimeInput->value());
     g_currentProps.lifetimeVariation = atof(g_lifetimeVarInput->value());
     g_currentProps.startSize = atof(g_startSizeInput->value());
@@ -200,6 +204,7 @@ void new_file() {
     g_currentProps = {};
     g_currentProps.maxParticles = 1000;
     g_currentProps.spawnRate = 100.0f;
+    g_currentProps.softness = 1.0f;
     g_currentProps.lifetime = 2.0f;
     g_currentProps.startColor = {1.0f, 1.0f, 1.0f, 1.0f};
     g_currentProps.endColor = {1.0f, 1.0f, 1.0f, 0.0f};
@@ -221,6 +226,7 @@ bool save_file(const std::string& path) {
 
     file << "maxParticles " << g_currentProps.maxParticles << "\n";
     file << "spawnRate " << g_currentProps.spawnRate << "\n";
+    file << "softness " << g_currentProps.softness << "\n";
     file << "lifetime " << g_currentProps.lifetime << "\n";
     file << "lifetimeVariation " << g_currentProps.lifetimeVariation << "\n";
     file << "startSize " << g_currentProps.startSize << "\n";
@@ -262,6 +268,7 @@ void open_file(const std::string& path) {
 
         if (key == "maxParticles") ss >> g_currentProps.maxParticles;
         else if (key == "spawnRate") ss >> g_currentProps.spawnRate;
+        else if (key == "softness") ss >> g_currentProps.softness;
         else if (key == "lifetime") ss >> g_currentProps.lifetime;
         else if (key == "lifetimeVariation") ss >> g_currentProps.lifetimeVariation;
         else if (key == "startSize") ss >> g_currentProps.startSize;
@@ -404,6 +411,7 @@ int main(int argc, char** argv) {
             g_maxParticlesInput = new Fl_Int_Input(150, 105, 100, 25, "Max Particles");
             g_spawnRateInput = new Fl_Float_Input(150, 135, 100, 25, "Spawn Rate");
             g_additiveBlendCheck = new Fl_Check_Button(150, 165, 150, 25, "Additive Blending");
+            g_softnessInput = new Fl_Float_Input(150, 195, 100, 25, "Softness");
         }
         generalGroup->end();
 
@@ -460,6 +468,7 @@ int main(int argc, char** argv) {
     g_textureInput->callback(mark_dirty_cb);
     g_maxParticlesInput->callback(mark_dirty_cb);
     g_spawnRateInput->callback(mark_dirty_cb);
+    g_softnessInput->callback(mark_dirty_cb);
     g_lifetimeInput->callback(mark_dirty_cb);
     g_lifetimeVarInput->callback(mark_dirty_cb);
     g_startSizeInput->callback(mark_dirty_cb);

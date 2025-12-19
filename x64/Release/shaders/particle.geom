@@ -10,6 +10,7 @@ in VStoGS {
 
 out vec2 TexCoords;
 out vec4 ParticleColor;
+out float ParticleViewZ;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -33,21 +34,28 @@ void main()
     vec3 p1 = pos + p_right * size * 0.5 - p_up * size * 0.5;
     vec3 p2 = pos - p_right * size * 0.5 + p_up * size * 0.5;
     vec3 p3 = pos + p_right * size * 0.5 + p_up * size * 0.5;
+	
+    vec4 viewPos = view * vec4(pos, 1.0);
+    float viewZ = viewPos.z;
     
     gl_Position = projection * view * vec4(p0, 1.0);
     TexCoords = vec2(0.0, 1.0);
+    ParticleViewZ = viewZ;
     EmitVertex();
 
     gl_Position = projection * view * vec4(p1, 1.0);
     TexCoords = vec2(1.0, 1.0);
+    ParticleViewZ = viewZ;
     EmitVertex();
 
     gl_Position = projection * view * vec4(p2, 1.0);
     TexCoords = vec2(0.0, 0.0);
+    ParticleViewZ = viewZ;
     EmitVertex();
 
     gl_Position = projection * view * vec4(p3, 1.0);
     TexCoords = vec2(1.0, 0.0);
+    ParticleViewZ = viewZ;
     EmitVertex();
     
     EndPrimitive();

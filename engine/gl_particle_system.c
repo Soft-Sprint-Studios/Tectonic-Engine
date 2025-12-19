@@ -42,6 +42,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
     ps->gravity = (Vec3){ 0.0f, -9.81f, 0.0f };
     ps->spawnRate = 100.0f;
     ps->lifetime = 2.0f;
+    ps->softness = 1.0f;
     ps->startColor = (Vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
     ps->endColor = (Vec4){ 1.0f, 1.0f, 1.0f, 0.0f };
     ps->startSize = 0.5f;
@@ -57,6 +58,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
 
         if (strcmp(key, "maxParticles") == 0) ps->maxParticles = atoi(value);
         else if (strcmp(key, "spawnRate") == 0) ps->spawnRate = atof(value);
+        else if (strcmp(key, "softness") == 0) ps->softness = atof(value);
         else if (strcmp(key, "lifetime") == 0) ps->lifetime = atof(value);
         else if (strcmp(key, "lifetimeVariation") == 0) ps->lifetimeVariation = atof(value);
         else if (strcmp(key, "startSize") == 0) ps->startSize = atof(value);
@@ -182,15 +184,24 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
     }
 }
 
-void ParticleEmitter_Render(ParticleEmitter* emitter, Mat4 view, Mat4 projection) {
+void ParticleEmitter_Render(ParticleEmitter* emitter, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight) {
     if (!emitter || !emitter->system || emitter->activeParticles == 0) return;
     ParticleSystem* ps = emitter->system;
     glUseProgram(ps->shader);
     glUniformMatrix4fv(glGetUniformLocation(ps->shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(ps->shader, "projection"), 1, GL_FALSE, projection.m);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ps->material->diffuseMap);
     glUniform1i(glGetUniformLocation(ps->shader, "particleTexture"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glUniform1i(glGetUniformLocation(ps->shader, "gPosition"), 1);
+
+    glUniform2f(glGetUniformLocation(ps->shader, "screenSize"), screenWidth, screenHeight);
+    glUniform1f(glGetUniformLocation(ps->shader, "softness"), ps->softness < 0.001f ? 0.001f : ps->softness);
+
     glBlendFunc(ps->blend_sfactor, ps->blend_dfactor);
     glBindVertexArray(emitter->vao);
     glDrawArrays(GL_POINTS, 0, emitter->activeParticles);

@@ -63,6 +63,7 @@ typedef struct {
     float angleVariation;
     float startAngularVelocity;
     float angularVelocityVariation;
+    float softness;
     Vec3 startVelocity;
     Vec3 velocityVariation;
     int maxParticles;
@@ -85,7 +86,7 @@ ParticleSystem* ParticleSystem_Load(const char* path);
 void ParticleSystem_Free(ParticleSystem* system);
 void ParticleEmitter_Init(struct ParticleEmitter* emitter, ParticleSystem* system, Vec3 position);
 void ParticleEmitter_Update(struct ParticleEmitter* emitter, float deltaTime);
-void ParticleEmitter_Render(struct ParticleEmitter* emitter, Mat4 view, Mat4 projection);
+void ParticleEmitter_Render(struct ParticleEmitter* emitter, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight);
 void ParticleEmitter_Free(struct ParticleEmitter* emitter);
 
 #ifdef __cplusplus
