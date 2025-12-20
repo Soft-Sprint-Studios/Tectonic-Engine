@@ -1082,6 +1082,7 @@ namespace
         Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
         Vec3 y_axis = { transform.m[4], transform.m[5], transform.m[6] };
+        Vec3 z_axis = { transform.m[8], transform.m[9], transform.m[10] };
         Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
         vec3_normalize(&normal);
 
@@ -1105,9 +1106,10 @@ namespace
                 float v = (static_cast<float>(y) + 0.5f) / lightmap_res;
 
                 float local_x = u - 0.5f;
-                float local_y = v - 0.5f;
+                float local_y = 0.5f - v;
 
                 Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
+                local_pos_on_quad = vec3_add(local_pos_on_quad, vec3_muls(z_axis, -0.5f));
                 Vec3 world_pos = vec3_add(decal.pos, local_pos_on_quad);
 
                 Vec3 sampling_pos = vec3_add(world_pos, vec3_muls(normal, SHADOW_BIAS));
