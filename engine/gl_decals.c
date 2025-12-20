@@ -85,7 +85,7 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
 
         glUniform2f(glGetUniformLocation(shader_program, "u_uvScale"), d->uv_scale.x, d->uv_scale.y);
         glUniform2f(glGetUniformLocation(shader_program, "u_uvOffset"), d->uv_offset.x, d->uv_offset.y);
-        glUniform1f(glGetUniformLocation(shader_program, "u_uvRotation"), d->uv_rotation * (3.14159265f / 180.0f));
+        glUniform1f(glGetUniformLocation(shader_program, "u_uvRotation"), d->uv_rotation * ((float)M_PI / 180.0f));
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);
