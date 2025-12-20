@@ -1,0 +1,11 @@
+"dev01"
+{
+    diffuse  = "dev01.png"
+	normal  = "dev01_normal.png"
+}
+
+"dev02"
+{
+    diffuse  = "dev02.png"
+	normal  = "dev02_normal.png"
+}

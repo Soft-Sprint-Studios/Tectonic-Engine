@@ -1,2 +1,0 @@
-startmap=level1.map
-gamename=prototype

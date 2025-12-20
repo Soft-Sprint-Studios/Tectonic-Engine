@@ -1,0 +1,2 @@
+startmap=start.map
+gamename=Game Template

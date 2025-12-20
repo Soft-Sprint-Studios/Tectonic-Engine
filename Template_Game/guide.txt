@@ -1,0 +1,4 @@
+Build Tectonic Engine
+move all dlls and exe into this folder
+move either "x64_dlls" or "x86_dlls" into here
+run launcher
