@@ -35,6 +35,10 @@ uniform mat4 model;
 uniform bool u_hasAnimation;
 uniform mat4 u_boneMatrices[128];
 uniform bool isBrush;
+uniform bool isDecal;
+uniform vec2 u_uvScale;
+uniform vec2 u_uvOffset;
+uniform float u_uvRotation;
 uniform vec4 clipPlane;
 
 uniform bool u_swayEnabled;
@@ -72,7 +76,20 @@ void main()
 
     mat4 finalModelMatrix = model * boneTransform;
     vs_out.worldPos = vec3(finalModelMatrix * vec4(finalPos, 1.0));
-    vs_out.texCoords = aTexCoords;
+    if (isDecal) {
+        vec2 uv = aTexCoords;
+
+        float c = cos(u_uvRotation);
+        float s = sin(u_uvRotation);
+
+        float u_trans = (uv.x * c - uv.y * s);
+        float v_trans = (uv.x * s + uv.y * c);
+
+        vs_out.texCoords.x = (u_trans / u_uvScale.x) + u_uvOffset.x;
+        vs_out.texCoords.y = (v_trans / u_uvScale.y) + u_uvOffset.y;
+    } else {
+        vs_out.texCoords = aTexCoords;
+    }
     vs_out.texCoords2 = aTexCoords2;
     vs_out.texCoords3 = aTexCoords3;
     vs_out.texCoords4 = aTexCoords4;

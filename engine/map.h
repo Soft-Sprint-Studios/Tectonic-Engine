@@ -62,7 +62,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 18
-#define MAP_VERSION 19
+#define MAP_VERSION 20
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -394,6 +394,9 @@ extern "C" {
         GLuint lightmapAtlas;
         GLuint directionalLightmapAtlas;
         float lightmap_scale;
+        Vec2 uv_offset;
+        Vec2 uv_scale;
+        float uv_rotation;
         bool isGrouped;
         char groupName[64];
     } Decal;

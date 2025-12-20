@@ -74,6 +74,7 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
     glUseProgram(shader_program);
     
     glUniform1i(glGetUniformLocation(shader_program, "isBrush"), 1);
+    glUniform1i(glGetUniformLocation(shader_program, "isDecal"), 1);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
     for (int i = 0; i < scene->numDecals; ++i) {
@@ -81,6 +82,10 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
 
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, d->modelMatrix.m);
         glUniform1f(glGetUniformLocation(shader_program, "heightScale"), 0.0f);
+
+        glUniform2f(glGetUniformLocation(shader_program, "u_uvScale"), d->uv_scale.x, d->uv_scale.y);
+        glUniform2f(glGetUniformLocation(shader_program, "u_uvOffset"), d->uv_offset.x, d->uv_offset.y);
+        glUniform1f(glGetUniformLocation(shader_program, "u_uvRotation"), d->uv_rotation * (3.14159265f / 180.0f));
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);
@@ -109,6 +114,7 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
     }
 
     glUniform1i(glGetUniformLocation(shader_program, "isBrush"), 0);
+    glUniform1i(glGetUniformLocation(shader_program, "isDecal"), 0);
     glUniform1i(glGetUniformLocation(shader_program, "useLightmap"), 0);
     glUniform1i(glGetUniformLocation(shader_program, "useDirectionalLightmap"), 0);
 

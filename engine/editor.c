@@ -7537,7 +7537,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
-        if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
+        if (UI_Button("Add Decal")) { if (scene->numDecals < MAX_DECALS) { Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name); 
+        d->uv_scale = (Vec2){ 1.0f, 1.0f }; d->uv_offset = (Vec2){ 0.0f, 0.0f }; d->uv_rotation = 0.0f;
+        d->lightmap_scale = 1.0f;
+        Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal"); } }
     }
     if (decal_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_DECAL, decal_to_delete, "Delete Decal"); _raw_delete_decal(scene, decal_to_delete); Editor_RemoveFromSelection(ENTITY_DECAL, decal_to_delete); }
     if (UI_CollapsingHeader("Sounds", 1)) {
@@ -8289,6 +8292,32 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_DragFloat("Lightmap Scale", &d->lightmap_scale, 0.125f, 0.125f, 16.0f)) {}
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal Lightmap Scale"); }
+
+        UI_Separator();
+        UI_Text("Texture Mapping");
+
+        UI_Text("Scale"); UI_SameLine(); UI_SetNextItemWidth(80);
+        if (UI_InputFloat("X##DScale", &d->uv_scale.x, 0.01f, 0.1f, "%.2f")) {}
+        if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
+        if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal UV Scale");
+        UI_SameLine(); UI_SetNextItemWidth(80);
+        if (UI_InputFloat("Y##DScale", &d->uv_scale.y, 0.01f, 0.1f, "%.2f")) {}
+        if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
+        if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal UV Scale");
+
+        UI_Text("Shift"); UI_SameLine(); UI_SetNextItemWidth(80);
+        if (UI_InputFloat("X##DShift", &d->uv_offset.x, 0.1f, 1.0f, "%.2f")) {}
+        if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
+        if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal UV Shift");
+        UI_SameLine(); UI_SetNextItemWidth(80);
+        if (UI_InputFloat("Y##DShift", &d->uv_offset.y, 0.1f, 1.0f, "%.2f")) {}
+        if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
+        if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal UV Shift");
+
+        UI_Text("Rotation"); UI_SameLine(); UI_SetNextItemWidth(172);
+        if (UI_DragFloat("##DRotation", &d->uv_rotation, 1.0f, -360.0f, 360.0f)) {}
+        if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index);
+        if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal UV Rotation");
 
         if (transform_changed) {
             Decal_UpdateMatrix(d);
