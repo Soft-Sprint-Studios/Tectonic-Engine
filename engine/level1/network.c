@@ -310,7 +310,7 @@ void Network_Init(void) {
 #ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        Console_Printf_Error("WSAStartup failed.\n");
+        Console_Printf_Error("[Network] ERROR: WSAStartup failed.\n");
     }
 #endif
     Console_Printf("Network System Initialized.\n");
