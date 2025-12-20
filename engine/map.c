@@ -2157,13 +2157,15 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 Decal* d = &scene->decals[scene->numDecals];
                 char mat_name[64];
                 memset(d, 0, sizeof(Decal));
+                d->lightmap_scale = 1.0f;
                 char* p = line + strlen(keyword);
                 while (*p && isspace(*p)) p++;
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { strncpy(mat_name, p, end - p); mat_name[end - p] = '\0'; p = end + 1; } }
                 else { char* end = p; while (*end && !isspace(*end)) end++; strncpy(mat_name, p, end - p); mat_name[end - p] = '\0'; p = end; }
                 while (*p && isspace(*p)) p++;
                 if (*p == '"') { p++; char* end = strchr(p, '"'); if (end) { strncpy(d->targetname, p, end - p); d->targetname[end - p] = '\0'; p = end + 1; } }
-                sscanf(p, "%f %f %f %f %f %f %f %f %f", &d->pos.x, &d->pos.y, &d->pos.z, &d->rot.x, &d->rot.y, &d->rot.z, &d->size.x, &d->size.y, &d->size.z);
+                sscanf(p, "%f %f %f %f %f %f %f %f %f %f", &d->pos.x, &d->pos.y, &d->pos.z, &d->rot.x, &d->rot.y, &d->rot.z, &d->size.x, &d->size.y, &d->size.z, &d->lightmap_scale);
+                if (d->lightmap_scale <= 0.0f) d->lightmap_scale = 1.0f;
                 d->material = TextureManager_FindMaterial(mat_name);
                 long current_pos = ftell(file); char next_line[256];
                 if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
@@ -2592,7 +2594,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     for (int i = 0; i < scene->numDecals; ++i) {
         Decal* d = &scene->decals[i];
         const char* mat_name = d->material ? d->material->name : "___MISSING___";
-        fprintf(file, "decal \"%s\" \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f\n", mat_name, d->targetname, d->pos.x, d->pos.y, d->pos.z, d->rot.x, d->rot.y, d->rot.z, d->size.x, d->size.y, d->size.z);
+        fprintf(file, "decal \"%s\" \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f\n", mat_name, d->targetname, d->pos.x, d->pos.y, d->pos.z, d->rot.x, d->rot.y, d->rot.z, d->size.x, d->size.y, d->size.z, d->lightmap_scale);
         if (d->isGrouped && d->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", d->groupName);
     }
     fprintf(file, "\n");

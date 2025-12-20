@@ -1077,7 +1077,8 @@ namespace
     void Lightmapper::process_decal(const DecalJobData& data)
     {
         const Decal& decal = m_scene->decals[data.decal_index];
-        int lightmap_res = m_resolution;
+        float scale = (decal.lightmap_scale > 0.0f) ? decal.lightmap_scale : 1.0f;
+        int lightmap_res = std::clamp(static_cast<int>(m_resolution / scale), 4, 4096);
 
         Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };

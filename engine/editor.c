@@ -8285,6 +8285,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Scale Decal"); }
 
+        UI_Separator();
+        if (UI_DragFloat("Lightmap Scale", &d->lightmap_scale, 0.125f, 0.125f, 16.0f)) {}
+        if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index); }
+        if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal Lightmap Scale"); }
+
         if (transform_changed) {
             Decal_UpdateMatrix(d);
         }
