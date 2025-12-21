@@ -112,7 +112,7 @@ void Light_InitShadowMap(Light* light) {
 }
 
 void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition) {
-    const float SUN_SHADOW_MAP_SIZE_F = 4096.0f;
+    const float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
 
     float shadowOrthoSize = Cvar_GetFloat("r_sun_shadow_distance");
 
@@ -1858,11 +1858,20 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
         else if (strcmp(keyword, "sun") == 0) {
             int enabled_int;
-            sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f", &enabled_int, &scene->sun.direction.x, &scene->sun.direction.y,
-                &scene->sun.direction.z, &scene->sun.color.x, &scene->sun.color.y, &scene->sun.color.z, &scene->sun.intensity,
-                &scene->sun.windDirection.x, &scene->sun.windDirection.y, &scene->sun.windDirection.z, &scene->sun.windStrength);
+            int args_count = sscanf(line, "%*s %d %f %f %f %f %f %f %f %f %f %f %f %f",
+                &enabled_int,
+                &scene->sun.direction.x, &scene->sun.direction.y, &scene->sun.direction.z,
+                &scene->sun.color.x, &scene->sun.color.y, &scene->sun.color.z,
+                &scene->sun.intensity,
+                &scene->sun.windDirection.x, &scene->sun.windDirection.y, &scene->sun.windDirection.z, &scene->sun.windStrength,
+                &scene->sun.volumetricIntensity);
+
             scene->sun.enabled = (bool)enabled_int;
             vec3_normalize(&scene->sun.direction);
+
+            if (args_count < 13) {
+                scene->sun.volumetricIntensity = 0.0f;
+            }
         }
         else if (strcmp(keyword, "color_correction") == 0) {
             int enabled_int = 0;
@@ -2527,13 +2536,14 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         (int)scene->post.invertEnabled, scene->post.invertStrength
     );
     fprintf(file, "skybox %d \"%s\"\n\n", (int)scene->use_cubemap_skybox, scene->skybox_path);
-    fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f   %.4f %.4f %.4f %.4f\n\n",
+    fprintf(file, "sun %d %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f   %.4f %.4f %.4f %.4f %.4f\n\n",
         (int)scene->sun.enabled,
         scene->sun.direction.x, scene->sun.direction.y, scene->sun.direction.z,
         scene->sun.color.x, scene->sun.color.y, scene->sun.color.z,
         scene->sun.intensity,
         scene->sun.windDirection.x, scene->sun.windDirection.y, scene->sun.windDirection.z,
-        scene->sun.windStrength);
+        scene->sun.windStrength,
+        scene->sun.volumetricIntensity);
     fprintf(file, "color_correction %d \"%s\"\n\n", (int)scene->colorCorrection.enabled, scene->colorCorrection.lutPath);
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
