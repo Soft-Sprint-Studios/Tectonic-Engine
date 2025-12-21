@@ -123,6 +123,16 @@ public:
             else if (_stricmp(argv[i], "-allowmultiple") == 0) {
                 g_allow_multiple_instances = true;
             }
+            else if (_stricmp(argv[i], "-high") == 0) {
+#ifdef PLATFORM_WINDOWS
+                SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+#endif
+            }
+            else if (_stricmp(argv[i], "-low") == 0) {
+#ifdef PLATFORM_WINDOWS
+                SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+#endif
+            }
         }
     }
 };

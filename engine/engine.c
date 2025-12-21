@@ -1785,16 +1785,6 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         if (_stricmp(argv[i], "-w") == 0 && i + 1 < argc) g_startup_width = atoi(argv[++i]);
         if (_stricmp(argv[i], "-h") == 0 && i + 1 < argc) g_startup_height = atoi(argv[++i]);
-        if (_stricmp(argv[i], "-high") == 0) {
-#ifdef PLATFORM_WINDOWS
-            SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-#endif
-        }
-        if (_stricmp(argv[i], "-low") == 0) {
-#ifdef PLATFORM_WINDOWS
-            SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
-#endif
-        }
     }
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
     SDL_GLContext context = SDL_GL_CreateContext(window);
