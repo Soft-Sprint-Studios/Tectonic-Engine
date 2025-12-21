@@ -31,11 +31,7 @@
 extern "C" {
 #endif
 
-#define SUN_SHADOW_MAP_SIZE 4096
-
-struct Engine;
-struct Scene;
-struct Renderer;
+#define SUN_SHADOW_MAP_SIZE 8192
 
 void Shadows_Init(Renderer* renderer);
 void Shadows_Shutdown(Renderer* renderer);
