@@ -1188,6 +1188,8 @@ namespace
             dir_data_u8[i * 4 + 3] = 255;
         }
 
+        apply_gaussian_blur(final_hdr_lightmap_data, lightmap_res, lightmap_res, 3);
+
         fs::path color_path = data.output_dir / "lightmap_color.hdr";
         stbi_write_hdr(color_path.string().c_str(), lightmap_res, lightmap_res, 3, final_hdr_lightmap_data.data());
 
