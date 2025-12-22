@@ -179,6 +179,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->red_flash_intensity = 0.0f;
     g_engine->prev_player_y_velocity = 0.0f;
     GameConfig_Init();
+    const GameConfig* config = GameConfig_Get();
+    if (strlen(config->gamename) > 0) {
+        SDL_SetWindowTitle(window, config->gamename);
+    }
     UI_Init(window, context);
     SoundSystem_Init();
     Cvar_Init();
