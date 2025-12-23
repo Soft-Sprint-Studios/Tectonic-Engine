@@ -40,7 +40,6 @@ uniform sampler2D sunShadowMap;
 uniform mat4 sunLightSpaceMatrix;
 
 const float PI = 3.14159265359;
-const float G_SCATTERING = 0.0;
 const int NB_STEPS = 1024;
 
 float dither[16] = float[](
@@ -49,13 +48,6 @@ float dither[16] = float[](
      3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
     15.0/16.0,  7.0/16.0, 13.0/16.0,  5.0/16.0
 );
-
-float ComputeScattering(float lightDotView)
-{
-    float g = G_SCATTERING;
-    float g2 = g*g;
-    return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * lightDotView, 1.5));
-}
 
 mat4 perspective(float fov, float aspect, float near, float far) {
     float f = 1.0 / tan(fov / 2.0);
@@ -168,8 +160,7 @@ void main()
 		if (sun.enabled && sun.volumetricIntensity > 0.0) {
             float sunVisibility = calculateSunShadow(currentPosition);
             if (sunVisibility > 0.0) {
-                float scattering = ComputeScattering(dot(rayDirection, -sun.direction));
-                accumFog += scattering * sun.color * sun.intensity * sun.volumetricIntensity * sunVisibility * stepLength;
+                accumFog += sun.color * sun.intensity * sun.volumetricIntensity * sunVisibility * stepLength;
             }
         }
 
@@ -232,15 +223,10 @@ void main()
             }
 
             if (attenuation > 0.0) {
-                float phaseHG = ComputeScattering(dot(rayDirection, -lightDir));
-                float phaseIso = 1.0 / (4.0 * PI);
-
-                float phase = mix(phaseIso, phaseHG, 0.1); 
-
                 vec3 lightColor = lights[l].color.rgb;
                 float lightIntensity = lights[l].color.a;
 
-                accumFog += phase * lightColor * lightIntensity *
+                accumFog += lightColor * lightIntensity *
                     volumetricIntensity * lightVisibility *
                     attenuation * stepLength;
             }
