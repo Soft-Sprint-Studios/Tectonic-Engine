@@ -492,6 +492,30 @@ void Cmd_PlayerPosition(int argc, char** argv) {
     }
 }
 
+void Cmd_HurtMe(int argc, char** argv) {
+    if (argc < 2) {
+        Console_Printf("Usage: hurtme <damage>");
+        return;
+    }
+
+    if (Cvar_GetInt("god")) {
+        Console_Printf("God Mode is enabled.");
+        return;
+    }
+
+    float damage = (float)atof(argv[1]);
+    g_engine->camera.health -= damage;
+}
+
+void Cmd_Kill(int argc, char** argv) {
+    if (Cvar_GetInt("god")) {
+        Console_Printf("God Mode is enabled.");
+        return;
+    }
+
+    g_engine->camera.health = 0.0f;
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -615,6 +639,8 @@ void init_commands() {
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
     Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
     Commands_Register("pos", Cmd_PlayerPosition, "Position of the player in the world.", CMD_NONE);
+    Commands_Register("hurtme", Cmd_HurtMe, "Hurts the player. Usage: hurtme <damage>", CMD_NONE);
+    Commands_Register("kill", Cmd_Kill, "Kills the player.", CMD_NONE);
 }
 
 void PrintSystemInfo() {
