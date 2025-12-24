@@ -349,10 +349,7 @@ void Cmd_Exec(int argc, char** argv) {
 }
 
 void Cmd_Version(int argc, char** argv) {
-    Console_Printf("Map Version: %d", MAP_VERSION);
     Console_Printf("Build: %d (%s, %s)", Compat_GetBuildNumber(), __DATE__, __TIME__);
-    Console_Printf("Architecture: %s", ARCH_STRING);
-    Console_Printf("Branch: %s", BRANCH_NAME);
 }
 
 void Cmd_SaveGame(int argc, char** argv) {
