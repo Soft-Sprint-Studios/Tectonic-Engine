@@ -54,6 +54,7 @@ extern EngineModeTransition g_pending_mode_transition;
 extern bool g_player_input_disabled;
 extern bool g_screenshot_requested;
 extern bool g_quit_requested;
+extern bool g_restart_requested;
 extern char g_screenshot_path[256];
 extern bool g_is_editor_mode;
 

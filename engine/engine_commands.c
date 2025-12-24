@@ -72,6 +72,11 @@ void Cmd_Quit(int argc, char** argv) {
     g_quit_requested = true;
 }
 
+void Cmd_Restart(int argc, char** argv) {
+    g_restart_requested = true;
+    Cvar_EngineSet("engine_running", "0");
+}
+
 void Cmd_SetPos(int argc, char** argv) {
     if (argc == 4) {
         float x = atof(argv[1]);
@@ -588,6 +593,7 @@ void init_commands() {
     Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
     Commands_Register("screenshake", Cmd_ScreenShake, "Applies a screen shake effect. Usage: screenshake <amplitude> <frequency> <duration>", CMD_CHEAT);
     Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
+    Commands_Register("restart", Cmd_Restart, "Restarts the engine.", CMD_NONE);
     Commands_Register("exit", Cmd_Quit, "Alias for the 'quit' command.", CMD_NONE);
     Commands_Register("setpos", Cmd_SetPos, "Teleports the player to a specified XYZ coordinate.", CMD_CHEAT);
     Commands_Register("noclip", Cmd_Noclip, "Toggles player collision and gravity.", CMD_CHEAT);

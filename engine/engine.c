@@ -91,6 +91,7 @@ EngineMode g_current_mode = MODE_GAME;
 EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
 bool g_is_editor_mode;
 bool g_quit_requested = false;
+bool g_restart_requested = false;
 int g_last_water_cvar_state = -1;
 
 static Uint32 g_fps_last_update = 0;
@@ -2059,5 +2060,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         g_frame_counter++;
         UI_EndFrame(window);
     }
-    cleanup(); return 0;
+    cleanup(); 
+    if (g_restart_requested) {
+        return 2;
+    }
+    return 0;
 }

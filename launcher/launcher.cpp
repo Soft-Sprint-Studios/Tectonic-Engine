@@ -42,6 +42,8 @@ extern "C" {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    int result = 0;
+    do {
     HMODULE engineLib = LoadLibraryA("engine.dll");
     if (!engineLib) {
         MessageBoxA(nullptr, "Failed to load engine.dll", "Engine Error", MB_ICONERROR | MB_OK);
@@ -55,12 +57,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    int result = Engine_Main(__argc, __argv);
+    result = Engine_Main(__argc, __argv);
     FreeLibrary(engineLib);
+    } while (result == 2);
+
     return result;
 }
 #else
 int main(int argc, char* argv[]) {
+    int result = 0;
+    do {
     void* engineLib = dlopen("./libengine.so", RTLD_NOW);
     if (!engineLib) {
         cerr << "Failed to load libengine.so: " << dlerror() << endl;
@@ -75,8 +81,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    int result = Engine_Main(argc, argv);
+    result = Engine_Main(argc, argv);
     dlclose(engineLib);
+    } while (result == 2);
+
     return result;
 }
 #endif
