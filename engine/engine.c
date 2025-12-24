@@ -2016,8 +2016,10 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 scales[i] = g_engine->active_messages[i].scale;
             }
 
-            UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
-            UI_RenderGameText(MAX_GAME_TEXT_MESSAGES, texts, positions_x, positions_y, colors, alphas, states, scales);
+            if (Cvar_GetInt("g_drawhud")) {
+                UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
+                UI_RenderGameText(MAX_GAME_TEXT_MESSAGES, texts, positions_x, positions_y, colors, alphas, states, scales);
+            }
             UI_RenderDeveloperOverlay();
             if (g_current_mode == MODE_GAME) {
                 Keypad_RenderUI(&g_scene, g_engine);
