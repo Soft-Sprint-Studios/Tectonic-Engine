@@ -2356,8 +2356,29 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     raw_start_mouse_world.z = SnapValue(raw_start_mouse_world.z, g_EditorState.grid_size);
                 }
                 g_EditorState.selected_brush_drag_body_start_mouse_world = raw_start_mouse_world;
-                g_EditorState.selected_brush_drag_body_start_brush_pos = scene->brushes[primary->index].pos;
-                Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
+                g_EditorState.gizmo_drag_start_positions = malloc(g_EditorState.num_selections * sizeof(Vec3));
+
+                Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
+
+                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    EditorSelection* sel = &g_EditorState.selections[i];
+                    Vec3 pos = { 0 };
+                    switch (sel->type) {
+                    case ENTITY_MODEL: pos = scene->objects[sel->index].pos; break;
+                    case ENTITY_BRUSH: pos = scene->brushes[sel->index].pos; break;
+                    case ENTITY_LIGHT: pos = scene->lights[sel->index].position; break;
+                    case ENTITY_DECAL: pos = scene->decals[sel->index].pos; break;
+                    case ENTITY_SOUND: pos = scene->soundEntities[sel->index].pos; break;
+                    case ENTITY_PARTICLE_EMITTER: pos = scene->particleEmitters[sel->index].pos; break;
+                    case ENTITY_SPRITE: pos = scene->sprites[sel->index].pos; break;
+                    case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[sel->index].pos; break;
+                    case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[sel->index].pos; break;
+                    case ENTITY_LOGIC: pos = scene->logicEntities[sel->index].pos; break;
+                    case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
+                    }
+                    g_EditorState.gizmo_drag_start_positions[i] = pos;
+                }
                 return;
             }
         }
@@ -2688,7 +2709,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if (g_EditorState.is_dragging_selected_brush_body) {
             g_EditorState.is_dragging_selected_brush_body = false;
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Move Brush");
+            Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Move Selection");
         }
         if (g_EditorState.is_dragging_preview_brush_handle) {
             g_EditorState.is_dragging_preview_brush_handle = false;
@@ -2898,11 +2919,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Editor_AdjustSelectedBrushByHandle(scene, engine, g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
         }
         else if (g_EditorState.is_dragging_selected_brush_body) {
-            Brush* b = &scene->brushes[primary->index];
             Vec3 current_mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[g_EditorState.selected_brush_drag_body_view], g_EditorState.selected_brush_drag_body_view);
-            Vec3 delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
-
-            b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
 
             if (g_EditorState.snap_to_grid) {
                 current_mouse_world.x = SnapValue(current_mouse_world.x, g_EditorState.grid_size);
@@ -2910,20 +2927,49 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 current_mouse_world.z = SnapValue(current_mouse_world.z, g_EditorState.grid_size);
             }
 
-            delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
-            b->pos = vec3_add(g_EditorState.selected_brush_drag_body_start_brush_pos, delta);
+            Vec3 delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
 
-            if (g_EditorState.texture_lock_enabled) {
-                for (int i = 0; i < b->numFaces; ++i) {
-                    b->faces[i].uv_offset.x -= delta.x / b->faces[i].uv_scale.x;
-                    b->faces[i].uv_offset.y -= delta.z / b->faces[i].uv_scale.y;
+            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                EditorSelection* sel = &g_EditorState.selections[i];
+                Vec3 start_pos = g_EditorState.gizmo_drag_start_positions[i];
+                Vec3 new_pos = vec3_add(start_pos, delta);
+
+                if (sel->type == ENTITY_BRUSH) {
+                    Brush* b = &scene->brushes[sel->index];
+                    Vec3 old_pos = b->pos;
+                    b->pos = new_pos;
+
+                    if (g_EditorState.texture_lock_enabled) {
+                        Vec3 frame_move = vec3_sub(new_pos, old_pos);
+                        float du = 0, dv = 0;
+                        if (g_EditorState.selected_brush_drag_body_view == VIEW_TOP_XZ) { du = frame_move.x; dv = frame_move.z; }
+                        else if (g_EditorState.selected_brush_drag_body_view == VIEW_FRONT_XY) { du = frame_move.x; dv = frame_move.y; }
+                        else { du = frame_move.z; dv = frame_move.y; }
+
+                        for (int f = 0; f < b->numFaces; ++f) {
+                            if (b->faces[f].uv_scale.x != 0) b->faces[f].uv_offset.x -= du / b->faces[f].uv_scale.x;
+                            if (b->faces[f].uv_scale.y != 0) b->faces[f].uv_offset.y -= dv / b->faces[f].uv_scale.y;
+                        }
+                        Brush_CreateRenderData(b);
+                    }
+                    Brush_UpdateMatrix(b);
+                    if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
                 }
-                Brush_CreateRenderData(b);
-            }
-
-            Brush_UpdateMatrix(b);
-            if (b->physicsBody) {
-                Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                else if (sel->type == ENTITY_MODEL) {
+                    SceneObject* obj = &scene->objects[sel->index];
+                    obj->pos = new_pos;
+                    SceneObject_UpdateMatrix(obj);
+                    if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
+                }
+                else if (sel->type == ENTITY_LIGHT) scene->lights[sel->index].position = new_pos;
+                else if (sel->type == ENTITY_DECAL) { scene->decals[sel->index].pos = new_pos; Decal_UpdateMatrix(&scene->decals[sel->index]); }
+                else if (sel->type == ENTITY_SOUND) { scene->soundEntities[sel->index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, new_pos); }
+                else if (sel->type == ENTITY_PARTICLE_EMITTER) scene->particleEmitters[sel->index].pos = new_pos;
+                else if (sel->type == ENTITY_SPRITE) scene->sprites[sel->index].pos = new_pos;
+                else if (sel->type == ENTITY_VIDEO_PLAYER) scene->videoPlayers[sel->index].pos = new_pos;
+                else if (sel->type == ENTITY_PARALLAX_ROOM) { scene->parallaxRooms[sel->index].pos = new_pos; ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[sel->index]); }
+                else if (sel->type == ENTITY_LOGIC) scene->logicEntities[sel->index].pos = new_pos;
+                else if (sel->type == ENTITY_PLAYERSTART) scene->playerStart.position = new_pos;
             }
         }
         else if (g_EditorState.is_manipulating_vertex_gizmo) {
