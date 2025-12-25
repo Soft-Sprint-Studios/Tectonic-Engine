@@ -32,6 +32,7 @@
 #include <cstdarg>
 #include <stdint.h>
 #include <time.h>
+#include <algorithm>
 
 #include "gl_console.h"
 #include "ipc_system.h"
@@ -46,7 +47,16 @@ struct Console {
     char                  InputBuf[256];
     std::vector<ConsoleItem> Items;
     bool                  ScrollToBottom;
-    Console() { ClearLog(); memset(InputBuf, 0, sizeof(InputBuf)); ScrollToBottom = true; }
+    std::vector<const char*> Candidates;
+    int                   CandidatePos;
+    bool                  CandidateListOpen;
+    Console() {
+        ClearLog();
+        memset(InputBuf, 0, sizeof(InputBuf));
+        ScrollToBottom = true;
+        CandidatePos = 0;
+        CandidateListOpen = false;
+    }
     ~Console() { ClearLog(); }
     void ClearLog() { for (int i = 0; i < Items.size(); i++) free(Items[i].text); Items.clear(); }
 
@@ -70,40 +80,68 @@ struct Console {
     }
 
     static int TextEditCallback(ImGuiInputTextCallbackData* data) {
+        Console* console = (Console*)data->UserData;
+
         if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
-            const char* word_start = data->Buf;
-            const char* word_end = data->Buf + data->CursorPos;
-
-            std::vector<const char*> candidates;
-            for (int i = 0; i < Commands_GetCount(); i++) {
-                const Command* cmd = Commands_GetCommand(i);
-                if (_strnicmp(cmd->name, word_start, (int)(word_end - word_start)) == 0) {
-                    candidates.push_back(cmd->name);
-                }
-            }
-            for (int i = 0; i < Cvar_GetCount(); i++) {
-                const Cvar* cvar = Cvar_GetCvar(i);
-                if (_strnicmp(cvar->name, word_start, (int)(word_end - word_start)) == 0) {
-                    candidates.push_back(cvar->name);
-                }
-            }
-
-            if (candidates.size() == 1) {
+            if (console->CandidateListOpen && !console->Candidates.empty()) {
+                const char* selected = console->Candidates[console->CandidatePos];
                 data->DeleteChars(0, data->BufTextLen);
-                data->InsertChars(0, candidates[0]);
+                data->InsertChars(0, selected);
                 data->InsertChars(data->CursorPos, " ");
+                console->CandidateListOpen = false;
             }
-            else if (candidates.size() > 1) {
-                static int match_index = -1;
-                match_index++;
-                if (match_index >= candidates.size()) {
-                    match_index = 0;
+        }
+        else if (data->EventFlag == ImGuiInputTextFlags_CallbackHistory) {
+            if (console->CandidateListOpen && !console->Candidates.empty()) {
+                if (data->EventKey == ImGuiKey_UpArrow) {
+                    if (console->CandidatePos > 0)
+                        console->CandidatePos--;
+                    else
+                        console->CandidatePos = (int)console->Candidates.size() - 1;
                 }
-                data->DeleteChars(0, data->BufTextLen);
-                data->InsertChars(0, candidates[match_index]);
+                else if (data->EventKey == ImGuiKey_DownArrow) {
+                    if (console->CandidatePos < (int)console->Candidates.size() - 1)
+                        console->CandidatePos++;
+                    else
+                        console->CandidatePos = 0;
+                }
             }
         }
         return 0;
+    }
+
+    void UpdateCandidates() {
+        Candidates.clear();
+        if (InputBuf[0] == 0) {
+            CandidateListOpen = false;
+            return;
+        }
+
+        for (int i = 0; i < Commands_GetCount(); i++) {
+            const Command* cmd = Commands_GetCommand(i);
+            if (_strnicmp(cmd->name, InputBuf, strlen(InputBuf)) == 0) {
+                Candidates.push_back(cmd->name);
+            }
+        }
+
+        for (int i = 0; i < Cvar_GetCount(); i++) {
+            const Cvar* cvar = Cvar_GetCvar(i);
+            if (_strnicmp(cvar->name, InputBuf, strlen(InputBuf)) == 0) {
+                Candidates.push_back(cvar->name);
+            }
+        }
+
+        std::sort(Candidates.begin(), Candidates.end(), [](const char* a, const char* b) {
+            return strcmp(a, b) < 0;
+            });
+
+        if (!Candidates.empty()) {
+            CandidateListOpen = true;
+            CandidatePos = 0;
+        }
+        else {
+            CandidateListOpen = false;
+        }
     }
 
     void Draw() {
@@ -134,9 +172,43 @@ struct Console {
         ImGui::EndChild();
         ImGui::Separator();
         bool reclaim_focus = false;
-        if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion, &TextEditCallback)) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
+        ImVec2 input_pos = ImGui::GetCursorScreenPos();
+        float input_width = ImGui::GetContentRegionAvail().x - 60;
+        ImGui::SetNextItemWidth(input_width);
+        if (ImGui::InputText("##Input", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory, &TextEditCallback, (void*)this)) {
+            char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; CandidateListOpen = false;
+        }
+
+        if (ImGui::IsItemEdited()) {
+            UpdateCandidates();
+        }
+
+        if (CandidateListOpen && !Candidates.empty()) {
+            float popup_height = (std::min((int)Candidates.size(), 7) * ImGui::GetTextLineHeightWithSpacing()) + 10;
+            ImGui::SetNextWindowPos(ImVec2(input_pos.x, input_pos.y - popup_height));
+            ImGui::SetNextWindowSize(ImVec2(input_width, 0.0f));
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            if (ImGui::Begin("##Suggestions", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                for (int i = 0; i < Candidates.size(); i++) {
+                    bool is_selected = (CandidatePos == i);
+                    if (ImGui::Selectable(Candidates[i], is_selected)) {
+                        strncpy(InputBuf, Candidates[i], sizeof(InputBuf) - 1);
+                        strncat(InputBuf, " ", sizeof(InputBuf) - strlen(InputBuf) - 1);
+                        CandidateListOpen = false;
+                        reclaim_focus = true;
+                    }
+                    if (is_selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+            }
+            ImGui::End();
+            ImGui::PopStyleVar();
+        }
         ImGui::SameLine();
-        if (ImGui::Button("Submit")) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; }
+        if (ImGui::Button("Submit")) { char* s = InputBuf; if (s[0]) ExecCommand(s); strcpy(s, ""); reclaim_focus = true; CandidateListOpen = false; }
         ImGui::SetItemDefaultFocus(); if (reclaim_focus) ImGui::SetKeyboardFocusHere(-1); ImGui::End();
     }
     void ExecCommand(const char* command_line) {

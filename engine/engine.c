@@ -2062,7 +2062,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         g_frame_counter++;
         UI_EndFrame(window);
     }
-    cleanup(); 
+    cleanup();
     if (g_restart_requested) {
         return 2;
     }
