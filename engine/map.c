@@ -2083,10 +2083,22 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
 
-            int type_int = 0, preset_int = 0, is_static_int = 0, is_static_shadow_int = 0, is_on_int = 0;
-            int items_scanned = sscanf(line,
-                "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d %d %f %f \"%127[^\"]\" \"%255[^\"]\" %d",
-                light->targetname,
+            int type_int = 0, preset_int = 0, is_static_int = 0, is_static_shadow_int = 0, is_on_int = 1;
+            char* p = line + strlen(keyword);
+
+            while (*p && isspace(*p)) p++;
+            if (*p == '"') {
+                p++;
+                char* end = strchr(p, '"');
+                if (end) {
+                    size_t len = end - p;
+                    if (len < sizeof(light->targetname)) strncpy(light->targetname, p, len);
+                    light->targetname[len] = '\0';
+                    p = end + 1;
+                }
+            }
+
+            sscanf(p, "%d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d %d %f %f",
                 &type_int,
                 &light->position.x, &light->position.y, &light->position.z,
                 &light->rot.x, &light->rot.y, &light->rot.z,
@@ -2097,33 +2109,34 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 &light->shadowFarPlane, &light->shadowBias,
                 &light->volumetricIntensity,
                 &preset_int, &is_static_int, &is_static_shadow_int,
-                &light->width, &light->height,
-                light->cookiePath,
-                light->custom_style_string,
-                &is_on_int
+                &light->width, &light->height
             );
 
-            if (items_scanned < 26) {
-                is_on_int = (light->base_intensity > 0.0f);
-                sscanf(line,
-                    "%*s \"%63[^\"]\" %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d \"%127[^\"]\"",
-                    light->targetname,
-                    &type_int,
-                    &light->position.x, &light->position.y, &light->position.z,
-                    &light->rot.x, &light->rot.y, &light->rot.z,
-                    &light->color.x, &light->color.y, &light->color.z,
-                    &light->base_intensity,
-                    &light->radius,
-                    &light->cutOff, &light->outerCutOff,
-                    &light->shadowFarPlane, &light->shadowBias,
-                    &light->volumetricIntensity,
-                    &preset_int, &is_static_int,
-                    light->cookiePath
-                );
-                is_static_shadow_int = 0;
-                light->width = 0.0f;
-                light->height = 0.0f;
+            char* cookie_start = strchr(p, '"');
+            if (cookie_start) {
+                p = cookie_start + 1;
+                char* end = strchr(p, '"');
+                if (end) {
+                    size_t len = end - p;
+                    if (len < sizeof(light->cookiePath)) strncpy(light->cookiePath, p, len);
+                    light->cookiePath[len] = '\0';
+                    p = end + 1;
+                }
             }
+
+            char* style_start = (p) ? strchr(p, '"') : NULL;
+            if (style_start) {
+                p = style_start + 1;
+                char* end = strchr(p, '"');
+                if (end) {
+                    size_t len = end - p;
+                    if (len < sizeof(light->custom_style_string)) strncpy(light->custom_style_string, p, len);
+                    light->custom_style_string[len] = '\0';
+                    p = end + 1;
+                }
+            }
+
+            if (p) sscanf(p, "%d", &is_on_int);
 
             light->preset = preset_int;
             light->type = (LightType)type_int;
