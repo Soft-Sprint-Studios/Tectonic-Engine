@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "cvar.h"
 #include "gl_volumetrics.h"
 #include "gl_renderer.h"
 
@@ -69,6 +70,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
         }
     }
     glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numActiveLights"), num_dynamic_lights);
+    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numSteps"), Cvar_GetInt("r_volumetrics_steps"));
 
     glUniform1i(glGetUniformLocation(renderer->volumetricShader, "sun.enabled"), scene->sun.enabled);
     if (scene->sun.enabled) {

@@ -30,6 +30,7 @@ layout(std430, binding = 3) readonly buffer LightBlock {
 };
 
 uniform int numActiveLights;
+uniform int numSteps;
 uniform vec3 viewPos;
 uniform mat4 invView;
 uniform mat4 invProjection;
@@ -38,9 +39,6 @@ uniform mat4 view;
 uniform Sun sun;
 uniform sampler2D sunShadowMap;
 uniform mat4 sunLightSpaceMatrix;
-
-const float PI = 3.14159265359;
-const int NB_STEPS = 1024;
 
 float dither[16] = float[](
      0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
@@ -137,7 +135,7 @@ void main()
     float rayLength = length(rayVector);
     vec3 rayDirection = rayVector / rayLength;
 
-    float stepLength = rayLength / float(NB_STEPS);
+    float stepLength = rayLength / float(numSteps);
     vec3 step = rayDirection * stepLength;
 
     int ditherIndex = (int(gl_FragCoord.x) % 4) + (int(gl_FragCoord.y) % 4) * 4;
@@ -145,7 +143,7 @@ void main()
     
     vec3 accumFog = vec3(0.0);
 
-    for (int i = 0; i < NB_STEPS; i++)
+    for (int i = 0; i < numSteps; i++)
     {
         vec4 currentViewPos = view * vec4(currentPosition, 1.0);
         vec4 currentClipPos = projection * currentViewPos;

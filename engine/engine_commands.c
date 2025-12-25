@@ -533,6 +533,7 @@ void init_cvars() {
     Cvar_Register("r_ssr", "0", "Enable Screen Space Reflections (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable bloom (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_volumetrics_steps", "1024", "Volumetric lighting number of steps", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_zprepass", "0", "Enable Z-prepass (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_physics_shadows", "0", "Enable Basic realtime shadows for physics props (0=off, 1=on)", CVAR_NONE);
