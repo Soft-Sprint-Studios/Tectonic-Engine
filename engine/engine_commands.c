@@ -560,6 +560,7 @@ void init_cvars() {
     Cvar_Register("r_skybox", "1", "Enable skybox (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles", "1", "Enable particles (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_particles_cull_dist", "75.0", "Particle culling distance", CVAR_NONE);
+    Cvar_Register("r_particles_soft", "1", "Enable soft particles (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_sprites", "1", "Enable sprites (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_water", "1", "Enable water rendering (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_planar", "1", "Enable planar reflections for water and reflective glass (0=off, 1=on)", CVAR_NONE);

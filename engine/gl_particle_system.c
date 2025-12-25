@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "cvar.h"
 #include "gl_particle_system.h"
 #include "map.h"
 #include "gl_misc.h"
@@ -200,7 +201,13 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, Mat4 view, Mat4 projection
     glUniform1i(glGetUniformLocation(ps->shader, "gPosition"), 1);
 
     glUniform2f(glGetUniformLocation(ps->shader, "screenSize"), screenWidth, screenHeight);
-    glUniform1f(glGetUniformLocation(ps->shader, "softness"), ps->softness < 0.001f ? 0.001f : ps->softness);
+
+    if (Cvar_GetInt("r_particles_soft")) {
+        glUniform1f(glGetUniformLocation(ps->shader, "softness"), ps->softness < 0.001f ? 0.001f : ps->softness);
+    }
+    else {
+        glUniform1f(glGetUniformLocation(ps->shader, "softness"), 0.001f);
+    }
 
     glBlendFunc(ps->blend_sfactor, ps->blend_dfactor);
     glBindVertexArray(emitter->vao);
