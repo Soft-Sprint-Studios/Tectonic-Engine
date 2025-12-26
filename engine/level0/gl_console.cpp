@@ -247,7 +247,7 @@ extern "C" {
         }
         g_log_file = fopen(filename, "w");
         if (!g_log_file) {
-            fprintf(stderr, "[ERROR] Failed to open log file: %s\n", filename);
+            Console_Printf_Error("[ERROR] Failed to open log file: %s\n", filename);
         }
         else {
             time_t now = time(NULL);
