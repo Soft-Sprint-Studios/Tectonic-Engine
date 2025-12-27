@@ -138,13 +138,6 @@ extern "C" {
 
     typedef struct {
         bool enabled;
-        Vec3 color;
-        float start;
-        float end;
-    } Fog;
-
-    typedef struct {
-        bool enabled;
         float crtCurvature;
         float vignetteStrength;
         float vignetteRadius;

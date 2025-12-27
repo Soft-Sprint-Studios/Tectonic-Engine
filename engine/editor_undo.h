@@ -57,7 +57,6 @@ extern "C" {
             ParallaxRoom parallaxRoom;
             LogicEntity logicEntity;
             PlayerStart playerStart;
-            Fog fog;
             PostProcessSettings post;
         } data;
         char modelPath[128];
