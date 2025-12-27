@@ -179,6 +179,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->prev_health = g_engine->camera.health;
     g_engine->red_flash_intensity = 0.0f;
     g_engine->prev_player_y_velocity = 0.0f;
+    g_engine->current_fov_offset = 0.0f;
+    g_engine->current_roll_angle = 0.0f;
     GameConfig_Init();
     const GameConfig* config = GameConfig_Get();
     if (strlen(config->gamename) > 0) {
@@ -1908,8 +1910,29 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
 
                 mat4_multiply(&view, &view, &bob_matrix);
             }
+            const Uint8* k_state = SDL_GetKeyboardState(NULL);
+            float target_fov_offset = 0.0f;
+            float sprint_fov_max = Cvar_GetFloat("g_sprint_fov");
+            float sprint_fov_speed = Cvar_GetFloat("g_sprint_fov_speed");
+
+            if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
+                target_fov_offset = sprint_fov_max;
+            }
+            g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * sprint_fov_speed;
+
+            float roll_max = Cvar_GetFloat("g_roll_angle");
+            float roll_speed = Cvar_GetFloat("g_roll_speed");
+
+            float target_roll = 0.0f;
+            if (k_state[SDL_SCANCODE_A]) target_roll = roll_max;
+            if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
+
+            g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
+
+            Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (M_PI / 180.0f));
+            mat4_multiply(&view, &roll_mat, &view);
             float fov_degrees = Cvar_GetFloat("fov_vertical");
-            Mat4 projection = mat4_perspective(fov_degrees * (M_PI / 180.f), (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
+            Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (M_PI / 180.f), (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
             Mat4 sunLightSpaceMatrix;
             mat4_identity(&sunLightSpaceMatrix);
 

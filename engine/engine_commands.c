@@ -598,6 +598,10 @@ void init_cvars() {
     Cvar_Register("g_bob", "0.01", "The amount of view bobbing.", CVAR_NONE);
     Cvar_Register("g_bobcycle", "0.8", "The speed of the view bobbing.", CVAR_NONE);
     Cvar_Register("g_drawhud", "1", "Enable the hud (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("g_roll_angle", "0.5", "Maximum angle to roll view when strafing", CVAR_NONE);
+    Cvar_Register("g_roll_speed", "8.0", "Speed of view rolling interpolation", CVAR_NONE);
+    Cvar_Register("g_sprint_fov", "10.0", "Additional FOV added when sprinting", CVAR_NONE);
+    Cvar_Register("g_sprint_fov_speed", "5.0", "Speed of FOV interpolation", CVAR_NONE);
     Cvar_Register("g_map_backup_path", "", "Directory to store timestamped map backups on save. e.g., 'D:/maps/backups'", CVAR_NONE);
 #ifdef GAME_RELEASE
     Cvar_Register("g_cheats", "0", "Enable cheats (0=off, 1=on)", CVAR_NONE);

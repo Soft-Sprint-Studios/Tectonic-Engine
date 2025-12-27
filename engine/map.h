@@ -584,6 +584,8 @@ extern "C" {
         float prev_health;
         float prev_player_y_velocity;
         float deltaTime, unscaledDeltaTime, lastFrame, scaledTime;
+        float current_fov_offset;
+        float current_roll_angle;
         Camera camera;
         PhysicsWorldHandle physicsWorld;
         int width;
