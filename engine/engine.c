@@ -70,9 +70,6 @@ static int g_last_deactivation_cvar_state = -1;
 
 bool g_player_input_disabled = false;
 
-static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath);
-void BuildCubemaps();
-
 #ifdef PLATFORM_WINDOWS
 static HANDLE g_hMutex = NULL;
 #else
