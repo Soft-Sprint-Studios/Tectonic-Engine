@@ -31,7 +31,7 @@
 #include "gl_cables.h"
 #include "gl_glow.h"
 
-static int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
+int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "env_reflectionprobe") != 0) {

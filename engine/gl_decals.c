@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <float.h>
 #include "gl_decals.h"
 #include "texturemanager.h"
 
@@ -75,12 +76,36 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
     
     glUniform1i(glGetUniformLocation(shader_program, "isBrush"), 1);
     glUniform1i(glGetUniformLocation(shader_program, "isDecal"), 1);
+    GLuint useEnvLoc = glGetUniformLocation(shader_program, "useEnvironmentMap");
+    GLuint probeMinLoc = glGetUniformLocation(shader_program, "probeBoxMin");
+    GLuint probeMaxLoc = glGetUniformLocation(shader_program, "probeBoxMax");
+    GLuint probePosLoc = glGetUniformLocation(shader_program, "probePosition");
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
     for (int i = 0; i < scene->numDecals; ++i) {
         Decal* d = &scene->decals[i];
 
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, d->modelMatrix.m);
+        int probeIdx = FindReflectionProbeForPoint(scene, d->pos);
+        if (probeIdx != -1 && Cvar_GetInt("r_cubemaps")) {
+            Brush* probe = &scene->brushes[probeIdx];
+            glUniform1i(useEnvLoc, 1);
+            glActiveTexture(GL_TEXTURE10);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, probe->cubemapTexture);
+
+            Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX }, max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+            for (int v = 0; v < probe->numVertices; ++v) {
+                Vec3 world_v = mat4_mul_vec3(&probe->modelMatrix, probe->vertices[v].pos);
+                min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
+                max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
+            }
+            glUniform3fv(probeMinLoc, 1, &min_aabb.x);
+            glUniform3fv(probeMaxLoc, 1, &max_aabb.x);
+            glUniform3fv(probePosLoc, 1, &probe->pos.x);
+        }
+        else {
+            glUniform1i(useEnvLoc, 0);
+        }
         glUniform1f(glGetUniformLocation(shader_program, "heightScale"), 0.0f);
 
         glUniform2f(glGetUniformLocation(shader_program, "u_uvScale"), d->uv_scale.x, d->uv_scale.y);
