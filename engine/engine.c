@@ -57,7 +57,7 @@
 #include "gl_shadows.h"
 #include "engine_commands.h"
 #include "engine_api.h"
-#include "cgltf/cgltf.h"
+#include "thirdparty/cgltf/cgltf.h"
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>

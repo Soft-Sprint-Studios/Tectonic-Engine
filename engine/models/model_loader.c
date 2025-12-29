@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "cgltf/cgltf.h"
+#include "thirdparty/cgltf/cgltf.h"
 #include "model_loader.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -105,7 +105,7 @@ set(ENGINE_SOURCES
     engine/engine_commands.c
     engine/gl_skybox.c
     engine/lightmapper.cpp
-    mikktspace/mikktspace.c
+    thirdparty/mikktspace/mikktspace.c
 )
 
 set(ENGINE_HEADERS
@@ -183,12 +183,12 @@ add_library(level0 SHARED
     engine/level0/cvar.h
     engine/level0/commands.h
     engine/level0/level0_api.h
-    imgui-master/backends/imgui_impl_opengl3.cpp
-    imgui-master/backends/imgui_impl_sdl2.cpp
-    imgui-master/imgui.cpp
-    imgui-master/imgui_draw.cpp
-    imgui-master/imgui_tables.cpp
-    imgui-master/imgui_widgets.cpp
+    thirdparty/imgui-master/backends/imgui_impl_opengl3.cpp
+    thirdparty/imgui-master/backends/imgui_impl_sdl2.cpp
+    thirdparty/imgui-master/imgui.cpp
+    thirdparty/imgui-master/imgui_draw.cpp
+    thirdparty/imgui-master/imgui_tables.cpp
+    thirdparty/imgui-master/imgui_widgets.cpp
 )
 target_compile_definitions(level0 PRIVATE
     $<$<BOOL:${WIN32}>:LEVEL0_DLL_EXPORTS>
@@ -200,10 +200,10 @@ target_include_directories(level0 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/ipc_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master"
-    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master/backends"
 )
 target_compile_options(level0 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
@@ -233,7 +233,7 @@ target_include_directories(level1 PRIVATE
 
 if(WIN32)
     target_link_directories(level1 PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
     )
     
     target_link_libraries(level1 PRIVATE level0 SDL2)
@@ -268,9 +268,9 @@ target_include_directories(materials PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/include"
 )
 
 target_compile_options(materials PRIVATE
@@ -296,9 +296,9 @@ target_include_directories(models PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/include"
 )
 
 target_compile_options(models PRIVATE
@@ -308,9 +308,9 @@ target_compile_options(models PRIVATE
 
 if(WIN32)
     target_link_directories(models PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/lib/${ARCH_DIR}"
     )
     target_link_libraries(models PRIVATE 
         materials 
@@ -349,7 +349,7 @@ target_include_directories(physics
         "${CMAKE_CURRENT_SOURCE_DIR}/engine"
         "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/bullet/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/bullet/include"
 )
 
 target_compile_options(physics PRIVATE
@@ -358,7 +358,7 @@ target_compile_options(physics PRIVATE
 )
 
 if(UNIX AND NOT APPLE)
-    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib/linux")
+    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/bullet/lib/linux")
     set(BULLET_LIBS
         "${BULLET_LIB_DIR}/libBulletDynamics.a"
         "${BULLET_LIB_DIR}/libBulletCollision.a"
@@ -366,7 +366,7 @@ if(UNIX AND NOT APPLE)
     )
     target_link_libraries(physics PRIVATE math_lib ${BULLET_LIBS})
 else()
-    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bullet/lib/${ARCH_DIR}")
+    set(BULLET_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/bullet/lib/${ARCH_DIR}")
     target_link_directories(physics PRIVATE "${BULLET_LIB_DIR}")
     target_link_libraries(physics PRIVATE
         math_lib
@@ -396,10 +396,10 @@ target_include_directories(sound PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/math_lib"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level0"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/minimp3"
-    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minimp3"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minivorbis"
 )
 
 target_compile_options(sound PRIVATE
@@ -429,20 +429,20 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/models"
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sdl/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/bullet/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master"
-    "${CMAKE_CURRENT_SOURCE_DIR}/imgui-master/backends"
-    "${CMAKE_CURRENT_SOURCE_DIR}/minivorbis"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sentry/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/stb"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_ttf-2.24.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/bullet/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/DiscordRPC/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minivorbis"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sentry/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb"
 )
 
 target_compile_options(engine PRIVATE
@@ -454,8 +454,8 @@ if(WIN32)
     message(STATUS "Configuring for Windows")
 
     target_link_directories(level0 PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/lib/Release/${ARCH_DIR}"
     )
 
     target_link_libraries(level0 PRIVATE math_lib SDL2 opengl32 glew32 ipc_lib) 
@@ -471,8 +471,8 @@ if(WIN32)
     set_target_properties(math_lib PROPERTIES COMPILE_PDB_NAME math_lib)
 
     target_link_directories(sound PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/libs/${ARCH_DIR}"
     )
 
     target_link_libraries(sound PRIVATE level0 SDL2 OpenAL32)
@@ -480,20 +480,20 @@ if(WIN32)
 
 
     target_link_directories(materials PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/lib/${ARCH_DIR}"
     )
     target_link_directories(engine PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdl/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/glew-2.1.0/lib/Release/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/${ARCH_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/lib/Release/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_ttf-2.24.0/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/DiscordRPC/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/libs/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sentry/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/lib/${ARCH_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/lib/${ARCH_DIR}"
     )
 
     target_link_libraries(engine PRIVATE
@@ -522,15 +522,15 @@ else()
         find_package(GLEW REQUIRED)
         find_package(OpenGL REQUIRED)
 
-        set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
-        set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
-        set(OPENAL_LIB "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft-1.24.3/libs/Linux/libopenal.a")
-        set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/sentry/lib/linux/libsentry.so")
-        set(EMBREE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libembree4.so")
-        set(TBB_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbb.so")
-        set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux/libtbbmalloc.so")
+        set(SDL2_IMAGE_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/lib/linux/libSDL2_image.a")
+        set(SDL2_TTF_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_ttf-2.24.0/lib/linux/libSDL2_ttf.a")
+        set(OPENAL_LIB "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/libs/Linux/libopenal.a")
+        set(SENTRY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sentry/lib/linux/libsentry.so")
+        set(EMBREE_LIB "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/lib/linux/libembree4.so")
+        set(TBB_LIB "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/lib/linux/libtbb.so")
+        set(TBB_MALLOC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/lib/linux/libtbbmalloc.so")
 
-        set(OIDN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oidn-2.3.3/lib/linux")
+        set(OIDN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/lib/linux")
         set(OIDN_MAIN_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise.so.2.3.3")
         set(OIDN_CORE_LIB "${OIDN_LIB_DIR}/libOpenImageDenoise_core.so.2.3.3")
 
@@ -538,10 +538,10 @@ else()
         target_link_libraries(materials PRIVATE level0 math_lib SDL2::SDL2 ${SDL2_IMAGE_LIBRARY} GLEW::glew OpenGL::GL)
 
         target_link_directories(engine PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/DiscordRPC/lib/linux"
-            "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_image-2.8.8/lib/linux"
-            "${CMAKE_CURRENT_SOURCE_DIR}/SDL2_ttf-2.24.0/lib/linux"
-            "${CMAKE_CURRENT_SOURCE_DIR}/embree-4.4.0/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/DiscordRPC/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_ttf-2.24.0/lib/linux"
+            "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/lib/linux"
             "${OIDN_LIB_DIR}"
         )
 
@@ -616,14 +616,14 @@ set_target_properties(TConsole PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 target_include_directories(TConsole PRIVATE 
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 if(WIN32)
     set_target_properties(TConsole PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(TConsole PRIVATE fltk ws2_32 comctl32 gdiplus)
 else()
-    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TConsole PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
@@ -636,16 +636,16 @@ set_target_properties(TectonicModelImporter PROPERTIES
 )
 
 target_include_directories(TectonicModelImporter PRIVATE 
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cgltf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cgltf"
 )
 
 if(WIN32)
     set_target_properties(TectonicModelImporter PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
-    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(TectonicModelImporter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TectonicModelImporter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
@@ -658,15 +658,15 @@ set_target_properties(TectonicParticleEditor PROPERTIES
 )
 
 target_include_directories(TectonicParticleEditor PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 
 if(WIN32)
     set_target_properties(TectonicParticleEditor PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TectonicParticleEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(TectonicParticleEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(TectonicParticleEditor PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
-    target_link_directories(TectonicParticleEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(TectonicParticleEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TectonicParticleEditor PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
@@ -679,15 +679,15 @@ set_target_properties(SDKLauncher PROPERTIES
 )
 
 target_include_directories(SDKLauncher PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 
 if(WIN32)
     set_target_properties(SDKLauncher PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(SDKLauncher PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
-    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(SDKLauncher PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
@@ -700,15 +700,15 @@ set_target_properties(TectonicVertexLighter PROPERTIES
 )
 
 target_include_directories(TectonicVertexLighter PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 
 if(WIN32)
     set_target_properties(TectonicVertexLighter PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TectonicVertexLighter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(TectonicVertexLighter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(TectonicVertexLighter PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
-    target_link_directories(TectonicVertexLighter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(TectonicVertexLighter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TectonicVertexLighter PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 
@@ -721,15 +721,15 @@ set_target_properties(TectonicAmbientCubeInspector PROPERTIES
 )
 
 target_include_directories(TectonicAmbientCubeInspector PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 
 if(WIN32)
     set_target_properties(TectonicAmbientCubeInspector PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_directories(TectonicAmbientCubeInspector PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/${ARCH_DIR}")
+    target_link_directories(TectonicAmbientCubeInspector PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
     target_link_libraries(TectonicAmbientCubeInspector PRIVATE fltk fltk_gl fltk_images gdiplus ws2_32 comctl32 gdi32 ole32 uuid)
 else()
-    target_link_directories(TectonicAmbientCubeInspector PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fltk-1.4.4/lib/linux")
+    target_link_directories(TectonicAmbientCubeInspector PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TectonicAmbientCubeInspector PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
 

@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "imgui-master/imgui.h"
-#include "imgui-master/backends/imgui_impl_sdl2.h"
-#include "imgui-master/backends/imgui_impl_opengl3.h"
-#include "imgui-master/imgui_internal.h"
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 #include <stdio.h>
 #include <vector>

@@ -33,7 +33,7 @@
 #include "gl_video_player.h"
 #include "gl_console.h"
 #include "water_manager.h"
-#include "mikktspace/mikktspace.h"
+#include "thirdparty/mikktspace/mikktspace.h"
 #include <float.h>
 #include <time.h>
 #include <sys/stat.h>
