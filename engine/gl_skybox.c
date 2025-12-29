@@ -52,7 +52,6 @@ void Skybox_Shutdown(Renderer* renderer) {
 }
 
 void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
-    glBindFramebuffer(GL_FRAMEBUFFER, renderer->finalRenderFBO);
     glDepthFunc(GL_LEQUAL);
     glUseProgram(renderer->skyboxShader);
     glCullFace(GL_FRONT);
@@ -78,5 +77,4 @@ void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view,
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

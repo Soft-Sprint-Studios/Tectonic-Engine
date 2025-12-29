@@ -1965,6 +1965,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             const int LOW_RES_WIDTH = g_engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
             const int LOW_RES_HEIGHT = g_engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             if(Cvar_GetInt("r_skybox")) {
                 Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             }
