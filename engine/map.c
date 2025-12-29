@@ -1978,23 +1978,28 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     b->groupName[0] = '\0';
                 }
             }
+            char map_name_sanitized[128];
+            const char* m_last_slash = strrchr(scene->mapPath, '/');
+            const char* m_last_bslash = strrchr(scene->mapPath, '\\');
+            const char* m_filename = (m_last_slash > m_last_bslash) ? m_last_slash + 1 : (m_last_bslash ? m_last_bslash + 1 : scene->mapPath);
+            const char* m_dot = strrchr(m_filename, '.');
+            if (m_dot) {
+                size_t len = m_dot - m_filename;
+                strncpy(map_name_sanitized, m_filename, len);
+                map_name_sanitized[len] = '\0';
+            }
+            else {
+                strcpy(map_name_sanitized, m_filename);
+            }
             if (strcmp(b->classname, "env_reflectionprobe") == 0) {
                 const char* faces_suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
                 char face_paths[6][256];
-                for (int i = 0; i < 6; ++i) sprintf(face_paths[i], "cubemaps/%s_%s.png", b->name, faces_suffixes[i]);
+                for (int i = 0; i < 6; ++i)  sprintf(face_paths[i], "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, faces_suffixes[i]);
                 const char* face_pointers[6];
                 for (int i = 0; i < 6; ++i) face_pointers[i] = face_paths[i];
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
             Brush_UpdateMatrix(b);
-            char map_name_sanitized[128];
-            char* dot = strrchr(scene->mapPath, '.');
-            if (dot) {
-                size_t len = dot - scene->mapPath;
-                strncpy(map_name_sanitized, scene->mapPath, len);
-                map_name_sanitized[len] = '\0';
-            }
-            else { strcpy(map_name_sanitized, scene->mapPath); }
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             if (b->useVertexLighting) {
                 Brush_LoadVertexLighting(b, scene->numBrushes, scene->mapPath);

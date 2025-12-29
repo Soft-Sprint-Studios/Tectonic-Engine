@@ -214,6 +214,25 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
     Camera original_camera = engine->camera;
 
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(scene->mapPath, '/');
+    const char* last_bslash = strrchr(scene->mapPath, '\\');
+    const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+    const char* dot_ptr = strrchr(map_filename, '.');
+    if (dot_ptr) {
+        size_t len = dot_ptr - map_filename;
+        strncpy(map_name_sanitized, map_filename, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename);
+    }
+
+    char cubemap_dir[512];
+    snprintf(cubemap_dir, sizeof(cubemap_dir), "cubemaps/%s", map_name_sanitized);
+    _mkdir("cubemaps");
+    _mkdir(cubemap_dir);
+
     Vec3 targets[] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
     Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
     const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -291,14 +310,14 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
             glDisable(GL_FRAMEBUFFER_SRGB);
 
             char filepath[256];
-            sprintf(filepath, "cubemaps/%s_%s.png", b->name, suffixes[face_idx]);
+            sprintf(filepath, "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, suffixes[face_idx]);
             SaveFramebufferToPNG(cubemap_fbo, resolution, resolution, filepath);
         }
 
         const char* face_paths[6];
         char paths_storage[6][256];
         for (int k = 0; k < 6; ++k) {
-            sprintf(paths_storage[k], "cubemaps/%s_%s.png", b->name, suffixes[k]);
+            sprintf(paths_storage[k], "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, suffixes[k], map_name_sanitized);
             face_paths[k] = paths_storage[k];
         }
         b->cubemapTexture = TextureManager_ReloadCubemap(face_paths, b->cubemapTexture);

@@ -6168,11 +6168,24 @@ static void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, E
         for (int i = 0; i < scene->numBrushes; ++i) {
             Brush* b = &scene->brushes[i];
             if (strcmp(b->classname, "env_reflectionprobe") == 0) {
+                char map_name_sanitized[128];
+                const char* last_slash = strrchr(scene->mapPath, '/');
+                const char* last_bslash = strrchr(scene->mapPath, '\\');
+                const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+                const char* dot_ptr = strrchr(map_filename, '.');
+                if (dot_ptr) {
+                    size_t len = dot_ptr - map_filename;
+                    strncpy(map_name_sanitized, map_filename, len);
+                    map_name_sanitized[len] = '\0';
+                }
+                else {
+                    strcpy(map_name_sanitized, map_filename);
+                }
                 const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
                 char face_paths[6][256];
                 const char* face_pointers[6];
                 for (int k = 0; k < 6; ++k) {
-                    sprintf(face_paths[k], "cubemaps/%s_%s.png", b->name, suffixes[k]);
+                    sprintf(face_paths[k], "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, suffixes[k]);
                     face_pointers[k] = face_paths[k];
                 }
                 b->cubemapTexture = TextureManager_ReloadCubemap(face_pointers, b->cubemapTexture);
