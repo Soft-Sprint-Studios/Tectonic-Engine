@@ -78,7 +78,7 @@ endif()
 # Source files
 set(ENGINE_SOURCES
     engine/discord_wrapper.cpp
-    engine/editor.c engine/editor_ui.c engine/editor_math.c engine/editor_selection.c engine/editor_actions.c engine/editor_geometry.c engine/editor_undo.c
+    engine/editor/editor.c engine/editor/editor_ui.c engine/editor/editor_math.c engine/editor/editor_selection.c engine/editor/editor_actions.c engine/editor/editor_geometry.c engine/editor/editor_undo.c
     engine/game_data.c
     engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/gl_particle_system.c
@@ -110,7 +110,7 @@ set(ENGINE_SOURCES
 
 set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
-    engine/editor_internal.h engine/editor.h engine/editor_ui.h engine/editor_math.h engine/editor_selection.h engine/editor_actions.h engine/editor_geometry.h engine/editor_undo.h
+    engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_undo.h
     engine/game_data.h
     engine/engine.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h
@@ -428,6 +428,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/level1"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/materials"
     "${CMAKE_CURRENT_SOURCE_DIR}/engine/models"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/editor"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
