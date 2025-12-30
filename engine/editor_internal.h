@@ -248,10 +248,6 @@ extern BrushFace g_copiedFaceProperties;
 extern bool g_hasCopiedFace;
 
 // hacky till other stuff moved to their own files
-Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
-Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
-Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
-Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport);
 EditorSelection* Editor_GetPrimarySelection();
 bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
 void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
