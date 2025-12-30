@@ -515,7 +515,8 @@ void Cmd_Kill(int argc, char** argv) {
 
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
-    Cvar_Register("volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
+    Cvar_Register("s_volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
+    Cvar_Register("s_mute", "0", "Global mute switch (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);

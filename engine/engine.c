@@ -652,7 +652,12 @@ void update_state() {
         }
     }
     g_engine->running = Cvar_GetInt("engine_running");
-    SoundSystem_SetMasterVolume(Cvar_GetFloat("volume"));
+    if (Cvar_GetInt("s_mute")) {
+        SoundSystem_SetMasterVolume(0.0f);
+    }
+    else {
+        SoundSystem_SetMasterVolume(Cvar_GetFloat("s_volume"));
+    }
     g_engine->camera.rads_per_second = 0.0f;
     if (g_current_mode == MODE_GAME) {
         for (int i = 0; i < g_scene.numLogicEntities; ++i) {
