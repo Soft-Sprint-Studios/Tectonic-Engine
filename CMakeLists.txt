@@ -78,7 +78,7 @@ endif()
 # Source files
 set(ENGINE_SOURCES
     engine/discord_wrapper.cpp
-    engine/editor.c engine/editor_ui.c engine/editor_math.c engine/editor_selection.c engine/editor_undo.c
+    engine/editor.c engine/editor_ui.c engine/editor_math.c engine/editor_selection.c engine/editor_actions.c engine/editor_undo.c
     engine/game_data.c
     engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/gl_particle_system.c
@@ -110,7 +110,7 @@ set(ENGINE_SOURCES
 
 set(ENGINE_HEADERS
     engine/compat.h engine/engine_api.h engine/discord_wrapper.h
-    engine/editor_internal.h engine/editor.h engine/editor_ui.h engine/editor_math.h engine/editor_selection.h engine/editor_undo.h
+    engine/editor_internal.h engine/editor.h engine/editor_ui.h engine/editor_math.h engine/editor_selection.h engine/editor_actions.h engine/editor_undo.h
     engine/game_data.h
     engine/engine.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h

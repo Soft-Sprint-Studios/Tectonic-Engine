@@ -22,21 +22,25 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef EDITOR_SELECTION_H
-#define EDITOR_SELECTION_H
+#ifndef EDITOR_ACTIONS_H
+#define EDITOR_ACTIONS_H
 
 #include "editor_internal.h"
 
-void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index);
-void Editor_RemoveFromSelection(EntityType type, int index);
-void Editor_RemoveFaceFromSelection(int brush_index, int face_index);
-bool Editor_IsSelected(EntityType type, int index);
-bool Editor_IsFaceSelected(int brush_index, int face_index);
-bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
-EditorSelection* Editor_GetPrimarySelection();
-void Editor_ClearSelection();
+void Editor_GroupSelection();
+void Editor_UngroupSelection();
+void Editor_FlipSelection(Scene* scene, Engine* engine, int axis);
+void Editor_MergeSelection(Scene* scene, Engine* engine);
 
-void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport);
-int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport);
+void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateLight(Scene* scene, int index);
+void Editor_DuplicateDecal(Scene* scene, int index);
+void Editor_DuplicateSoundEntity(Scene* scene, int index);
+void Editor_DuplicateParticleEmitter(Scene* scene, int index);
+void Editor_DuplicateVideoPlayer(Scene* scene, int index);
+void Editor_DuplicateParallaxRoom(Scene* scene, int index);
+void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateSprite(Scene* scene, int index);
 
 #endif

@@ -484,3 +484,25 @@ int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType vie
 
     return picked_vertex;
 }
+
+EditorSelection* Editor_GetPrimarySelection() {
+    if (g_EditorState.num_selections == 0) return NULL;
+    return &g_EditorState.selections[g_EditorState.num_selections - 1];
+}
+
+void Editor_ClearSelection() {
+    g_EditorState.num_selections = 0;
+}
+
+bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
+    if (name == NULL || *name == '\0') return false;
+    for (int i = 0; i < scene->numObjects; ++i) if (strcmp(scene->objects[i].targetname, name) == 0) { *out_type = ENTITY_MODEL; *out_index = i; return true; }
+    for (int i = 0; i < scene->numBrushes; ++i) if (strcmp(scene->brushes[i].targetname, name) == 0) { *out_type = ENTITY_BRUSH; *out_index = i; return true; }
+    for (int i = 0; i < scene->numActiveLights; ++i) if (strcmp(scene->lights[i].targetname, name) == 0) { *out_type = ENTITY_LIGHT; *out_index = i; return true; }
+    for (int i = 0; i < scene->numSoundEntities; ++i) if (strcmp(scene->soundEntities[i].targetname, name) == 0) { *out_type = ENTITY_SOUND; *out_index = i; return true; }
+    for (int i = 0; i < scene->numParticleEmitters; ++i) if (strcmp(scene->particleEmitters[i].targetname, name) == 0) { *out_type = ENTITY_PARTICLE_EMITTER; *out_index = i; return true; }
+    for (int i = 0; i < scene->numVideoPlayers; ++i) if (strcmp(scene->videoPlayers[i].targetname, name) == 0) { *out_type = ENTITY_VIDEO_PLAYER; *out_index = i; return true; }
+    for (int i = 0; i < scene->numSprites; ++i) if (strcmp(scene->sprites[i].targetname, name) == 0) { *out_type = ENTITY_SPRITE; *out_index = i; return true; }
+    for (int i = 0; i < scene->numLogicEntities; ++i) if (strcmp(scene->logicEntities[i].targetname, name) == 0) { *out_type = ENTITY_LOGIC; *out_index = i; return true; }
+    return false;
+}
