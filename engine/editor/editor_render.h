@@ -22,18 +22,14 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef EDITOR_MISC_H
-#define EDITOR_MISC_H
+#ifndef EDITOR_RENDER_H
+#define EDITOR_RENDER_H
 
 #include "editor_internal.h"
 
-void Editor_SetMapDirty(bool is_dirty);
-void Editor_SaveRecentFiles();
-void Editor_LoadRecentFiles();
-void Editor_AddRecentFile(const char* path);
-void Editor_InitGizmo();
-void Editor_InitDebugRenderer();
-void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
-void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);
+void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type);
+void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
+void Editor_RenderModelPreviewerScene(Renderer* renderer);
+void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
 
 #endif
