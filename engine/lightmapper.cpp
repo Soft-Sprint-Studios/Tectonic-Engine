@@ -1504,10 +1504,11 @@ namespace
 
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
-            if (m_scene->objects[i].model && !m_scene->objects[i].useLightmap)
+            const SceneObject& obj = m_scene->objects[i];
+            if (obj.model && obj.mass <= 0.0f && !obj.useLightmap)
             {
-                m_model_color_buffers[i] = std::make_unique<Vec4[]>(m_scene->objects[i].model->totalVertexCount);
-                m_model_direction_buffers[i] = std::make_unique<Vec4[]>(m_scene->objects[i].model->totalVertexCount);
+                m_model_color_buffers[i] = std::make_unique<Vec4[]>(obj.model->totalVertexCount);
+                m_model_direction_buffers[i] = std::make_unique<Vec4[]>(obj.model->totalVertexCount);
             }
         }
 
@@ -1561,10 +1562,6 @@ namespace
                     for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
                     {
                         m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
-                        for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
-                        {
-                            m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
-                        }
                     }
                 }
             }
