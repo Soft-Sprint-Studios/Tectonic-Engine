@@ -526,6 +526,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
                             newObj->scale = (Vec3){ 1,1,1 };
                             newObj->casts_shadows = true;
+                            newObj->lightmapScale = 1.0f;
                             SceneObject_UpdateMatrix(newObj);
 
                             newObj->model = Model_Load(newObj->modelPath);
@@ -1588,16 +1589,21 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
             for (int i = 0; i < scene->numObjects; ++i) {
                 SceneObject* obj = &scene->objects[i];
-                if (obj->bakedVertexColors) {
-                    free(obj->bakedVertexColors);
-                    obj->bakedVertexColors = NULL;
+                if (obj->bakedVertexColors) { free(obj->bakedVertexColors); obj->bakedVertexColors = NULL; }
+                if (obj->bakedVertexDirections) { free(obj->bakedVertexDirections); obj->bakedVertexDirections = NULL; }
+
+                if (obj->useLightmap) {
+                    if (obj->lightmapHandle) { glMakeTextureHandleNonResidentARB(obj->lightmapHandle); obj->lightmapHandle = 0; }
+                    if (obj->lightmapTexture) { glDeleteTextures(1, &obj->lightmapTexture); obj->lightmapTexture = 0; }
+                    if (obj->dirLightmapHandle) { glMakeTextureHandleNonResidentARB(obj->dirLightmapHandle); obj->dirLightmapHandle = 0; }
+                    if (obj->dirLightmapTexture) { glDeleteTextures(1, &obj->dirLightmapTexture); obj->dirLightmapTexture = 0; }
+
+                    SceneObject_LoadLightmaps(obj, i, scene->mapPath);
                 }
-                if (obj->bakedVertexDirections) {
-                    free(obj->bakedVertexDirections);
-                    obj->bakedVertexDirections = NULL;
+                else {
+                    SceneObject_LoadVertexLighting(obj, i, scene->mapPath);
+                    SceneObject_LoadVertexDirectionalLighting(obj, i, scene->mapPath);
                 }
-                SceneObject_LoadVertexLighting(obj, i, scene->mapPath);
-                SceneObject_LoadVertexDirectionalLighting(obj, i, scene->mapPath);
             }
 
             Scene_LoadAmbientProbes(scene);

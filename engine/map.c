@@ -1202,6 +1202,73 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
     }
 }
 
+void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath) {
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        size_t len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
+
+    char model_name_sanitized[128];
+    if (strlen(obj->targetname) > 0) {
+        sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
+    }
+    else {
+        sprintf(model_name_sanitized, "Model_%d", index);
+    }
+
+    char dir_path[1024];
+    snprintf(dir_path, sizeof(dir_path), "lightmaps/%s/%s", map_name_sanitized, model_name_sanitized);
+
+    char color_path[1024];
+    snprintf(color_path, sizeof(color_path), "%s/lightmap_color.hdr", dir_path);
+
+    int w, h, c;
+    float* color_data = stbi_loadf(color_path, &w, &h, &c, 3);
+    if (color_data) {
+        obj->lightmapWidth = w;
+        obj->lightmapHeight = h;
+        glGenTextures(1, &obj->lightmapTexture);
+        glBindTexture(GL_TEXTURE_2D, obj->lightmapTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, color_data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        stbi_image_free(color_data);
+
+        obj->lightmapHandle = glGetTextureHandleARB(obj->lightmapTexture);
+        glMakeTextureHandleResidentARB(obj->lightmapHandle);
+    }
+
+    char dir_lmap_path[1024];
+    snprintf(dir_lmap_path, sizeof(dir_lmap_path), "%s/lightmap_dir.png", dir_path);
+    SDL_Surface* surf = IMG_Load(dir_lmap_path);
+    if (surf) {
+        SDL_Surface* conv = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0);
+        glGenTextures(1, &obj->dirLightmapTexture);
+        glBindTexture(GL_TEXTURE_2D, obj->dirLightmapTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, conv->w, conv->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, conv->pixels);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        SDL_FreeSurface(conv);
+        SDL_FreeSurface(surf);
+
+        obj->dirLightmapHandle = glGetTextureHandleARB(obj->dirLightmapTexture);
+        glMakeTextureHandleResidentARB(obj->dirLightmapHandle);
+    }
+}
+
 static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {
     BrushFace* face = &b->faces[face_index];
     Vec3 pos = b->vertices[vertex_index].pos;
@@ -1437,6 +1504,14 @@ void Scene_Clear(Scene* scene, Engine* engine) {
             }
             if (scene->objects[i].bakedVertexDirections) {
                 free(scene->objects[i].bakedVertexDirections);
+            }
+            if (scene->objects[i].lightmapHandle) {
+                glMakeTextureHandleNonResidentARB(scene->objects[i].lightmapHandle);
+                glDeleteTextures(1, &scene->objects[i].lightmapTexture);
+            }
+            if (scene->objects[i].dirLightmapHandle) {
+                glMakeTextureHandleNonResidentARB(scene->objects[i].dirLightmapHandle);
+                glDeleteTextures(1, &scene->objects[i].dirLightmapTexture);
             }
         }
         free(scene->objects);
@@ -2054,8 +2129,18 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (*p == '"') { p++; char* quote_end = strchr(p, '"'); if (quote_end) { size_t name_len = quote_end - p; if (name_len < sizeof(newObj->targetname)) { strncpy(newObj->targetname, p, name_len); newObj->targetname[name_len] = '\0'; } p = quote_end + 1; } }
             int phys_enabled_int; int sway_enabled_int = 0;
             int casts_shadows_int = 1;
-            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f %d", &newObj->pos.x, &newObj->pos.y, &newObj->pos.z, &newObj->rot.x, &newObj->rot.y, &newObj->rot.z, &newObj->scale.x, &newObj->scale.y, &newObj->scale.z, &newObj->mass, &phys_enabled_int, &sway_enabled_int, &newObj->fadeStartDist, &newObj->fadeEndDist, &casts_shadows_int);
+            int use_lightmap_int = 0;
+            float lmap_scale = 1.0f;
+            sscanf(p, "%f %f %f %f %f %f %f %f %f %f %d %d %f %f %d %d %f",
+                &newObj->pos.x, &newObj->pos.y, &newObj->pos.z,
+                &newObj->rot.x, &newObj->rot.y, &newObj->rot.z,
+                &newObj->scale.x, &newObj->scale.y, &newObj->scale.z,
+                &newObj->mass, &phys_enabled_int, &sway_enabled_int,
+                &newObj->fadeStartDist, &newObj->fadeEndDist, &casts_shadows_int,
+                &use_lightmap_int, &lmap_scale);
             newObj->casts_shadows = (bool)casts_shadows_int;
+            newObj->useLightmap = (bool)use_lightmap_int;
+            newObj->lightmapScale = (lmap_scale > 0.0f) ? lmap_scale : 1.0f;
             newObj->swayEnabled = (bool)sway_enabled_int; newObj->isPhysicsEnabled = (bool)phys_enabled_int;
             newObj->animation_playing = false;
             newObj->animation_looping = true;
@@ -2077,8 +2162,13 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             if (newObj->model && newObj->model->num_animations > 0) {
                 newObj->current_animation = 0;
             }
-            SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
-            SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
+            if (newObj->useLightmap) {
+                SceneObject_LoadLightmaps(newObj, scene->numObjects - 1, scene->mapPath);
+            }
+            else {
+                SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
+                SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
+            }
             if (!newObj->model) { scene->numObjects--; continue; }
             if (newObj->mass > 0.0f) { newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
             else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
@@ -2614,10 +2704,11 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
 
     for (int i = 0; i < scene->numObjects; ++i) {
         SceneObject* obj = &scene->objects[i];
-        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d %.4f %.4f %d\n",
+        fprintf(file, "gltf_model %s \"%s\" %.4f %.4f %.4f   %.4f %.4f %.4f   %.4f %.4f %.4f %.4f %d %d %.4f %.4f %d %d %.4f\n",
             obj->modelPath, obj->targetname, obj->pos.x, obj->pos.y, obj->pos.z,
             obj->rot.x, obj->rot.y, obj->rot.z, obj->scale.x, obj->scale.y, obj->scale.z,
-            obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist, (int)obj->casts_shadows);
+            obj->mass, (int)obj->isPhysicsEnabled, (int)obj->swayEnabled, obj->fadeStartDist, obj->fadeEndDist, (int)obj->casts_shadows,
+            (int)obj->useLightmap, obj->lightmapScale);
         if (obj->isGrouped && obj->groupName[0] != '\0') fprintf(file, "is_grouped 1 \"%s\"\n", obj->groupName);
     }
     fprintf(file, "\n");

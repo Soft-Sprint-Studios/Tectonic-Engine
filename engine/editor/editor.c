@@ -3118,9 +3118,20 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
             Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Physics");
         }
+        UI_Separator();
+        UI_Text("Lighting");
         if (UI_Checkbox("Casts Shadows", &obj->casts_shadows)) {
             Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
             Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Shadows");
+        }
+        if (UI_Checkbox("Use Lightmap", &obj->useLightmap)) {
+            Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
+            Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Lightmap");
+        }
+        if (obj->useLightmap) {
+            if (UI_DragFloat("Lightmap Scale", &obj->lightmapScale, 0.1f, 0.1f, 4.0f)) {}
+            if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
+            if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Edit Lightmap Scale");
         }
         UI_Separator();
         UI_Checkbox("Enable Tree Sway", &obj->swayEnabled);

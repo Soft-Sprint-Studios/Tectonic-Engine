@@ -110,6 +110,31 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
     glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, finalModelMatrix.m);
 
     glUniform1i(glGetUniformLocation(shader, "u_swayEnabled"), obj->swayEnabled);
+
+    if (shader == renderer->mainShader) {
+        if (obj->useLightmap && obj->lightmapHandle) {
+            glUniform1i(glGetUniformLocation(shader, "useLightmap"), 1);
+            glUniformHandleui64ARB(glGetUniformLocation(shader, "lightmap"), obj->lightmapHandle);
+
+            glUniformHandleui64ARB(glGetUniformLocation(shader, "lightmap"), obj->lightmapHandle);
+
+            if (obj->lightmapWidth > 0 && obj->lightmapHeight > 0) {
+                glUniform2f(glGetUniformLocation(shader, "u_lightmap_sampler_size"), (float)obj->lightmapWidth, (float)obj->lightmapHeight);
+            }
+
+            if (obj->dirLightmapHandle) {
+                glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 1);
+                glUniformHandleui64ARB(glGetUniformLocation(shader, "directionalLightmap"), obj->dirLightmapHandle);
+            }
+            else {
+                glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 0);
+            }
+        }
+        else {
+            glUniform1i(glGetUniformLocation(shader, "useLightmap"), 0);
+            glUniform1i(glGetUniformLocation(shader, "useDirectionalLightmap"), 0);
+        }
+    }
     if (obj->model) {
         if (obj->bakedVertexColors || obj->bakedVertexDirections) {
             unsigned int vertex_offset = 0;

@@ -62,7 +62,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 18
-#define MAP_VERSION 20
+#define MAP_VERSION 21
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 #define PLAYER_HEIGHT_CROUCH 1.37f
@@ -265,6 +265,14 @@ extern "C" {
         LoadedModel* model;
         Vec4* bakedVertexColors;
         Vec4* bakedVertexDirections;
+        bool useLightmap;
+        float lightmapScale;
+        GLuint lightmapTexture;
+        GLuint dirLightmapTexture;
+        uint64_t lightmapHandle;
+        uint64_t dirLightmapHandle;
+        int lightmapWidth;
+        int lightmapHeight;
         RigidBodyHandle physicsBody;
         int current_animation;
         float animation_time;
@@ -630,6 +638,7 @@ extern "C" {
     void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath);
     void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
     void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
+    void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath);
     void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
     void Scene_LoadAmbientProbes(Scene* scene);
 

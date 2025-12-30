@@ -102,13 +102,19 @@ namespace
         Vec4* output_direction_buffer;
     };
 
+    struct ModelLightmapJobData
+    {
+        int model_index;
+        fs::path output_dir;
+    };
+
     struct EmissiveMaterial {
         const Material* material;
         Vec3 color;
         float intensity;
     };
 
-    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData>;
+    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData, ModelLightmapJobData>;
 
     uint32_t generate_seed_from_pos(const Vec3& pos)
     {
@@ -166,6 +172,7 @@ namespace
         void process_decal(const DecalJobData& data);
         void process_brush_vertex(const BrushVertexJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
+        void process_model_lightmap(const ModelLightmapJobData& data);
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
         Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
@@ -1276,6 +1283,157 @@ namespace
         data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
 
+    void Lightmapper::process_model_lightmap(const ModelLightmapJobData& data)
+    {
+        const SceneObject& obj = m_scene->objects[data.model_index];
+        if (!obj.model) return;
+
+        float bounds_size = vec3_length(vec3_sub(obj.model->aabb_max, obj.model->aabb_min));
+        float world_scale = fmaxf(obj.scale.x, fmaxf(obj.scale.y, obj.scale.z));
+        int resolution = std::clamp((int)(bounds_size * world_scale * obj.lightmapScale * 32.0f), 32, 2048);
+        resolution = pow(2, ceil(log(resolution) / log(2)));
+
+        std::vector<float> direct_data(resolution * resolution * 3, 0.0f);
+        std::vector<float> indirect_data(resolution * resolution * 3, 0.0f);
+        std::vector<float> albedo_data(resolution * resolution * 3, 0.5f);
+        std::vector<float> normal_data(resolution * resolution * 3, 0.0f);
+        std::vector<float> dir_accum_data(resolution * resolution * 3, 0.0f);
+
+        int num_meshes = obj.model->meshCount;
+        unsigned int vertex_offset_global = 0;
+        unsigned int index_offset_global = 0;
+
+        for (int m = 0; m < num_meshes; ++m) {
+            const Mesh& mesh = obj.model->meshes[m];
+            unsigned int num_tris = mesh.indexCount / 3;
+
+            for (unsigned int t = 0; t < num_tris; ++t) {
+                unsigned int i0 = obj.model->combinedIndexData[index_offset_global + t * 3 + 0];
+                unsigned int i1 = obj.model->combinedIndexData[index_offset_global + t * 3 + 1];
+                unsigned int i2 = obj.model->combinedIndexData[index_offset_global + t * 3 + 2];
+
+                Vec3 v0_local = *(Vec3*)&obj.model->combinedVertexData[i0 * 3];
+                Vec3 v1_local = *(Vec3*)&obj.model->combinedVertexData[i1 * 3];
+                Vec3 v2_local = *(Vec3*)&obj.model->combinedVertexData[i2 * 3];
+
+                Vec3 n0_local = *(Vec3*)&obj.model->combinedNormalData[i0 * 3];
+                Vec3 n1_local = *(Vec3*)&obj.model->combinedNormalData[i1 * 3];
+                Vec3 n2_local = *(Vec3*)&obj.model->combinedNormalData[i2 * 3];
+
+                auto get_uv = [&](unsigned int global_idx) -> Vec2 {
+                    unsigned int local_v = global_idx - vertex_offset_global;
+                    float* ptr = &mesh.final_vbo_data[local_v * 24 + 6];
+                    return Vec2{ ptr[0], ptr[1] };
+                    };
+
+                Vec2 uv0 = get_uv(i0);
+                Vec2 uv1 = get_uv(i1);
+                Vec2 uv2 = get_uv(i2);
+
+                float min_u = fminf(uv0.x, fminf(uv1.x, uv2.x));
+                float min_v = fminf(uv0.y, fminf(uv1.y, uv2.y));
+                float max_u = fmaxf(uv0.x, fmaxf(uv1.x, uv2.x));
+                float max_v = fmaxf(uv0.y, fmaxf(uv1.y, uv2.y));
+
+                int min_x = std::clamp((int)(min_u * resolution), 0, resolution - 1);
+                int min_y = std::clamp((int)(min_v * resolution), 0, resolution - 1);
+                int max_x = std::clamp((int)(max_u * resolution), 0, resolution - 1);
+                int max_y = std::clamp((int)(max_v * resolution), 0, resolution - 1);
+
+                for (int y = min_y; y <= max_y; ++y) {
+                    for (int x = min_x; x <= max_x; ++x) {
+                        Vec2 p = { (x + 0.5f) / resolution, (y + 0.5f) / resolution };
+                        Vec3 bary = barycentric_coords(p, uv0, uv1, uv2);
+
+                        if (bary.x >= 0 && bary.y >= 0 && bary.z >= 0) {
+                            Vec3 pos_local = vec3_add(vec3_muls(v0_local, bary.x), vec3_add(vec3_muls(v1_local, bary.y), vec3_muls(v2_local, bary.z)));
+                            Vec3 norm_local = vec3_add(vec3_muls(n0_local, bary.x), vec3_add(vec3_muls(n1_local, bary.y), vec3_muls(n2_local, bary.z)));
+
+                            Vec3 pos_world = mat4_mul_vec3(&obj.modelMatrix, pos_local);
+                            Vec3 norm_world = mat4_mul_vec3_dir(&obj.modelMatrix, norm_local);
+                            vec3_normalize(&norm_world);
+
+                            int idx = (y * resolution + x) * 3;
+
+                            std::mt19937 rng(generate_seed_from_pos(pos_world));
+                            Vec3 dom_dir, ind_dir;
+
+                            Vec3 direct = calculate_direct_light(pos_world, norm_world, dom_dir);
+                            Vec3 indirect = calculate_indirect_light(pos_world, norm_world, rng, ind_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
+                            Vec3 sun_direct = calculate_direct_sun_light_only(pos_world, norm_world);
+
+                            direct_data[idx] = direct.x - sun_direct.x;
+                            direct_data[idx + 1] = direct.y - sun_direct.y;
+                            direct_data[idx + 2] = direct.z - sun_direct.z;
+
+                            indirect_data[idx] = indirect.x;
+                            indirect_data[idx + 1] = indirect.y;
+                            indirect_data[idx + 2] = indirect.z;
+
+                            Vec3 total_dir = vec3_add(dom_dir, ind_dir);
+                            if (vec3_length_sq(total_dir) > 0) vec3_normalize(&total_dir);
+
+                            dir_accum_data[idx] = total_dir.x;
+                            dir_accum_data[idx + 1] = total_dir.y;
+                            dir_accum_data[idx + 2] = total_dir.z;
+
+                            normal_data[idx] = norm_world.x; normal_data[idx + 1] = norm_world.y; normal_data[idx + 2] = norm_world.z;
+                        }
+                    }
+                }
+            }
+            vertex_offset_global += mesh.vertexCount;
+            index_offset_global += mesh.indexCount;
+        }
+
+        std::vector<float> denoised_indirect(indirect_data.size());
+        {
+            OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
+            oidnSetSharedFilterImage(filter, "color", indirect_data.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
+            oidnSetSharedFilterImage(filter, "albedo", albedo_data.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
+            oidnSetSharedFilterImage(filter, "normal", normal_data.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
+            oidnSetSharedFilterImage(filter, "output", denoised_indirect.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
+            oidnSetFilterBool(filter, "hdr", true);
+            oidnSetFilterBool(filter, "cleanAux", true);
+            oidnCommitFilter(filter);
+            oidnExecuteFilter(filter);
+            oidnReleaseFilter(filter);
+        }
+
+        apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
+        apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
+
+        std::vector<float> final_hdr_lightmap_data(resolution * resolution * 3);
+        for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
+            final_hdr_lightmap_data[i * 3 + 0] = direct_data[i * 3 + 0] + denoised_indirect[i * 3 + 0];
+            final_hdr_lightmap_data[i * 3 + 1] = direct_data[i * 3 + 1] + denoised_indirect[i * 3 + 1];
+            final_hdr_lightmap_data[i * 3 + 2] = direct_data[i * 3 + 2] + denoised_indirect[i * 3 + 2];
+        }
+
+        std::vector<float> filtered_direction_data;
+        apply_guided_filter(filtered_direction_data, dir_accum_data, final_hdr_lightmap_data, resolution, resolution, 4, 0.01f);
+
+        std::vector<unsigned char> dir_data(resolution * resolution * 4, 0);
+
+        for (int i = 0; i < resolution * resolution; ++i) {
+            int idx = i * 3;
+
+            Vec3 d = { filtered_direction_data[idx], filtered_direction_data[idx + 1], filtered_direction_data[idx + 2] };
+            if (vec3_length_sq(d) > 0.0001f) vec3_normalize(&d);
+            else d = { 0,0,0 };
+
+            dir_data[i * 4 + 0] = (unsigned char)((d.x * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 1] = (unsigned char)((d.y * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 2] = (unsigned char)((d.z * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 3] = 255;
+        }
+
+        fs::path color_path = data.output_dir / "lightmap_color.hdr";
+        stbi_write_hdr(color_path.string().c_str(), resolution, resolution, 3, final_hdr_lightmap_data.data());
+        fs::path dir_path = data.output_dir / "lightmap_dir.png";
+        stbi_write_png(dir_path.string().c_str(), resolution, resolution, 4, dir_data.data(), resolution * 4);
+    }
+
     void Lightmapper::process_job(const JobPayload& job)
     {
         std::visit([this](auto&& arg) {
@@ -1288,6 +1446,8 @@ namespace
                 process_model_vertex(arg);
             else if constexpr (std::is_same_v<T, BrushVertexJobData>)
                 process_brush_vertex(arg);
+            else if constexpr (std::is_same_v<T, ModelLightmapJobData>)
+                process_model_lightmap(arg);
             }, job);
     }
 
@@ -1344,7 +1504,7 @@ namespace
 
         for (int i = 0; i < m_scene->numObjects; ++i)
         {
-            if (m_scene->objects[i].model)
+            if (m_scene->objects[i].model && !m_scene->objects[i].useLightmap)
             {
                 m_model_color_buffers[i] = std::make_unique<Vec4[]>(m_scene->objects[i].model->totalVertexCount);
                 m_model_direction_buffers[i] = std::make_unique<Vec4[]>(m_scene->objects[i].model->totalVertexCount);
@@ -1391,9 +1551,21 @@ namespace
             if (obj.mass > 0.0f) continue;
             if (obj.model)
             {
-                for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
-                {
-                    m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
+                if (obj.useLightmap) {
+                    std::string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + std::to_string(i);
+                    fs::path model_dir = m_output_path / sanitize_filename(model_name_str);
+                    fs::create_directories(model_dir);
+                    m_jobs.emplace_back(ModelLightmapJobData{ i, model_dir });
+                }
+                else {
+                    for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
+                    {
+                        m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
+                        for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
+                        {
+                            m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
+                        }
+                    }
                 }
             }
         }
