@@ -246,7 +246,12 @@ extern Mat4 g_view_matrix[VIEW_COUNT];
 extern Mat4 g_proj_matrix[VIEW_COUNT];
 extern BrushFace g_copiedFaceProperties;
 extern bool g_hasCopiedFace;
-extern bool g_is_map_dirty;
-extern PendingEditorAction g_pending_action;
+
+// hacky till other stuff moved to their own files
+EditorSelection* Editor_GetPrimarySelection();
+bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
+void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
+void Editor_UpdatePreviewBrushForArch();
+// end hacky
 
 #endif
