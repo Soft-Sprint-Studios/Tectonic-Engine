@@ -41,16 +41,14 @@
 #define ENABLE_CHECKSUM 1
 //#define DISABLE_DEBUGGER 1
 
-#define BRANCH_PUBLIC
+//#define BRANCH_PUBLIC
+#define BRANCH_NOCTURNE
 
-#ifdef BRANCH_PUBLIC
+#if defined(BRANCH_PUBLIC)
     #define BRANCH_NAME "PUBLIC"
+#elif defined(BRANCH_NOCTURNE)
+    #define BRANCH_NAME "Nocturne Descent"
 #else
-#ifdef _MSC_VER
-    #pragma message("You are building an engine branch not meant to be published on github, Please make sure you dont publish me :)")
-#else
-    #warning "You are building an engine branch not meant to be published on github, Please make sure you dont publish me :)"
-#endif
     #define BRANCH_NAME "???"
 #endif
 

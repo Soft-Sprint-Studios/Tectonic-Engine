@@ -68,7 +68,11 @@ private:
         Console_Printf("Discord: error (%d: %s)\n", err, msg);
     }
 
+#ifdef BRANCH_NOCTURNE
+    static inline const char* APPLICATION_ID = "1455558425357324415";
+#else
     static inline const char* APPLICATION_ID = "1386692288914260071";
+#endif
     static inline int64_t StartTime;
 };
 

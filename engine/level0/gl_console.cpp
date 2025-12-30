@@ -437,9 +437,12 @@ extern "C" {
 
                 ImGui::Text("Tectonic Engine");
                 ImGui::Text("Build: %d", Compat_GetBuildNumber());
+                ImGui::Text("Branch: %s", BRANCH_NAME);
+                ImGui::Text("Built on %s at %s", __DATE__, __TIME__);
 
                 ImGui::PopStyleColor();
             }
+
             ImGui::End();
         }
     }
