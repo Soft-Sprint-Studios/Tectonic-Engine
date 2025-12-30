@@ -23,7 +23,7 @@
  */
 #include "editor_internal.h"
 #include "editor.h"
-#include "editor_ui.h"
+#include "editor_windows.h"
 #include "editor_math.h"
 #include "editor_selection.h"
 #include "editor_actions.h"

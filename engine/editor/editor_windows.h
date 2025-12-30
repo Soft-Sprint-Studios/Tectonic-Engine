@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef EDITOR_UI_H
-#define EDITOR_UI_H
+#ifndef EDITOR_WINDOWS_H
+#define EDITOR_WINDOWS_H
 
 #include "editor_internal.h"
 
