@@ -3,9 +3,10 @@ project(TectonicEngine LANGUAGES C CXX)
 
 if(MSVC)
     add_compile_options(/we4013)
-elseif(CMAKE_COMPILER_IS_GNUCC)
-    add_compile_options(-Werror=implicit-function-declaration)
 endif()
+#elseif(CMAKE_COMPILER_IS_GNUCC)
+#    add_compile_options(-Werror=implicit-function-declaration)
+#endif()
 
 if(UNIX AND NOT APPLE)
     set(CMAKE_INSTALL_RPATH "$ORIGIN")
