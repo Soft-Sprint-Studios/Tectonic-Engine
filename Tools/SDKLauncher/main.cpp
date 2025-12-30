@@ -31,7 +31,7 @@
 #include <string>
 #include <cstdlib>
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -40,7 +40,7 @@
 #endif
 
 void launch_tool(const char* tool_executable) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
     ZeroMemory(&si, sizeof(si));
@@ -79,7 +79,7 @@ void launch_tool(const char* tool_executable) {
 }
 
 void on_launch_console_cb(Fl_Widget*, void*) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     launch_tool("TConsole.exe");
 #else
     launch_tool("TConsole");
@@ -87,7 +87,7 @@ void on_launch_console_cb(Fl_Widget*, void*) {
 }
 
 void on_launch_model_importer_cb(Fl_Widget*, void*) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     launch_tool("TectonicModelImporter.exe");
 #else
     launch_tool("TectonicModelImporter");
@@ -95,7 +95,7 @@ void on_launch_model_importer_cb(Fl_Widget*, void*) {
 }
 
 void on_launch_particle_editor_cb(Fl_Widget*, void*) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     launch_tool("TectonicParticleEditor.exe");
 #else
     launch_tool("TectonicParticleEditor");
@@ -103,7 +103,7 @@ void on_launch_particle_editor_cb(Fl_Widget*, void*) {
 }
 
 void on_launch_vertex_lighter_cb(Fl_Widget*, void*) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     launch_tool("TectonicVertexLighter.exe");
 #else
     launch_tool("TectonicVertexLighter");
@@ -111,7 +111,7 @@ void on_launch_vertex_lighter_cb(Fl_Widget*, void*) {
 }
 
 void on_launch_ambient_inspector_cb(Fl_Widget*, void*) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     launch_tool("TectonicAmbientCubeInspector.exe");
 #else
     launch_tool("TectonicAmbientCubeInspector");

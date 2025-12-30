@@ -36,7 +36,7 @@
 #include <mutex>
 #include <atomic>
 
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
@@ -68,7 +68,7 @@ struct AppData {
 };
 
 void server_thread_func(AppData* app_data) {
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
@@ -131,7 +131,7 @@ void server_thread_func(AppData* app_data) {
         }
     }
     closesocket(listen_socket);
-#ifdef _WIN32
+#ifdef PLATFORM_WINDOWS
     WSACleanup();
 #endif
 }

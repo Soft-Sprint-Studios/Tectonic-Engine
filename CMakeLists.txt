@@ -618,6 +618,10 @@ set_target_properties(TConsole PROPERTIES
 target_include_directories(TConsole PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
+target_compile_options(TConsole PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
 if(WIN32)
     set_target_properties(TConsole PROPERTIES WIN32_EXECUTABLE TRUE)
     target_link_directories(TConsole PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")
@@ -680,6 +684,11 @@ set_target_properties(SDKLauncher PROPERTIES
 
 target_include_directories(SDKLauncher PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
+)
+
+target_compile_options(SDKLauncher PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
 )
 
 if(WIN32)
