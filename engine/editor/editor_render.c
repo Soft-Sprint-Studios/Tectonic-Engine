@@ -25,6 +25,7 @@
 #include "editor_render.h"
 #include "editor_math.h"
 #include "game_data.h"
+#include "io_system.h"
 
 void Editor_RenderGrid(ViewportType type, float aspect) {
     glUseProgram(g_EditorState.grid_shader);
