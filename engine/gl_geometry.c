@@ -23,6 +23,10 @@
  */
 #include "gl_geometry.h"
 #include "gl_misc.h"
+#include "gl_zprepass.h"
+#include "gl_render_misc.h"
+#include "gl_sprites.h"
+#include "gl_video_player.h"
 #include "cvar.h"
 #include <float.h>
 #include "io_system.h"

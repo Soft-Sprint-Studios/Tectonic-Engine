@@ -22,6 +22,10 @@
  * SOFTWARE.
  */
 #include "gl_render_misc.h"
+#include "gl_console.h"
+#include "gl_geometry.h"
+#include "gl_skybox.h"
+#include "gl_shadows.h"
 #include "cvar.h"
 #include "io_system.h"
 #include <SDL_image.h>

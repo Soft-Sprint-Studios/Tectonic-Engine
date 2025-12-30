@@ -46,7 +46,19 @@
 #include "network.h"
 #include "dsp_reverb.h"
 #include "gl_video_player.h"
+#include "gl_blackholes.h"
+#include "gl_geometry.h"
+#include "gl_bloom.h"
 #include "gl_keypad.h"
+#include "gl_misc.h"
+#include "gl_render_misc.h"
+#include "gl_overlay.h"
+#include "gl_skybox.h"
+#include "gl_planar.h"
+#include "gl_postprocess.h"
+#include "gl_ssao.h"
+#include "gl_ssr.h"
+#include "gl_volumetrics.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "checksum.h"
@@ -130,10 +142,6 @@ const char* g_light_styles[] = {
     "mmnnmmnnnmmnn"
 };
 const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
-
-void handle_command(int argc, char** argv) {
-    Commands_Execute(argc, argv);
-}
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->width = g_startup_width;
@@ -445,7 +453,7 @@ void process_input() {
 #ifndef GAME_RELEASE
             else if (event.key.keysym.sym == SDLK_F5) {
                 if (g_current_mode != MODE_MAINMENU) {
-                    handle_command(1, (char* []) { "edit" });
+                    Commands_Execute(1, (char* []) { "edit" });
                 }
             }
 #endif
@@ -475,7 +483,7 @@ void process_input() {
                             p = strtok(NULL, " ");
                         }
                         if (argc > 0) {
-                            handle_command(argc, argv);
+                            Commands_Execute(argc, argv);
                         }
                     }
                 }

@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 #include "io_system.h"
+#include "commands.h"
 #include "sound_system.h"
 #include "gl_video_player.h"
 #include "cvar.h"

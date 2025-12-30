@@ -32,6 +32,7 @@
 #include "io_system.h" 
 #include "gl_render_misc.h"
 #include "gl_video_player.h"
+#include "gl_geometry.h"
 #include "game_data.h"
 #include <SDL_image.h>
 #include <math.h>

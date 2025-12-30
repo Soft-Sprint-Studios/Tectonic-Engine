@@ -24,7 +24,14 @@
 #include <float.h>
 #include "editor_render.h"
 #include "editor_math.h"
+#include "editor_selection.h"
+#include "gl_geometry.h"
+#include "gl_bloom.h"
+#include "gl_render_misc.h"
+#include "gl_shadows.h"
+#include "gl_ssao.h"
 #include "game_data.h"
+#include "cvar.h"
 #include "io_system.h"
 
 void Editor_RenderGrid(ViewportType type, float aspect) {

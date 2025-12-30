@@ -23,6 +23,7 @@
  */
 #include "gl_shadows.h"
 #include "gl_misc.h"
+#include "gl_geometry.h"
 #include "cvar.h"
 
 void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine) {

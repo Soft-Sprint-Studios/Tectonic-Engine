@@ -66,6 +66,7 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index);
 void Editor_DuplicateParallaxRoom(Scene* scene, int index);
 void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
 void Editor_DuplicateSprite(Scene* scene, int index);
+void Editor_SetMapDirty(bool is_dirty);
 
 #ifdef __cplusplus
 }

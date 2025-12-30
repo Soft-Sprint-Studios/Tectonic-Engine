@@ -23,6 +23,8 @@
  */
 #include <float.h>
 #include "gl_decals.h"
+#include "gl_geometry.h"
+#include "cvar.h"
 #include "texturemanager.h"
 
 static float decalQuadVertices[] = {

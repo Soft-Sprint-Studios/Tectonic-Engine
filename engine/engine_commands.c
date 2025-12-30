@@ -26,6 +26,7 @@
 #include "engine_commands.h"
 #include "map.h"
 #include "cvar.h"
+#include "binds.h"
 #include "commands.h"
 #include "gl_console.h"
 #include "editor.h"

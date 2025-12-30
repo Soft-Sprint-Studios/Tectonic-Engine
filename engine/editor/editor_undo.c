@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 #include "editor_undo.h"
+#include "editor_selection.h"
+#include "sound_system.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

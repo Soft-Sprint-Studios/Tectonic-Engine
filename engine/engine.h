@@ -58,6 +58,9 @@ extern bool g_restart_requested;
 extern char g_screenshot_path[256];
 extern bool g_is_editor_mode;
 
+// needed by editor
+void evaluate_animation(SceneObject* obj, float time);
+
 #ifdef __cplusplus
 }
 #endif

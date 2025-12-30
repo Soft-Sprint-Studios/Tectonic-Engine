@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "engine.h"
 #include "editor_internal.h"
 #include "editor.h"
 #include "editor_windows.h"
@@ -28,6 +29,7 @@
 #include "editor_selection.h"
 #include "editor_actions.h"
 #include "editor_geometry.h"
+#include "commands.h"
 #include <stdlib.h>
 #include "gl_console.h"
 #include "lightmapper.h"
@@ -2769,7 +2771,7 @@ static void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* 
     case PENDING_ACTION_EXIT_EDITOR:
     {
         char* args[] = { "edit" };
-        handle_command(1, args);
+        Commands_Execute(1, args);
         break;
     }
     default:
@@ -4030,7 +4032,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 }
                 else {
                     char* args[] = { "edit" };
-                    handle_command(1, args);
+                    Commands_Execute(1, args);
                 }
             }
             UI_EndMenu();

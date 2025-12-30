@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 project(TectonicEngine LANGUAGES C CXX)
 
+if(MSVC)
+    add_compile_options(/we4013)
+elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Werror=implicit-function-declaration)
+endif()
+
 if(UNIX AND NOT APPLE)
     set(CMAKE_INSTALL_RPATH "$ORIGIN")
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
