@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "editor_ui.h"
+#include "editor_windows.h"
 #include "editor_undo.h"
 #include "editor_math.h"
 #include "gl_console.h"
@@ -1671,6 +1671,105 @@ void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, Engine* 
     UI_End();
 }
 
+void Editor_UpdatePreviewBrushForArch() {
+    Vec3 p1 = g_EditorState.arch_creation_start_point;
+    Vec3 p2 = g_EditorState.arch_creation_end_point;
+    ViewportType view = g_EditorState.arch_creation_view;
+
+    float width = 0.0f, height = g_EditorState.arch_add_height;
+    Vec3 center = { 0 };
+
+    if (view == VIEW_TOP_XZ) {
+        width = fabsf(p2.x - p1.x);
+        center = (Vec3){ (p1.x + p2.x) / 2.0f, p1.y, (p1.z + p2.z) / 2.0f };
+    }
+    else if (view == VIEW_FRONT_XY) {
+        width = fabsf(p2.x - p1.x);
+        center = (Vec3){ (p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f, p1.z };
+    }
+    else if (view == VIEW_SIDE_YZ) {
+        width = fabsf(p2.z - p1.z);
+        center = (Vec3){ p1.x, (p1.y + p2.y) / 2.0f, (p1.z + p2.z) / 2.0f };
+    }
+
+    float outer_radius = width / 2.0f;
+    float inner_radius = outer_radius - g_EditorState.arch_wall_width;
+    if (inner_radius < 0.01f) inner_radius = 0.01f;
+
+    int num_sides = g_EditorState.arch_num_sides;
+    float start_angle_rad = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
+    float arc_rad = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
+    float angle_step = arc_rad / num_sides;
+
+    Brush* b = &g_EditorState.preview_brush;
+    Brush_FreeData(b);
+
+    int verts_per_ring = num_sides + 1;
+    b->numVertices = verts_per_ring * 4;
+    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+
+    for (int i = 0; i <= num_sides; i++) {
+        float angle = start_angle_rad + i * angle_step;
+        float cos_a = cosf(angle);
+        float sin_a = sinf(angle);
+
+        int outer_bottom_idx = i;
+        int inner_bottom_idx = i + verts_per_ring;
+        int outer_top_idx = i + verts_per_ring * 2;
+        int inner_top_idx = i + verts_per_ring * 3;
+
+        b->vertices[outer_bottom_idx].pos = (Vec3){ cos_a * outer_radius, 0, sin_a * outer_radius };
+        b->vertices[inner_bottom_idx].pos = (Vec3){ cos_a * inner_radius, 0, sin_a * inner_radius };
+        b->vertices[outer_top_idx].pos = (Vec3){ cos_a * outer_radius, height, sin_a * outer_radius };
+        b->vertices[inner_top_idx].pos = (Vec3){ cos_a * inner_radius, height, sin_a * inner_radius };
+    }
+
+    b->numFaces = (num_sides * 4) + 2;
+    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+
+    for (int i = 0; i < num_sides; i++) {
+        int ob = i;
+        int ib = i + verts_per_ring;
+        int ot = i + verts_per_ring * 2;
+        int it = i + verts_per_ring * 3;
+
+        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[i].vertexIndices[0] = ob; b->faces[i].vertexIndices[1] = ot; b->faces[i].vertexIndices[2] = ot + 1; b->faces[i].vertexIndices[3] = ob + 1;
+
+        b->faces[num_sides + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides + i].vertexIndices[0] = ib + 1; b->faces[num_sides + i].vertexIndices[1] = it + 1; b->faces[num_sides + i].vertexIndices[2] = it; b->faces[num_sides + i].vertexIndices[3] = ib;
+
+        b->faces[num_sides * 2 + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides * 2 + i].vertexIndices[0] = ot; b->faces[num_sides * 2 + i].vertexIndices[1] = it; b->faces[num_sides * 2 + i].vertexIndices[2] = it + 1; b->faces[num_sides * 2 + i].vertexIndices[3] = ot + 1;
+
+        b->faces[num_sides * 3 + i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[num_sides * 3 + i].vertexIndices[0] = ob + 1; b->faces[num_sides * 3 + i].vertexIndices[1] = ib + 1; b->faces[num_sides * 3 + i].vertexIndices[2] = ib; b->faces[num_sides * 3 + i].vertexIndices[3] = ob;
+
+        for (int j = 0; j < 4; ++j) b->faces[num_sides * j + i].numVertexIndices = 4;
+    }
+
+    b->faces[num_sides * 4].vertexIndices = malloc(4 * sizeof(int));
+    b->faces[num_sides * 4].vertexIndices[0] = 0; b->faces[num_sides * 4].vertexIndices[1] = verts_per_ring; b->faces[num_sides * 4].vertexIndices[2] = verts_per_ring * 3; b->faces[num_sides * 4].vertexIndices[3] = verts_per_ring * 2;
+
+    b->faces[num_sides * 4 + 1].vertexIndices = malloc(4 * sizeof(int));
+    b->faces[num_sides * 4 + 1].vertexIndices[0] = num_sides; b->faces[num_sides * 4 + 1].vertexIndices[1] = num_sides + verts_per_ring * 2; b->faces[num_sides * 4 + 1].vertexIndices[2] = num_sides + verts_per_ring * 3; b->faces[num_sides * 4 + 1].vertexIndices[3] = num_sides + verts_per_ring;
+
+    b->faces[num_sides * 4].numVertexIndices = 4;
+    b->faces[num_sides * 4 + 1].numVertexIndices = 4;
+
+    for (int i = 0; i < b->numFaces; i++) {
+        b->faces[i].material = TextureManager_GetMaterial(0);
+        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].lightmap_scale = 1.0f;
+    }
+
+    b->pos = center;
+    b->rot = (Vec3){ 0,0,0 };
+    b->scale = (Vec3){ 1,1,1 };
+    Brush_UpdateMatrix(b);
+    Brush_CreateRenderData(b);
+}
+
 void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine) {
     if (!g_EditorState.show_arch_properties_popup) return;
 
@@ -2117,105 +2216,6 @@ void Editor_RenderArchPreview() {
 
     free(lines);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void Editor_UpdatePreviewBrushForArch() {
-    Vec3 p1 = g_EditorState.arch_creation_start_point;
-    Vec3 p2 = g_EditorState.arch_creation_end_point;
-    ViewportType view = g_EditorState.arch_creation_view;
-
-    float width = 0.0f, height = g_EditorState.arch_add_height;
-    Vec3 center = { 0 };
-
-    if (view == VIEW_TOP_XZ) {
-        width = fabsf(p2.x - p1.x);
-        center = (Vec3){ (p1.x + p2.x) / 2.0f, p1.y, (p1.z + p2.z) / 2.0f };
-    }
-    else if (view == VIEW_FRONT_XY) {
-        width = fabsf(p2.x - p1.x);
-        center = (Vec3){ (p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f, p1.z };
-    }
-    else if (view == VIEW_SIDE_YZ) {
-        width = fabsf(p2.z - p1.z);
-        center = (Vec3){ p1.x, (p1.y + p2.y) / 2.0f, (p1.z + p2.z) / 2.0f };
-    }
-
-    float outer_radius = width / 2.0f;
-    float inner_radius = outer_radius - g_EditorState.arch_wall_width;
-    if (inner_radius < 0.01f) inner_radius = 0.01f;
-
-    int num_sides = g_EditorState.arch_num_sides;
-    float start_angle_rad = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
-    float arc_rad = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
-    float angle_step = arc_rad / num_sides;
-
-    Brush* b = &g_EditorState.preview_brush;
-    Brush_FreeData(b);
-
-    int verts_per_ring = num_sides + 1;
-    b->numVertices = verts_per_ring * 4;
-    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
-
-    for (int i = 0; i <= num_sides; i++) {
-        float angle = start_angle_rad + i * angle_step;
-        float cos_a = cosf(angle);
-        float sin_a = sinf(angle);
-
-        int outer_bottom_idx = i;
-        int inner_bottom_idx = i + verts_per_ring;
-        int outer_top_idx = i + verts_per_ring * 2;
-        int inner_top_idx = i + verts_per_ring * 3;
-
-        b->vertices[outer_bottom_idx].pos = (Vec3){ cos_a * outer_radius, 0, sin_a * outer_radius };
-        b->vertices[inner_bottom_idx].pos = (Vec3){ cos_a * inner_radius, 0, sin_a * inner_radius };
-        b->vertices[outer_top_idx].pos = (Vec3){ cos_a * outer_radius, height, sin_a * outer_radius };
-        b->vertices[inner_top_idx].pos = (Vec3){ cos_a * inner_radius, height, sin_a * inner_radius };
-    }
-
-    b->numFaces = (num_sides * 4) + 2;
-    b->faces = calloc(b->numFaces, sizeof(BrushFace));
-
-    for (int i = 0; i < num_sides; i++) {
-        int ob = i;
-        int ib = i + verts_per_ring;
-        int ot = i + verts_per_ring * 2;
-        int it = i + verts_per_ring * 3;
-
-        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[i].vertexIndices[0] = ob; b->faces[i].vertexIndices[1] = ot; b->faces[i].vertexIndices[2] = ot + 1; b->faces[i].vertexIndices[3] = ob + 1;
-
-        b->faces[num_sides + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides + i].vertexIndices[0] = ib + 1; b->faces[num_sides + i].vertexIndices[1] = it + 1; b->faces[num_sides + i].vertexIndices[2] = it; b->faces[num_sides + i].vertexIndices[3] = ib;
-
-        b->faces[num_sides * 2 + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides * 2 + i].vertexIndices[0] = ot; b->faces[num_sides * 2 + i].vertexIndices[1] = it; b->faces[num_sides * 2 + i].vertexIndices[2] = it + 1; b->faces[num_sides * 2 + i].vertexIndices[3] = ot + 1;
-
-        b->faces[num_sides * 3 + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides * 3 + i].vertexIndices[0] = ob + 1; b->faces[num_sides * 3 + i].vertexIndices[1] = ib + 1; b->faces[num_sides * 3 + i].vertexIndices[2] = ib; b->faces[num_sides * 3 + i].vertexIndices[3] = ob;
-
-        for (int j = 0; j < 4; ++j) b->faces[num_sides * j + i].numVertexIndices = 4;
-    }
-
-    b->faces[num_sides * 4].vertexIndices = malloc(4 * sizeof(int));
-    b->faces[num_sides * 4].vertexIndices[0] = 0; b->faces[num_sides * 4].vertexIndices[1] = verts_per_ring; b->faces[num_sides * 4].vertexIndices[2] = verts_per_ring * 3; b->faces[num_sides * 4].vertexIndices[3] = verts_per_ring * 2;
-
-    b->faces[num_sides * 4 + 1].vertexIndices = malloc(4 * sizeof(int));
-    b->faces[num_sides * 4 + 1].vertexIndices[0] = num_sides; b->faces[num_sides * 4 + 1].vertexIndices[1] = num_sides + verts_per_ring * 2; b->faces[num_sides * 4 + 1].vertexIndices[2] = num_sides + verts_per_ring * 3; b->faces[num_sides * 4 + 1].vertexIndices[3] = num_sides + verts_per_ring;
-
-    b->faces[num_sides * 4].numVertexIndices = 4;
-    b->faces[num_sides * 4 + 1].numVertexIndices = 4;
-
-    for (int i = 0; i < b->numFaces; i++) {
-        b->faces[i].material = TextureManager_GetMaterial(0);
-        b->faces[i].uv_scale = (Vec2){ 1,1 };
-        b->faces[i].lightmap_scale = 1.0f;
-    }
-
-    b->pos = center;
-    b->rot = (Vec3){ 0,0,0 };
-    b->scale = (Vec3){ 1,1,1 };
-    Brush_UpdateMatrix(b);
-    Brush_CreateRenderData(b);
 }
 
 // End render seperate windows
