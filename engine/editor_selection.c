@@ -506,3 +506,23 @@ bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int
     for (int i = 0; i < scene->numLogicEntities; ++i) if (strcmp(scene->logicEntities[i].targetname, name) == 0) { *out_type = ENTITY_LOGIC; *out_index = i; return true; }
     return false;
 }
+
+bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos) {
+    if (name == NULL || *name == '\0') return false;
+    EntityType type;
+    int index;
+    if (FindEntityInScene(scene, name, &type, &index)) {
+        switch (type) {
+        case ENTITY_MODEL: *out_pos = scene->objects[index].pos; return true;
+        case ENTITY_BRUSH: *out_pos = scene->brushes[index].pos; return true;
+        case ENTITY_LIGHT: *out_pos = scene->lights[index].position; return true;
+        case ENTITY_SOUND: *out_pos = scene->soundEntities[index].pos; return true;
+        case ENTITY_PARTICLE_EMITTER: *out_pos = scene->particleEmitters[index].pos; return true;
+        case ENTITY_VIDEO_PLAYER: *out_pos = scene->videoPlayers[index].pos; return true;
+        case ENTITY_SPRITE: *out_pos = scene->sprites[index].pos; return true;
+        case ENTITY_LOGIC: *out_pos = scene->logicEntities[index].pos; return true;
+        default: return false;
+        }
+    }
+    return false;
+}

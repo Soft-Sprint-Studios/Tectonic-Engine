@@ -33,6 +33,7 @@ void Editor_RemoveFaceFromSelection(int brush_index, int face_index);
 bool Editor_IsSelected(EntityType type, int index);
 bool Editor_IsFaceSelected(int brush_index, int face_index);
 bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
+bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos);
 EditorSelection* Editor_GetPrimarySelection();
 void Editor_ClearSelection();
 

@@ -64,26 +64,6 @@ static PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
 BrushFace g_copiedFaceProperties;
 bool g_hasCopiedFace = false;
 
-static bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos) {
-    if (name == NULL || *name == '\0') return false;
-    EntityType type;
-    int index;
-    if (FindEntityInScene(scene, name, &type, &index)) {
-        switch (type) {
-        case ENTITY_MODEL: *out_pos = scene->objects[index].pos; return true;
-        case ENTITY_BRUSH: *out_pos = scene->brushes[index].pos; return true;
-        case ENTITY_LIGHT: *out_pos = scene->lights[index].position; return true;
-        case ENTITY_SOUND: *out_pos = scene->soundEntities[index].pos; return true;
-        case ENTITY_PARTICLE_EMITTER: *out_pos = scene->particleEmitters[index].pos; return true;
-        case ENTITY_VIDEO_PLAYER: *out_pos = scene->videoPlayers[index].pos; return true;
-        case ENTITY_SPRITE: *out_pos = scene->sprites[index].pos; return true;
-        case ENTITY_LOGIC: *out_pos = scene->logicEntities[index].pos; return true;
-        default: return false;
-        }
-    }
-    return false;
-}
-
 void Editor_SetMapDirty(bool is_dirty) {
     g_is_map_dirty = is_dirty;
 }
