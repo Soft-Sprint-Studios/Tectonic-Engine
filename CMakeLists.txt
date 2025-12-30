@@ -3,7 +3,7 @@ project(TectonicEngine LANGUAGES C CXX)
 
 if(MSVC)
     add_compile_options(/we4013)
-elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+elseif(CMAKE_COMPILER_IS_GNUCC)
     add_compile_options(-Werror=implicit-function-declaration)
 endif()
 
