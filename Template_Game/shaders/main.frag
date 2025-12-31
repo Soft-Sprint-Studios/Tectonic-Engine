@@ -459,6 +459,7 @@ void main()
         albedo = texColor1.rgb * blendBase + texColor2.rgb * blendR + texColor3.rgb * blendG + texColor4.rgb * blendB;
         alpha = texColor1.a * blendBase + texColor2.a * blendR + texColor3.a * blendG + texColor4.a * blendB;
         normalTex = normalTex1 * blendBase + normalTex2 * blendR + normalTex3 * blendG + normalTex4 * blendB;
+        
         float r1 = (u_roughness_override >= 0.0) ? u_roughness_override : rma1.g;
         float m1 = (u_metalness_override >= 0.0) ? u_metalness_override : rma1.b;
         float r2 = (u_roughness_override2 >= 0.0) ? u_roughness_override2 : rma2.g;
@@ -467,6 +468,7 @@ void main()
         float m3 = (u_metalness_override3 >= 0.0) ? u_metalness_override3 : rma3.b;
         float r4 = (u_roughness_override4 >= 0.0) ? u_roughness_override4 : rma4.g;
         float m4 = (u_metalness_override4 >= 0.0) ? u_metalness_override4 : rma4.b;
+        
         roughness = r1 * blendBase + r2 * blendR + r3 * blendG + r4 * blendB;
         metallic = m1 * blendBase + m2 * blendR + m3 * blendG + m4 * blendB;
         ao = rma1.r * blendBase + rma2.r * blendR + rma3.r * blendG + rma4.r * blendB;
@@ -603,8 +605,30 @@ void main()
     vec3 bakedDiffuse = vec3(0.0);
 	vec3 bakedSpecular = vec3(0.0);
 	vec3 bakedRadiance = vec3(0.0);
-    if (isBrush == 1) {
-		 if (useVertexLighting) {
+
+    if (useLightmap) {
+        bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
+        
+        if (useDirectionalLightmap) {
+            vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
+            vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
+            float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
+            bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
+            
+            if (NdotL_baked > 0.0) {
+                vec3 H_baked = normalize(bakedLightDir + V);
+                float NDF = DistributionGGX(N, H_baked, roughness);
+                float G = GeometrySmith(N, V, bakedLightDir, roughness);
+                vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
+                vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
+                bakedSpecular = specular * 2.0 * bakedRadiance * NdotL_baked;
+            }
+        } else {
+            bakedDiffuse = bakedRadiance * albedo;
+        }
+    } 
+    else if (isBrush == 1) {
+        if (useVertexLighting) {
             bakedRadiance = v_Color.rgb;
             if (v_Color2.a > 0.0) {
                 vec3 bakedLightDir = normalize(v_Color2.rgb);
@@ -621,46 +645,10 @@ void main()
             } else {
                 bakedDiffuse = bakedRadiance * albedo;
             }
-        } else
-        if (useLightmap) {
-            bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
-            if (useDirectionalLightmap) {
-                vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
-                vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
-                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
-                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
-                if (NdotL_baked > 0.0) {
-                    vec3 H_baked = normalize(bakedLightDir + V);
-                    float NDF = DistributionGGX(N, H_baked, roughness);
-                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
-                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
-                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * 2.0 * bakedRadiance * NdotL_baked;
-                }
-            } else {
-                bakedDiffuse = bakedRadiance * albedo;
-            }
         }
-    } else {
-        if (useLightmap) {
-            bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
-            if (useDirectionalLightmap) {
-                vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
-                vec3 bakedLightDir = normalize(directionalData.rgb * 2.0 - 1.0);
-                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
-                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
-                if (NdotL_baked > 0.0) {
-                    vec3 H_baked = normalize(bakedLightDir + V);
-                    float NDF = DistributionGGX(N, H_baked, roughness);
-                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
-                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
-                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * 2.0 * bakedRadiance * NdotL_baked;
-                }
-            } else {
-                bakedDiffuse = bakedRadiance * albedo;
-            }
-        } else if (u_numAmbientProbes > 0 && v_Color.a < 0.5) {
+    } 
+    else {
+        if (u_numAmbientProbes > 0 && v_Color.a < 0.5) {
             vec3 total_color = vec3(0.0);
             vec3 total_dir = vec3(0.0);
             float total_weight = 0.0;
@@ -692,9 +680,10 @@ void main()
                     vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
                     vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
                     bakedSpecular = specular * bakedRadiance * NdotL_baked;
-               }
-        }
-        } else if (v_Color.a > 0.5) {
+                }
+            }
+        } 
+        else if (v_Color.a > 0.5) {
             bakedRadiance = v_Color.rgb;
             if (v_Color2.a > 0.0) {
                 vec3 bakedLightDir = normalize(v_Color2.rgb);
