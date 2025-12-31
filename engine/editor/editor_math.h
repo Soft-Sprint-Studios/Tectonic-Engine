@@ -32,7 +32,6 @@ extern "C" {
 #endif
 
 	float SnapValue(float value, float snap_interval);
-	float SnapAngle(float value, float snap_interval);
 
 	Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
 	Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);

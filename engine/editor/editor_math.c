@@ -37,18 +37,6 @@ float SnapValue(float value, float snap_interval) {
     return result;
 }
 
-float SnapAngle(float value, float snap_interval) {
-    if (snap_interval == 0.0f) {
-        return value;
-    }
-
-    float divided = value / snap_interval;
-    float rounded = roundf(divided);
-    float result = rounded * snap_interval;
-
-    return result;
-}
-
 Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
     float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
     if (width <= 0 || height <= 0) return (Vec3) { 0, 0, 0 };
