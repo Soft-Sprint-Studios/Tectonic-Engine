@@ -31,9 +31,9 @@
 extern "C" {
 #endif
 
-void Blackhole_Init(Renderer* renderer);
-void Blackhole_Shutdown(Renderer* renderer);
-void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+	void Blackhole_Init(Renderer* renderer);
+	void Blackhole_Shutdown(Renderer* renderer);
+	void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 
 #ifdef __cplusplus
 }

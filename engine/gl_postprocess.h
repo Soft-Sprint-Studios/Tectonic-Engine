@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+	void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 
 #ifdef __cplusplus
 }

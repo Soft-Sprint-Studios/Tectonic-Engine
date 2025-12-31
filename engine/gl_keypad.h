@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void Keypad_RenderUI(Scene* scene, Engine* engine);
+	void Keypad_RenderUI(Scene* scene, Engine* engine);
 
 #ifdef __cplusplus
 }

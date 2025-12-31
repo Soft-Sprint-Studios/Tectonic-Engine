@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection);
+	void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection);
 
 #ifdef __cplusplus
 }

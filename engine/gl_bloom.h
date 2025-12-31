@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void Bloom_RenderPass(Renderer* renderer, Engine* engine);
+	void Bloom_RenderPass(Renderer* renderer, Engine* engine);
 
 #ifdef __cplusplus
 }

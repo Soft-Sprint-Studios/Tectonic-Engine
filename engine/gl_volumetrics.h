@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
+	void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
 
 #ifdef __cplusplus
 }

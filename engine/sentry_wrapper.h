@@ -33,8 +33,8 @@
 extern "C" {
 #endif
 
-void Sentry_Init(void);
-void Sentry_Shutdown(void);
+	void Sentry_Init(void);
+	void Sentry_Shutdown(void);
 
 #ifdef __cplusplus
 }

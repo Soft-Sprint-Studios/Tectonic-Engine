@@ -29,14 +29,14 @@
 extern "C" {
 #endif
 
-void RegisterEngineCommandsAndCvars(void);
+	void RegisterEngineCommandsAndCvars(void);
 
-// needed by main menu
-void Cmd_SaveGame(int argc, char** argv);
-void Cmd_LoadGame(int argc, char** argv);
+	// needed by main menu
+	void Cmd_SaveGame(int argc, char** argv);
+	void Cmd_LoadGame(int argc, char** argv);
 
-// needed by engine
-void PrintSystemInfo();
+	// needed by engine
+	void PrintSystemInfo();
 
 #ifdef __cplusplus
 }

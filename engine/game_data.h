@@ -35,59 +35,59 @@ extern "C" {
 #define MAX_TGD_PROPERTIES 32
 #define MAX_TGD_IOS 32
 
-typedef enum {
-    TGD_PROP_STRING,
-    TGD_PROP_INTEGER,
-    TGD_PROP_FLOAT,
-    TGD_PROP_COLOR,
-    TGD_PROP_CHECKBOX,
-    TGD_PROP_MODEL,
-    TGD_PROP_SOUND,
-    TGD_PROP_PARTICLE,
-    TGD_PROP_CHOICES,
-    TGD_PROP_TEXTURE,
-    TGD_PROP_ENTITIES,
-    TGD_PROP_RADIUS
-} TGD_PropertyType;
+    typedef enum {
+        TGD_PROP_STRING,
+        TGD_PROP_INTEGER,
+        TGD_PROP_FLOAT,
+        TGD_PROP_COLOR,
+        TGD_PROP_CHECKBOX,
+        TGD_PROP_MODEL,
+        TGD_PROP_SOUND,
+        TGD_PROP_PARTICLE,
+        TGD_PROP_CHOICES,
+        TGD_PROP_TEXTURE,
+        TGD_PROP_ENTITIES,
+        TGD_PROP_RADIUS
+    } TGD_PropertyType;
 
-typedef struct {
-    char value[64];
-    char display_name[128];
-} TGD_Choice;
+    typedef struct {
+        char value[64];
+        char display_name[128];
+    } TGD_Choice;
 
-typedef struct {
-    char key[64];
-    char display_name[128];
-    char default_value[128];
-    TGD_PropertyType type;
-    TGD_Choice* choices;
-    int num_choices;
-} TGD_Property;
+    typedef struct {
+        char key[64];
+        char display_name[128];
+        char default_value[128];
+        TGD_PropertyType type;
+        TGD_Choice* choices;
+        int num_choices;
+    } TGD_Property;
 
-typedef struct {
-    char name[64];
-    char description[128];
-} TGD_IO;
+    typedef struct {
+        char name[64];
+        char description[128];
+    } TGD_IO;
 
-typedef struct {
-    char classname[64];
-    EntityType base_type;
+    typedef struct {
+        char classname[64];
+        EntityType base_type;
 
-    TGD_Property properties[MAX_TGD_PROPERTIES];
-    int num_properties;
+        TGD_Property properties[MAX_TGD_PROPERTIES];
+        int num_properties;
 
-    TGD_IO inputs[MAX_TGD_IOS];
-    int num_inputs;
+        TGD_IO inputs[MAX_TGD_IOS];
+        int num_inputs;
 
-    TGD_IO outputs[MAX_TGD_IOS];
-    int num_outputs;
-} TGD_EntityDef;
+        TGD_IO outputs[MAX_TGD_IOS];
+        int num_outputs;
+    } TGD_EntityDef;
 
-void GameData_Init(const char* filepath);
-void GameData_Shutdown(void);
-const TGD_EntityDef* GameData_FindEntityDef(const char* classname);
-const char** GameData_GetBrushEntityClassnames(int* count);
-const char** GameData_GetLogicEntityClassnames(int* count);
+    void GameData_Init(const char* filepath);
+    void GameData_Shutdown(void);
+    const TGD_EntityDef* GameData_FindEntityDef(const char* classname);
+    const char** GameData_GetBrushEntityClassnames(int* count);
+    const char** GameData_GetLogicEntityClassnames(int* count);
 
 #ifdef __cplusplus
 }

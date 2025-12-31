@@ -31,10 +31,10 @@
 extern "C" {
 #endif
 
-void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit, bool is_reflection_pass);
-void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
-void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
-int FindReflectionProbeForPoint(Scene* scene, Vec3 p);
+	void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit, bool is_reflection_pass);
+	void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum);
+	void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum);
+	int FindReflectionProbeForPoint(Scene* scene, Vec3 p);
 
 #ifdef __cplusplus
 }

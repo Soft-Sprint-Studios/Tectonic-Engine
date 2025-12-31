@@ -757,6 +757,11 @@ set_target_properties(Patcher PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
+target_compile_options(Patcher PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<CXX_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 if(WIN32)
     add_custom_target(patch_engine ALL
         COMMAND $<TARGET_FILE:Patcher> $<TARGET_FILE:engine>

@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void SSR_RenderPass(Renderer* renderer, Engine* engine, GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* projection);
+	void SSR_RenderPass(Renderer* renderer, Engine* engine, GLuint sourceTexture, GLuint destFBO, Mat4* view, Mat4* projection);
 
 #ifdef __cplusplus
 }

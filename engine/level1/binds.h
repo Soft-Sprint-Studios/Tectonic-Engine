@@ -39,19 +39,19 @@ extern "C" {
 #define MAX_BINDS 256
 #define MAX_COMMAND_LENGTH 128
 
-typedef struct {
-    SDL_Keycode key;
-    char command[MAX_COMMAND_LENGTH];
-} KeyBind;
+    typedef struct {
+        SDL_Keycode key;
+        char command[MAX_COMMAND_LENGTH];
+    } KeyBind;
 
-LEVEL1_API void Binds_Init(void);
-LEVEL1_API void Binds_Shutdown(void);
-LEVEL1_API void Binds_Load(const char* filename);
-LEVEL1_API void Binds_Save(const char* filename);
-LEVEL1_API void Binds_Set(const char* keyName, const char* command);
-LEVEL1_API void Binds_Unset(const char* keyName);
-LEVEL1_API void Binds_UnbindAll(void);
-LEVEL1_API const char* Binds_GetCommand(SDL_Keycode key);
+    LEVEL1_API void Binds_Init(void);
+    LEVEL1_API void Binds_Shutdown(void);
+    LEVEL1_API void Binds_Load(const char* filename);
+    LEVEL1_API void Binds_Save(const char* filename);
+    LEVEL1_API void Binds_Set(const char* keyName, const char* command);
+    LEVEL1_API void Binds_Unset(const char* keyName);
+    LEVEL1_API void Binds_UnbindAll(void);
+    LEVEL1_API const char* Binds_GetCommand(SDL_Keycode key);
 
 #ifdef __cplusplus
 }

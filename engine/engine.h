@@ -32,34 +32,34 @@
 extern "C" {
 #endif
 
-typedef enum { 
-    MODE_GAME, 
-    MODE_EDITOR, 
-    MODE_MAINMENU, 
-    MODE_INGAMEMENU 
-} EngineMode;
+    typedef enum {
+        MODE_GAME,
+        MODE_EDITOR,
+        MODE_MAINMENU,
+        MODE_INGAMEMENU
+    } EngineMode;
 
-typedef enum {
-    TRANSITION_NONE,
-    TRANSITION_TO_EDITOR,
-    TRANSITION_TO_GAME
-} EngineModeTransition;
+    typedef enum {
+        TRANSITION_NONE,
+        TRANSITION_TO_EDITOR,
+        TRANSITION_TO_GAME
+    } EngineModeTransition;
 
-extern Engine* g_engine;
-extern Renderer g_renderer;
-extern Scene g_scene;
-extern EngineMode g_current_mode;
-extern int g_last_water_cvar_state;
-extern EngineModeTransition g_pending_mode_transition;
-extern bool g_player_input_disabled;
-extern bool g_screenshot_requested;
-extern bool g_quit_requested;
-extern bool g_restart_requested;
-extern char g_screenshot_path[256];
-extern bool g_is_editor_mode;
+    extern Engine* g_engine;
+    extern Renderer g_renderer;
+    extern Scene g_scene;
+    extern EngineMode g_current_mode;
+    extern int g_last_water_cvar_state;
+    extern EngineModeTransition g_pending_mode_transition;
+    extern bool g_player_input_disabled;
+    extern bool g_screenshot_requested;
+    extern bool g_quit_requested;
+    extern bool g_restart_requested;
+    extern char g_screenshot_path[256];
+    extern bool g_is_editor_mode;
 
-// needed by editor
-void evaluate_animation(SceneObject* obj, float time);
+    // needed by editor
+    void evaluate_animation(SceneObject* obj, float time);
 
 #ifdef __cplusplus
 }

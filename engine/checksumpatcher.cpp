@@ -29,7 +29,7 @@
 #include <stddef.h>
 #include <cstring>
 
-#if defined(_WIN32) || defined(_WIN64)
+#ifdef PLATFORM_WINDOWS
 const char* g_module_names[] = {
     "engine.dll", "level0.dll", "level1.dll",
     "math_lib.dll", "physics.dll", "sound.dll",
