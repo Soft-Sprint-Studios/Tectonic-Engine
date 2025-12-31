@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Soft Sprint Studios
+ * Copyright (c) 2025-2026 Soft Sprint Studios
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -211,7 +211,7 @@ private:
     static void on_about_cb(Fl_Widget*, void*) {
         fl_message_title("About Tectonic Console");
         fl_message("A remote console for the Tectonic Engine.\n\n"
-            "Copyright (c) 2025 Soft Sprint Studios");
+            "Copyright (c) 2025-2026 Soft Sprint Studios");
     }
 
     static void on_idle_cb(void* data) {

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Soft Sprint Studios
+ * Copyright (c) 2025-2026 Soft Sprint Studios
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -388,7 +388,7 @@ void on_quit_cb(Fl_Widget*, void*) {
 
 void on_about_cb(Fl_Widget*, void*) {
     fl_message_title("About Tectonic Particle Editor");
-    fl_message("A tool to create and edit .par files for the Tectonic Engine.\n\nCopyright (c) 2025 Soft Sprint Studios");
+    fl_message("A tool to create and edit .par files for the Tectonic Engine.\n\nCopyright (c) 2025-2026 Soft Sprint Studios");
 }
 
 int main(int argc, char** argv) {

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Soft Sprint Studios
+ * Copyright (c) 2025-2026 Soft Sprint Studios
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -924,7 +924,7 @@ void Editor_RenderAboutWindow() {
         UI_Text("Architecture: %s", ARCH_STRING);
         UI_Text("Engine branch: %s", BRANCH_NAME);
         UI_Separator();
-        UI_Text("Copyright (c) 2025 Soft Sprint Studios");
+        UI_Text("Copyright (c) 2025-2026 Soft Sprint Studios");
         UI_Text("All rights reserved.");
         UI_Separator();
 
