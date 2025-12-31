@@ -27,17 +27,25 @@
 
 #include "editor_internal.h"
 
-void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index);
-void Editor_RemoveFromSelection(EntityType type, int index);
-void Editor_RemoveFaceFromSelection(int brush_index, int face_index);
-bool Editor_IsSelected(EntityType type, int index);
-bool Editor_IsFaceSelected(int brush_index, int face_index);
-bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
-bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos);
-EditorSelection* Editor_GetPrimarySelection();
-void Editor_ClearSelection();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport);
-int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport);
+	void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index);
+	void Editor_RemoveFromSelection(EntityType type, int index);
+	void Editor_RemoveFaceFromSelection(int brush_index, int face_index);
+	bool Editor_IsSelected(EntityType type, int index);
+	bool Editor_IsFaceSelected(int brush_index, int face_index);
+	bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index);
+	bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos);
+	EditorSelection* Editor_GetPrimarySelection();
+	void Editor_ClearSelection();
+
+	void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport);
+	int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

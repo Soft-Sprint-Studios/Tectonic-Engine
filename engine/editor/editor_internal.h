@@ -27,6 +27,10 @@
 
 #include "editor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_RECENT_FILES 10
 
 typedef enum {
@@ -247,5 +251,9 @@ extern Mat4 g_proj_matrix[VIEW_COUNT];
 extern BrushFace g_copiedFaceProperties;
 extern bool g_hasCopiedFace;
 extern bool g_is_map_dirty;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

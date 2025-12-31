@@ -27,15 +27,23 @@
 
 #include "editor_internal.h"
 
-float SnapValue(float value, float snap_interval);
-float SnapAngle(float value, float snap_interval);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
-Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
-Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
-Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport);
+	float SnapValue(float value, float snap_interval);
+	float SnapAngle(float value, float snap_interval);
 
-float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg);
-bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, float plane_d, Vec3* intersect_point);
+	Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport);
+	Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport);
+	Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport);
+	Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport);
+
+	float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg);
+	bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, float plane_d, Vec3* intersect_point);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

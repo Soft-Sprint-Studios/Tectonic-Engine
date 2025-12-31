@@ -27,11 +27,19 @@
 
 #include "editor_internal.h"
 
-void Editor_SetMapDirty(bool is_dirty);
-void Editor_SaveRecentFiles();
-void Editor_LoadRecentFiles();
-void Editor_AddRecentFile(const char* path);
-void Editor_InitGizmo();
-void Editor_InitDebugRenderer();
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Editor_SetMapDirty(bool is_dirty);
+	void Editor_SaveRecentFiles();
+	void Editor_LoadRecentFiles();
+	void Editor_AddRecentFile(const char* path);
+	void Editor_InitGizmo();
+	void Editor_InitDebugRenderer();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

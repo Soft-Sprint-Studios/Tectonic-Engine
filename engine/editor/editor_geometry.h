@@ -27,14 +27,22 @@
 
 #include "editor_internal.h"
 
-void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs);
-void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Editor_UpdatePreviewBrushFromWorldMinMax();
-void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view);
+	void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs);
+	void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
 
-void Editor_AdjustPreviewBrushByHandle(Vec2 mouse_pos_in_viewport, ViewportType current_view);
-void Editor_AdjustPreviewBrush(Vec2 mouse_pos, ViewportType adjust_view);
-void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
+	void Editor_UpdatePreviewBrushFromWorldMinMax();
+	void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view);
+
+	void Editor_AdjustPreviewBrushByHandle(Vec2 mouse_pos_in_viewport, ViewportType current_view);
+	void Editor_AdjustPreviewBrush(Vec2 mouse_pos, ViewportType adjust_view);
+	void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

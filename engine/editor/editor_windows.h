@@ -27,33 +27,41 @@
 
 #include "editor_internal.h"
 
-void ScanModelFiles();
-void ScanDocFiles();
-void ScanSoundFiles();
-void ScanMapFiles();
-void FreeModelBrowserEntries();
-void FreeDocFileList();
-void FreeSoundFileList();
-void FreeMapFileList();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer);
-void Editor_RenderSoundBrowser(Scene* scene);
-void Editor_RenderHelpWindow();
-void Editor_RenderVertexToolsWindow(Scene* scene);
-void Editor_RenderSculptNoisePopup(Scene* scene);
-void Editor_RenderSprinkleToolWindow();
-void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, Engine* engine);
-void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine);
-void Editor_RenderAboutWindow();
-void Editor_RenderTextureBrowser(Scene* scene);
-void Editor_RenderReplaceTexturesUI(Scene* scene);
-void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine);
-void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine);
-void Editor_RenderMapInfoWindow(Scene* scene);
-void Editor_RenderTransformWindow(Scene* scene, Engine* engine);
-void Editor_RenderGoToCoordinatesWindow();
-void Editor_RenderStatusBar();
-void Editor_RenderArchPreview();
-void RenderIOEditor(EntityType type, int index);
+	void ScanModelFiles();
+	void ScanDocFiles();
+	void ScanSoundFiles();
+	void ScanMapFiles();
+	void FreeModelBrowserEntries();
+	void FreeDocFileList();
+	void FreeSoundFileList();
+	void FreeMapFileList();
+
+	void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer);
+	void Editor_RenderSoundBrowser(Scene* scene);
+	void Editor_RenderHelpWindow();
+	void Editor_RenderVertexToolsWindow(Scene* scene);
+	void Editor_RenderSculptNoisePopup(Scene* scene);
+	void Editor_RenderSprinkleToolWindow();
+	void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, Engine* engine);
+	void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine);
+	void Editor_RenderAboutWindow();
+	void Editor_RenderTextureBrowser(Scene* scene);
+	void Editor_RenderReplaceTexturesUI(Scene* scene);
+	void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine);
+	void Editor_RenderArchPropertiesWindow(Scene* scene, Engine* engine);
+	void Editor_RenderMapInfoWindow(Scene* scene);
+	void Editor_RenderTransformWindow(Scene* scene, Engine* engine);
+	void Editor_RenderGoToCoordinatesWindow();
+	void Editor_RenderStatusBar();
+	void Editor_RenderArchPreview();
+	void RenderIOEditor(EntityType type, int index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
