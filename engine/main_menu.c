@@ -32,14 +32,8 @@
 #include "gl_console.h"
 #include "math_lib.h"
 #include "gl_misc.h"
+#include "io_system.h"
 #include "cvar.h"
-
-#ifdef PLATFORM_WINDOWS
-#include <windows.h>
-#else
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
 
 static VideoPlayer g_background_video;
 static bool g_has_background_video = false;
@@ -195,39 +189,13 @@ static void ScanSaveGames() {
     g_num_save_games = 0;
     g_selected_save_index = -1;
 
-    const char* dir_path = "saves/";
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.sav", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_save_game_files = (char**)realloc(g_save_game_files, (g_num_save_games + 1) * sizeof(char*));
-            char* name_only = _strdup(find_data.cFileName);
-            char* dot = strrchr(name_only, '.');
-            if (dot) *dot = '\0';
-            g_save_game_files[g_num_save_games++] = name_only;
-        }
-    } while (FindNextFileA(h_find, &find_data) != 0);
-    FindClose(h_find);
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) return;
-    struct dirent* dir;
-    while ((dir = readdir(d)) != NULL) {
-        const char* ext = strrchr(dir->d_name, '.');
-        if (ext && strcmp(ext, ".sav") == 0) {
-            g_save_game_files = (char**)realloc(g_save_game_files, (g_num_save_games + 1) * sizeof(char*));
-            char* name_only = strdup(dir->d_name);
-            char* dot = strrchr(name_only, '.');
-            if (dot) *dot = '\0';
-            g_save_game_files[g_num_save_games++] = name_only;
-        }
+    const char* exts[] = { ".sav" };
+    g_save_game_files = IO_ScanDirectory("saves/", exts, 1, &g_num_save_games);
+
+    for (int i = 0; i < g_num_save_games; ++i) {
+        char* dot = strrchr(g_save_game_files[i], '.');
+        if (dot) *dot = '\0';
     }
-    closedir(d);
-#endif
 }
 
 static void MainMenu_RenderLoadGameWindow() {

@@ -239,6 +239,11 @@ typedef struct {
     Vec3 transform_window_values;
     bool show_goto_coord_window;
     char goto_coord_input[64];
+    bool show_particle_browser_popup;
+    char** particle_file_list;
+    int num_particle_files;
+    int selected_particle_file_index;
+    char particle_search_filter[64];
 #define TEXTURE_TARGET_REPLACE_FIND (10)
 #define TEXTURE_TARGET_REPLACE_WITH (11)
 #define MODEL_BROWSER_TARGET_SPRINKLE (1)

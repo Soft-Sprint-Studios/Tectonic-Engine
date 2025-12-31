@@ -77,6 +77,9 @@ extern "C" {
     const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val);
     const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val);
 
+    char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_extensions, int* out_count);
+    void IO_FreeFileList(char** list, int count);
+
     extern IOConnection g_io_connections[MAX_IO_CONNECTIONS];
     extern int g_num_io_connections;
 

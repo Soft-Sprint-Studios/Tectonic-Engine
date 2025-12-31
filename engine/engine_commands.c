@@ -34,13 +34,9 @@
 #include "network.h"
 #include "lightmapper.h"
 #include "gl_render_misc.h"
+#include "io_system.h"
 #include <time.h>
 #include <errno.h>
-
-#ifdef PLATFORM_LINUX
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
 
 extern Engine* g_engine;
 extern Renderer g_renderer;
@@ -150,45 +146,21 @@ void Cmd_Map(int argc, char** argv) {
 }
 
 void Cmd_Maps(int argc, char** argv) {
-    const char* dir_path = "./";
     Console_Printf("Available maps in root directory:");
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.map", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) {
+
+    int count = 0;
+    const char* exts[] = { ".map" };
+    char** files = IO_ScanDirectory("./", exts, 1, &count);
+
+    if (count == 0) {
         Console_Printf("...No maps found.");
     }
     else {
-        do {
-            if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-                Console_Printf("  %s", find_data.cFileName);
-            }
-        } while (FindNextFileA(h_find, &find_data) != 0);
-        FindClose(h_find);
-    }
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) {
-        Console_Printf("...Could not open directory.");
-    }
-    else {
-        struct dirent* dir;
-        int count = 0;
-        while ((dir = readdir(d)) != NULL) {
-            const char* ext = strrchr(dir->d_name, '.');
-            if (ext && (_stricmp(ext, ".map") == 0)) {
-                Console_Printf("  %s", dir->d_name);
-                count++;
-            }
+        for (int i = 0; i < count; ++i) {
+            Console_Printf("  %s", files[i]);
         }
-        if (count == 0) {
-            Console_Printf("...No maps found.");
-        }
-        closedir(d);
+        IO_FreeFileList(files, count);
     }
-#endif
 }
 
 void Cmd_Disconnect(int argc, char** argv) {

@@ -35,6 +35,7 @@
 #include "gl_render_misc.h"
 #include "gl_video_player.h"
 #include "gl_geometry.h"
+#include "io_system.h"
 #include "game_data.h"
 #include <SDL_image.h>
 #include <math.h>
@@ -42,13 +43,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
-
-#ifdef PLATFORM_WINDOWS
-#include <windows.h>
-#else
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
 
 static void render_markdown_line(const char* line) {
     if (strncmp(line, "## ", 3) == 0) {
@@ -260,40 +254,20 @@ void FreeModelBrowserEntries() {
 
 void ScanModelFiles() {
     FreeModelBrowserEntries();
-    const char* dir_path = "models/";
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.*", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            const char* ext = strrchr(find_data.cFileName, '.');
-            if (ext && (_stricmp(ext, ".gltf") == 0 || _stricmp(ext, ".glb") == 0)) {
-                g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
-                g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = _strdup(find_data.cFileName);
-                g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
-                g_EditorState.num_model_files++;
-            }
+    const char* exts[] = { ".gltf", ".glb" };
+    int count = 0;
+    char** files = IO_ScanDirectory("models/", exts, 2, &count);
+
+    if (files) {
+        g_EditorState.model_browser_entries = malloc(count * sizeof(ModelBrowserEntry));
+        g_EditorState.num_model_files = count;
+
+        for (int i = 0; i < count; ++i) {
+            g_EditorState.model_browser_entries[i].file_path = files[i];
+            g_EditorState.model_browser_entries[i].thumbnail_texture = 0;
         }
-    } while (FindNextFileA(h_find, &find_data) != 0);
-    FindClose(h_find);
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) return;
-    struct dirent* dir;
-    while ((dir = readdir(d)) != NULL) {
-        const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".gltf") == 0 || _stricmp(ext, ".glb") == 0)) {
-            g_EditorState.model_browser_entries = realloc(g_EditorState.model_browser_entries, (g_EditorState.num_model_files + 1) * sizeof(ModelBrowserEntry));
-            g_EditorState.model_browser_entries[g_EditorState.num_model_files].file_path = strdup(dir->d_name);
-            g_EditorState.model_browser_entries[g_EditorState.num_model_files].thumbnail_texture = 0;
-            g_EditorState.num_model_files++;
-        }
+        free(files);
     }
-    closedir(d);
-#endif
 }
 
 void FreeDocFileList() {
@@ -309,35 +283,8 @@ void FreeDocFileList() {
 
 void ScanDocFiles() {
     FreeDocFileList();
-    const char* dir_path = "docs/";
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.md", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_EditorState.doc_files = realloc(g_EditorState.doc_files, (g_EditorState.num_doc_files + 1) * sizeof(char*));
-            g_EditorState.doc_files[g_EditorState.num_doc_files] = _strdup(find_data.cFileName);
-            g_EditorState.num_doc_files++;
-        }
-    } while (FindNextFileA(h_find, &find_data) != 0);
-    FindClose(h_find);
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) return;
-    struct dirent* dir;
-    while ((dir = readdir(d)) != NULL) {
-        const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".md") == 0)) {
-            g_EditorState.doc_files = realloc(g_EditorState.doc_files, (g_EditorState.num_doc_files + 1) * sizeof(char*));
-            g_EditorState.doc_files[g_EditorState.num_doc_files] = strdup(dir->d_name);
-            g_EditorState.num_doc_files++;
-        }
-    }
-    closedir(d);
-#endif
+    const char* exts[] = { ".md" };
+    g_EditorState.doc_files = IO_ScanDirectory("docs/", exts, 1, &g_EditorState.num_doc_files);
 }
 
 void FreeSoundFileList() {
@@ -353,38 +300,8 @@ void FreeSoundFileList() {
 
 void ScanSoundFiles() {
     FreeSoundFileList();
-    const char* dir_path = "sounds/";
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.*", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            const char* ext = strrchr(find_data.cFileName, '.');
-            if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0 || _stricmp(ext, ".ogg") == 0)) {
-                g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
-                g_EditorState.sound_file_list[g_EditorState.num_sound_files] = _strdup(find_data.cFileName);
-                g_EditorState.num_sound_files++;
-            }
-        }
-    } while (FindNextFileA(h_find, &find_data) != 0);
-    FindClose(h_find);
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) return;
-    struct dirent* dir;
-    while ((dir = readdir(d)) != NULL) {
-        const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".wav") == 0 || _stricmp(ext, ".mp3") == 0 || _stricmp(ext, ".ogg") == 0)) {
-            g_EditorState.sound_file_list = realloc(g_EditorState.sound_file_list, (g_EditorState.num_sound_files + 1) * sizeof(char*));
-            g_EditorState.sound_file_list[g_EditorState.num_sound_files] = strdup(dir->d_name);
-            g_EditorState.num_sound_files++;
-        }
-    }
-    closedir(d);
-#endif
+    const char* exts[] = { ".wav", ".mp3", ".ogg" };
+    g_EditorState.sound_file_list = IO_ScanDirectory("sounds/", exts, 3, &g_EditorState.num_sound_files);
 }
 
 void FreeMapFileList() {
@@ -400,35 +317,25 @@ void FreeMapFileList() {
 
 void ScanMapFiles() {
     FreeMapFileList();
-    const char* dir_path = "./";
-#ifdef PLATFORM_WINDOWS
-    char search_path[256];
-    sprintf(search_path, "%s*.map", dir_path);
-    WIN32_FIND_DATAA find_data;
-    HANDLE h_find = FindFirstFileA(search_path, &find_data);
-    if (h_find == INVALID_HANDLE_VALUE) return;
-    do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_map_files + 1) * sizeof(char*));
-            g_EditorState.map_file_list[g_EditorState.num_map_files] = _strdup(find_data.cFileName);
-            g_EditorState.num_map_files++;
+    const char* exts[] = { ".map" };
+    g_EditorState.map_file_list = IO_ScanDirectory("./", exts, 1, &g_EditorState.num_map_files);
+}
+
+void FreeParticleFileList() {
+    if (g_EditorState.particle_file_list) {
+        for (int i = 0; i < g_EditorState.num_particle_files; ++i) {
+            free(g_EditorState.particle_file_list[i]);
         }
-    } while (FindNextFileA(h_find, &find_data) != 0);
-    FindClose(h_find);
-#else
-    DIR* d = opendir(dir_path);
-    if (!d) return;
-    struct dirent* dir;
-    while ((dir = readdir(d)) != NULL) {
-        const char* ext = strrchr(dir->d_name, '.');
-        if (ext && (_stricmp(ext, ".map") == 0)) {
-            g_EditorState.map_file_list = realloc(g_EditorState.map_file_list, (g_EditorState.num_map_files + 1) * sizeof(char*));
-            g_EditorState.map_file_list[g_EditorState.num_map_files] = strdup(dir->d_name);
-            g_EditorState.num_map_files++;
-        }
+        free(g_EditorState.particle_file_list);
+        g_EditorState.particle_file_list = NULL;
+        g_EditorState.num_particle_files = 0;
     }
-    closedir(d);
-#endif
+}
+
+void ScanParticleFiles() {
+    FreeParticleFileList();
+    const char* exts[] = { ".par" };
+    g_EditorState.particle_file_list = IO_ScanDirectory("particles/", exts, 1, &g_EditorState.num_particle_files);
 }
 
 // end scan stuff
@@ -2246,6 +2153,65 @@ void Editor_RenderArchPreview() {
 
     free(lines);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Editor_RenderParticleBrowser(Scene* scene) {
+    if (!g_EditorState.show_particle_browser_popup) return;
+
+    UI_SetNextWindowSize(300, 400);
+    if (UI_Begin("Particle Browser", &g_EditorState.show_particle_browser_popup)) {
+        UI_InputText("Search", g_EditorState.particle_search_filter, sizeof(g_EditorState.particle_search_filter));
+        UI_Separator();
+
+        if (UI_BeginChild("particle_list_child", 0, -40, true, 0)) {
+            if (g_EditorState.num_particle_files > 0) {
+                for (int i = 0; i < g_EditorState.num_particle_files; ++i) {
+                    const char* fname = g_EditorState.particle_file_list[i];
+                    if (g_EditorState.particle_search_filter[0] == '\0' || _stristr(fname, g_EditorState.particle_search_filter) != NULL) {
+                        if (UI_Selectable(fname, g_EditorState.selected_particle_file_index == i)) {
+                            g_EditorState.selected_particle_file_index = i;
+                        }
+                    }
+                }
+            }
+            else {
+                UI_Text("No .par files found in 'particles/'");
+            }
+        }
+        UI_EndChild();
+        UI_Separator();
+
+        if (g_EditorState.selected_particle_file_index != -1) {
+            if (UI_Button("Create Emitter")) {
+                if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) {
+                    ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters];
+                    memset(emitter, 0, sizeof(ParticleEmitter));
+
+                    char full_path[256];
+                    sprintf(full_path, "particles/%s", g_EditorState.particle_file_list[g_EditorState.selected_particle_file_index]);
+                    strcpy(emitter->parFile, full_path);
+
+                    sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters);
+                    emitter->pos = g_EditorState.editor_camera.position;
+                    emitter->on_by_default = true;
+                    emitter->is_on = true;
+
+                    ParticleSystem* ps = ParticleSystem_Load(emitter->parFile);
+                    if (ps) {
+                        ParticleEmitter_Init(emitter, ps, emitter->pos);
+                    }
+                    else {
+                        Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile);
+                        emitter->system = NULL;
+                    }
+                    scene->numParticleEmitters++;
+                    Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter");
+                    g_EditorState.show_particle_browser_popup = false;
+                }
+            }
+        }
+    }
+    UI_End();
 }
 
 // End render seperate windows

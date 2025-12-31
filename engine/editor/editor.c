@@ -40,12 +40,6 @@
 #include <math.h>
 #include <float.h>
 #include <sys/stat.h>
-#ifdef PLATFORM_WINDOWS
-#include <direct.h>
-#include <windows.h>
-#else
-#include <dirent.h>
-#endif
 #include <SDL_image.h>
 #include "sound_system.h"
 #include "texturemanager.h"
@@ -218,6 +212,11 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_transform_window = false;
     g_EditorState.transform_window_mode = TRANSFORM_MODE_MOVE;
     g_EditorState.transform_window_values = (Vec3){ 0,0,0 };
+    g_EditorState.show_particle_browser_popup = false;
+    g_EditorState.particle_file_list = NULL;
+    g_EditorState.num_particle_files = 0;
+    g_EditorState.selected_particle_file_index = -1;
+    memset(g_EditorState.particle_search_filter, 0, sizeof(g_EditorState.particle_search_filter));
     Editor_LoadRecentFiles();
 }
 void Editor_Shutdown() {
@@ -238,6 +237,7 @@ void Editor_Shutdown() {
     }
     FreeModelBrowserEntries();
     FreeMapFileList();
+    FreeParticleFileList();
     glDeleteProgram(g_EditorState.debug_shader); glDeleteVertexArrays(1, &g_EditorState.light_gizmo_vao);
     Brush_FreeData(&g_EditorState.preview_brush);
     glDeleteVertexArrays(1, &g_EditorState.vertex_points_vao); glDeleteBuffers(1, &g_EditorState.vertex_points_vbo);
@@ -2766,9 +2766,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { particle_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i); if (UI_Button(del_label)) { particle_to_delete = i; }
+            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
         }
-        if (UI_Button("Add Emitter")) { show_add_particle_popup = true; }
+        if (UI_Button("Add Emitter")) {
+            g_EditorState.show_particle_browser_popup = true;
+            ScanParticleFiles();
+        }
     }
     if (particle_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_PARTICLE_EMITTER, particle_to_delete, "Delete Emitter"); _raw_delete_particle_emitter(scene, particle_to_delete); Editor_RemoveFromSelection(ENTITY_PARTICLE_EMITTER, particle_to_delete); }
     if (UI_CollapsingHeader("Sprites", 1)) {
@@ -2930,7 +2933,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     if (logic_entity_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LOGIC, logic_entity_to_delete, "Delete Logic Entity"); _raw_delete_logic_entity(scene, logic_entity_to_delete); Editor_RemoveFromSelection(ENTITY_LOGIC, logic_entity_to_delete); }
-    if (show_add_particle_popup) { UI_Begin("Add Particle Emitter", &show_add_particle_popup); UI_InputText("Path (.par)", add_particle_path, sizeof(add_particle_path)); if (UI_Button("Create")) { if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) { ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters]; strcpy(emitter->parFile, add_particle_path); sprintf(emitter->targetname, "Emitter_%d", scene->numParticleEmitters); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, g_EditorState.editor_camera.position); scene->numParticleEmitters++; Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter"); } else { Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile); } } show_add_particle_popup = false; } UI_End(); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Inspector & Settings", NULL);
@@ -4008,6 +4010,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderAboutWindow();
     Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
+    Editor_RenderParticleBrowser(scene);
     Editor_RenderBakeLightingWindow(scene, engine);
     Editor_RenderBuildCubemapsWindow(renderer, scene, engine);
     Editor_RenderArchPropertiesWindow(scene, engine);

@@ -35,10 +35,12 @@ extern "C" {
 	void ScanDocFiles();
 	void ScanSoundFiles();
 	void ScanMapFiles();
+	void ScanParticleFiles();
 	void FreeModelBrowserEntries();
 	void FreeDocFileList();
 	void FreeSoundFileList();
 	void FreeMapFileList();
+	void FreeParticleFileList();
 
 	void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer);
 	void Editor_RenderSoundBrowser(Scene* scene);
@@ -58,6 +60,7 @@ extern "C" {
 	void Editor_RenderGoToCoordinatesWindow();
 	void Editor_RenderStatusBar();
 	void Editor_RenderArchPreview();
+	void Editor_RenderParticleBrowser(Scene* scene);
 	void RenderIOEditor(EntityType type, int index);
 
 #ifdef __cplusplus

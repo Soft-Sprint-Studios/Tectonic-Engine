@@ -30,6 +30,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef PLATFORM_WINDOWS
+#include <windows.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
 
 IOConnection g_io_connections[MAX_IO_CONNECTIONS];
 int g_num_io_connections = 0;
@@ -902,4 +908,65 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             }
         }
     }
+}
+
+static bool has_valid_extension(const char* filename, const char** extensions, int num_extensions) {
+    const char* dot = strrchr(filename, '.');
+    if (!dot) return false;
+
+    for (int i = 0; i < num_extensions; ++i) {
+        if (_stricmp(dot, extensions[i]) == 0) return true;
+    }
+    return false;
+}
+
+char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_extensions, int* out_count) {
+    char** list = NULL;
+    int count = 0;
+
+#ifdef PLATFORM_WINDOWS
+    char search_path[256];
+    snprintf(search_path, sizeof(search_path), "%s*.*", dir_path);
+    WIN32_FIND_DATAA find_data;
+    HANDLE h_find = FindFirstFileA(search_path, &find_data);
+
+    if (h_find != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                if (has_valid_extension(find_data.cFileName, extensions, num_extensions)) {
+                    list = (char**)realloc(list, (count + 1) * sizeof(char*));
+                    list[count] = _strdup(find_data.cFileName);
+                    count++;
+                }
+            }
+        } while (FindNextFileA(h_find, &find_data) != 0);
+        FindClose(h_find);
+    }
+#else
+    DIR* d = opendir(dir_path);
+    if (d) {
+        struct dirent* dir;
+        while ((dir = readdir(d)) != NULL) {
+            if (dir->d_type == DT_REG || dir->d_type == DT_UNKNOWN) {
+                if (has_valid_extension(dir->d_name, extensions, num_extensions)) {
+                    list = (char**)realloc(list, (count + 1) * sizeof(char*));
+                    list[count] = strdup(dir->d_name);
+                    count++;
+                }
+            }
+        }
+        closedir(d);
+    }
+#endif
+
+    * out_count = count;
+    return list;
+}
+
+void IO_FreeFileList(char** list, int count) {
+    if (!list) return;
+    for (int i = 0; i < count; ++i) {
+        free(list[i]);
+    }
+    free(list);
 }
