@@ -113,6 +113,7 @@ extern "C" {
     } LoadedModel;
 
     MODELS_API LoadedModel* Model_Load(const char* path);
+    MODELS_API bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path);
     MODELS_API void Model_Free(LoadedModel* model);
     MODELS_API void ModelLoader_Shutdown();
 

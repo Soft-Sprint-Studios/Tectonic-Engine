@@ -113,6 +113,7 @@ set(ENGINE_SOURCES
     engine/gl_skybox.c
     engine/lightmapper.cpp
     thirdparty/mikktspace/mikktspace.c
+    thirdparty/xatlas/xatlas.cpp
 )
 
 set(ENGINE_HEADERS
@@ -451,6 +452,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/xatlas"
 )
 
 target_compile_options(engine PRIVATE

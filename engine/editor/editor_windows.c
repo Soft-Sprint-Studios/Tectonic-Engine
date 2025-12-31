@@ -1601,6 +1601,27 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                     if (obj->dirLightmapHandle) { glMakeTextureHandleNonResidentARB(obj->dirLightmapHandle); obj->dirLightmapHandle = 0; }
                     if (obj->dirLightmapTexture) { glDeleteTextures(1, &obj->dirLightmapTexture); obj->dirLightmapTexture = 0; }
 
+                    if (obj->model) {
+                        if (obj->physicsBody) {
+                            Physics_RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
+                            obj->physicsBody = NULL;
+                        }
+
+                        Model_Free(obj->model);
+                        obj->model = Model_Load(obj->modelPath);
+
+                        if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0 && obj->mass <= 0.0f) {
+                            SceneObject_UpdateMatrix(obj);
+                            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, (Vec3) { 1, 1, 1 });
+                            obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld,
+                                obj->model->combinedVertexData, obj->model->totalVertexCount,
+                                obj->model->combinedIndexData, obj->model->totalIndexCount,
+                                physics_transform, obj->scale);
+
+                            if (!obj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, false);
+                        }
+                    }
+
                     SceneObject_LoadLightmaps(obj, i, scene->mapPath);
                 }
                 else {

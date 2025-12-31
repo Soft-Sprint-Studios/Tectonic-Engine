@@ -49,6 +49,7 @@
 #include <embree4/rtcore.h>
 #include "stb_image_write.h"
 #include <OpenImageDenoise/oidn.h>
+#include "xatlas.h"
 
 namespace
 {
@@ -1285,13 +1286,75 @@ namespace
 
     void Lightmapper::process_model_lightmap(const ModelLightmapJobData& data)
     {
-        const SceneObject& obj = m_scene->objects[data.model_index];
-        if (!obj.model) return;
+        const SceneObject& scene_obj = m_scene->objects[data.model_index];
+        if (!scene_obj.model) return;
 
-        float bounds_size = vec3_length(vec3_sub(obj.model->aabb_max, obj.model->aabb_min));
-        float world_scale = fmaxf(obj.scale.x, fmaxf(obj.scale.y, obj.scale.z));
-        int resolution = std::clamp((int)(bounds_size * world_scale * obj.lightmapScale * 32.0f), 32, 2048);
+        LoadedModel* clean_model = Model_Load(scene_obj.modelPath);
+        if (!clean_model) {
+            Console_Printf_Error("[Lightmapper] Failed to load clean model for baking: %s", scene_obj.modelPath);
+            return;
+        }
+
+        xatlas::Atlas* atlas = xatlas::Create();
+        int num_meshes = clean_model->meshCount;
+
+        for (int m = 0; m < num_meshes; ++m) {
+            const Mesh& mesh = clean_model->meshes[m];
+
+            xatlas::MeshDecl meshDecl;
+            meshDecl.vertexCount = mesh.vertexCount;
+
+            meshDecl.vertexPositionData = &mesh.final_vbo_data[0];
+            meshDecl.vertexPositionStride = 24 * sizeof(float);
+
+            meshDecl.vertexNormalData = &mesh.final_vbo_data[3];
+            meshDecl.vertexNormalStride = 24 * sizeof(float);
+
+            meshDecl.vertexUvData = &mesh.final_vbo_data[6];
+            meshDecl.vertexUvStride = 24 * sizeof(float);
+
+            meshDecl.indexCount = mesh.indexCount;
+            meshDecl.indexData = mesh.indexData;
+            meshDecl.indexFormat = xatlas::IndexFormat::UInt32;
+
+            xatlas::AddMeshError err = xatlas::AddMesh(atlas, meshDecl, 1);
+            if (err != xatlas::AddMeshError::Success) {
+                Console_Printf_Error("[Lightmapper] xatlas error adding mesh %d: %s", m, xatlas::StringForEnum(err));
+            }
+        }
+
+        float bounds_size = vec3_length(vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
+        float world_scale = fmaxf(scene_obj.scale.x, fmaxf(scene_obj.scale.y, scene_obj.scale.z));
+        int resolution = std::clamp((int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
         resolution = pow(2, ceil(log(resolution) / log(2)));
+
+        xatlas::Generate(atlas);
+
+        fs::path lmuv_path = data.output_dir / "model.lmuv";
+        FILE* f_lmuv = fopen(lmuv_path.string().c_str(), "wb");
+        if (f_lmuv) {
+            const char magic[] = "LMUV";
+            fwrite(magic, 1, 4, f_lmuv);
+            uint32_t count = atlas->meshCount;
+            fwrite(&count, sizeof(uint32_t), 1, f_lmuv);
+
+            for (uint32_t i = 0; i < atlas->meshCount; ++i) {
+                const xatlas::Mesh& mesh = atlas->meshes[i];
+                fwrite(&mesh.vertexCount, sizeof(uint32_t), 1, f_lmuv);
+                fwrite(&mesh.indexCount, sizeof(uint32_t), 1, f_lmuv);
+                fwrite(mesh.indexArray, sizeof(uint32_t), mesh.indexCount, f_lmuv);
+
+                for (uint32_t v = 0; v < mesh.vertexCount; ++v) {
+                    const xatlas::Vertex& vert = mesh.vertexArray[v];
+                    fwrite(&vert.xref, sizeof(uint32_t), 1, f_lmuv);
+                    float u = vert.uv[0] / (float)atlas->width;
+                    float v_coord = vert.uv[1] / (float)atlas->height;
+                    fwrite(&u, sizeof(float), 1, f_lmuv);
+                    fwrite(&v_coord, sizeof(float), 1, f_lmuv);
+                }
+            }
+            fclose(f_lmuv);
+        }
 
         std::vector<float> direct_data(resolution * resolution * 3, 0.0f);
         std::vector<float> indirect_data(resolution * resolution * 3, 0.0f);
@@ -1299,36 +1362,39 @@ namespace
         std::vector<float> normal_data(resolution * resolution * 3, 0.0f);
         std::vector<float> dir_accum_data(resolution * resolution * 3, 0.0f);
 
-        int num_meshes = obj.model->meshCount;
-        unsigned int vertex_offset_global = 0;
-        unsigned int index_offset_global = 0;
+        for (uint32_t m = 0; m < atlas->meshCount; ++m) {
+            const xatlas::Mesh& xmesh = atlas->meshes[m];
+            const Mesh& original_mesh = clean_model->meshes[m];
 
-        for (int m = 0; m < num_meshes; ++m) {
-            const Mesh& mesh = obj.model->meshes[m];
-            unsigned int num_tris = mesh.indexCount / 3;
+            unsigned int num_tris = xmesh.indexCount / 3;
 
             for (unsigned int t = 0; t < num_tris; ++t) {
-                unsigned int i0 = obj.model->combinedIndexData[index_offset_global + t * 3 + 0];
-                unsigned int i1 = obj.model->combinedIndexData[index_offset_global + t * 3 + 1];
-                unsigned int i2 = obj.model->combinedIndexData[index_offset_global + t * 3 + 2];
+                unsigned int i0 = xmesh.indexArray[t * 3 + 0];
+                unsigned int i1 = xmesh.indexArray[t * 3 + 1];
+                unsigned int i2 = xmesh.indexArray[t * 3 + 2];
 
-                Vec3 v0_local = *(Vec3*)&obj.model->combinedVertexData[i0 * 3];
-                Vec3 v1_local = *(Vec3*)&obj.model->combinedVertexData[i1 * 3];
-                Vec3 v2_local = *(Vec3*)&obj.model->combinedVertexData[i2 * 3];
+                const xatlas::Vertex& xv0 = xmesh.vertexArray[i0];
+                const xatlas::Vertex& xv1 = xmesh.vertexArray[i1];
+                const xatlas::Vertex& xv2 = xmesh.vertexArray[i2];
 
-                Vec3 n0_local = *(Vec3*)&obj.model->combinedNormalData[i0 * 3];
-                Vec3 n1_local = *(Vec3*)&obj.model->combinedNormalData[i1 * 3];
-                Vec3 n2_local = *(Vec3*)&obj.model->combinedNormalData[i2 * 3];
+                Vec2 uv0 = { xv0.uv[0] / (float)atlas->width, xv0.uv[1] / (float)atlas->height };
+                Vec2 uv1 = { xv1.uv[0] / (float)atlas->width, xv1.uv[1] / (float)atlas->height };
+                Vec2 uv2 = { xv2.uv[0] / (float)atlas->width, xv2.uv[1] / (float)atlas->height };
 
-                auto get_uv = [&](unsigned int global_idx) -> Vec2 {
-                    unsigned int local_v = global_idx - vertex_offset_global;
-                    float* ptr = &mesh.final_vbo_data[local_v * 24 + 6];
-                    return Vec2{ ptr[0], ptr[1] };
+                auto get_vec3_pos = [&](uint32_t idx) -> Vec3 {
+                    return *(Vec3*)&original_mesh.final_vbo_data[idx * 24 + 0];
+                    };
+                auto get_vec3_norm = [&](uint32_t idx) -> Vec3 {
+                    return *(Vec3*)&original_mesh.final_vbo_data[idx * 24 + 3];
                     };
 
-                Vec2 uv0 = get_uv(i0);
-                Vec2 uv1 = get_uv(i1);
-                Vec2 uv2 = get_uv(i2);
+                Vec3 v0_local = get_vec3_pos(xv0.xref);
+                Vec3 v1_local = get_vec3_pos(xv1.xref);
+                Vec3 v2_local = get_vec3_pos(xv2.xref);
+
+                Vec3 n0_local = get_vec3_norm(xv0.xref);
+                Vec3 n1_local = get_vec3_norm(xv1.xref);
+                Vec3 n2_local = get_vec3_norm(xv2.xref);
 
                 float min_u = fminf(uv0.x, fminf(uv1.x, uv2.x));
                 float min_v = fminf(uv0.y, fminf(uv1.y, uv2.y));
@@ -1349,8 +1415,8 @@ namespace
                             Vec3 pos_local = vec3_add(vec3_muls(v0_local, bary.x), vec3_add(vec3_muls(v1_local, bary.y), vec3_muls(v2_local, bary.z)));
                             Vec3 norm_local = vec3_add(vec3_muls(n0_local, bary.x), vec3_add(vec3_muls(n1_local, bary.y), vec3_muls(n2_local, bary.z)));
 
-                            Vec3 pos_world = mat4_mul_vec3(&obj.modelMatrix, pos_local);
-                            Vec3 norm_world = mat4_mul_vec3_dir(&obj.modelMatrix, norm_local);
+                            Vec3 pos_world = mat4_mul_vec3(&scene_obj.modelMatrix, pos_local);
+                            Vec3 norm_world = mat4_mul_vec3_dir(&scene_obj.modelMatrix, norm_local);
                             vec3_normalize(&norm_world);
 
                             int idx = (y * resolution + x) * 3;
@@ -1382,9 +1448,10 @@ namespace
                     }
                 }
             }
-            vertex_offset_global += mesh.vertexCount;
-            index_offset_global += mesh.indexCount;
         }
+
+        xatlas::Destroy(atlas);
+        Model_Free(clean_model);
 
         std::vector<float> denoised_indirect(indirect_data.size());
         {

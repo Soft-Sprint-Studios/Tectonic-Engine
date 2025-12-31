@@ -104,7 +104,7 @@ Only the following folders are under the main project license (**MIT**):
 
 - `engine/`
 - `launcher/`
-- `x64/`
+- `Template_Game/`
 - `Tools/`
 - `docs/`
 
@@ -133,3 +133,4 @@ All other folders are third-party dependencies and fall under their respective o
 | `stb/`                   | Image, Audio, and Font Utilities           | Public Domain or MIT                |
 | `sentry/`                | Crash Reporting SDK                        | MIT License                         |
 | `fltk/`                  | Fast Light Toolkit GUI Library             | LGPL                                |
+| `xatlas/`                | UV Unwrapping                              | MIT License                         |

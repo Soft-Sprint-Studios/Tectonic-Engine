@@ -93,11 +93,7 @@ void main()
     vs_out.texCoords2 = aTexCoords2;
     vs_out.texCoords3 = aTexCoords3;
     vs_out.texCoords4 = aTexCoords4;
-	if (!isBrush && !isDecal) {
-        vs_out.lightmapTexCoords = aTexCoords;
-    } else {
-        vs_out.lightmapTexCoords = aTexCoordsLightmap;
-    }
+    vs_out.lightmapTexCoords = aTexCoordsLightmap;
     vs_out.color = aColor;
 	vs_out.color2 = aColor2;
     vs_out.color3 = aColor3;

@@ -1267,6 +1267,12 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
         obj->dirLightmapHandle = glGetTextureHandleARB(obj->dirLightmapTexture);
         glMakeTextureHandleResidentARB(obj->dirLightmapHandle);
     }
+
+    char lmuv_path[1024];
+    snprintf(lmuv_path, sizeof(lmuv_path), "%s/model.lmuv", dir_path);
+    if (obj->model) {
+        Model_ApplyLMUV(obj->model, lmuv_path);
+    }
 }
 
 static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {

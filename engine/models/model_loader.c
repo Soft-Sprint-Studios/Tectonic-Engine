@@ -136,6 +136,8 @@ static void create_error_model() {
     offset += 4 * sizeof(float);
     glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
     glEnableVertexAttribArray(9);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)(22 * sizeof(float)));
+    glEnableVertexAttribArray(8);
 
     glBindVertexArray(0);
 
@@ -513,6 +515,8 @@ LoadedModel* Model_Load(const char* path) {
                 glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(SkinningVertexData), (void*)offsetof(SkinningVertexData, bone_weights));
                 free(skinning_data);
             }
+            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)(22 * sizeof(float)));
+            glEnableVertexAttribArray(8);
 
             currentMeshIndex++;
         }
@@ -575,6 +579,81 @@ void Model_Free(LoadedModel* model) {
     if (model->combinedIndexData) free(model->combinedIndexData);
     free(model->meshes);
     free(model);
+}
+
+bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
+    FILE* f = fopen(lmuv_path, "rb");
+    if (!f) return false;
+
+    char magic[4];
+    if (fread(magic, 1, 4, f) != 4 || strncmp(magic, "LMUV", 4) != 0) {
+        fclose(f); return false;
+    }
+
+    uint32_t num_meshes = 0;
+    fread(&num_meshes, sizeof(uint32_t), 1, f);
+
+    if (num_meshes != model->meshCount) { fclose(f); return false; }
+
+    for (uint32_t i = 0; i < num_meshes; ++i) {
+        Mesh* mesh = &model->meshes[i];
+
+        uint32_t num_new_verts = 0;
+        uint32_t num_new_indices = 0;
+        fread(&num_new_verts, sizeof(uint32_t), 1, f);
+        fread(&num_new_indices, sizeof(uint32_t), 1, f);
+
+        uint32_t* new_indices = malloc(num_new_indices * sizeof(uint32_t));
+        fread(new_indices, sizeof(uint32_t), num_new_indices, f);
+
+        size_t stride_floats = 24;
+        size_t stride_bytes = stride_floats * sizeof(float);
+        float* new_vbo_data = malloc(num_new_verts * stride_bytes);
+
+        for (uint32_t v = 0; v < num_new_verts; ++v) {
+            uint32_t original_index = 0;
+            float lu = 0.0f, lv = 0.0f;
+            fread(&original_index, sizeof(uint32_t), 1, f);
+            fread(&lu, sizeof(float), 1, f);
+            fread(&lv, sizeof(float), 1, f);
+
+            float* dst = &new_vbo_data[v * stride_floats];
+            if (original_index < mesh->vertexCount) {
+                float* src = &mesh->final_vbo_data[original_index * stride_floats];
+                memcpy(dst, src, stride_bytes);
+            }
+            else {
+                memset(dst, 0, stride_bytes);
+            }
+
+            dst[22] = lu;
+            dst[23] = lv;
+        }
+
+        free(mesh->final_vbo_data);
+        mesh->final_vbo_data = new_vbo_data;
+        mesh->final_vbo_data_size = num_new_verts * stride_bytes;
+        mesh->vertexCount = num_new_verts;
+
+        if (mesh->indexData) free(mesh->indexData);
+        mesh->indexData = new_indices;
+        mesh->indexCount = num_new_indices;
+        mesh->useEBO = true;
+
+        glBindVertexArray(mesh->VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+        glBufferData(GL_ARRAY_BUFFER, mesh->final_vbo_data_size, mesh->final_vbo_data, GL_STATIC_DRAW);
+
+        if (mesh->EBO == 0) glGenBuffers(1, &mesh->EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indexCount * sizeof(unsigned int), mesh->indexData, GL_STATIC_DRAW);
+
+        glBindVertexArray(0);
+    }
+
+    fclose(f);
+    return true;
 }
 
 void ModelLoader_Shutdown() {
