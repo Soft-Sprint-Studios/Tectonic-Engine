@@ -57,8 +57,8 @@ namespace
     constexpr float SHADOW_BIAS = 0.005f;
     constexpr int BLUR_RADIUS = 2;
     constexpr int NUM_AREA_LIGHT_SAMPLES = 16;
-    constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64;
-    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 512;
+    constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64; // for lightmapped brushes and models
+    constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 512; // for vertex lit models
     constexpr int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
     constexpr int INDIRECT_SAMPLES_PER_POINT_DECALS = 64;
     constexpr float LUXELS_PER_UNIT = 16.0f;
@@ -1359,7 +1359,7 @@ namespace
                             Vec3 dom_dir, ind_dir;
 
                             Vec3 direct = calculate_direct_light(pos_world, norm_world, dom_dir);
-                            Vec3 indirect = calculate_indirect_light(pos_world, norm_world, rng, ind_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
+                            Vec3 indirect = calculate_indirect_light(pos_world, norm_world, rng, ind_dir, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                             Vec3 sun_direct = calculate_direct_sun_light_only(pos_world, norm_world);
 
                             direct_data[idx] = direct.x - sun_direct.x;
