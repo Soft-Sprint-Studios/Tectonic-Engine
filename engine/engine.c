@@ -71,6 +71,11 @@
 #include "engine_commands.h"
 #include "engine_api.h"
 #include "animations.h"
+#ifdef PLATFORM_LINUX
+#include <dirent.h>
+#include <sys/stat.h>
+#include <dlfcn.h>
+#endif
 
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
