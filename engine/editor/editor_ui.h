@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #pragma once
-#ifndef EDITOR_MISC_H
-#define EDITOR_MISC_H
+#ifndef EDITOR_UI_H
+#define EDITOR_UI_H
 
 #include "editor_internal.h"
 
@@ -31,19 +31,10 @@
 extern "C" {
 #endif
 
-	void Editor_SetMapDirty(bool is_dirty);
-	void Editor_SaveRecentFiles();
-	void Editor_LoadRecentFiles();
-	void Editor_AddRecentFile(const char* path);
-	void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
-	void Editor_InitGizmo();
-	void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);
-	void Editor_InitDebugRenderer();
-	void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
-	void Editor_Shutdown();
+	void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // EDITOR_MISC_H
+#endif // EDITOR_UI_H
