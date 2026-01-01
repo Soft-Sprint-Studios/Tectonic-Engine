@@ -31,8 +31,8 @@
 extern "C" {
 #endif
 
-void evaluate_animation(SceneObject* obj, float time);
-void Scene_UpdateAnimations(Scene* scene, float deltaTime);
+	void evaluate_animation(SceneObject* obj, float time);
+	void Scene_UpdateAnimations(Scene* scene, float deltaTime);
 
 #ifdef __cplusplus
 }
