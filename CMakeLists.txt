@@ -186,9 +186,11 @@ target_compile_options(ipc_lib PRIVATE
 
 # level0 library (core utilities)
 add_library(level0 SHARED
+    engine/level0/imgui_wrapper.cpp
     engine/level0/gl_console.cpp
     engine/level0/cvar.cpp
     engine/level0/commands.cpp
+    engine/level0/imgui_wrapper.h
     engine/level0/gl_console.h
     engine/level0/cvar.h
     engine/level0/commands.h
