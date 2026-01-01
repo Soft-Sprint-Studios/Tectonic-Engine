@@ -37,6 +37,7 @@ extern "C" {
 	void Editor_AddRecentFile(const char* path);
 	void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
 	void Editor_InitGizmo();
+	void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);
 	void Editor_InitDebugRenderer();
 
 #ifdef __cplusplus

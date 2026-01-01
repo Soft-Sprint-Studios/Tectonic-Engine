@@ -21,10 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <float.h>
 #include "commands.h"
 #include "gl_misc.h"
 #include "editor_misc.h"
 #include "editor_windows.h"
+#include "editor_math.h"
+#include "editor_selection.h"
 
 void Editor_SetMapDirty(bool is_dirty) {
     g_is_map_dirty = is_dirty;
@@ -123,6 +126,83 @@ void Editor_InitGizmo() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+}
+
+void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
+    EditorSelection* primary = Editor_GetPrimarySelection();
+    if (!primary) {
+        g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
+        return;
+    }
+
+    if (primary->type == ENTITY_BRUSH && primary->face_index != -1 && g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
+        g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
+        return;
+    }
+    if (g_EditorState.num_selections == 0) {
+        g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
+        return;
+    }
+    Vec3 object_pos = g_EditorState.gizmo_selection_centroid;
+
+    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
+    float min_dist = FLT_MAX;
+
+    switch (g_EditorState.current_gizmo_operation) {
+    case GIZMO_OP_TRANSLATE:
+    case GIZMO_OP_SCALE: {
+        const float pick_threshold = 0.1f;
+        float t_ray, t_seg;
+        Vec3 x_p1 = { object_pos.x + 1.0f, object_pos.y, object_pos.z };
+        float dist_x = dist_RaySegment(ray_origin, ray_dir, object_pos, x_p1, &t_ray, &t_seg);
+        if (dist_x < pick_threshold && dist_x < min_dist) { min_dist = dist_x; g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X; }
+
+        Vec3 y_p1 = { object_pos.x, object_pos.y + 1.0f, object_pos.z };
+        float dist_y = dist_RaySegment(ray_origin, ray_dir, object_pos, y_p1, &t_ray, &t_seg);
+        if (dist_y < pick_threshold && dist_y < min_dist) { min_dist = dist_y; g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y; }
+
+        Vec3 z_p1 = { object_pos.x, object_pos.y, object_pos.z + 1.0f };
+        float dist_z = dist_RaySegment(ray_origin, ray_dir, object_pos, z_p1, &t_ray, &t_seg);
+        if (dist_z < pick_threshold && dist_z < min_dist) { g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z; }
+        break;
+    }
+    case GIZMO_OP_ROTATE: {
+        const float radius = 1.0f;
+        const float pick_threshold = 0.1f;
+        Vec3 intersect_point;
+        float closest_dist = FLT_MAX;
+
+        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 1, 0 }, -object_pos.y, & intersect_point)) {
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    closest_dist = dist_to_intersection;
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y;
+                }
+            }
+        }
+
+        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 1, 0, 0 }, -object_pos.x, & intersect_point)) {
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    closest_dist = dist_to_intersection;
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X;
+                }
+            }
+        }
+
+        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 0, 1 }, -object_pos.z, & intersect_point)) {
+            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+                if (dist_to_intersection < closest_dist) {
+                    g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z;
+                }
+            }
+        }
+        break;
+    }
+    }
 }
 
 void Editor_InitDebugRenderer() {
