@@ -21,8 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "commands.h"
 #include "gl_misc.h"
 #include "editor_misc.h"
+#include "editor_windows.h"
 
 void Editor_SetMapDirty(bool is_dirty) {
     g_is_map_dirty = is_dirty;
@@ -78,6 +80,31 @@ void Editor_AddRecentFile(const char* path) {
     g_EditorState.num_recent_map_files++;
 
     Editor_SaveRecentFiles();
+}
+
+void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer) {
+    switch (g_pending_action) {
+    case PENDING_ACTION_NEW_MAP:
+        Scene_Clear(scene, engine);
+        strcpy(g_EditorState.currentMapPath, "untitled.map");
+        Undo_Init();
+        Editor_SetMapDirty(false);
+        break;
+    case PENDING_ACTION_LOAD_MAP:
+        g_EditorState.show_load_map_popup = true;
+        ScanMapFiles();
+        Editor_SetMapDirty(false);
+        break;
+    case PENDING_ACTION_EXIT_EDITOR:
+    {
+        char* args[] = { "edit" };
+        Commands_Execute(1, args);
+        break;
+    }
+    default:
+        break;
+    }
+    g_pending_action = PENDING_ACTION_NONE;
 }
 
 void Editor_InitGizmo() {

@@ -56,7 +56,7 @@ Mat4 g_proj_matrix[VIEW_COUNT];
 
 bool g_is_map_dirty = false;
 
-static PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
+PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
 
 BrushFace g_copiedFaceProperties;
 bool g_hasCopiedFace = false;
@@ -2603,31 +2603,6 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
         g_EditorState.autosave_timer = 0.0f;
     }
-}
-
-static void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer) {
-    switch (g_pending_action) {
-    case PENDING_ACTION_NEW_MAP:
-        Scene_Clear(scene, engine);
-        strcpy(g_EditorState.currentMapPath, "untitled.map");
-        Undo_Init();
-        Editor_SetMapDirty(false);
-        break;
-    case PENDING_ACTION_LOAD_MAP:
-        g_EditorState.show_load_map_popup = true;
-        ScanMapFiles();
-        Editor_SetMapDirty(false);
-        break;
-    case PENDING_ACTION_EXIT_EDITOR:
-    {
-        char* args[] = { "edit" };
-        Commands_Execute(1, args);
-        break;
-    }
-    default:
-        break;
-    }
-    g_pending_action = PENDING_ACTION_NONE;
 }
 
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
