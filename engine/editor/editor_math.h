@@ -45,4 +45,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // EDITOR_MATH_H

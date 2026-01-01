@@ -48,4 +48,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // EDITOR_SELECTION_H

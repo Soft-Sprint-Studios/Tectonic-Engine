@@ -43,4 +43,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // EDITOR_MISC_H

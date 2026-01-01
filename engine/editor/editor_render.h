@@ -41,4 +41,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // EDITOR_RENDER_H

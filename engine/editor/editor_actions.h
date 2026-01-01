@@ -51,4 +51,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // EDITOR_ACTIONS_H

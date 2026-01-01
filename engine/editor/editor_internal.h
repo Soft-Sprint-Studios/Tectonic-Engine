@@ -262,4 +262,4 @@ extern PendingEditorAction g_pending_action;
 }
 #endif
 
-#endif
+#endif // EDITOR_INTERNAL_H
