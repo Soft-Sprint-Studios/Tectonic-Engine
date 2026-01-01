@@ -86,14 +86,6 @@ void on_launch_console_cb(Fl_Widget*, void*) {
 #endif
 }
 
-void on_launch_model_importer_cb(Fl_Widget*, void*) {
-#ifdef PLATFORM_WINDOWS
-    launch_tool("TectonicModelImporter.exe");
-#else
-    launch_tool("TectonicModelImporter");
-#endif
-}
-
 void on_launch_particle_editor_cb(Fl_Widget*, void*) {
 #ifdef PLATFORM_WINDOWS
     launch_tool("TectonicParticleEditor.exe");
@@ -137,16 +129,13 @@ int main(int argc, char** argv) {
     Fl_Button* btn_console = new Fl_Button(30, 80, win_w - 60, 30, "Tectonic Console");
     btn_console->callback(on_launch_console_cb);
 
-    Fl_Button* btn_model_importer = new Fl_Button(30, 120, win_w - 60, 30, "Model Importer");
-    btn_model_importer->callback(on_launch_model_importer_cb);
-
-    Fl_Button* btn_particle_editor = new Fl_Button(30, 160, win_w - 60, 30, "Particle Editor");
+    Fl_Button* btn_particle_editor = new Fl_Button(30, 120, win_w - 60, 30, "Particle Editor");
     btn_particle_editor->callback(on_launch_particle_editor_cb);
 
-    Fl_Button* btn_vertex_lighter = new Fl_Button(30, 200, win_w - 60, 30, "Vertex Light Debugging");
+    Fl_Button* btn_vertex_lighter = new Fl_Button(30, 160, win_w - 60, 30, "Vertex Light Debugging");
     btn_vertex_lighter->callback(on_launch_vertex_lighter_cb);
 
-    Fl_Button* btn_ambient_inspector = new Fl_Button(30, 240, win_w - 60, 30, "Ambient Cube Inspector");
+    Fl_Button* btn_ambient_inspector = new Fl_Button(30, 200, win_w - 60, 30, "Ambient Cube Inspector");
     btn_ambient_inspector->callback(on_launch_ambient_inspector_cb);
 
     Fl_Button* btn_quit = new Fl_Button(win_w - 90, win_h - 40, 80, 25, "Quit");
