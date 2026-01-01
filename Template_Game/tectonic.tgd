@@ -570,3 +570,14 @@
     input TurnOff "Makes the overlay invisible."
     input Toggle "Toggles the overlay's visibility."
 )
+
+@PointClass = item_note
+[
+    title(string) : "Note Title" = "A Scrawled Note"
+    message(string) : "Content" = "Write your text here..."
+    radius(float) : "Use Radius" = "1.0"
+]
+(
+    input Use "Read the note."
+    output OnRead "Fires when the player closes the note."
+)

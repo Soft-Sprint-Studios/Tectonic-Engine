@@ -600,6 +600,10 @@ extern "C" {
         bool keypad_active;
         int active_keypad_entity_index;
         char keypad_input_buffer[32];
+        bool note_active;
+        int active_note_entity_index;
+        char note_title[64];
+        char note_content[1024];
         RigidBodyHandle heldObject;
         float holdDistance;
         bool credits_active;

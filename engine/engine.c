@@ -50,6 +50,7 @@
 #include "gl_geometry.h"
 #include "gl_bloom.h"
 #include "gl_keypad.h"
+#include "gl_note.h"
 #include "gl_misc.h"
 #include "gl_render_misc.h"
 #include "gl_overlay.h"
@@ -70,11 +71,6 @@
 #include "engine_commands.h"
 #include "engine_api.h"
 #include "animations.h"
-#ifdef PLATFORM_LINUX
-#include <dirent.h>
-#include <sys/stat.h>
-#include <dlfcn.h>
-#endif
 
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
@@ -171,6 +167,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->keypad_active = false;
     g_engine->active_keypad_entity_index = -1;
     memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
+    g_engine->note_active = false;
+    g_engine->active_note_entity_index = -1;
+    memset(g_engine->note_title, 0, sizeof(g_engine->note_title));
+    memset(g_engine->note_content, 0, sizeof(g_engine->note_content));
     g_engine->heldObject = NULL;
     g_engine->holdDistance = 0.0f;
     g_engine->credits_active = false;
@@ -302,6 +302,15 @@ void process_input() {
 
         if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
             if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                if (g_engine->note_active) {
+                    g_engine->note_active = false;
+                    g_player_input_disabled = false;
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    if (g_engine->active_note_entity_index != -1) {
+                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, NULL);
+                    }
+                    return;
+                }
                 if (g_engine->heldObject) {
                     Physics_SetGravityEnabled(g_engine->heldObject, true);
                     g_engine->heldObject = NULL;
@@ -414,6 +423,23 @@ void process_input() {
                     }
                 }
 
+                for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+                    LogicEntity* ent = &g_scene.logicEntities[i];
+                    if (strcmp(ent->classname, "item_note") == 0) {
+                        float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
+                        float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+
+                        Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
+                        vec3_normalize(&to_ent);
+                        float dot = vec3_dot(forward, to_ent);
+
+                        if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
+                            ExecuteInput(ent->targetname, "Use", "", &g_scene, g_engine);
+                            return;
+                        }
+                    }
+                }
+
                 RaycastHitInfo hitInfo;
                 if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
                     if (hitInfo.hitBody && Physics_GetMass(hitInfo.hitBody) < 2.0f && Physics_GetMass(hitInfo.hitBody) > 0.0f) {
@@ -429,6 +455,15 @@ void process_input() {
                     g_engine->keypad_active = false;
                     g_player_input_disabled = false;
                     SDL_SetRelativeMouseMode(SDL_TRUE);
+                    return;
+                }
+                if (g_engine->note_active) {
+                    g_engine->note_active = false;
+                    g_player_input_disabled = false;
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    if (g_engine->active_note_entity_index != -1) {
+                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, NULL);
+                    }
                     return;
                 }
                 if (g_current_mode == MODE_GAME) {
@@ -790,6 +825,20 @@ void update_state() {
                 if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                     g_engine->canUse = true;
                     break;
+                }
+            }
+        }
+        for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+            LogicEntity* ent = &g_scene.logicEntities[i];
+            if (strcmp(ent->classname, "item_note") == 0) {
+                float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
+                float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
+                vec3_normalize(&to_ent);
+                float dot = vec3_dot(forward, to_ent);
+
+                if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
+                    g_engine->canUse = true;
                 }
             }
         }
@@ -1875,6 +1924,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             UI_RenderDeveloperOverlay();
             if (g_current_mode == MODE_GAME) {
                 Keypad_RenderUI(&g_scene, g_engine);
+                Note_RenderUI(&g_scene, g_engine);
             }
         }
         Console_Draw(); 

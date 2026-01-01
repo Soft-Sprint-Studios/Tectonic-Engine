@@ -451,6 +451,18 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     SDL_SetRelativeMouseMode(SDL_FALSE);
                 }
             }
+            else if (strcmp(ent->classname, "item_note") == 0) {
+                if (strcmp(inputName, "Use") == 0 && !engine->note_active) {
+                    engine->note_active = true;
+                    engine->active_note_entity_index = i;
+
+                    strncpy(engine->note_title, LogicEntity_GetProperty(ent, "title", "Note"), sizeof(engine->note_title) - 1);
+                    strncpy(engine->note_content, LogicEntity_GetProperty(ent, "message", "..."), sizeof(engine->note_content) - 1);
+
+                    g_player_input_disabled = true;
+                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                }
+            }
             else if (strcmp(ent->classname, "skybox_swapper") == 0) {
                 if (strcmp(inputName, "SwapSkybox") == 0) {
                     const char* new_skybox_name = LogicEntity_GetProperty(ent, "skybox_name", "");
