@@ -111,7 +111,7 @@ set(ENGINE_SOURCES
     engine/gl_keypad.c
     engine/engine_commands.c
     engine/gl_skybox.c
-    engine/lightmapper.cpp
+    engine/lightmapper.cpp  engine/lightmapper_misc.cpp
     thirdparty/mikktspace/mikktspace.c
     thirdparty/xatlas/xatlas.cpp
 )
@@ -144,7 +144,7 @@ set(ENGINE_HEADERS
     engine/gl_keypad.h
     engine/engine_commands.h
     engine/gl_skybox.h
-    engine/lightmapper.h
+    engine/lightmapper.h engine/lightmapper_misc.h engine/lightmapper_internal.h
 )
 
 # math_lib library
