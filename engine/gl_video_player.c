@@ -72,7 +72,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     }
     vp->plm = plm_create_with_filename(vp->videoPath);
     if (!vp->plm) {
-        Console_Printf_Error("Error loading video: %s\n", vp->videoPath);
+        Console_Printf_Error("loading video: %s\n", vp->videoPath);
         return;
     }
 
