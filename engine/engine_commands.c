@@ -137,7 +137,7 @@ void Cmd_Map(int argc, char** argv) {
             SDL_SetRelativeMouseMode(SDL_TRUE);
         }
         else {
-            Console_Printf_Error("[error] Failed to load map: %s", map_path);
+            Console_Printf_Error("Failed to load map: %s", map_path);
         }
     }
     else {
@@ -218,7 +218,7 @@ void Cmd_BuildCubemaps(int argc, char** argv) {
             resolution = res_arg;
         }
         else {
-            Console_Printf_Warning("[WARNING] Invalid cubemap resolution '%s'. Must be a power of two. Using default 256.", argv[1]);
+            Console_Printf_Warning("Invalid cubemap resolution '%s'. Must be a power of two. Using default 256.", argv[1]);
         }
     }
     MiscRender_BuildCubemaps(&g_renderer, &g_scene, g_engine, resolution);
@@ -288,7 +288,7 @@ void Cmd_Exec(int argc, char** argv) {
     const char* filename = argv[1];
     FILE* file = fopen(filename, "r");
     if (!file) {
-        Console_Printf_Error("[error] Could not open script file: %s", filename);
+        Console_Printf_Error("Could not open script file: %s", filename);
         return;
     }
 
@@ -390,7 +390,7 @@ void Cmd_BuildLighting(int argc, char** argv) {
             resolution = res_arg;
         }
         else {
-            Console_Printf_Warning("[WARNING] Invalid lightmap resolution '%s'. Must be a power of two. Using default 128.", argv[1]);
+            Console_Printf_Warning("Invalid lightmap resolution '%s'. Must be a power of two. Using default 128.", argv[1]);
         }
     }
 
@@ -400,7 +400,7 @@ void Cmd_BuildLighting(int argc, char** argv) {
             bounces = bounce_arg;
         }
         else {
-            Console_Printf_Warning("[WARNING] Invalid bounce count '%s'. Must be >= 0. Using default 1.", argv[2]);
+            Console_Printf_Warning("Invalid bounce count '%s'. Must be >= 0. Using default 1.", argv[2]);
         }
     }
 

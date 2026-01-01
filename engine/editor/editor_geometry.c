@@ -35,7 +35,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
 
     BrushFace* old_face = &b->faces[face_index];
     if (old_face->numVertexIndices != 4) {
-        Console_Printf_Error("[error] Can only subdivide 4-sided faces for now.");
+        Console_Printf_Error("Can only subdivide 4-sided faces for now.");
         return;
     }
 

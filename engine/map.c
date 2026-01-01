@@ -1873,7 +1873,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int b
 bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine) {
     FILE* file = fopen(mapPath, "r");
     if (!file) {
-        Console_Printf_Error("[error] Could not find map file: %s", mapPath);
+        Console_Printf_Error("Could not find map file: %s", mapPath);
         return false;
     }
 
@@ -1884,14 +1884,14 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
 
         if (map_file_version < MIN_MAP_VERSION || map_file_version > MAP_VERSION) {
-            Console_Printf_Error("[error] Map version unsupported! Map is v%d, supported range is v%d–v%d.",
+            Console_Printf_Error("Map version unsupported! Map is v%d, supported range is v%d–v%d.",
                 map_file_version, MIN_MAP_VERSION, MAP_VERSION);
             fclose(file);
             return false;
         }
     }
     else {
-        Console_Printf_Error("[error] Invalid or missing map version.");
+        Console_Printf_Error("Invalid or missing map version.");
         fclose(file);
         return false;
     }

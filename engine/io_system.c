@@ -210,7 +210,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "Multiply") == 0) ent->runtime_float_a *= value;
                 else if (strcmp(inputName, "Divide") == 0) {
                     if (value != 0) ent->runtime_float_a /= value;
-                    else Console_Printf_Error("[error] math_counter '%s' tried to divide by zero.", ent->targetname);
+                    else Console_Printf_Error("math_counter '%s' tried to divide by zero.", ent->targetname);
                 }
 
                 if (max != 0 && ent->runtime_float_a >= max) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, NULL);

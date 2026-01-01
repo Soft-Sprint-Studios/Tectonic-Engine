@@ -68,7 +68,7 @@ public:
     static void Save(const char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
-            Console_Printf_Error("[error] Could not save cvars to %s", filename);
+            Console_Printf_Error("Could not save cvars to %s", filename);
             return;
         }
 

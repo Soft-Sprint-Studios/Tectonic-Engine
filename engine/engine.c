@@ -225,7 +225,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Weapons_Init();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(g_engine->width, g_engine->height)) {
-        Console_Printf_Error("[ERROR] Failed to initialize Main Menu.");
+        Console_Printf_Error("Failed to initialize Main Menu.");
         g_engine->running = false;
     }
     PrintSystemInfo();
@@ -1671,7 +1671,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 Console_Printf("V-Sync set to %s.", current_vsync_cvar ? "ON" : "OFF");
             }
             else {
-                Console_Printf_Warning("[warning] Could not set V-Sync: %s", SDL_GetError());
+                Console_Printf_Warning("Could not set V-Sync: %s", SDL_GetError());
             }
             g_last_vsync_cvar_state = current_vsync_cvar;
         }

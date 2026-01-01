@@ -76,7 +76,7 @@ public:
     static void Save(const char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
-            Console_Printf_Error("[error] Could not save binds to %s", filename);
+            Console_Printf_Error("Could not save binds to %s", filename);
             return;
         }
 
@@ -93,7 +93,7 @@ public:
     static void Set(const char* keyName, const char* command) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
-            Console_Printf_Error("[error] Unknown key name: %s", keyName);
+            Console_Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 
@@ -114,14 +114,14 @@ public:
             Console_Printf("Bound '%s' to '%s'", keyName, command);
         }
         else {
-            Console_Printf_Error("[error] Maximum number of binds reached.");
+            Console_Printf_Error("Maximum number of binds reached.");
         }
     }
 
     static void Unset(const char* keyName) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
-            Console_Printf_Error("[error] Unknown key name: %s", keyName);
+            Console_Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 

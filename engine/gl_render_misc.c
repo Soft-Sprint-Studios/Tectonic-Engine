@@ -141,7 +141,7 @@ static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
     if (!pixels) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
+        Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return;
     }
@@ -152,11 +152,11 @@ static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* 
         0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
-        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
+        Console_Printf_Error("Failed to create SDL surface for screenshot.");
     }
     else {
         if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+            Console_Printf_Error("Failed to save screenshot to %s: %s", filepath, IMG_GetError());
         }
         else {
             Console_Printf("Saved cubemap face to %s", filepath);
@@ -172,7 +172,7 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     unsigned char* pixels = (unsigned char*)malloc(engine->width * engine->height * 4);
     if (!pixels) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot pixels.");
+        Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         return;
     }
 
@@ -181,7 +181,7 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
     int row_size = engine->width * 4;
     unsigned char* temp_row = (unsigned char*)malloc(row_size);
     if (!temp_row) {
-        Console_Printf_Error("[ERROR] Failed to allocate memory for screenshot row buffer.");
+        Console_Printf_Error("Failed to allocate memory for screenshot row buffer.");
         free(pixels);
         return;
     }
@@ -198,11 +198,11 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
     SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, engine->width, engine->height, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
-        Console_Printf_Error("[ERROR] Failed to create SDL surface for screenshot.");
+        Console_Printf_Error("Failed to create SDL surface for screenshot.");
     }
     else {
         if (IMG_SavePNG(surface, filepath) != 0) {
-            Console_Printf_Error("[ERROR] Failed to save screenshot to %s: %s", filepath, IMG_GetError());
+            Console_Printf_Error("Failed to save screenshot to %s: %s", filepath, IMG_GetError());
         }
         else {
             Console_Printf("Screenshot saved to %s", filepath);
@@ -255,7 +255,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution, resolution);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cubemap_rbo);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Console_Printf_Error("[ERROR] Cubemap face FBO not complete!");
+        Console_Printf_Error("Cubemap face FBO not complete!");
         glDeleteFramebuffers(1, &cubemap_fbo);
         glDeleteTextures(1, &cubemap_texture);
         glDeleteRenderbuffers(1, &cubemap_rbo);
@@ -270,7 +270,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
             continue;
         }
         if (strlen(b->name) == 0) {
-            Console_Printf_Warning("[WARNING] Skipping unnamed reflection probe at index %d.", i);
+            Console_Printf_Warning("Skipping unnamed reflection probe at index %d.", i);
             continue;
         }
 

@@ -522,7 +522,7 @@ void Editor_RenderSoundBrowser(Scene* scene) {
                     g_EditorState.show_sound_browser_popup = false;
                 }
                 else {
-                    Console_Printf_Error("[error] Max sound entities reached.");
+                    Console_Printf_Error("Max sound entities reached.");
                 }
             }
             UI_SameLine();
@@ -2201,7 +2201,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
                         ParticleEmitter_Init(emitter, ps, emitter->pos);
                     }
                     else {
-                        Console_Printf_Error("[error] Failed to load particle system: %s", emitter->parFile);
+                        Console_Printf_Error("Failed to load particle system: %s", emitter->parFile);
                         emitter->system = NULL;
                     }
                     scene->numParticleEmitters++;

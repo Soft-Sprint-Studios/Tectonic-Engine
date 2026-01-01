@@ -81,7 +81,7 @@ public:
             return;
         }
 
-        Console_Printf_Error("[error] Unknown command or cvar: %s", cmd_name);
+        Console_Printf_Error("Unknown command or cvar: %s", cmd_name);
     }
 
     static int GetCount() {

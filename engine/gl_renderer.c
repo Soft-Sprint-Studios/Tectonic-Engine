@@ -226,7 +226,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     glBindVertexArray(0);
     renderer->brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
     if (renderer->brdfLUTTexture == 0) {
-        Console_Printf_Error("[ERROR] Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
+        Console_Printf_Error("Failed to load brdf_lut.png! Ensure it's in the 'textures' folder.");
     }
     glUseProgram(renderer->mainShader);
     glUniform1i(glGetUniformLocation(renderer->mainShader, "diffuseMap"), 0); glUniform1i(glGetUniformLocation(renderer->mainShader, "normalMap"), 1);
@@ -336,7 +336,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     WaterManager_ParseWaters("waters.def");
     renderer->cloudTexture = loadTexture("clouds.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
     if (renderer->cloudTexture == 0) {
-        Console_Printf_Error("[ERROR] Failed to load clouds.png! Ensure it's in the 'textures' folder.");
+        Console_Printf_Error("Failed to load clouds.png! Ensure it's in the 'textures' folder.");
     }
     glGenBuffers(1, &renderer->lightSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->lightSSBO);

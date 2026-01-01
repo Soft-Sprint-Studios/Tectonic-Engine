@@ -281,16 +281,22 @@ extern "C" {
     }
 
     void Console_Printf_Error(const char* fmt, ...) {
+        char final_fmt[2048];
+        snprintf(final_fmt, sizeof(final_fmt), "[ERROR] %s", fmt);
+
         va_list args;
         va_start(args, fmt);
-        console_instance.AddLog(CONSOLE_COLOR_RED, fmt, args);
+        console_instance.AddLog(CONSOLE_COLOR_RED, final_fmt, args);
         va_end(args);
     }
 
     void Console_Printf_Warning(const char* fmt, ...) {
+        char final_fmt[2048];
+        snprintf(final_fmt, sizeof(final_fmt), "[WARNING] %s", fmt);
+
         va_list args;
         va_start(args, fmt);
-        console_instance.AddLog(CONSOLE_COLOR_YELLOW, fmt, args);
+        console_instance.AddLog(CONSOLE_COLOR_YELLOW, final_fmt, args);
         va_end(args);
     }
 
