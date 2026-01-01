@@ -61,7 +61,7 @@ void IO_Clear() {
 
 IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const char* output) {
     if (g_num_io_connections >= MAX_IO_CONNECTIONS) {
-        Console_Printf_Error("ERROR: Max IO connections reached!\n");
+        Console_Printf_Error("Max IO connections reached!\n");
         return NULL;
     }
     IOConnection* conn = &g_io_connections[g_num_io_connections];
@@ -122,7 +122,7 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
             }
 
             if (g_num_pending_events >= MAX_PENDING_EVENTS) {
-                Console_Printf_Error("ERROR: Max pending events reached!\n");
+                Console_Printf_Error("Max pending events reached!\n");
                 return;
             }
 

@@ -56,7 +56,7 @@ static char* prependTexturePath(const char* filename) {
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
     char* fullPath = (char*)malloc(len);
     if (!fullPath) {
-        Console_Printf_Error("TextureManager ERROR: Memory allocation failed for texture path.\n");
+        Console_Printf_Error("Memory allocation failed for texture path.\n");
         return NULL;
     }
     strcpy(fullPath, baseFolder);
@@ -118,13 +118,13 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
 
     SDL_RWops* rw = SDL_RWFromConstMem(data, data_size);
     if (!rw) {
-        Console_Printf_Error("TextureManager ERROR: Failed to create RWops from memory.\n");
+        Console_Printf_Error("Failed to create RWops from memory.\n");
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load_RW(rw, 1);
     if (!surf) {
-        Console_Printf_Error("TextureManager WARNING: Failed to load texture from memory: %s\n", IMG_GetError());
+        Console_Printf_Error("Failed to load texture from memory: %s\n", IMG_GetError());
         return missingTextureID;
     }
 
@@ -171,7 +171,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("TextureManager ERROR: Failed to convert surface from memory data.\n");
+        Console_Printf_Error("Failed to convert surface from memory data.\n");
         return missingTextureID;
     }
 
@@ -207,13 +207,13 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
 GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
-        Console_Printf_Warning("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", path);
+        Console_Printf_Warning("Failed to load texture '%s'. Using placeholder.\n", path);
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Warning("TextureManager WARNING: Failed to load texture '%s'. Using placeholder.\n", fullPath);
+        Console_Printf_Warning("Failed to load texture '%s'. Using placeholder.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -261,7 +261,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("TextureManager ERROR: Failed to convert surface for '%s'\n", fullPath);
+        Console_Printf_Error("Failed to convert surface for '%s'\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -351,7 +351,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Error("TextureManager WARNING: Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Error(" Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -360,7 +360,7 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("TextureManager ERROR: Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
+        Console_Printf_Error("Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }
@@ -508,7 +508,7 @@ int TextureManager_GetMaterialCount() {
 bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf_Error("TextureManager ERROR: Could not open material file '%s'\n", filepath);
+        Console_Printf_Error("Could not open material file '%s'\n", filepath);
         return false;
     }
 
@@ -524,7 +524,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
 
         if (trimmed_line[0] == '"') {
             if (num_materials >= MAX_MATERIALS) {
-                Console_Printf_Error("TextureManager ERROR: Max materials reached. Cannot parse more.\n");
+                Console_Printf_Error("Max materials reached. Cannot parse more.\n");
                 break;
             }
             current_material = &materials[num_materials];

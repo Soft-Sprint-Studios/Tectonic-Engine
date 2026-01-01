@@ -1933,7 +1933,7 @@ namespace
             }
             else
             {
-                Console_Printf_Error("[Lightmapper] ERROR: Could not write to '%s'", vlm_path.string().c_str());
+                Console_Printf_Error("[Lightmapper] Could not write to '%s'", vlm_path.string().c_str());
             }
 
             fs::path vld_path = model_dir / "vertex_directions.vld";
@@ -1948,7 +1948,7 @@ namespace
             }
             else
             {
-                Console_Printf_Error("[Lightmapper] ERROR: Could not write to '%s'", vld_path.string().c_str());
+                Console_Printf_Error("[Lightmapper] Could not write to '%s'", vld_path.string().c_str());
             }
         }
 

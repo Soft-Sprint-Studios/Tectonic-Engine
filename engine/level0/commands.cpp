@@ -45,7 +45,7 @@ public:
 
     static void Register(const char* name, command_func_t func, const char* description, int flags) {
         if (g_num_commands >= MAX_COMMANDS) {
-            Console_Printf_Error("ERROR: Command registration failed, max commands reached.");
+            Console_Printf_Error("Command registration failed, max commands reached.");
             return;
         }
         g_commands[g_num_commands].name = name;

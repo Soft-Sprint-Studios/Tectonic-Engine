@@ -177,7 +177,7 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
 static unsigned int internal_LoadMP3(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
-        Console_Printf_Error("ERROR: Could not open MP3 file %s\n", path);
+        Console_Printf_Error("Could not open MP3 file %s\n", path);
         return 0;
     }
 
@@ -287,13 +287,13 @@ static unsigned int internal_LoadMP3(const char* path) {
 static unsigned int internal_LoadOGG(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
-        Console_Printf_Error("ERROR: Could not open OGG file %s", path);
+        Console_Printf_Error("Could not open OGG file %s", path);
         return 0;
     }
 
     OggVorbis_File vorbis;
     if (ov_open_callbacks(file, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) {
-        Console_Printf_Error("ERROR: Invalid Ogg Vorbis file: %s", path);
+        Console_Printf_Error("Invalid Ogg Vorbis file: %s", path);
         fclose(file);
         return 0;
     }
@@ -462,7 +462,7 @@ static unsigned int internal_LoadWAV(const char* path) {
 unsigned int SoundSystem_LoadSound(const char* path) {
     const char* ext = strrchr(path, '.');
     if (!ext) {
-        Console_Printf_Error("ERROR: Could not determine file type for %s\n", path);
+        Console_Printf_Error("Could not determine file type for %s\n", path);
         return 0;
     }
 
@@ -476,7 +476,7 @@ unsigned int SoundSystem_LoadSound(const char* path) {
         return internal_LoadOGG(path);
     }
 
-    Console_Printf_Error("ERROR: Unsupported sound format for %s\n", path);
+    Console_Printf_Error("Unsupported sound format for %s\n", path);
     return 0;
 }
 

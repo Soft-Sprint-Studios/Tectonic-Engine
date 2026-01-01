@@ -41,7 +41,7 @@ char* load_shader_source(const char* path) {
         fclose(f);
     }
     else {
-        Console_Printf_Error("Error: Could not open shader file %s\n", path);
+        Console_Printf_Error("Could not open shader file %s\n", path);
     }
     return buffer;
 }

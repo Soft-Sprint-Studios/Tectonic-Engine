@@ -82,7 +82,7 @@ static int download_thread_func_win32(void* data) {
     hints.ai_protocol = IPPROTO_TCP;
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] ERROR: getaddrinfo failed for %s", host);
+        Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
         goto cleanup;
     }
 
@@ -99,7 +99,7 @@ static int download_thread_func_win32(void* data) {
     freeaddrinfo(result);
 
     if (sock == INVALID_SOCKET) {
-        Console_Printf_Error("[Network] ERROR: Unable to connect to server %s", host);
+        Console_Printf_Error("[Network] Unable to connect to server %s", host);
         goto cleanup;
     }
 
@@ -107,13 +107,13 @@ static int download_thread_func_win32(void* data) {
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
     if (send(sock, request, (int)strlen(request), 0) == SOCKET_ERROR) {
-        Console_Printf_Error("[Network] ERROR: send failed.");
+        Console_Printf_Error("[Network] send failed.");
         goto cleanup;
     }
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
-        Console_Printf_Error("[Network] ERROR: Failed to open file for writing: %s", args->filepath);
+        Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
         goto cleanup;
     }
 
@@ -201,7 +201,7 @@ static int download_thread_func_posix(void* data) {
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] ERROR: getaddrinfo failed for %s", host);
+        Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
         goto cleanup;
     }
 
@@ -218,7 +218,7 @@ static int download_thread_func_posix(void* data) {
     freeaddrinfo(result);
 
     if (sock == -1) {
-        Console_Printf_Error("[Network] ERROR: Unable to connect to server %s", host);
+        Console_Printf_Error("[Network] Unable to connect to server %s", host);
         goto cleanup;
     }
 
@@ -226,13 +226,13 @@ static int download_thread_func_posix(void* data) {
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
     if (send(sock, request, strlen(request), 0) < 0) {
-        Console_Printf_Error("[Network] ERROR: send failed.");
+        Console_Printf_Error("[Network] send failed.");
         goto cleanup;
     }
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
-        Console_Printf_Error("[Network] ERROR: Failed to open file for writing: %s", args->filepath);
+        Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
         goto cleanup;
     }
 
@@ -310,7 +310,7 @@ void Network_Init(void) {
 #ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        Console_Printf_Error("[Network] ERROR: WSAStartup failed.\n");
+        Console_Printf_Error("[Network] WSAStartup failed.\n");
     }
 #endif
     Console_Printf("Network System Initialized.\n");
@@ -344,7 +344,7 @@ bool Network_DownloadFile(const char* url, const char* output_filepath) {
 #endif
 
     if (!thread) {
-        Console_Printf_Error("[Network] ERROR: Could not create download thread.");
+        Console_Printf_Error("[Network] Could not create download thread.");
         free(args->url);
         free(args->filepath);
         free(args);
@@ -371,7 +371,7 @@ bool Network_Ping(const char* hostname) {
 #endif
 
     if (!thread) {
-        Console_Printf_Error("[Network] ERROR: Could not create ping thread.");
+        Console_Printf_Error("[Network] Could not create ping thread.");
         free(args->hostname);
         free(args);
         return false;

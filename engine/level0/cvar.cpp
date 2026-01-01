@@ -92,7 +92,7 @@ public:
         }
 
         if (num_cvars >= MAX_CVARS) {
-            Console_Printf_Error("ERROR: Max CVars reached!\n");
+            Console_Printf_Error("Max CVars reached!\n");
             return nullptr;
         }
 
