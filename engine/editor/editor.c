@@ -57,6 +57,8 @@ bool g_is_map_dirty = false;
 PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
 BrushFace g_copiedFaceProperties;
 bool g_hasCopiedFace = false;
+Camera g_last_editor_camera_state;
+bool g_has_last_camera_state = false;
 
 void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     if (event->type == SDL_MOUSEMOTION) {

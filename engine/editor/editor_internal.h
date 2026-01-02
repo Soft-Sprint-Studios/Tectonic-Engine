@@ -257,6 +257,8 @@ extern "C" {
     extern bool g_hasCopiedFace;
     extern bool g_is_map_dirty;
     extern PendingEditorAction g_pending_action;
+    extern Camera g_last_editor_camera_state;
+    extern bool g_has_last_camera_state;
 
 #ifdef __cplusplus
 }

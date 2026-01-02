@@ -305,7 +305,14 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.captured_viewport = VIEW_COUNT;
     g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
     Editor_InitGizmo();
-    g_EditorState.editor_camera.position = (Vec3){ 0, 5, 15 }; g_EditorState.editor_camera.yaw = -M_PI / 2.0f; g_EditorState.editor_camera.pitch = -0.4f;
+    if (g_has_last_camera_state) {
+        g_EditorState.editor_camera = g_last_editor_camera_state;
+    }
+    else {
+        g_EditorState.editor_camera.position = (Vec3){ 0, 5, 15 };
+        g_EditorState.editor_camera.yaw = -M_PI / 2.0f;
+        g_EditorState.editor_camera.pitch = -0.4f;
+    }
     for (int i = 0; i < VIEW_COUNT; i++) {
         g_EditorState.viewport_width[i] = 800; g_EditorState.viewport_height[i] = 600;
         glGenFramebuffers(1, &g_EditorState.viewport_fbo[i]); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[i]);
@@ -446,6 +453,8 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
 void Editor_Shutdown() {
     if (!g_EditorState.initialized) return;
     g_is_editor_mode = false;
+    g_last_editor_camera_state = g_EditorState.editor_camera;
+    g_has_last_camera_state = true;
     Undo_Shutdown();
     for (int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
