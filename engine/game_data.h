@@ -58,7 +58,7 @@ extern "C" {
     typedef struct {
         char key[64];
         char display_name[128];
-        char default_value[128];
+        char default_value[1024];
         TGD_PropertyType type;
         TGD_Choice* choices;
         int num_choices;

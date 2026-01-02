@@ -317,7 +317,7 @@ extern "C" {
 
     typedef struct {
         char key[64];
-        char value[128];
+        char value[1024];
     } KeyValue;
 
     typedef enum {

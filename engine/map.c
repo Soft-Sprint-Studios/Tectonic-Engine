@@ -2046,7 +2046,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     b->numProperties = 0;
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
                         if (b->numProperties < MAX_ENTITY_PROPERTIES) {
-                            if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", b->properties[b->numProperties].key, b->properties[b->numProperties].value) == 2) {
+                            if (sscanf(line, " \"%63[^\"]\" \"%1023[^\"]\"", b->properties[b->numProperties].key, b->properties[b->numProperties].value) == 2) {
                                 b->numProperties++;
                             }
                         }
@@ -2466,7 +2466,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " runtime_float_b %f", &ent->runtime_float_b) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
-                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) { if (sscanf(line, " \"%63[^\"]\" \"%127[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) { ent->numProperties++; } }
+                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
+                            if (sscanf(line, " \"%63[^\"]\" \"%1023[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) {
+                                ent->numProperties++;
+                            }
+                        }
                     }
                 }
             }

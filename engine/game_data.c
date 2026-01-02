@@ -98,7 +98,7 @@ void GameData_Init(const char* filepath) {
                 memset(prop, 0, sizeof(TGD_Property));
 
                 char type_str[32];
-                int n = sscanf(trimmed, "%63[^(](%31[^)]) : \"%127[^\"]\" = \"%127[^\"]\"", prop->key, type_str, prop->display_name, prop->default_value);
+                int n = sscanf(trimmed, "%63[^(](%31[^)]) : \"%127[^\"]\" = \"%1023[^\"]\"", prop->key, type_str, prop->display_name, prop->default_value);
                 if (n >= 3) {
                     prop->type = string_to_prop_type(type_str);
                     current_def->num_properties++;
