@@ -1440,6 +1440,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
             }
         }
+        if (event->key.keysym.sym == SDLK_LEFTBRACKET) {
+            g_EditorState.grid_size /= 2.0f;
+            if (g_EditorState.grid_size < 0.015625f) g_EditorState.grid_size = 0.015625f;
+        }
+        if (event->key.keysym.sym == SDLK_RIGHTBRACKET) {
+            g_EditorState.grid_size *= 2.0f;
+            if (g_EditorState.grid_size > 64.0f) g_EditorState.grid_size = 64.0f;
+        }
         if (g_EditorState.is_in_brush_creation_mode) {
             if (event->key.keysym.sym == SDLK_RETURN) {
                 if (g_EditorState.current_brush_shape == BRUSH_SHAPE_ARCH) {
@@ -1583,14 +1591,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_1) g_EditorState.current_gizmo_operation = GIZMO_OP_TRANSLATE;
             if (event->key.keysym.sym == SDLK_2) g_EditorState.current_gizmo_operation = GIZMO_OP_ROTATE;
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
-            if (event->key.keysym.sym == SDLK_LEFTBRACKET) {
-                g_EditorState.grid_size /= 2.0f;
-                if (g_EditorState.grid_size < 0.015625f) g_EditorState.grid_size = 0.015625f;
-            }
-            if (event->key.keysym.sym == SDLK_RIGHTBRACKET) {
-                g_EditorState.grid_size *= 2.0f;
-                if (g_EditorState.grid_size > 64.0f) g_EditorState.grid_size = 64.0f;
-            }
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
                     EntityState* deleted_states = calloc(g_EditorState.num_selections, sizeof(EntityState));
