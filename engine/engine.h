@@ -26,7 +26,6 @@
 #define ENGINE_H
 
 #include "map.h"
-#include "engine_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,9 +56,6 @@ extern "C" {
     extern bool g_restart_requested;
     extern char g_screenshot_path[256];
     extern bool g_is_editor_mode;
-
-    // needed by editor
-    void evaluate_animation(SceneObject* obj, float time);
 
 #ifdef __cplusplus
 }

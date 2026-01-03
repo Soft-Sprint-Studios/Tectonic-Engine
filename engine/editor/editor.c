@@ -48,6 +48,7 @@
 #include "gl_video_player.h"
 #include "game_data.h"
 #include "cvar.h"
+#include "animations.h"
 
 EditorState g_EditorState;
 Scene* g_CurrentScene;
