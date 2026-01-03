@@ -217,10 +217,10 @@ GL_MessageCallback(GLenum source,
         Console_Printf_Error("[GL ERROR] type: %s, message: %s", type_str, message);
         break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-        Console_Printf_Error("[GL WARNING] type: %s, message: %s", type_str, message);
+        Console_Printf_Warning("[GL WARNING] type: %s, message: %s", type_str, message);
         break;
     case GL_DEBUG_SEVERITY_LOW:
-        Console_Printf_Warning("[GL INFO] type: %s, message: %s", type_str, message);
+        Console_Printf("[GL INFO] type: %s, message: %s", type_str, message);
         break;
     case GL_DEBUG_SEVERITY_NOTIFICATION:
         Console_Printf("[GL NOTIFICATION] type: %s, message: %s", type_str, message);
@@ -238,13 +238,6 @@ void GL_InitDebugOutput(void) {
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(GL_MessageCallback, 0);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
-        Console_Printf("OpenGL Debug Callback Initialized.");
     }
-    else
-    {
-        Console_Printf_Warning("OpenGL Debug Context not available.");
-    }
-#else
-    Console_Printf("OpenGL Debug is disabled on release builds.");
 #endif
 }
