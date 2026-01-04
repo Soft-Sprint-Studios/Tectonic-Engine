@@ -34,6 +34,7 @@
 #include "gl_beams.h"
 #include "gl_cables.h"
 #include "gl_glow.h"
+#include "gl_monitor.h"
 
 int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
     for (int i = 0; i < scene->numBrushes; ++i) {
@@ -557,6 +558,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     }
     MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);
     Decals_Render(scene, renderer, renderer->mainShader);
+    Monitor_RenderBrushes(scene, renderer, engine, view, projection);
 
     for (int i = 0; i < scene->numVideoPlayers; ++i) {
         VideoPlayer_Render(&scene->videoPlayers[i], view, projection);

@@ -45,6 +45,7 @@
 #include "gl_postprocess.h"
 #include "gl_render_misc.h"
 #include "gl_video_player.h"
+#include "gl_monitor.h"
 #include "model_loader.h"
 
 static float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
@@ -354,6 +355,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Zprepass_Init(renderer);
     Shadows_Init(renderer);
     Sprites_Init(renderer);
+    Monitor_Init(renderer);
     VideoPlayer_InitSystem();
     const GLubyte* gpu = glGetString(GL_RENDERER);
     const GLubyte* gl_version = glGetString(GL_VERSION);
@@ -457,5 +459,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     Shadows_Shutdown(renderer);
     Blackhole_Shutdown(renderer);
     Sprites_Shutdown(renderer);
+    Monitor_Shutdown(renderer);
     VideoPlayer_ShutdownSystem();
 }

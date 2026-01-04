@@ -766,6 +766,56 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glBindVertexArray(g_EditorState.light_gizmo_vao);
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
     }
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        LogicEntity* ent = &scene->logicEntities[i];
+        if (strcmp(ent->classname, "info_monitorcamera") == 0) {
+            glUseProgram(g_EditorState.debug_shader);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+
+            Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, (Vec3) { 1, 1, 1 });
+            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
+
+            bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
+            float color[] = { 0.0f, 1.0f, 1.0f, 1.0f };
+            if (is_selected) { color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f; }
+            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+
+            glBindVertexArray(g_EditorState.light_gizmo_vao);
+            glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
+
+            const char* fovStr = LogicEntity_GetProperty(ent, "fov", "90");
+            float fov = atof(fovStr);
+            if (fov <= 0.0f) fov = 90.0f;
+
+            float fLen = 2.0f;
+            float halfW = fLen * tanf((fov * 0.5f) * (float)(M_PI / 180.0f));
+            float fW = halfW;
+
+            float zTip = 0.0f;
+            float zBase = -fLen;
+
+            Vec3 frustum_lines[] = {
+                {0,0,0}, {-fW,  fW, zBase},
+                {0,0,0}, { fW,  fW, zBase},
+                {0,0,0}, { fW, -fW, zBase},
+                {0,0,0}, {-fW, -fW, zBase},
+
+                {-fW,  fW, zBase}, { fW,  fW, zBase},
+                { fW,  fW, zBase}, { fW, -fW, zBase},
+                { fW, -fW, zBase}, {-fW, -fW, zBase},
+                {-fW, -fW, zBase}, {-fW,  fW, zBase}
+            };
+
+            glBindVertexArray(g_EditorState.vertex_points_vao);
+            glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(frustum_lines), frustum_lines, GL_DYNAMIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
+            glEnableVertexAttribArray(0);
+            glDrawArrays(GL_LINES, 0, 16);
+            glBindVertexArray(0);
+        }
+    }
     if (primary && primary->type == ENTITY_BRUSH && primary->vertex_index >= 0) {
         Brush* b = &scene->brushes[primary->index];
         if (primary->vertex_index < b->numVertices) {

@@ -654,6 +654,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
                     }
                 }
+                else if (strcmp(b->classname, "func_monitor") == 0) {
+                    if (strcmp(inputName, "TurnOn") == 0) b->runtime_active = true;
+                    else if (strcmp(inputName, "TurnOff") == 0) b->runtime_active = false;
+                    else if (strcmp(inputName, "Toggle") == 0) b->runtime_active = !b->runtime_active;
+                }
                 else if (strcmp(b->classname, "func_pendulum") == 0) {
                     if (strcmp(inputName, "Start") == 0) {
                         b->runtime_active = true;

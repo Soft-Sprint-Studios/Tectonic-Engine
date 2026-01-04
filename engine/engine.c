@@ -60,6 +60,7 @@
 #include "gl_ssao.h"
 #include "gl_ssr.h"
 #include "gl_volumetrics.h"
+#include "gl_monitor.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "checksum.h"
@@ -1833,6 +1834,9 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             if (Cvar_GetInt("r_planar")) {
                 Planar_RenderReflections(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
+            }
+            if (g_current_mode == MODE_GAME) {
+                Monitor_RenderCameras(&g_scene, &g_renderer, g_engine, &sunLightSpaceMatrix);
             }
             Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode, false);
             if (Cvar_GetInt("r_ssao")) {

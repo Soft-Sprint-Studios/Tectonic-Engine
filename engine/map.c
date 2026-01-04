@@ -1570,6 +1570,15 @@ void Scene_Clear(Scene* scene, Engine* engine) {
         }
     }
 
+    for (int i = 0; i < scene->numLogicEntities; ++i) {
+        if (scene->logicEntities[i].monitor_fbo != 0) {
+            glDeleteFramebuffers(1, &scene->logicEntities[i].monitor_fbo);
+            glDeleteTextures(1, &scene->logicEntities[i].monitor_texture);
+            glDeleteRenderbuffers(1, &scene->logicEntities[i].monitor_depth);
+            scene->logicEntities[i].monitor_fbo = 0;
+        }
+    }
+
     scene->numLogicEntities = 0;
 
     if (engine->camera.physicsBody) {

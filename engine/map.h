@@ -237,6 +237,8 @@ extern "C" {
         GLuint waterShader;
         GLuint reflectiveGlassShader;
         GLuint parallaxInteriorShader;
+        GLuint monitorShader;
+        GLuint scanlineTexture;
         GLuint glassShader;
         GLuint lightSSBO;
         GLuint debugBufferShader;
@@ -510,6 +512,15 @@ extern "C" {
         float runtime_float_b;
         bool isGrouped;
         char groupName[64];
+
+        // monitor stuff
+        GLuint monitor_fbo;
+        GLuint monitor_texture;
+        GLuint monitor_depth;
+        int monitor_resolution;
+        bool monitor_render_once;
+        bool monitor_has_rendered;
+        float monitor_fov;
 
     } LogicEntity;
 
