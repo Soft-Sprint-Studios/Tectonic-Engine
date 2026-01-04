@@ -180,6 +180,8 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
 void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat4* view, Mat4* projection) {
     glUseProgram(renderer->monitorShader);
 
+    glDepthFunc(GL_LEQUAL);
+
     glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform3fv(glGetUniformLocation(renderer->monitorShader, "u_viewPos"), 1, &engine->camera.position.x);
@@ -218,4 +220,5 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }
     glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
 }

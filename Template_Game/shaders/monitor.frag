@@ -23,5 +23,5 @@ void main()
 
     color.rgb = mix(color.rgb, scanline.rgb, scanline.a);
 
-    FragColor = color;
+    FragColor = color * 10.0;
 }

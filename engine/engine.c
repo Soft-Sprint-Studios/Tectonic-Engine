@@ -1866,6 +1866,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
             }
             MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
+            Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
             if (Cvar_GetInt("r_ssr")) {

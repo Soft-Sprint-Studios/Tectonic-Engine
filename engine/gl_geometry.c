@@ -558,7 +558,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     }
     MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);
     Decals_Render(scene, renderer, renderer->mainShader);
-    Monitor_RenderBrushes(scene, renderer, engine, view, projection);
 
     for (int i = 0; i < scene->numVideoPlayers; ++i) {
         VideoPlayer_Render(&scene->videoPlayers[i], view, projection);
