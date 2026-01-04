@@ -25,6 +25,7 @@
 #include "gl_misc.h"
 #include "gl_geometry.h"
 #include "gl_skybox.h"
+#include "gl_planar.h"
 #include "gl_console.h"
 #include "io_system.h"
 #include "cvar.h"
@@ -121,8 +122,6 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
     GLint prev_viewport[4];
     glGetIntegerv(GL_VIEWPORT, prev_viewport);
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     for (int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "info_monitorcamera") != 0) continue;
@@ -165,12 +164,15 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         glBindFramebuffer(GL_FRAMEBUFFER, ent->monitor_fbo);
         glViewport(0, 0, ent->monitor_resolution, ent->monitor_resolution);
 
+        if (Cvar_GetInt("r_water")) {
+            Planar_RenderWater(renderer, scene, engine, &view, &projection, sunLightSpaceMatrix);
+        }
+
         Skybox_Render(renderer, scene, engine, &view, &projection);
 
         ent->monitor_has_rendered = true;
     }
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 }
