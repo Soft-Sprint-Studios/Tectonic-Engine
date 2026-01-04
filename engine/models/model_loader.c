@@ -32,117 +32,32 @@
 
 static LoadedModel* g_ErrorModel = NULL;
 
-static void create_error_model() {
-    g_ErrorModel = malloc(sizeof(LoadedModel));
-    memset(g_ErrorModel, 0, sizeof(LoadedModel));
+static void EnsureErrorModelLoaded() {
+    if (g_ErrorModel) return;
+    g_ErrorModel = Model_Load("models/error.glb");
 
-    g_ErrorModel->meshCount = 1;
-    g_ErrorModel->meshes = calloc(1, sizeof(Mesh));
-    Mesh* errorMesh = &g_ErrorModel->meshes[0];
+    if (g_ErrorModel) {
+        float scale_factor = 0.05f;
 
-    errorMesh->material = &g_MissingMaterial;
+        g_ErrorModel->aabb_min = vec3_muls(g_ErrorModel->aabb_min, scale_factor);
+        g_ErrorModel->aabb_max = vec3_muls(g_ErrorModel->aabb_max, scale_factor);
 
-    float size = 0.5f;
-    float vertices[24 * MODEL_VERTEX_STRIDE_FLOATS];
+        for (int i = 0; i < g_ErrorModel->meshCount; ++i) {
+            Mesh* mesh = &g_ErrorModel->meshes[i];
 
-    float cube_verts[24][3] = {
-        {-size, -size, -size}, {size, -size, -size}, {size, size, -size}, {-size, size, -size},
-        {-size, -size, size},  {size, -size, size},  {size, size, size},  {-size, size, size},
-        {-size, size, size},   {-size, size, -size}, {-size, -size, -size}, {-size, -size, size},
-        {size, size, size},    {size, size, -size},  {size, -size, -size}, {size, -size, size},
-        {-size, -size, -size}, {size, -size, -size}, {size, -size, size},  {-size, -size, size},
-        {-size, size, -size},  {size, size, -size},  {size, size, size},   {-size, size, size}
-    };
-    float cube_normals[24][3] = {
-        {0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1},
-        {0, 0, 1},  {0, 0, 1},  {0, 0, 1},  {0, 0, 1},
-        {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0}, {-1, 0, 0},
-        {1, 0, 0},  {1, 0, 0},  {1, 0, 0},  {1, 0, 0},
-        {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0},
-        {0, 1, 0},  {0, 1, 0},  {0, 1, 0},  {0, 1, 0}
-    };
-    float cube_uvs[24][2] = {
-        {0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}, {1, 0}, {1, 1}, {0, 1},
-        {1, 1}, {0, 1}, {0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}, {1, 0},
-        {0, 1}, {1, 1}, {1, 0}, {0, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 0}
-    };
+            for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
+                int base_idx = v * 24;
 
-    for (int i = 0; i < 24; ++i) {
-        int base = i * MODEL_VERTEX_STRIDE_FLOATS;
-        vertices[base + 0] = cube_verts[i][0];
-        vertices[base + 1] = cube_verts[i][1];
-        vertices[base + 2] = cube_verts[i][2];
-        vertices[base + 3] = cube_normals[i][0];
-        vertices[base + 4] = cube_normals[i][1];
-        vertices[base + 5] = cube_normals[i][2];
-        vertices[base + 6] = cube_uvs[i][0];
-        vertices[base + 7] = cube_uvs[i][1];
-        vertices[base + 8] = 1.0f;
-        vertices[base + 9] = 0.0f;
-        vertices[base + 10] = 0.0f;
-        vertices[base + 11] = 1.0f;
-        vertices[base + 12] = 1.0f;
-        vertices[base + 13] = 0.0f;
-        vertices[base + 14] = 1.0f;
-        vertices[base + 15] = 1.0f;
-        vertices[base + 16] = 0.0f;
-        vertices[base + 17] = 0.0f;
-        vertices[base + 18] = 0.0f;
-        vertices[base + 19] = 0.0f;
-        memset(&vertices[base + 20], 0, 4 * sizeof(float));
+                mesh->final_vbo_data[base_idx + 0] *= scale_factor;
+                mesh->final_vbo_data[base_idx + 1] *= scale_factor;
+                mesh->final_vbo_data[base_idx + 2] *= scale_factor;
+            }
+
+            glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->final_vbo_data_size, mesh->final_vbo_data);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
     }
-
-    unsigned int indices[] = {
-        0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12, 16, 17, 18, 18, 19, 16, 20, 21, 22, 22, 23, 20
-    };
-
-    errorMesh->vertexCount = 24;
-    errorMesh->indexCount = 36;
-    errorMesh->useEBO = true;
-
-    errorMesh->final_vbo_data_size = sizeof(vertices);
-    errorMesh->final_vbo_data = malloc(errorMesh->final_vbo_data_size);
-    memcpy(errorMesh->final_vbo_data, vertices, errorMesh->final_vbo_data_size);
-
-    errorMesh->indexData = malloc(sizeof(indices));
-    memcpy(errorMesh->indexData, indices, sizeof(indices));
-
-    glGenVertexArrays(1, &errorMesh->VAO);
-    glGenBuffers(1, &errorMesh->VBO);
-    glGenBuffers(1, &errorMesh->EBO);
-
-    glBindVertexArray(errorMesh->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, errorMesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, errorMesh->final_vbo_data_size, errorMesh->final_vbo_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, errorMesh->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), errorMesh->indexData, GL_STATIC_DRAW);
-
-    size_t offset = 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(0);
-    offset += 3 * sizeof(float);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(1);
-    offset += 3 * sizeof(float);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(2);
-    offset += 2 * sizeof(float);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(3);
-    offset += 4 * sizeof(float);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(4);
-    offset += 4 * sizeof(float);
-    glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
-    glEnableVertexAttribArray(9);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)(22 * sizeof(float)));
-    glEnableVertexAttribArray(8);
-
-    glBindVertexArray(0);
-
-    g_ErrorModel->aabb_min = (Vec3){ -size, -size, -size };
-    g_ErrorModel->aabb_max = (Vec3){ size, size, size };
 }
 
 static void Model_CombineMeshData(LoadedModel* model) {
@@ -192,9 +107,7 @@ static void Model_CombineMeshData(LoadedModel* model) {
 }
 
 LoadedModel* Model_Load(const char* path) {
-    if (!g_ErrorModel) {
-        create_error_model();
-    }
+    bool is_loading_error_asset = (path && strstr(path, "error.glb") != NULL);
 
     bool is_glb = false;
     const char* ext = strrchr(path, '.');
@@ -205,17 +118,23 @@ LoadedModel* Model_Load(const char* path) {
     cgltf_options options = { 0 };
     cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
+        if (is_loading_error_asset) return NULL;
+        EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
 
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
         cgltf_free(data);
+        if (is_loading_error_asset) return NULL;
+        EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
 
     LoadedModel* loadedModel = malloc(sizeof(LoadedModel));
     if (!loadedModel) {
         cgltf_free(data);
+        if (is_loading_error_asset) return NULL;
+        EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
     memset(loadedModel, 0, sizeof(LoadedModel));
@@ -529,9 +448,9 @@ LoadedModel* Model_Load(const char* path) {
 }
 
 void Model_Free(LoadedModel* model) {
-    if (!model || model == g_ErrorModel) {
-        return;
-    }
+    if (!model) return;
+    if (model == g_ErrorModel && g_ErrorModel != NULL) return;
+
     if (model->animations) {
         for (int i = 0; i < model->num_animations; ++i) {
             for (int j = 0; j < model->animations[i].num_channels; ++j) {
@@ -658,20 +577,8 @@ bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
 
 void ModelLoader_Shutdown() {
     if (g_ErrorModel) {
-        for (int i = 0; i < g_ErrorModel->meshCount; ++i) {
-            glDeleteVertexArrays(1, &g_ErrorModel->meshes[i].VAO);
-            glDeleteBuffers(1, &g_ErrorModel->meshes[i].VBO);
-            if (g_ErrorModel->meshes[i].skinningVBO) {
-                glDeleteBuffers(1, &g_ErrorModel->meshes[i].skinningVBO);
-            }
-            if (g_ErrorModel->meshes[i].useEBO) {
-                glDeleteBuffers(1, &g_ErrorModel->meshes[i].EBO);
-            }
-            free(g_ErrorModel->meshes[i].indexData);
-            free(g_ErrorModel->meshes[i].final_vbo_data);
-        }
-        free(g_ErrorModel->meshes);
-        free(g_ErrorModel);
+        LoadedModel* temp = g_ErrorModel;
         g_ErrorModel = NULL;
+        Model_Free(temp);
     }
 }
