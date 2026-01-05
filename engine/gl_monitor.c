@@ -32,12 +32,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+// function based on CreateScanlineTexture from pathos engine
+static void CreateScanlineTexture(Renderer* renderer) {
 #define SCANLINE_TEXTURE_WIDTH 64
 #define SCANLINE_TEXTURE_HEIGHT 64
-
-// function based on CreateScanlineTexture from pathos engine
-static void CreateScanlineTexture(Renderer* renderer)
-{
     unsigned int dataSize = SCANLINE_TEXTURE_WIDTH * SCANLINE_TEXTURE_HEIGHT * 4;
     unsigned char* pscanlinetexture = (unsigned char*)malloc(dataSize * sizeof(unsigned char));
     if (!pscanlinetexture) return;
@@ -70,6 +68,8 @@ static void CreateScanlineTexture(Renderer* renderer)
     glBindTexture(GL_TEXTURE_2D, 0);
 
     free(pscanlinetexture);
+#undef SCANLINE_TEXTURE_WIDTH
+#undef SCANLINE_TEXTURE_HEIGHT
 }
 
 void Monitor_Init(Renderer* renderer) {
@@ -102,7 +102,7 @@ static void InitCameraFBO(LogicEntity* cam) {
 
     glGenTextures(1, &cam->monitor_texture);
     glBindTexture(GL_TEXTURE_2D, cam->monitor_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cam->monitor_resolution, cam->monitor_resolution, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, cam->monitor_resolution, cam->monitor_resolution, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cam->monitor_texture, 0);
@@ -150,14 +150,11 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ent->monitor_fbo);
 
-        int gbuf_w = engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-        int gbuf_h = engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-
-        glBlitFramebuffer(0, 0, gbuf_w, gbuf_h,
+        glBlitFramebuffer(0, 0, engine->width, engine->height,
             0, 0, ent->monitor_resolution, ent->monitor_resolution,
             GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-        glBlitFramebuffer(0, 0, gbuf_w, gbuf_h,
+        glBlitFramebuffer(0, 0, engine->width, engine->height,
             0, 0, ent->monitor_resolution, ent->monitor_resolution,
             GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
