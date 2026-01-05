@@ -21,8 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "thirdparty/cgltf/cgltf.h"
+#include "cgltf.h"
 #include "model_loader.h"
+#include "gl_console.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,7 +47,7 @@ static void EnsureErrorModelLoaded() {
             Mesh* mesh = &g_ErrorModel->meshes[i];
 
             for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
-                int base_idx = v * 24;
+                int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
 
                 mesh->final_vbo_data[base_idx + 0] *= scale_factor;
                 mesh->final_vbo_data[base_idx + 1] *= scale_factor;
@@ -118,12 +119,14 @@ LoadedModel* Model_Load(const char* path) {
     cgltf_options options = { 0 };
     cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
+        Console_Printf_Error("Failed to load model: %s", path);
         if (is_loading_error_asset) return NULL;
         EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
 
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
+        Console_Printf_Error("Failed to load buffers for model: %s", path);
         cgltf_free(data);
         if (is_loading_error_asset) return NULL;
         EnsureErrorModelLoaded();

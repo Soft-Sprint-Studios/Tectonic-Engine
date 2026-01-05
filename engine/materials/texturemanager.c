@@ -92,6 +92,8 @@ static GLuint createMissingTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     return texID;
+#undef width
+#undef height
 }
 
 static GLuint createDefaultRmaTexture() {
@@ -208,13 +210,13 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
 GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     char* fullPath = prependTexturePath(path);
     if (!fullPath) {
-        Console_Printf_Warning("Failed to load texture '%s'. Using placeholder.\n", path);
+        Console_Printf_Error("Failed to load texture '%s'\n", path);
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Warning("Failed to load texture '%s'. Using placeholder.\n", fullPath);
+        Console_Printf_Error("Failed to load texture '%s'\n", fullPath);
         free(fullPath);
         return missingTextureID;
     }

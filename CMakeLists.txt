@@ -315,6 +315,7 @@ target_include_directories(models PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glew-2.1.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL2_image-2.8.8/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cgltf"
 )
 
 target_compile_options(models PRIVATE
