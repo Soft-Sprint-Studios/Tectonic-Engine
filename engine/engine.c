@@ -1234,11 +1234,31 @@ void update_state() {
         Console_Printf("Player died and respawned.");
     }
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
-    if (noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
-    if (g_engine->physicsWorld) Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
-    if (!noclip && !g_player_input_disabled) { Vec3 p; Physics_GetPosition(g_engine->camera.physicsBody, &p); g_engine->camera.position.x = p.x; g_engine->camera.position.z = p.z; float h = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL; float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
-    g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
+    if (noclip) {
+        Vec3 zeroVelocity = { 0, 0, 0 };
+        Physics_SetLinearVelocity(g_engine->camera.physicsBody, zeroVelocity);
     }
+
+    if (g_engine->physicsWorld) {
+        Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
+    }
+
+    if (!noclip && !g_player_input_disabled) {
+        Vec3 p;
+        Physics_GetPosition(g_engine->camera.physicsBody, &p);
+
+        g_engine->camera.position.x = p.x;
+        g_engine->camera.position.z = p.z;
+
+        float target_height = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL;
+        float crouch_speed = 10.0f;
+
+        g_engine->camera.currentHeight += (target_height - g_engine->camera.currentHeight) * g_engine->deltaTime * crouch_speed;
+
+        float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
+        g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
+    }
+
     if (!noclip) {
         Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
         bool on_ground = Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
