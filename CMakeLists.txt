@@ -460,6 +460,8 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sentry/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/mikktspace"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pl_mpeg"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/xatlas"
 )

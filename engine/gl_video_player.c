@@ -27,7 +27,7 @@
 #include <AL/al.h>
 #include "gl_misc.h"
 
-#include "thirdparty/pl_mpeg/pl_mpeg.h"
+#include "pl_mpeg.h"
 
 #define NUM_AUDIO_BUFFERS 4
 

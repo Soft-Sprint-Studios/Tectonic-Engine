@@ -24,7 +24,7 @@
 #include "animations.h"
 #include "math_lib.h"
 #include "model_loader.h"
-#include "thirdparty/cgltf/cgltf.h"
+#include "cgltf.h"
 #include <stdlib.h>
 #include <math.h>
 
