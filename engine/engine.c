@@ -257,7 +257,7 @@ void process_input() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
-            g_quit_requested = true;
+            Cvar_EngineSet("engine_running", "0");
             return;
         }
         UI_ProcessEvent(&event);
