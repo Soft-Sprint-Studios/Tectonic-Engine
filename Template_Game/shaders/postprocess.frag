@@ -110,7 +110,9 @@ vec2 applyCurvature(vec2 uv, float curvature) {
 }
 
 vec3 applyChromaticAberration(vec2 uv, float strength, vec3 baseColor) {
-    vec2 offset = strength * normalize(uv - 0.5);
+    vec2 dir = uv - 0.5;
+    float len = length(dir);
+    vec2 offset = (len > 0.0001) ? strength * dir / len : vec2(0.0);
     float r = texture(sceneTexture, uv - offset).r;
     float g = baseColor.g;
     float b = texture(sceneTexture, uv + offset).b;
@@ -277,7 +279,7 @@ void main()
 
     vec3 color;
 
-    if (u_chromaticAberrationEnabled) {
+    if (u_postEnabled && u_chromaticAberrationEnabled) {
         color = applyChromaticAberration(uv, u_chromaticAberrationStrength, baseColor);
     } else {
         color = baseColor;
@@ -288,7 +290,7 @@ void main()
         color *= occlusion;
     }
 
-    if (u_sharpenEnabled) {
+    if (u_postEnabled && u_sharpenEnabled) {
         color = applySharpen(uv, u_sharpenAmount, color);
     }
 
@@ -311,7 +313,7 @@ void main()
     }
     color = gammaCorrect(color, u_gamma);
 	
-    if (u_colorCorrectionEnabled) {
+    if (u_postEnabled && u_colorCorrectionEnabled) {
         color = applyLUT(color);
     }
 
@@ -321,11 +323,11 @@ void main()
         color = applyVignette(color, TexCoords);
     }
 
-    if (u_bwEnabled) {
+    if (u_postEnabled && u_bwEnabled) {
         color = applyBlackAndWhite(color);
     }
 	
-    if (u_invertEnabled) {
+    if (u_postEnabled && u_invertEnabled) {
         vec3 invertedColor = vec3(1.0) - color;
         color = mix(color, invertedColor, u_invertStrength);
     }
