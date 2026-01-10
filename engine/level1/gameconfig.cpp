@@ -133,6 +133,9 @@ public:
                 SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 #endif
             }
+            else {
+                Console_Printf_Warning("Unknown command line argument: %s ignoring\n", argv[i]);
+            }
         }
     }
 };
