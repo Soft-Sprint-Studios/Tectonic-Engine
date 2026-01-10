@@ -664,6 +664,11 @@ target_include_directories(TectonicParticleEditor PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 
+target_compile_options(TectonicParticleEditor PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+)
+
 if(WIN32)
     set_target_properties(TectonicParticleEditor PROPERTIES WIN32_EXECUTABLE TRUE)
     target_link_directories(TectonicParticleEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/${ARCH_DIR}")

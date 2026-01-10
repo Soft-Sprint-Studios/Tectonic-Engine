@@ -39,7 +39,6 @@
 
 //#define GAME_RELEASE 1
 #define ENABLE_CHECKSUM 1
-//#define DISABLE_DEBUGGER 1
 
 //#define BRANCH_PUBLIC
 #define BRANCH_NOCTURNE
@@ -166,28 +165,6 @@ static char* trim(char* str) {
     end[1] = '\0';
 
     return str;
-}
-
-static bool CheckForDebugger(void) {
-#ifdef PLATFORM_WINDOWS
-    return IsDebuggerPresent();
-#else
-    FILE* f = fopen("/proc/self/status", "r");
-    if (!f) {
-        return false;
-    }
-    char line[128];
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "TracerPid:", 10) == 0) {
-            int tracer_pid = 0;
-            sscanf(line + 10, "%d", &tracer_pid);
-            fclose(f);
-            return tracer_pid != 0;
-        }
-    }
-    fclose(f);
-    return false;
-#endif
 }
 
 static int g_build_number = -1;

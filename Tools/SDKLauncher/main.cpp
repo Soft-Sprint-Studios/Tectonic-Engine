@@ -51,7 +51,7 @@ void launch_tool(const char* tool_executable) {
     cmdLine[sizeof(cmdLine) - 1] = '\0';
 
     if (!CreateProcessA(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-        std::string error_msg = "Failed to launch '";
+        string error_msg = "Failed to launch '";
         error_msg += tool_executable;
         error_msg += "'.\nEnsure it is in the same directory as the launcher.";
         fl_alert(error_msg.c_str());
@@ -69,7 +69,7 @@ void launch_tool(const char* tool_executable) {
         _exit(1);
     }
     else if (pid < 0) {
-        std::string error_msg = "Failed to fork process for '";
+        string error_msg = "Failed to fork process for '";
         error_msg += tool_executable;
         error_msg += "'.";
         fl_alert(error_msg.c_str());

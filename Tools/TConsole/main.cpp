@@ -60,10 +60,10 @@ struct AppData {
     Fl_Text_Display* logDisplay;
     Fl_Text_Buffer* logBuffer;
     Fl_Box* statusBar;
-    std::vector<std::string> messages;
-    std::mutex mtx;
-    std::atomic<bool> is_connected{ false };
-    std::atomic<bool> should_update_status{ true };
+    vector<string> messages;
+    mutex mtx;
+    atomic<bool> is_connected{ false };
+    atomic<bool> should_update_status{ true };
     socket_t client_socket = INVALID_SOCKET;
 };
 
@@ -104,18 +104,18 @@ void server_thread_func(AppData* app_data) {
 
             char buffer[TCONSOLE_BUFFER_SIZE];
             int bytes_received;
-            std::string partial_line;
+            string partial_line;
 
             while ((bytes_received = recv(app_data->client_socket, buffer, sizeof(buffer) - 1, 0)) > 0) {
                 buffer[bytes_received] = '\0';
                 partial_line += buffer;
 
                 size_t pos = 0;
-                std::string token;
-                while ((pos = partial_line.find('\n')) != std::string::npos) {
+                string token;
+                while ((pos = partial_line.find('\n')) != string::npos) {
                     token = partial_line.substr(0, pos);
                     {
-                        std::lock_guard<std::mutex> lock(app_data->mtx);
+                        lock_guard<mutex> lock(app_data->mtx);
                         app_data->messages.push_back(token);
                     }
                     Fl::awake();
@@ -181,17 +181,17 @@ private:
         const char* command = win->commandInput->value();
         if (command && strlen(command) > 0) {
             if (win->app_data.is_connected) {
-                std::string cmd_with_newline = std::string(command) + "\n";
+                string cmd_with_newline = string(command) + "\n";
                 send(win->app_data.client_socket, cmd_with_newline.c_str(), cmd_with_newline.length(), 0);
 
-                std::string log_entry = "> " + std::string(command) + "\n";
+                string log_entry = "> " + string(command) + "\n";
                 win->app_data.logBuffer->append(log_entry.c_str());
                 win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
 
                 win->commandInput->value("");
             }
             else {
-                std::string log_entry = "[!] Engine not connected. Command not sent: " + std::string(command) + "\n";
+                string log_entry = "[!] Engine not connected. Command not sent: " + string(command) + "\n";
                 win->app_data.logBuffer->append(log_entry.c_str());
                 win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
             }
@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
     TConsoleWindow* window = new TConsoleWindow(800, 600, "Tectonic Console");
     window->end();
     window->show(argc, argv);
-    std::thread server(server_thread_func, &window->app_data);
+    thread server(server_thread_func, &window->app_data);
     server.detach();
     return Fl::run();
 }

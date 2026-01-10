@@ -34,11 +34,11 @@
 
 uint32_t generate_seed_from_pos(const Vec3& pos);
 
-std::string sanitize_filename(std::string input);
+string sanitize_filename(string input);
 
-void apply_gaussian_blur(std::vector<float>& data, int width, int height, int channels);
-void apply_gaussian_blur(std::vector<unsigned char>& data, int width, int height, int channels);
-void apply_guided_filter(std::vector<float>& out_p, const std::vector<float>& in_p, const std::vector<float>& guide, int width, int height, int radius, float epsilon);
+void apply_gaussian_blur(vector<float>& data, int width, int height, int channels);
+void apply_gaussian_blur(vector<unsigned char>& data, int width, int height, int channels);
+void apply_guided_filter(vector<float>& out_p, const vector<float>& in_p, const vector<float>& guide, int width, int height, int radius, float epsilon);
 
 #endif // ARCH_64BIT
 #endif // LIGHTMAPPER_MISC_H

@@ -55,7 +55,7 @@
 
 namespace
 {
-    namespace fs = std::filesystem;
+    namespace fs = filesystem;
 
     void embree_error_function(void* userPtr, RTCError error, const char* str)
     {
@@ -108,7 +108,7 @@ namespace
         float intensity;
     };
 
-    using JobPayload = std::variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData, ModelLightmapJobData>;
+    using JobPayload = variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData, ModelLightmapJobData>;
 
     static bool IsBrushBakeable(const Brush& b)
     {
@@ -161,12 +161,12 @@ namespace
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
         Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
-        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir, int num_samples);
+        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, int num_samples);
         Vec4 get_reflectivity_at_hit(unsigned int primID) const;
 
         void precalculate_material_reflectivity();
         bool is_in_shadow(const Vec3& start, const Vec3& end) const;
-        static Vec3 cosine_weighted_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen);
+        static Vec3 cosine_weighted_direction_in_hemisphere(const Vec3& normal, mt19937& gen);
 
         Scene* m_scene;
         int m_resolution;
@@ -177,19 +177,19 @@ namespace
         RTCScene m_rtc_scene;
         OIDNDevice m_oidn_device;
 
-        std::vector<JobPayload> m_jobs;
-        std::atomic<size_t> m_next_job_index{ 0 };
+        vector<JobPayload> m_jobs;
+        atomic<size_t> m_next_job_index{ 0 };
 
-        std::vector<std::unique_ptr<Vec4[]>> m_model_color_buffers;
-        std::vector<std::unique_ptr<Vec4[]>> m_model_direction_buffers;
-        std::vector<std::unique_ptr<Vec4[]>> m_brush_color_buffers;
-        std::vector<std::unique_ptr<Vec4[]>> m_brush_direction_buffers;
-        std::map<const Material*, std::pair<Vec3, float>> m_emissive_materials;
-        std::map<const Material*, Vec4> m_material_reflectivity;
-        std::map<const BrushFace*, Vec4> m_face_reflectivity;
-        std::vector<const BrushFace*> m_primID_to_face_map;
-        std::vector<const Brush*> m_primID_to_brush_map;
-        std::vector<const Material*> m_primID_to_material_map;
+        vector<unique_ptr<Vec4[]>> m_model_color_buffers;
+        vector<unique_ptr<Vec4[]>> m_model_direction_buffers;
+        vector<unique_ptr<Vec4[]>> m_brush_color_buffers;
+        vector<unique_ptr<Vec4[]>> m_brush_direction_buffers;
+        map<const Material*, pair<Vec3, float>> m_emissive_materials;
+        map<const Material*, Vec4> m_material_reflectivity;
+        map<const BrushFace*, Vec4> m_face_reflectivity;
+        vector<const BrushFace*> m_primID_to_face_map;
+        vector<const Brush*> m_primID_to_brush_map;
+        vector<const Material*> m_primID_to_material_map;
     };
 
     Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
@@ -234,8 +234,8 @@ namespace
         rtcSetSceneBuildQuality(m_rtc_scene, RTC_BUILD_QUALITY_HIGH);
         rtcSetSceneFlags(m_rtc_scene, RTC_SCENE_FLAG_ROBUST);
 
-        std::vector<Vec3> all_vertices;
-        std::vector<unsigned int> all_indices;
+        vector<Vec3> all_vertices;
+        vector<unsigned int> all_indices;
         m_primID_to_face_map.clear();
         m_primID_to_brush_map.clear();
 
@@ -317,23 +317,23 @@ namespace
     void Lightmapper::load_emissive_materials()
     {
         Console_Printf("[Lightmapper] Loading lights.rad...");
-        std::ifstream file("lights.rad");
+        ifstream file("lights.rad");
         if (!file.is_open()) {
             Console_Printf("[Lightmapper] lights.rad not found. No emissive surfaces will be used.");
             return;
         }
 
-        std::string line;
+        string line;
         int line_num = 0;
-        while (std::getline(file, line)) {
+        while (getline(file, line)) {
             line_num++;
 
             if (line.empty() || line[0] == '/' || line[0] == '#') {
                 continue;
             }
 
-            std::istringstream iss(line);
-            std::string material_name;
+            istringstream iss(line);
+            string material_name;
             float r, g, b, intensity;
 
             if (!(iss >> material_name >> r >> g >> b >> intensity)) {
@@ -357,7 +357,7 @@ namespace
     {
         Console_Printf("[Lightmapper] Generating ambient probes...");
 
-        std::vector<Vec3> probe_positions;
+        vector<Vec3> probe_positions;
         const float probe_spacing = 1.0f;
 
         for (int i = 0; i < m_scene->numBrushes; ++i) {
@@ -368,12 +368,12 @@ namespace
             Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
             for (int j = 0; j < b.numVertices; ++j) {
                 Vec3 world_v = mat4_mul_vec3(&b.modelMatrix, b.vertices[j].pos);
-                min_aabb.x = std::min(min_aabb.x, world_v.x);
-                min_aabb.y = std::min(min_aabb.y, world_v.y);
-                min_aabb.z = std::min(min_aabb.z, world_v.z);
-                max_aabb.x = std::max(max_aabb.x, world_v.x);
-                max_aabb.y = std::max(max_aabb.y, world_v.y);
-                max_aabb.z = std::max(max_aabb.z, world_v.z);
+                min_aabb.x = min(min_aabb.x, world_v.x);
+                min_aabb.y = min(min_aabb.y, world_v.y);
+                min_aabb.z = min(min_aabb.z, world_v.z);
+                max_aabb.x = max(max_aabb.x, world_v.x);
+                max_aabb.y = max(max_aabb.y, world_v.y);
+                max_aabb.z = max(max_aabb.z, world_v.z);
             }
 
             for (float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
@@ -381,7 +381,7 @@ namespace
                     for (float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
 
                         Vec3 probe_pos = { x, y, z };
-                        std::mt19937 validation_rng(generate_seed_from_pos(probe_pos));
+                        mt19937 validation_rng(generate_seed_from_pos(probe_pos));
 
                         const int validation_rays = 16;
                         const float validation_distance = 0.5f;
@@ -389,7 +389,7 @@ namespace
 
                         for (int k = 0; k < validation_rays; ++k)
                         {
-                            std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+                            uniform_real_distribution<float> dist(-1.0f, 1.0f);
                             Vec3 ray_dir = { dist(validation_rng), dist(validation_rng), dist(validation_rng) };
                             vec3_normalize(&ray_dir);
 
@@ -440,7 +440,7 @@ namespace
         for (size_t i = 0; i < probe_positions.size(); ++i) {
             m_scene->ambient_probes[i].position = probe_positions[i];
             Vec3 dominant_dir_total = { 0,0,0 };
-            std::mt19937 lighting_rng(generate_seed_from_pos(probe_positions[i]));
+            mt19937 lighting_rng(generate_seed_from_pos(probe_positions[i]));
 
             Vec3 directions[6] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
             for (int j = 0; j < 6; ++j) {
@@ -458,7 +458,7 @@ namespace
         }
 
         fs::path probe_path = m_output_path / "ambient_probes.amp";
-        std::ofstream probe_file(probe_path, std::ios::binary);
+        ofstream probe_file(probe_path, ios::binary);
         if (probe_file) {
             const char header[] = "AMBI";
             probe_file.write(header, 4);
@@ -579,30 +579,30 @@ namespace
 
         Vec2 min_uv = { FLT_MAX, FLT_MAX };
         Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
-        std::vector<Vec3> world_verts(face.numVertexIndices);
+        vector<Vec3> world_verts(face.numVertexIndices);
         for (int k = 0; k < face.numVertexIndices; ++k) {
             world_verts[k] = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
             Vec2 uv = calculate_texture_uv_for_vertex(&b, data.face_index, face.vertexIndices[k]);
-            min_uv.x = std::min(min_uv.x, uv.x);
-            min_uv.y = std::min(min_uv.y, uv.y);
-            max_uv.x = std::max(max_uv.x, uv.x);
-            max_uv.y = std::max(max_uv.y, uv.y);
+            min_uv.x = min(min_uv.x, uv.x);
+            min_uv.y = min(min_uv.y, uv.y);
+            max_uv.x = max(max_uv.x, uv.x);
+            max_uv.y = max(max_uv.y, uv.y);
         }
 
-        Vec2 uv_range = { std::max(0.001f, max_uv.x - min_uv.x), std::max(0.001f, max_uv.y - min_uv.y) };
+        Vec2 uv_range = { max(0.001f, max_uv.x - min_uv.x), max(0.001f, max_uv.y - min_uv.y) };
         float u_range = uv_range.x * face.uv_scale.x;
         float v_range = uv_range.y * face.uv_scale.y;
 
         float effective_luxels_per_unit = LUXELS_PER_UNIT / face.lightmap_scale;
-        int lightmap_width = std::clamp(static_cast<int>(ceilf(u_range * effective_luxels_per_unit)), 4, m_resolution);
-        int lightmap_height = std::clamp(static_cast<int>(ceilf(v_range * effective_luxels_per_unit)), 4, m_resolution);
+        int lightmap_width = clamp(static_cast<int>(ceilf(u_range * effective_luxels_per_unit)), 4, m_resolution);
+        int lightmap_height = clamp(static_cast<int>(ceilf(v_range * effective_luxels_per_unit)), 4, m_resolution);
 
-        std::vector<float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
-        std::vector<float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
-        std::vector<float> albedo_lightmap_data(lightmap_width * lightmap_height * 3);
-        std::vector<float> normal_lightmap_data(lightmap_width * lightmap_height * 3);
-        std::vector<float> direction_float_data(lightmap_width * lightmap_height * 3);
-        std::vector<unsigned char> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
+        vector<float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<float> albedo_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<float> normal_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<float> direction_float_data(lightmap_width * lightmap_height * 3);
+        vector<unsigned char> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
 
         Vec4 face_reflectivity_v4 = { 0.5f, 0.5f, 0.5f, 1.0f };
         if (face.material) {
@@ -656,7 +656,7 @@ namespace
 
                 if (inside)
                 {
-                    std::mt19937 rng(generate_seed_from_pos(world_pos));
+                    mt19937 rng(generate_seed_from_pos(world_pos));
                     direct_light_color = calculate_direct_light(world_pos, point_normal, accumulated_direction);
                     indirect_light_color = calculate_indirect_light(world_pos, point_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
@@ -692,7 +692,7 @@ namespace
             }
         }
 
-        std::vector<float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
+        vector<float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
         constexpr float BLACK_THRESHOLD = 0.0001f;
         float indirect_sum = 0.0f;
         for (float val : indirect_lightmap_data) {
@@ -724,10 +724,10 @@ namespace
         }
         else
         {
-            std::fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
+            fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
         }
 
-        std::vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
         for (int y = 0; y < lightmap_height; ++y) {
             for (int x = 0; x < lightmap_width; ++x) {
                 int idx = (y * lightmap_width + x) * 3;
@@ -774,7 +774,7 @@ namespace
             }
         }
 
-        std::vector<float> filtered_direction_data;
+        vector<float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_width, lightmap_height, 4, 0.01f);
 
         for (int i = 0; i < lightmap_width * lightmap_height; ++i) {
@@ -799,31 +799,31 @@ namespace
         int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
         int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
 
-        std::vector<float> padded_hdr_data(padded_width * padded_height * 3);
+        vector<float> padded_hdr_data(padded_width * padded_height * 3);
         for (int y = 0; y < padded_height; ++y) {
             for (int x = 0; x < padded_width; ++x) {
-                int src_x = std::clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                int src_y = std::clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
                 for (int c = 0; c < 3; ++c) {
                     padded_hdr_data[(y * padded_width + x) * 3 + c] = final_hdr_lightmap_data[(src_y * lightmap_width + src_x) * 3 + c];
                 }
             }
         }
 
-        std::vector<unsigned char> padded_dir_data(padded_width * padded_height * 4);
+        vector<unsigned char> padded_dir_data(padded_width * padded_height * 4);
         for (int y = 0; y < padded_height; ++y) {
             for (int x = 0; x < padded_width; ++x) {
-                int src_x = std::clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                int src_y = std::clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
                 for (int c = 0; c < 4; ++c) {
                     padded_dir_data[(y * padded_width + x) * 4 + c] = dir_lightmap_data[(src_y * lightmap_width + src_x) * 4 + c];
                 }
             }
         }
 
-        fs::path color_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_color.hdr");
+        fs::path color_path = data.output_dir / ("face_" + to_string(data.face_index) + "_color.hdr");
         stbi_write_hdr(color_path.string().c_str(), padded_width, padded_height, 3, padded_hdr_data.data());
-        fs::path dir_path = data.output_dir / ("face_" + std::to_string(data.face_index) + "_dir.png");
+        fs::path dir_path = data.output_dir / ("face_" + to_string(data.face_index) + "_dir.png");
         SDL_Surface* dir_surface = SDL_CreateRGBSurfaceFrom(padded_dir_data.data(), padded_width, padded_height, 32, padded_width * 4,
             0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
         if (dir_surface) {
@@ -836,7 +836,7 @@ namespace
     {
         const Decal& decal = m_scene->decals[data.decal_index];
         float scale = (decal.lightmap_scale > 0.0f) ? decal.lightmap_scale : 1.0f;
-        int lightmap_res = std::clamp(static_cast<int>(m_resolution / scale), 4, 4096);
+        int lightmap_res = clamp(static_cast<int>(m_resolution / scale), 4, 4096);
 
         Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
@@ -845,11 +845,11 @@ namespace
         Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
         vec3_normalize(&normal);
 
-        std::vector<float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
-        std::vector<float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
-        std::vector<float> albedo_lightmap_data(lightmap_res * lightmap_res * 3);
-        std::vector<float> normal_lightmap_data(lightmap_res * lightmap_res * 3);
-        std::vector<float> direction_float_data(lightmap_res * lightmap_res * 3);
+        vector<float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<float> albedo_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<float> normal_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<float> direction_float_data(lightmap_res * lightmap_res * 3);
 
         Vec4 decal_reflectivity = { 0.5f, 0.5f, 0.5f, 1.0f };
         if (decal.material) {
@@ -873,7 +873,7 @@ namespace
 
                 Vec3 sampling_pos = vec3_add(world_pos, vec3_muls(normal, SHADOW_BIAS));
 
-                std::mt19937 rng(generate_seed_from_pos(world_pos));
+                mt19937 rng(generate_seed_from_pos(world_pos));
                 Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
                 Vec3 direct_light = calculate_direct_light(sampling_pos, normal, dominant_dir);
                 Vec3 indirect_light = calculate_indirect_light(sampling_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
@@ -904,7 +904,7 @@ namespace
             }
         }
 
-        std::vector<float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
+        vector<float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
         float indirect_sum = 0.0f; for (float val : indirect_lightmap_data) indirect_sum += val;
         if (indirect_sum > 0.0001f) {
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
@@ -919,10 +919,10 @@ namespace
             oidnReleaseFilter(filter);
         }
         else {
-            std::fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
+            fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
         }
 
-        std::vector<float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
             Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
@@ -933,10 +933,10 @@ namespace
             final_hdr_lightmap_data[i * 3 + 2] = final_light.z;
         }
 
-        std::vector<float> filtered_direction_data;
+        vector<float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_res, lightmap_res, 4, 0.01f);
 
-        std::vector<unsigned char> dir_data_u8(lightmap_res * lightmap_res * 4);
+        vector<unsigned char> dir_data_u8(lightmap_res * lightmap_res * 4);
         for (int i = 0; i < lightmap_res * lightmap_res; ++i) {
             Vec3 dir = { filtered_direction_data[i * 3], filtered_direction_data[i * 3 + 1], filtered_direction_data[i * 3 + 2] };
             if (vec3_length_sq(dir) > 0.0001f) vec3_normalize(&dir); else dir = { 0,0,0 };
@@ -963,7 +963,7 @@ namespace
         Vec3 local_pos = b.vertices[v_idx].pos;
         Vec3 local_normal = { 0, 1, 0 };
 
-        std::vector<Vec3> temp_normals(b.numVertices, Vec3{ 0,0,0 });
+        vector<Vec3> temp_normals(b.numVertices, Vec3{ 0,0,0 });
 
         for (int i = 0; i < b.numFaces; ++i) {
             BrushFace* face = &b.faces[i];
@@ -990,7 +990,7 @@ namespace
         Vec3 world_normal = mat4_mul_vec3_dir(&b.modelMatrix, local_normal);
         vec3_normalize(&world_normal);
 
-        std::mt19937 rng(generate_seed_from_pos(world_pos));
+        mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
         Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
@@ -1018,7 +1018,7 @@ namespace
         Vec3 world_normal = mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
         vec3_normalize(&world_normal);
 
-        std::mt19937 rng(generate_seed_from_pos(world_pos));
+        mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
         Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
@@ -1075,7 +1075,7 @@ namespace
 
         float bounds_size = vec3_length(vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
         float world_scale = fmaxf(scene_obj.scale.x, fmaxf(scene_obj.scale.y, scene_obj.scale.z));
-        int resolution = std::clamp((int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
+        int resolution = clamp((int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
         resolution = pow(2, ceil(log(resolution) / log(2)));
 
         xatlas::Generate(atlas);
@@ -1106,11 +1106,11 @@ namespace
             fclose(f_lmuv);
         }
 
-        std::vector<float> direct_data(resolution * resolution * 3, 0.0f);
-        std::vector<float> indirect_data(resolution * resolution * 3, 0.0f);
-        std::vector<float> albedo_data(resolution * resolution * 3, 0.5f);
-        std::vector<float> normal_data(resolution * resolution * 3, 0.0f);
-        std::vector<float> dir_accum_data(resolution * resolution * 3, 0.0f);
+        vector<float> direct_data(resolution * resolution * 3, 0.0f);
+        vector<float> indirect_data(resolution * resolution * 3, 0.0f);
+        vector<float> albedo_data(resolution * resolution * 3, 0.5f);
+        vector<float> normal_data(resolution * resolution * 3, 0.0f);
+        vector<float> dir_accum_data(resolution * resolution * 3, 0.0f);
 
         for (uint32_t m = 0; m < atlas->meshCount; ++m) {
             const xatlas::Mesh& xmesh = atlas->meshes[m];
@@ -1151,10 +1151,10 @@ namespace
                 float max_u = fmaxf(uv0.x, fmaxf(uv1.x, uv2.x));
                 float max_v = fmaxf(uv0.y, fmaxf(uv1.y, uv2.y));
 
-                int min_x = std::clamp((int)(min_u * resolution), 0, resolution - 1);
-                int min_y = std::clamp((int)(min_v * resolution), 0, resolution - 1);
-                int max_x = std::clamp((int)(max_u * resolution), 0, resolution - 1);
-                int max_y = std::clamp((int)(max_v * resolution), 0, resolution - 1);
+                int min_x = clamp((int)(min_u * resolution), 0, resolution - 1);
+                int min_y = clamp((int)(min_v * resolution), 0, resolution - 1);
+                int max_x = clamp((int)(max_u * resolution), 0, resolution - 1);
+                int max_y = clamp((int)(max_v * resolution), 0, resolution - 1);
 
                 for (int y = min_y; y <= max_y; ++y) {
                     for (int x = min_x; x <= max_x; ++x) {
@@ -1171,7 +1171,7 @@ namespace
 
                             int idx = (y * resolution + x) * 3;
 
-                            std::mt19937 rng(generate_seed_from_pos(pos_world));
+                            mt19937 rng(generate_seed_from_pos(pos_world));
                             Vec3 dom_dir, ind_dir;
 
                             Vec3 direct = calculate_direct_light(pos_world, norm_world, dom_dir);
@@ -1203,7 +1203,7 @@ namespace
         xatlas::Destroy(atlas);
         Model_Free(clean_model);
 
-        std::vector<float> denoised_indirect(indirect_data.size());
+        vector<float> denoised_indirect(indirect_data.size());
         {
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
             oidnSetSharedFilterImage(filter, "color", indirect_data.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
@@ -1220,17 +1220,17 @@ namespace
         apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
         apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
 
-        std::vector<float> final_hdr_lightmap_data(resolution * resolution * 3);
+        vector<float> final_hdr_lightmap_data(resolution * resolution * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             final_hdr_lightmap_data[i * 3 + 0] = direct_data[i * 3 + 0] + denoised_indirect[i * 3 + 0];
             final_hdr_lightmap_data[i * 3 + 1] = direct_data[i * 3 + 1] + denoised_indirect[i * 3 + 1];
             final_hdr_lightmap_data[i * 3 + 2] = direct_data[i * 3 + 2] + denoised_indirect[i * 3 + 2];
         }
 
-        std::vector<float> filtered_direction_data;
+        vector<float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, dir_accum_data, final_hdr_lightmap_data, resolution, resolution, 4, 0.01f);
 
-        std::vector<unsigned char> dir_data(resolution * resolution * 4, 0);
+        vector<unsigned char> dir_data(resolution * resolution * 4, 0);
 
         for (int i = 0; i < resolution * resolution; ++i) {
             int idx = i * 3;
@@ -1253,17 +1253,17 @@ namespace
 
     void Lightmapper::process_job(const JobPayload& job)
     {
-        std::visit([this](auto&& arg) {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, BrushFaceJobData>)
+        visit([this](auto&& arg) {
+            using T = decay_t<decltype(arg)>;
+            if constexpr (is_same_v<T, BrushFaceJobData>)
                 process_brush_face(arg);
-            else if constexpr (std::is_same_v<T, DecalJobData>)
+            else if constexpr (is_same_v<T, DecalJobData>)
                 process_decal(arg);
-            else if constexpr (std::is_same_v<T, ModelVertexJobData>)
+            else if constexpr (is_same_v<T, ModelVertexJobData>)
                 process_model_vertex(arg);
-            else if constexpr (std::is_same_v<T, BrushVertexJobData>)
+            else if constexpr (is_same_v<T, BrushVertexJobData>)
                 process_brush_vertex(arg);
-            else if constexpr (std::is_same_v<T, ModelLightmapJobData>)
+            else if constexpr (is_same_v<T, ModelLightmapJobData>)
                 process_model_lightmap(arg);
             }, job);
     }
@@ -1324,8 +1324,8 @@ namespace
             const SceneObject& obj = m_scene->objects[i];
             if (obj.model && obj.mass <= 0.0f && !obj.useLightmap)
             {
-                m_model_color_buffers[i] = std::make_unique<Vec4[]>(obj.model->totalVertexCount);
-                m_model_direction_buffers[i] = std::make_unique<Vec4[]>(obj.model->totalVertexCount);
+                m_model_color_buffers[i] = make_unique<Vec4[]>(obj.model->totalVertexCount);
+                m_model_direction_buffers[i] = make_unique<Vec4[]>(obj.model->totalVertexCount);
             }
         }
 
@@ -1335,15 +1335,15 @@ namespace
             if (!IsBrushBakeable(b)) continue;
             if (b.useVertexLighting) {
                 if (b.numVertices > 0) {
-                    m_brush_color_buffers[i] = std::make_unique<Vec4[]>(b.numVertices);
-                    m_brush_direction_buffers[i] = std::make_unique<Vec4[]>(b.numVertices);
+                    m_brush_color_buffers[i] = make_unique<Vec4[]>(b.numVertices);
+                    m_brush_direction_buffers[i] = make_unique<Vec4[]>(b.numVertices);
                     for (unsigned int v = 0; v < b.numVertices; ++v) {
                         m_jobs.emplace_back(BrushVertexJobData{ i, v, m_brush_color_buffers[i].get(), m_brush_direction_buffers[i].get() });
                     }
                 }
             }
             else {
-                std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
+                string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
                 fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
                 fs::create_directories(brush_dir);
                 for (int j = 0; j < b.numFaces; ++j)
@@ -1358,7 +1358,7 @@ namespace
 
         for (int i = 0; i < m_scene->numDecals; ++i)
         {
-            fs::path decal_dir = m_output_path / ("decal_" + std::to_string(i));
+            fs::path decal_dir = m_output_path / ("decal_" + to_string(i));
             fs::create_directories(decal_dir);
             m_jobs.emplace_back(DecalJobData{ i, decal_dir });
         }
@@ -1370,7 +1370,7 @@ namespace
             if (obj.model)
             {
                 if (obj.useLightmap) {
-                    std::string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + std::to_string(i);
+                    string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + to_string(i);
                     fs::path model_dir = m_output_path / sanitize_filename(model_name_str);
                     fs::create_directories(model_dir);
                     m_jobs.emplace_back(ModelLightmapJobData{ i, model_dir });
@@ -1390,7 +1390,7 @@ namespace
     {
         Console_Printf("[Lightmapper] Pre-calculating surface reflectivity...");
 
-        std::set<const Material*> unique_materials;
+        set<const Material*> unique_materials;
         for (int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
             for (int j = 0; j < b.numFaces; ++j) {
@@ -1427,7 +1427,7 @@ namespace
                 continue;
             }
 
-            std::string full_path = "textures/" + std::string(mat->diffusePath);
+            string full_path = "textures/" + string(mat->diffusePath);
             SDL_Surface* loaded_surface = IMG_Load(full_path.c_str());
             if (!loaded_surface) {
                 m_material_reflectivity[mat] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1484,7 +1484,7 @@ namespace
                 float weightR = avg_color.x;
                 float weightG = avg_color.y;
                 float weightB = avg_color.z;
-                float totalWeight = std::max(weightR + weightG + weightB, 0.0001f);
+                float totalWeight = max(weightR + weightG + weightB, 0.0001f);
                 if (totalWeight > 1.0f) {
                     weightR /= totalWeight;
                     weightG /= totalWeight;
@@ -1509,7 +1509,7 @@ namespace
         if (m_scene->sun.enabled) {
             Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
             Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
                 if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
                     Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
@@ -1528,7 +1528,7 @@ namespace
 
         if (m_scene->sun.enabled) {
             Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
                 if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
                     Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
@@ -1541,8 +1541,8 @@ namespace
             }
         }
 
-        std::uniform_real_distribution<float> random_dist(-0.5f, 0.5f);
-        std::mt19937 rng(generate_seed_from_pos(pos));
+        uniform_real_distribution<float> random_dist(-0.5f, 0.5f);
+        mt19937 rng(generate_seed_from_pos(pos));
 
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
@@ -1565,7 +1565,7 @@ namespace
                 int samples_that_hit = 0;
 
                 int grid_size = static_cast<int>(sqrt(NUM_AREA_LIGHT_SAMPLES));
-                std::uniform_real_distribution<float> jitter_dist(0.0f, 1.0f);
+                uniform_real_distribution<float> jitter_dist(0.0f, 1.0f);
 
                 for (int y = 0; y < grid_size; ++y) {
                     for (int x = 0; x < grid_size; ++x) {
@@ -1580,14 +1580,14 @@ namespace
                         if (dist_sq > light.radius * light.radius) continue;
 
                         vec3_normalize(&light_dir);
-                        float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+                        float NdotL = max(0.0f, vec3_dot(normal, light_dir));
                         if (NdotL <= 0.0f) continue;
 
                         if (is_in_shadow(point_to_light_check, sample_pos)) continue;
 
                         samples_that_hit++;
                         float dist = sqrtf(dist_sq);
-                        float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                        float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
                         attenuation /= (dist * dist + 1.0f);
 
                         Vec3 light_color = vec3_muls(light.color, light.intensity);
@@ -1611,7 +1611,7 @@ namespace
             vec3_normalize(&light_dir);
             if (dist > light.radius) continue;
 
-            float NdotL = std::max(0.0f, vec3_dot(normal, light_dir));
+            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
 
             if (is_in_shadow(point_to_light_check, light.position)) continue;
@@ -1630,7 +1630,7 @@ namespace
                 else {
                     float delta = inner_cone_cos - outer_cone_cos;
                     if (delta > 0.0001f) {
-                        float t = std::clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                        float t = clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
                         spotFactor = t * t * (3.0f - 2.0f * t);
                     }
                     else {
@@ -1639,7 +1639,7 @@ namespace
                 }
             }
 
-            float attenuation = powf(std::max(0.0f, 1.0f - dist / light.radius), 2.0f);
+            float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
             attenuation /= (dist * dist + 1.0f);
             attenuation *= spotFactor;
             Vec3 light_color = vec3_muls(light.color, light.intensity);
@@ -1652,9 +1652,9 @@ namespace
         return direct_light;
     }
 
-    Vec3 Lightmapper::cosine_weighted_direction_in_hemisphere(const Vec3& normal, std::mt19937& gen)
+    Vec3 Lightmapper::cosine_weighted_direction_in_hemisphere(const Vec3& normal, mt19937& gen)
     {
-        std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+        uniform_real_distribution<float> dist(0.0f, 1.0f);
         float u1 = dist(gen);
         float u2 = dist(gen);
 
@@ -1663,7 +1663,7 @@ namespace
 
         float x = r * cosf(theta);
         float y = r * sinf(theta);
-        float z = sqrtf(std::max(0.0f, 1.0f - u1));
+        float z = sqrtf(max(0.0f, 1.0f - u1));
 
         Vec3 up = fabsf(normal.z) < 0.999f ? Vec3{ 0,0,1 } : Vec3{ 1,0,0 };
         Vec3 tangent = vec3_cross(up, normal);
@@ -1710,7 +1710,7 @@ namespace
         return { 0.5f, 0.5f, 0.5f, 1.0f };
     }
 
-    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, std::mt19937& rng, Vec3& out_indirect_dir, int num_samples)
+    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, int num_samples)
     {
         Vec3 accumulated_color = { 0, 0, 0 };
         out_indirect_dir = { 0, 0, 0 };
@@ -1720,7 +1720,7 @@ namespace
             return accumulated_color;
         }
 
-        std::uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
+        uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
         constexpr int BATCH_SIZE = 16;
         int num_batches = (num_samples + BATCH_SIZE - 1) / BATCH_SIZE;
 
@@ -1808,7 +1808,7 @@ namespace
                     path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
 
                     throughput = vec3_mul(throughput, albedo);
-                    float p = std::max({ throughput.x, throughput.y, throughput.z });
+                    float p = max({ throughput.x, throughput.y, throughput.z });
                     if (bounce == m_bounces || p < 0.001f || roulette_dist(rng) > p) {
                         break;
                     }
@@ -1856,15 +1856,15 @@ namespace
     void Lightmapper::generate()
     {
         Console_Printf("[Lightmapper] Starting lightmap generation...");
-        auto start_time = std::chrono::high_resolution_clock::now();
+        auto start_time = chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
 
         precalculate_material_reflectivity();
         prepare_jobs();
         if (m_jobs.empty()) return;
 
-        unsigned int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads;
+        unsigned int num_threads = thread::hardware_concurrency();
+        vector<thread> threads;
         Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
 
         for (unsigned int i = 0; i < num_threads; ++i)
@@ -1881,13 +1881,13 @@ namespace
             const Brush& b = m_scene->brushes[i];
             if (!b.useVertexLighting || !m_brush_color_buffers[i] || !m_brush_direction_buffers[i]) continue;
 
-            std::string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + std::to_string(i);
-            std::string sanitized_name = sanitize_filename(brush_name_str);
+            string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
+            string sanitized_name = sanitize_filename(brush_name_str);
             fs::path brush_dir = m_output_path / sanitized_name;
             fs::create_directories(brush_dir);
 
             fs::path vlm_path = brush_dir / "vertex_colors.vlm";
-            std::ofstream vlm_file(vlm_path, std::ios::binary);
+            ofstream vlm_file(vlm_path, ios::binary);
             if (vlm_file)
             {
                 const char header[] = "VLM1";
@@ -1898,7 +1898,7 @@ namespace
             }
 
             fs::path vld_path = brush_dir / "vertex_directions.vld";
-            std::ofstream vld_file(vld_path, std::ios::binary);
+            ofstream vld_file(vld_path, ios::binary);
             if (vld_file)
             {
                 const char header[] = "VLD1";
@@ -1916,13 +1916,13 @@ namespace
             const SceneObject& obj = m_scene->objects[i];
             if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i]) continue;
 
-            std::string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + std::to_string(i);
-            std::string sanitized_name = sanitize_filename(model_name_str);
+            string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + to_string(i);
+            string sanitized_name = sanitize_filename(model_name_str);
             fs::path model_dir = m_output_path / sanitized_name;
             fs::create_directories(model_dir);
 
             fs::path vlm_path = model_dir / "vertex_colors.vlm";
-            std::ofstream vlm_file(vlm_path, std::ios::binary);
+            ofstream vlm_file(vlm_path, ios::binary);
             if (vlm_file)
             {
                 const char header[] = "VLM1";
@@ -1937,7 +1937,7 @@ namespace
             }
 
             fs::path vld_path = model_dir / "vertex_directions.vld";
-            std::ofstream vld_file(vld_path, std::ios::binary);
+            ofstream vld_file(vld_path, ios::binary);
             if (vld_file)
             {
                 const char header[] = "VLD1";
@@ -1952,8 +1952,8 @@ namespace
             }
         }
 
-        auto end_time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> duration = end_time - start_time;
+        auto end_time = chrono::high_resolution_clock::now();
+        chrono::duration<float> duration = end_time - start_time;
         Console_Printf("[Lightmapper] Finished in %.2f seconds.", duration.count());
     }
 }
@@ -1965,7 +1965,7 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int boun
         Lightmapper mapper(scene, resolution, bounces);
         mapper.generate();
     }
-    catch (const std::exception& e)
+    catch (const exception& e)
     {
         Console_Printf_Error("[Lightmapper] C++ Exception: %s", e.what());
     }

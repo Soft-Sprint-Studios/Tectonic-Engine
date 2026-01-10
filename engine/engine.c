@@ -1649,12 +1649,6 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         return 1;
     }
 #endif
-#ifdef DISABLE_DEBUGGER
-    if (CheckForDebugger()) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Security Alert", "Debugger detected! The program will close.", NULL);
-        return 1;
-    }
-#endif
 #ifdef PLATFORM_WINDOWS
     if (!g_allow_multiple_instances) {
         const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";

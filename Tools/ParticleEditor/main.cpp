@@ -57,7 +57,7 @@ struct ParticleProperties {
     float startAngularVelocity;
     float angularVelocityVariation;
     float softness;
-    std::string texture;
+    string texture;
     Vec3_t gravity;
     Vec4_t startColor;
     Vec4_t endColor;
@@ -99,12 +99,12 @@ Fl_Float_Input* g_velVarZInput = nullptr;
 Fl_Check_Button* g_additiveBlendCheck = nullptr;
 
 ParticleProperties g_currentProps;
-std::string g_currentFilePath = "";
+string g_currentFilePath = "";
 bool g_isDirty = false;
 
 void set_dirty(bool dirty) {
     g_isDirty = dirty;
-    std::string title = "Tectonic Particle Editor";
+    string title = "Tectonic Particle Editor";
     if (!g_currentFilePath.empty()) {
         title += " - " + g_currentFilePath;
     }
@@ -215,10 +215,10 @@ void new_file() {
     update_ui_from_props();
 }
 
-bool save_file(const std::string& path) {
+bool save_file(const string& path) {
     update_props_from_ui();
 
-    std::ofstream file(path);
+    ofstream file(path);
     if (!file.is_open()) {
         fl_alert("Error: Could not open file for writing:\n%s", path.c_str());
         return false;
@@ -251,8 +251,8 @@ bool save_file(const std::string& path) {
     return true;
 }
 
-void open_file(const std::string& path) {
-    std::ifstream file(path);
+void open_file(const string& path) {
+    ifstream file(path);
     if (!file.is_open()) {
         fl_alert("Error: Could not open file:\n%s", path.c_str());
         return;
@@ -260,10 +260,10 @@ void open_file(const std::string& path) {
 
     new_file();
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string key;
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string key;
         ss >> key;
 
         if (key == "maxParticles") ss >> g_currentProps.maxParticles;
@@ -294,7 +294,7 @@ void open_file(const std::string& path) {
             char comma;
             ss >> g_currentProps.velocityVariation.x >> comma >> g_currentProps.velocityVariation.y >> comma >> g_currentProps.velocityVariation.z;
         } else if (key == "blendFunc") {
-            std::string blendMode;
+            string blendMode;
             ss >> blendMode;
             if (blendMode == "additive") {
                 g_currentProps.additiveBlending = true;
