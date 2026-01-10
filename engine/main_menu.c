@@ -126,10 +126,28 @@ static void MainMenu_RenderOptionsMenu() {
                     Cvar_Set("fps_max", value_str);
                 }
 
+                UI_Spacing();
+                int num_displays = SDL_GetNumVideoDisplays();
+                const char** display_names = (const char**)malloc(num_displays * sizeof(const char*));
+                for (int i = 0; i < num_displays; ++i) {
+                    display_names[i] = SDL_GetDisplayName(i);
+                }
+
+                int current_monitor = Cvar_GetInt("r_monitor");
+                if (UI_Combo("Monitor", &current_monitor, display_names, num_displays, -1)) {
+                    if (current_monitor >= 0 && current_monitor < num_displays) {
+                        char value_str[4];
+                        snprintf(value_str, sizeof(value_str), "%d", current_monitor);
+                        Cvar_Set("r_monitor", value_str);
+                    }
+                }
+                free(display_names);
+
                 bool vsync = Cvar_GetInt("r_vsync");
                 if (UI_Checkbox("V-Sync", &vsync)) {
                     Cvar_Set("r_vsync", vsync ? "1" : "0");
                 }
+
                 UI_Spacing();
                 UI_Text("Effects");
                 UI_Separator();

@@ -497,6 +497,7 @@ void init_cvars() {
     Cvar_Register("watermark", "1", "Show engine watermark (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_width", "1920", "Screen width in pixels", CVAR_NONE);
     Cvar_Register("r_height", "1080", "Screen height in pixels", CVAR_NONE);
+    Cvar_Register("r_monitor", "0", "Selects which monitor the game window appears on (0 = primary).", CVAR_NONE);
     Cvar_Register("r_gamma", "2.2", "Screen gamma correction value.", CVAR_NONE);
     Cvar_Register("r_anisotropy", "16.0", "Anisotropic filtering level (0.0 to 16.0).", CVAR_NONE);
     Cvar_Register("r_mipmapping", "1", "Enable texture mipmapping (0=off, 1=on). Requires map reload.", CVAR_NONE);

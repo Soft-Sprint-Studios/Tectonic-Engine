@@ -81,6 +81,7 @@
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
+static int g_last_monitor_cvar_state = -1;
 
 bool g_player_input_disabled = false;
 
@@ -669,6 +670,35 @@ void process_input() {
 }
 
 void update_state() {
+    int current_monitor_cvar = Cvar_GetInt("r_monitor");
+    if (current_monitor_cvar != g_last_monitor_cvar_state) {
+        int num_displays = SDL_GetNumVideoDisplays();
+        if (current_monitor_cvar >= 0 && current_monitor_cvar < num_displays) {
+            Uint32 window_flags = SDL_GetWindowFlags(g_engine->window);
+            bool is_fullscreen = (window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) || (window_flags & SDL_WINDOW_FULLSCREEN);
+
+            SDL_Rect display_bounds;
+            SDL_GetDisplayBounds(current_monitor_cvar, &display_bounds);
+
+            if (is_fullscreen) {
+                SDL_SetWindowFullscreen(g_engine->window, 0);
+                SDL_SetWindowPosition(g_engine->window, display_bounds.x, display_bounds.y);
+                SDL_SetWindowFullscreen(g_engine->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            }
+            else {
+                int w, h;
+                SDL_GetWindowSize(g_engine->window, &w, &h);
+                SDL_SetWindowPosition(g_engine->window,
+                    display_bounds.x + (display_bounds.w - w) / 2,
+                    display_bounds.y + (display_bounds.h - h) / 2);
+            }
+            g_last_monitor_cvar_state = current_monitor_cvar;
+        }
+        else {
+            Cvar_Set("r_monitor", "0");
+        }
+    }
+
     g_is_unlit_mode = Cvar_GetInt("r_fullbright");
     int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
     if (deactivation_cvar != g_last_deactivation_cvar_state) {
