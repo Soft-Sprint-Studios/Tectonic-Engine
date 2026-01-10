@@ -1250,7 +1250,7 @@ void update_state() {
         g_engine->camera.position.x = p.x;
         g_engine->camera.position.z = p.z;
 
-        float target_height = g_engine->camera.isCrouching ? PLAYER_HEIGHT_CROUCH : PLAYER_HEIGHT_NORMAL;
+        float target_height = g_engine->camera.isCrouching ? Cvar_GetFloat("g_crouch_height") : PLAYER_HEIGHT_NORMAL;
         float crouch_speed = 10.0f;
 
         g_engine->camera.currentHeight += (target_height - g_engine->camera.currentHeight) * g_engine->deltaTime * crouch_speed;

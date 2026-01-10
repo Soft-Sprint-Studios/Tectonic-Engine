@@ -65,7 +65,6 @@ extern "C" {
 #define MAP_VERSION 21
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
-#define PLAYER_HEIGHT_CROUCH 1.37f
 
 #define LIGHTMAPPADDING 2
 
