@@ -36,7 +36,7 @@ public:
         handlers.errored = handleDiscordError;
 
         Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
-        StartTime = std::time(nullptr);
+        StartTime = time(nullptr);
         Console_Printf("Discord RPC Initialized.\n");
     }
 

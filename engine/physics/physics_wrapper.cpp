@@ -35,8 +35,8 @@ struct PhysicsWorld {
     btCollisionDispatcher* dispatcher;
     btBroadphaseInterface* overlappingPairCache;
     btSequentialImpulseConstraintSolver* solver;
-    std::vector<btCollisionShape*> collisionShapes;
-    std::map<btRigidBody*, btTriangleIndexVertexArray*> meshInterfaces;
+    vector<btCollisionShape*> collisionShapes;
+    map<btRigidBody*, btTriangleIndexVertexArray*> meshInterfaces;
 };
 
 struct RigidBody {

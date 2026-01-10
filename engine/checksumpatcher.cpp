@@ -73,9 +73,9 @@ typedef struct {
     uint32_t checksum;
 } EmbeddedChecksum;
 
-std::string get_directory(const std::string& path) {
+string get_directory(const string& path) {
     size_t found = path.find_last_of("/\\");
-    if (std::string::npos != found) {
+    if (string::npos != found) {
         return path.substr(0, found + 1);
     }
     return "./";
@@ -83,37 +83,37 @@ std::string get_directory(const std::string& path) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "[Patcher] FATAL: No executable path provided." << std::endl;
-        std::cerr << "Usage: " << argv[0] << " <path_to_engine_dll>" << std::endl;
+        cerr << "[Patcher] FATAL: No executable path provided." << endl;
+        cerr << "Usage: " << argv[0] << " <path_to_engine_dll>" << endl;
         return 1;
     }
-    std::string fileToPatchPath = argv[1];
-    std::cout << "[Patcher] Target for patching: " << fileToPatchPath << std::endl;
+    string fileToPatchPath = argv[1];
+    cout << "[Patcher] Target for patching: " << fileToPatchPath << endl;
 
-    std::string buildDir = get_directory(fileToPatchPath);
-    std::cout << "[Patcher] Using build directory: " << buildDir << std::endl;
+    string buildDir = get_directory(fileToPatchPath);
+    cout << "[Patcher] Using build directory: " << buildDir << endl;
 
-    std::vector<unsigned char> fullBuffer;
+    vector<unsigned char> fullBuffer;
     long engineDllSize = 0;
 
     for (int i = 0; i < g_num_modules; ++i) {
-        std::string modulePath = buildDir + g_module_names[i];
-        std::cout << "[Patcher] Reading module: " << modulePath << std::endl;
+        string modulePath = buildDir + g_module_names[i];
+        cout << "[Patcher] Reading module: " << modulePath << endl;
 
-        std::ifstream moduleFile(modulePath, std::ios::binary | std::ios::ate);
+        ifstream moduleFile(modulePath, ios::binary | ios::ate);
         if (!moduleFile.is_open()) {
-            std::cerr << "[Patcher] FATAL: Could not open module for reading: " << modulePath << std::endl;
+            cerr << "[Patcher] FATAL: Could not open module for reading: " << modulePath << endl;
             return 1;
         }
 
-        std::streamsize moduleSize = moduleFile.tellg();
-        moduleFile.seekg(0, std::ios::beg);
+        streamsize moduleSize = moduleFile.tellg();
+        moduleFile.seekg(0, ios::beg);
 
         size_t originalSize = fullBuffer.size();
         fullBuffer.resize(originalSize + moduleSize);
 
         if (!moduleFile.read(reinterpret_cast<char*>(fullBuffer.data() + originalSize), moduleSize)) {
-            std::cerr << "[Patcher] FATAL: Failed to read module into buffer: " << modulePath << std::endl;
+            cerr << "[Patcher] FATAL: Failed to read module into buffer: " << modulePath << endl;
             moduleFile.close();
             return 1;
         }
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
         if (i == 0) {
             engineDllSize = moduleSize;
         }
-        std::cout << "[Patcher] Appended " << moduleSize << " bytes. Total buffer size now: " << fullBuffer.size() << " bytes." << std::endl;
+        cout << "[Patcher] Appended " << moduleSize << " bytes. Total buffer size now: " << fullBuffer.size() << " bytes." << endl;
     }
 
     long checksumStructOffset = -1;
@@ -136,10 +136,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (checksumStructOffset == -1) {
-        std::cerr << "[Patcher] FATAL: Signature 0xBADF00D5 not found in binary." << std::endl;
+        cerr << "[Patcher] FATAL: Signature 0xBADF00D5 not found in binary." << endl;
         return 1;
     }
-    std::cout << "[Patcher] Found signature at offset: " << checksumStructOffset << std::endl;
+    cout << "[Patcher] Found signature at offset: " << checksumStructOffset << endl;
 
     long checksumValueOffset = checksumStructOffset + offsetof(EmbeddedChecksum, checksum);
 
@@ -148,24 +148,24 @@ int main(int argc, char* argv[]) {
     crc32_init_table();
     uint32_t checksum = crc32_calculate(fullBuffer.data(), fullBuffer.size());
 
-    std::cout << "[Patcher] Calculated checksum of combined files: 0x" << std::hex << checksum << std::dec << std::endl;
+    cout << "[Patcher] Calculated checksum of combined files: 0x" << hex << checksum << dec << endl;
 
-    std::fstream outFile(fileToPatchPath, std::ios::binary | std::ios::in | std::ios::out);
+    fstream outFile(fileToPatchPath, ios::binary | ios::in | ios::out);
     if (!outFile.is_open()) {
-        std::cerr << "[Patcher] FATAL: Could not open file for writing: " << fileToPatchPath << std::endl;
+        cerr << "[Patcher] FATAL: Could not open file for writing: " << fileToPatchPath << endl;
         return 1;
     }
 
     outFile.seekp(checksumValueOffset);
     outFile.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
     if (outFile.fail()) {
-        std::cerr << "[Patcher] FATAL: Failed to write new checksum to file." << std::endl;
+        cerr << "[Patcher] FATAL: Failed to write new checksum to file." << endl;
         outFile.close();
         return 1;
     }
     outFile.close();
 
-    std::cout << "[Patcher] Successfully patched executable with new checksum." << std::endl;
+    cout << "[Patcher] Successfully patched executable with new checksum." << endl;
 
     return 0;
 }

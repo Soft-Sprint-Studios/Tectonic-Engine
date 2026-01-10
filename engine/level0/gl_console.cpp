@@ -45,9 +45,9 @@ static FILE* g_log_file = NULL;
 
 struct Console {
     char                  InputBuf[256];
-    std::vector<ConsoleItem> Items;
+    vector<ConsoleItem> Items;
     bool                  ScrollToBottom;
-    std::vector<const char*> Candidates;
+    vector<const char*> Candidates;
     int                   CandidatePos;
     bool                  CandidateListOpen;
     bool                  ReclaimFocus;
@@ -134,7 +134,7 @@ struct Console {
             }
         }
 
-        std::sort(Candidates.begin(), Candidates.end(), [](const char* a, const char* b) {
+        sort(Candidates.begin(), Candidates.end(), [](const char* a, const char* b) {
             return strcmp(a, b) < 0;
             });
 
@@ -197,7 +197,7 @@ struct Console {
         }
 
         if (CandidateListOpen && !Candidates.empty()) {
-            float popup_height = (std::min((int)Candidates.size(), 7) * ImGui::GetTextLineHeightWithSpacing()) + 10;
+            float popup_height = (min((int)Candidates.size(), 7) * ImGui::GetTextLineHeightWithSpacing()) + 10;
             ImGui::SetNextWindowPos(ImVec2(input_pos.x, input_pos.y - popup_height));
             ImGui::SetNextWindowSize(ImVec2(input_width, 0.0f));
 
