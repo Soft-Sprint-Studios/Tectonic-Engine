@@ -62,7 +62,6 @@ public:
             }
         }
         fclose(file);
-        Console_Printf("Loaded %d cvars from %s", loaded_count, filename);
     }
 
     static void Save(const char* filename) {

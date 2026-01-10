@@ -1736,12 +1736,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         g_scene.post.fade_alpha = 0.0f;
         int current_vsync_cvar = Cvar_GetInt("r_vsync");
         if (current_vsync_cvar != g_last_vsync_cvar_state) {
-            if (SDL_GL_SetSwapInterval(current_vsync_cvar) == 0) {
-                Console_Printf("V-Sync set to %s.", current_vsync_cvar ? "ON" : "OFF");
-            }
-            else {
-                Console_Printf_Warning("Could not set V-Sync: %s", SDL_GetError());
-            }
+            SDL_GL_SetSwapInterval(current_vsync_cvar);
             g_last_vsync_cvar_state = current_vsync_cvar;
         }
         float currentFrame = (float)SDL_GetTicks() / 1000.0f;

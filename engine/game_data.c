@@ -149,8 +149,6 @@ void GameData_Init(const char* filepath) {
             g_logic_classnames[logic_idx++] = g_entity_defs[i].classname;
         }
     }
-
-    Console_Printf("Loaded %d entity definitions from TGD.", g_num_entity_defs);
 }
 
 void GameData_Shutdown(void) {

@@ -70,7 +70,6 @@ public:
             }
         }
         fclose(file);
-        Console_Printf("Loaded %d keybinds from %s", num_binds, filename);
     }
 
     static void Save(const char* filename) {
