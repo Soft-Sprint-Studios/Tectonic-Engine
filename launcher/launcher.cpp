@@ -35,9 +35,10 @@ using EngineMainFunc = int(*)(int argc, char* argv[]);
 
 #ifdef PLATFORM_WINDOWS
 
+// Hint Windows to prefer discrete AMD/NVIDIA GPUs over integrated ones (mostly for laptops).
 extern "C" {
-    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
-    __declspec(dllexport) unsigned long AmdPowerXpressRequestHighPerformance = 0x00000001;
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
