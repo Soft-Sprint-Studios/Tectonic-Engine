@@ -42,7 +42,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         if (light->is_static_shadow && light->has_rendered_static_shadow) {
             continue;
         }
-        if (light->is_static) continue;
+        if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
         if (vec3_length_sq(vec3_sub(light->position, engine->camera.position)) > max_shadow_dist_sq) continue;
         

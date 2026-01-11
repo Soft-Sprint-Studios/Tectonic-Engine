@@ -65,7 +65,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     int num_dynamic_lights = 0;
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
-        if (!light->is_static && light->intensity > 0.001f) {
+        if (light->is_static != 1 && light->intensity > 0.001f) {
             num_dynamic_lights++;
         }
     }

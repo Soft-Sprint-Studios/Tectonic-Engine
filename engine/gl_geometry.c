@@ -429,7 +429,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
 
     for (int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
-        if (light->is_static) continue;
+        if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
         ShaderLight* shader_light = &dynamic_lights[num_dynamic_lights];
         shader_light->position.x = light->position.x;

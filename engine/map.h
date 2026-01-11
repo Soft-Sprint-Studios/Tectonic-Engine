@@ -84,7 +84,7 @@ extern "C" {
         float intensity;
         float base_intensity;
         bool is_on;
-        bool is_static;
+        int is_static; // 0 = Dynamic, 1 = Static (Fully Baked), 2 = Mixed (Baked GI)
         bool is_static_shadow;
         bool has_rendered_static_shadow;
         float width;

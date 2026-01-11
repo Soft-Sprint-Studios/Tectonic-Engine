@@ -147,6 +147,8 @@ namespace
         void generate();
 
     private:
+        enum DirectLightMode { BAKE_ALL_FOR_BOUNCES, BAKE_STATIC_DIRECT_ONLY };
+
         void build_embree_scene();
         void load_emissive_materials();
         void generate_ambient_probes();
@@ -159,7 +161,7 @@ namespace
         void process_model_vertex(const ModelVertexJobData& data);
         void process_model_lightmap(const ModelLightmapJobData& data);
 
-        Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const;
+        Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir, DirectLightMode mode) const;
         Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
         Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, int num_samples);
         Vec4 get_reflectivity_at_hit(unsigned int primID) const;
@@ -445,7 +447,7 @@ namespace
             Vec3 directions[6] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
             for (int j = 0; j < 6; ++j) {
                 Vec3 direct_dir, indirect_dir;
-                Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir);
+                Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir, BAKE_ALL_FOR_BOUNCES);
                 Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], lighting_rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES);
                 m_scene->ambient_probes[i].colors[j] = vec3_muls(vec3_add(direct_light, indirect_light), 2.2f);
                 dominant_dir_total = vec3_add(dominant_dir_total, vec3_add(direct_dir, indirect_dir));
@@ -657,7 +659,7 @@ namespace
                 if (inside)
                 {
                     mt19937 rng(generate_seed_from_pos(world_pos));
-                    direct_light_color = calculate_direct_light(world_pos, point_normal, accumulated_direction);
+                    direct_light_color = calculate_direct_light(world_pos, point_normal, accumulated_direction, BAKE_STATIC_DIRECT_ONLY);
                     indirect_light_color = calculate_indirect_light(world_pos, point_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                     accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
                     normal_lightmap_data[hdr_idx + 0] = point_normal.x;
@@ -767,7 +769,8 @@ namespace
                     direct_sun_light = calculate_direct_sun_light_only(world_pos, point_normal);
                 }
 
-                Vec3 final_light = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+                Vec3 final_light = vec3_add(direct_light, indirect_light);
+                final_light = vec3_add(final_light, direct_sun_light);
                 final_hdr_lightmap_data[idx] = final_light.x;
                 final_hdr_lightmap_data[idx + 1] = final_light.y;
                 final_hdr_lightmap_data[idx + 2] = final_light.z;
@@ -875,7 +878,7 @@ namespace
 
                 mt19937 rng(generate_seed_from_pos(world_pos));
                 Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
-                Vec3 direct_light = calculate_direct_light(sampling_pos, normal, dominant_dir);
+                Vec3 direct_light = calculate_direct_light(sampling_pos, normal, dominant_dir, BAKE_STATIC_DIRECT_ONLY);
                 Vec3 indirect_light = calculate_indirect_light(sampling_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
 
                 int idx = (y * lightmap_res + x) * 3;
@@ -927,7 +930,7 @@ namespace
             Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
             Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
             Vec3 direct_sun_light = calculate_direct_sun_light_only(decal.pos, normal);
-            Vec3 final_light = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+            Vec3 final_light = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
             final_hdr_lightmap_data[i * 3] = final_light.x;
             final_hdr_lightmap_data[i * 3 + 1] = final_light.y;
             final_hdr_lightmap_data[i * 3 + 2] = final_light.z;
@@ -993,11 +996,11 @@ namespace
         mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
-        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
+        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator, BAKE_STATIC_DIRECT_ONLY);
         Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
         Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+        Vec3 final_light_color = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
         direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
@@ -1021,11 +1024,11 @@ namespace
         mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
         Vec3 indirect_dir = { 0,0,0 };
-        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator);
+        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator, BAKE_STATIC_DIRECT_ONLY);
         Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
         Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = vec3_add(vec3_sub(direct_light, direct_sun_light), indirect_light);
+        Vec3 final_light_color = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
         direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
@@ -1174,13 +1177,13 @@ namespace
                             mt19937 rng(generate_seed_from_pos(pos_world));
                             Vec3 dom_dir, ind_dir;
 
-                            Vec3 direct = calculate_direct_light(pos_world, norm_world, dom_dir);
+                            Vec3 direct = calculate_direct_light(pos_world, norm_world, dom_dir, BAKE_STATIC_DIRECT_ONLY);
                             Vec3 indirect = calculate_indirect_light(pos_world, norm_world, rng, ind_dir, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
                             Vec3 sun_direct = calculate_direct_sun_light_only(pos_world, norm_world);
 
-                            direct_data[idx] = direct.x - sun_direct.x;
-                            direct_data[idx + 1] = direct.y - sun_direct.y;
-                            direct_data[idx + 2] = direct.z - sun_direct.z;
+                            direct_data[idx] = direct.x + sun_direct.x;
+                            direct_data[idx + 1] = direct.y + sun_direct.y;
+                            direct_data[idx + 2] = direct.z + sun_direct.z;
 
                             indirect_data[idx] = indirect.x;
                             indirect_data[idx + 1] = indirect.y;
@@ -1520,7 +1523,7 @@ namespace
         return { 0,0,0 };
     }
 
-    Vec3 Lightmapper::calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir) const
+    Vec3 Lightmapper::calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir, DirectLightMode mode) const
     {
         Vec3 direct_light = { 0,0,0 };
         out_dominant_dir = { 0,0,0 };
@@ -1547,7 +1550,8 @@ namespace
         for (int k = 0; k < m_scene->numActiveLights; ++k)
         {
             const Light& light = m_scene->lights[k];
-            if (!light.is_static) continue;
+            if (mode == BAKE_ALL_FOR_BOUNCES && light.is_static == 0) continue;
+            if (mode == BAKE_STATIC_DIRECT_ONLY && light.is_static != 1) continue;
 
             if (light.type == LIGHT_AREA) {
                 if (light.width <= 0 || light.height <= 0) continue;
@@ -1804,7 +1808,7 @@ namespace
                     Vec4 reflectivity = get_reflectivity_at_hit(current_primID);
                     Vec3 albedo = { reflectivity.x, reflectivity.y, reflectivity.z };
                     Vec3 dummy_dir;
-                    Vec3 direct_light = calculate_direct_light(current_pos, current_normal, dummy_dir);
+                    Vec3 direct_light = calculate_direct_light(current_pos, current_normal, dummy_dir, BAKE_ALL_FOR_BOUNCES);
                     path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
 
                     throughput = vec3_mul(throughput, albedo);

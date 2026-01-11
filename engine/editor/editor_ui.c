@@ -807,20 +807,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
         UI_Separator();
 
+        const char* light_modes[] = { "Dynamic", "Static (Fully Baked)", "Mixed (Baked Indirect)" };
+        if (UI_Combo("Bake Mode", &light->is_static, light_modes, 3, -1)) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Bake Mode");
+        }
+
         const char* preset_names[] = {
             "0: Normal", "1: Flicker 1", "2: Slow Strong Pulse", "3: Candle 1",
             "4: Fast Strobe", "5: Gentle Pulse", "6: Flicker 2", "7: Candle 2",
             "8: Candle 3", "9: Slow Strobe", "10: Fluorescent", "11: Slow Pulse 2",
             "12: Underwater", "13: Custom"
         };
-
-        int temp_preset = light->preset;
-        if (UI_Combo("Preset", &temp_preset, preset_names, 14, 14)) {
-            if (temp_preset != light->preset) {
-                Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
-                light->preset = temp_preset;
-                Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Preset");
-            }
+        if (UI_Combo("Preset", &light->preset, preset_names, 14, 14)) {
+            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
+            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Preset");
         }
 
         if (light->preset == 13) {
@@ -840,9 +841,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_SameLine();
                 if (UI_Button("[X]##clearcookie")) {
                     Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
-                    if (light->cookieMapHandle != 0) {
-                        glMakeTextureHandleNonResidentARB(light->cookieMapHandle);
-                    }
+                    if (light->cookieMapHandle != 0) { glMakeTextureHandleNonResidentARB(light->cookieMapHandle); }
                     light->cookiePath[0] = '\0';
                     light->cookieMap = 0;
                     light->cookieMapHandle = 0;
@@ -851,16 +850,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
         }
         if (UI_Checkbox("On by default", &light->is_on)) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Light On"); }
-        UI_SameLine();
-        if (UI_Checkbox("Static", &light->is_static)) {
-            Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
-            Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Light Static");
-        }
+
+        UI_BeginDisabled(light->is_static != 1);
         if (UI_Checkbox("Static Shadow Map", &light->is_static_shadow)) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
             light->has_rendered_static_shadow = false;
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Toggle Static Shadow");
         }
+        UI_EndDisabled();
         UI_Separator(); if (light->type == LIGHT_SPOT) { UI_DragFloat("CutOff (cos)", &light->cutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Cutoff"); } UI_DragFloat("OuterCutOff (cos)", &light->outerCutOff, 0.005f, 0.0f, 1.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Light Cutoff"); } UI_Separator(); } UI_Text("Shadow Properties"); UI_DragFloat("Far Plane", &light->shadowFarPlane, 0.5f, 1.0f, 200.0f); UI_DragFloat("Bias", &light->shadowBias, 0.001f, 0.0f, 0.5f);
     }
     else if (primary && primary->type == ENTITY_DECAL) {
