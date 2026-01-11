@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 #include <FL/Fl.H>
-#include <FL/Fl_Window.H>
+#include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/Fl_Input.H>
@@ -34,7 +34,6 @@
 #include <vector>
 #include <thread>
 #include <mutex>
-#include <atomic>
 
 #ifdef PLATFORM_WINDOWS
 #include <winsock2.h>
@@ -54,195 +53,253 @@ typedef int socket_t;
 #endif
 
 #define TCONSOLE_PORT 28016
-#define TCONSOLE_BUFFER_SIZE 4096
+#define BUFFER_SIZE 4096
 
-struct AppData {
-    Fl_Text_Display* logDisplay;
-    Fl_Text_Buffer* logBuffer;
-    Fl_Box* statusBar;
-    vector<string> messages;
-    mutex mtx;
-    atomic<bool> is_connected{ false };
-    atomic<bool> should_update_status{ true };
-    socket_t client_socket = INVALID_SOCKET;
+Fl_Double_Window* window = nullptr;
+Fl_Text_Display* text_display = nullptr;
+Fl_Text_Buffer* text_buffer = nullptr;
+Fl_Text_Buffer* style_buffer = nullptr;
+Fl_Input* input_field = nullptr;
+Fl_Button* send_button = nullptr;
+Fl_Menu_Bar* menu_bar = nullptr;
+Fl_Box* status_bar = nullptr;
+
+Fl_Text_Display::Style_Table_Entry style_table[] = {
+    { FL_WHITE, FL_COURIER, 14 }, // A - Normal
+    { FL_YELLOW, FL_COURIER, 14 }, // B - Warning
+    { FL_RED, FL_COURIER, 14 }, // C - Error
+    { FL_CYAN, FL_COURIER_BOLD, 14}, // D - User Input
 };
 
-void server_thread_func(AppData* app_data) {
+socket_t server_socket = INVALID_SOCKET;
+socket_t client_socket = INVALID_SOCKET;
+std::vector<std::string> message_queue;
+std::mutex queue_mutex;
+std::thread server_thread;
+bool should_exit = false;
+
+void append_message(const std::string& msg, char style_char);
+void send_command(Fl_Widget*, void*);
+void on_window_close(Fl_Widget*, void*);
+void on_quit_cb(Fl_Widget*, void* data);
+void on_clear_cb(Fl_Widget*, void* data);
+void on_about_cb(Fl_Widget*, void* data);
+void server_loop();
+void idle_callback(void*);
+
+void append_message(const std::string& msg, char style_char = 'A') {
+    if (msg.rfind("[ERROR]", 0) == 0) {
+        style_char = 'C';
+    }
+    else if (msg.rfind("[WARNING]", 0) == 0) {
+        style_char = 'B';
+    }
+    else if (msg.rfind("> ", 0) == 0) {
+        style_char = 'D';
+    }
+
+    text_buffer->append(msg.c_str());
+    text_buffer->append("\n");
+
+    std::string style_line(msg.length(), style_char);
+    style_buffer->append(style_line.c_str());
+    style_buffer->append("\n");
+
+    text_display->scroll(text_display->count_lines(0, text_buffer->length(), 1), 0);
+}
+
+void idle_callback(void*) {
+    std::vector<std::string> local_queue;
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        if (!message_queue.empty()) {
+            local_queue.swap(message_queue);
+        }
+    }
+
+    for (const auto& msg : local_queue) {
+        append_message(msg);
+    }
+
+    static bool last_connected_state = false;
+    if (last_connected_state != (client_socket != INVALID_SOCKET)) {
+        last_connected_state = (client_socket != INVALID_SOCKET);
+        if (last_connected_state) {
+            status_bar->label("Engine Connected.");
+        }
+        else {
+            status_bar->label("Waiting for engine connection...");
+        }
+    }
+
+    Fl::repeat_timeout(0.05, idle_callback);
+}
+
+void send_command_callback(Fl_Widget*, void*) {
+    const char* command = input_field->value();
+    if (strlen(command) > 0 && client_socket != INVALID_SOCKET) {
+        std::string full_command = std::string(command) + "\n";
+        send(client_socket, full_command.c_str(), full_command.length(), 0);
+        append_message("> " + std::string(command), 'D');
+        input_field->value("");
+    }
+    else if (strlen(command) > 0) {
+        append_message("[!] Engine not connected. Command not sent: " + std::string(command), 'C');
+    }
+    input_field->take_focus();
+}
+
+void input_callback(Fl_Widget*, void*) {
+    if (Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter) {
+        send_command_callback(nullptr, nullptr);
+    }
+}
+
+void on_window_close(Fl_Widget*, void*) {
+    should_exit = true;
+    if (server_socket != INVALID_SOCKET) {
+        closesocket(server_socket);
+        server_socket = INVALID_SOCKET;
+    }
+    if (server_thread.joinable()) {
+        server_thread.join();
+    }
+    window->hide();
+}
+
+void on_quit_cb(Fl_Widget* w, void* data) {
+    on_window_close(w, data);
+}
+
+void on_clear_cb(Fl_Widget*, void*) {
+    text_buffer->text("");
+    style_buffer->text("");
+}
+
+void on_about_cb(Fl_Widget*, void*) {
+    fl_message_title("About Tectonic Console");
+    fl_message("A remote console for the Tectonic Engine.\n\n"
+        "Copyright (c) 2025-2026 Soft Sprint Studios");
+}
+
+void server_loop() {
 #ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
 
-    socket_t listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (listen_socket == INVALID_SOCKET) return;
+    server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (server_socket == INVALID_SOCKET) return;
+
+    int opt = 1;
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
 
     sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(TCONSOLE_PORT);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    int opt = 1;
-    setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(int));
-
-    if (bind(listen_socket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-        closesocket(listen_socket);
+    if (bind(server_socket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+        closesocket(server_socket);
         return;
     }
 
-    if (listen(listen_socket, 1) == SOCKET_ERROR) {
-        closesocket(listen_socket);
-        return;
-    }
+    listen(server_socket, 1);
 
-    while (true) {
-        app_data->client_socket = accept(listen_socket, NULL, NULL);
-        if (app_data->client_socket != INVALID_SOCKET) {
-            app_data->is_connected = true;
-            app_data->should_update_status = true;
-            Fl::awake();
-            send(app_data->client_socket, "ok", 2, 0);
+    while (!should_exit) {
+        sockaddr_in client_addr;
+        socklen_t client_len = sizeof(client_addr);
+        client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_len);
 
-            char buffer[TCONSOLE_BUFFER_SIZE];
-            int bytes_received;
-            string partial_line;
-
-            while ((bytes_received = recv(app_data->client_socket, buffer, sizeof(buffer) - 1, 0)) > 0) {
-                buffer[bytes_received] = '\0';
-                partial_line += buffer;
-
-                size_t pos = 0;
-                string token;
-                while ((pos = partial_line.find('\n')) != string::npos) {
-                    token = partial_line.substr(0, pos);
-                    {
-                        lock_guard<mutex> lock(app_data->mtx);
-                        app_data->messages.push_back(token);
-                    }
-                    Fl::awake();
-                    partial_line.erase(0, pos + 1);
-                }
-            }
-
-            app_data->is_connected = false;
-            app_data->should_update_status = true;
-            Fl::awake();
-            closesocket(app_data->client_socket);
-            app_data->client_socket = INVALID_SOCKET;
+        if (client_socket == INVALID_SOCKET) {
+            if (should_exit) break;
+            continue;
         }
+
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            message_queue.push_back("[TConsole] Engine connected.");
+        }
+        Fl::awake();
+
+        send(client_socket, "ok", 2, 0);
+
+        char buffer[BUFFER_SIZE];
+        int bytes_received;
+        std::string line_buffer;
+
+        while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
+            buffer[bytes_received] = '\0';
+            line_buffer += buffer;
+
+            size_t pos;
+            while ((pos = line_buffer.find('\n')) != std::string::npos) {
+                std::string line = line_buffer.substr(0, pos);
+                if (!line.empty() && line.back() == '\r') {
+                    line.pop_back();
+                }
+
+                if (!line.empty()) {
+                    std::lock_guard<std::mutex> lock(queue_mutex);
+                    message_queue.push_back(line);
+                }
+                Fl::awake();
+                line_buffer.erase(0, pos + 1);
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            message_queue.push_back("[TConsole] Engine disconnected.");
+        }
+        Fl::awake();
+        closesocket(client_socket);
+        client_socket = INVALID_SOCKET;
     }
-    closesocket(listen_socket);
+
 #ifdef PLATFORM_WINDOWS
     WSACleanup();
 #endif
 }
 
-class TConsoleWindow : public Fl_Window {
-public:
-    Fl_Input* commandInput;
-    Fl_Button* sendBtn;
-    Fl_Menu_Bar* menuBar;
-    AppData app_data;
-
-    TConsoleWindow(int W, int H, const char* L = 0) : Fl_Window(W, H, L) {
-        begin();
-        menuBar = new Fl_Menu_Bar(0, 0, W, 25);
-        menuBar->add("File/Quit", FL_CTRL + 'q', on_quit_cb, this);
-        menuBar->add("Edit/Clear", FL_CTRL + 'l', on_clear_cb, this);
-        menuBar->add("Help/About", 0, on_about_cb, this);
-
-        app_data.logBuffer = new Fl_Text_Buffer();
-        app_data.logDisplay = new Fl_Text_Display(0, 25, W, H - 75, "");
-        app_data.logDisplay->buffer(app_data.logBuffer);
-
-        commandInput = new Fl_Input(0, H - 50, W - 80, 25, "");
-        sendBtn = new Fl_Button(W - 80, H - 50, 80, 25, "Send");
-
-        app_data.statusBar = new Fl_Box(0, H - 25, W, 25, "Waiting for engine connection...");
-        app_data.statusBar->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE | FL_ALIGN_CLIP);
-        app_data.statusBar->box(FL_UP_BOX);
-        end();
-        resizable(this);
-
-        commandInput->callback(on_command_cb, this);
-        sendBtn->callback(on_send_btn_cb, this);
-        Fl::add_idle(on_idle_cb, this);
-    }
-
-private:
-    static void on_command_cb(Fl_Widget* w, void* data) {
-        TConsoleWindow* win = (TConsoleWindow*)data;
-        if (Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter) {
-            on_send_btn_cb(w, data);
-        }
-    }
-
-    static void on_send_btn_cb(Fl_Widget* w, void* data) {
-        TConsoleWindow* win = (TConsoleWindow*)data;
-        const char* command = win->commandInput->value();
-        if (command && strlen(command) > 0) {
-            if (win->app_data.is_connected) {
-                string cmd_with_newline = string(command) + "\n";
-                send(win->app_data.client_socket, cmd_with_newline.c_str(), cmd_with_newline.length(), 0);
-
-                string log_entry = "> " + string(command) + "\n";
-                win->app_data.logBuffer->append(log_entry.c_str());
-                win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
-
-                win->commandInput->value("");
-            }
-            else {
-                string log_entry = "[!] Engine not connected. Command not sent: " + string(command) + "\n";
-                win->app_data.logBuffer->append(log_entry.c_str());
-                win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
-            }
-        }
-    }
-
-    static void on_quit_cb(Fl_Widget*, void* data) {
-        TConsoleWindow* win = (TConsoleWindow*)data;
-        win->hide();
-    }
-
-    static void on_clear_cb(Fl_Widget*, void* data) {
-        TConsoleWindow* win = (TConsoleWindow*)data;
-        win->app_data.logBuffer->text("");
-    }
-
-    static void on_about_cb(Fl_Widget*, void*) {
-        fl_message_title("About Tectonic Console");
-        fl_message("A remote console for the Tectonic Engine.\n\n"
-            "Copyright (c) 2025-2026 Soft Sprint Studios");
-    }
-
-    static void on_idle_cb(void* data) {
-        TConsoleWindow* win = (TConsoleWindow*)data;
-        win->app_data.mtx.lock();
-        if (!win->app_data.messages.empty()) {
-            for (const auto& msg : win->app_data.messages) {
-                win->app_data.logBuffer->append((msg + "\n").c_str());
-            }
-            win->app_data.messages.clear();
-            win->app_data.logDisplay->scroll(win->app_data.logBuffer->length(), 0);
-        }
-        win->app_data.mtx.unlock();
-
-        if (win->app_data.should_update_status) {
-            if (win->app_data.is_connected) {
-                win->app_data.statusBar->label("Engine Connected.");
-            }
-            else {
-                win->app_data.statusBar->label("Waiting for engine connection...");
-            }
-            win->app_data.should_update_status = false;
-        }
-    }
-};
-
 int main(int argc, char** argv) {
-    TConsoleWindow* window = new TConsoleWindow(800, 600, "Tectonic Console");
+    window = new Fl_Double_Window(800, 600, "Tectonic Console");
+    window->callback(on_window_close);
+
+    menu_bar = new Fl_Menu_Bar(0, 0, 800, 25);
+    menu_bar->add("File/Quit", FL_CTRL + 'q', on_quit_cb, window);
+    menu_bar->add("Edit/Clear", FL_CTRL + 'l', on_clear_cb, window);
+    menu_bar->add("Help/About", 0, on_about_cb, window);
+
+    text_buffer = new Fl_Text_Buffer();
+    style_buffer = new Fl_Text_Buffer();
+
+    text_display = new Fl_Text_Display(10, 35, 780, 515);
+    text_display->buffer(text_buffer);
+    text_display->highlight_data(style_buffer, style_table, sizeof(style_table) / sizeof(style_table[0]), 'A', 0, 0);
+    text_display->color(FL_BLACK);
+    text_display->textcolor(FL_WHITE);
+    text_display->textfont(FL_COURIER);
+    text_display->textsize(14);
+
+    input_field = new Fl_Input(10, 560, 700, 30);
+    input_field->callback(input_callback);
+    input_field->when(FL_WHEN_ENTER_KEY | FL_WHEN_RELEASE);
+
+    send_button = new Fl_Button(720, 560, 70, 30, "Send");
+    send_button->callback(send_command_callback);
+
+    status_bar = new Fl_Box(0, 590, 800, 10, "Waiting for engine connection...");
+    status_bar->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE | FL_ALIGN_CLIP);
+    status_bar->box(FL_FLAT_BOX);
+
+    window->resizable(text_display);
     window->end();
     window->show(argc, argv);
-    thread server(server_thread_func, &window->app_data);
-    server.detach();
+
+    Fl::add_timeout(0.05, idle_callback);
+
+    server_thread = std::thread(server_loop);
+
     return Fl::run();
 }

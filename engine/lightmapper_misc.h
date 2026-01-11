@@ -25,6 +25,10 @@
 #ifndef LIGHTMAPPER_MISC_H
 #define LIGHTMAPPER_MISC_H
 
+#ifndef __cplusplus
+#error lightmapper_misc.h cannot be included from a c file
+#endif
+
 #ifdef ARCH_64BIT
 
 #include "math_lib.h"
