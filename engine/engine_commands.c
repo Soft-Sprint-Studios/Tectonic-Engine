@@ -632,20 +632,6 @@ void PrintSystemInfo() {
 
     Console_Printf("CPU Vendor: %s\n", vendor);
     Console_Printf("CPU Brand:  %s\n", brand);
-    Console_Printf("CPU count: %d\n", SDL_GetCPUCount());
-    Console_Printf("Cache line size: %d bytes\n", SDL_GetCPUCacheLineSize());
-    Console_Printf("RDTSC support: %s\n", SDL_HasRDTSC() ? "Yes" : "No");
-    Console_Printf("AltiVec support: %s\n", SDL_HasAltiVec() ? "Yes" : "No");
-    Console_Printf("MMX support: %s\n", SDL_HasMMX() ? "Yes" : "No");
-    Console_Printf("3DNow support: %s\n", SDL_Has3DNow() ? "Yes" : "No");
-    Console_Printf("SSE support: %s\n", SDL_HasSSE() ? "Yes" : "No");
-    Console_Printf("SSE2 support: %s\n", SDL_HasSSE2() ? "Yes" : "No");
-    Console_Printf("SSE3 support: %s\n", SDL_HasSSE3() ? "Yes" : "No");
-    Console_Printf("SSE4.1 support: %s\n", SDL_HasSSE41() ? "Yes" : "No");
-    Console_Printf("SSE4.2 support: %s\n", SDL_HasSSE42() ? "Yes" : "No");
-    Console_Printf("AVX support: %s\n", SDL_HasAVX() ? "Yes" : "No");
-    Console_Printf("AVX2 support: %s\n", SDL_HasAVX2() ? "Yes" : "No");
-    Console_Printf("NEON support: %s\n", SDL_HasNEON() ? "Yes" : "No");
     Console_Printf("RAM: %d MB\n", SDL_GetSystemRAM());
 }
 
