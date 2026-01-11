@@ -34,17 +34,15 @@
 
 // function based on CreateScanlineTexture from pathos engine
 static void CreateScanlineTexture(Renderer* renderer) {
-#define SCANLINE_TEXTURE_WIDTH 64
-#define SCANLINE_TEXTURE_HEIGHT 64
-    unsigned int dataSize = SCANLINE_TEXTURE_WIDTH * SCANLINE_TEXTURE_HEIGHT * 4;
+    unsigned int dataSize = 64 * 64 * 4;
     unsigned char* pscanlinetexture = (unsigned char*)malloc(dataSize * sizeof(unsigned char));
     if (!pscanlinetexture) return;
 
-    for (int y = 0; y < SCANLINE_TEXTURE_HEIGHT; y++)
+    for (int y = 0; y < 64; y++)
     {
-        for (int x = 0; x < SCANLINE_TEXTURE_WIDTH; x++)
+        for (int x = 0; x < 64; x++)
         {
-            unsigned char* pdata = pscanlinetexture + (y * SCANLINE_TEXTURE_WIDTH + x) * 4;
+            unsigned char* pdata = pscanlinetexture + (y * 64 + x) * 4;
 
             pdata[0] = 0;
             pdata[1] = 0;
@@ -56,7 +54,7 @@ static void CreateScanlineTexture(Renderer* renderer) {
 
     glGenTextures(1, &renderer->scanlineTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->scanlineTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCANLINE_TEXTURE_WIDTH, SCANLINE_TEXTURE_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, pscanlinetexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, pscanlinetexture);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -68,8 +66,6 @@ static void CreateScanlineTexture(Renderer* renderer) {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     free(pscanlinetexture);
-#undef SCANLINE_TEXTURE_WIDTH
-#undef SCANLINE_TEXTURE_HEIGHT
 }
 
 void Monitor_Init(Renderer* renderer) {

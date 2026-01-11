@@ -65,18 +65,20 @@ static char* prependTexturePath(const char* filename) {
 }
 
 static GLuint createMissingTexture() {
-#define width 64
-#define height 64
-    unsigned char data[width * height * 4];
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int i = (y * width + x) * 4;
+    unsigned char data[64 * 64 * 4];
+    for (int y = 0; y < 64; ++y) {
+        for (int x = 0; x < 64; ++x) {
+            int i = (y * 64 + x) * 4;
             bool is_purple = ((x / 8) % 2) ^ ((y / 8) % 2);
             if (is_purple) {
-                data[i + 0] = 255; data[i + 1] = 0;   data[i + 2] = 255;
+                data[i + 0] = 255; 
+                data[i + 1] = 0;   
+                data[i + 2] = 255;
             }
             else {
-                data[i + 0] = 0;   data[i + 1] = 0;   data[i + 2] = 0;
+                data[i + 0] = 0;
+                data[i + 1] = 0;   
+                data[i + 2] = 0;
             }
             data[i + 3] = 255;
         }
@@ -85,15 +87,13 @@ static GLuint createMissingTexture() {
     GLuint texID;
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     return texID;
-#undef width
-#undef height
 }
 
 static GLuint createDefaultRmaTexture() {
