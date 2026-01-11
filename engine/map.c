@@ -2251,7 +2251,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             light->preset = preset_int;
             light->type = (LightType)type_int;
             light->is_on = (bool)is_on_int;
-            light->is_static = (bool)is_static_int;
+            light->is_static = is_static_int;
             light->is_static_shadow = (bool)is_static_shadow_int;
             light->intensity = light->base_intensity;
 
