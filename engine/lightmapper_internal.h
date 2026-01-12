@@ -25,6 +25,10 @@
 #ifndef LIGHTMAPPER_INTERNAL_H
 #define LIGHTMAPPER_INTERNAL_H
 
+#ifndef __cplusplus
+#error lightmapper_internal.h cannot be included from a c file
+#endif
+
 constexpr float SHADOW_BIAS = 0.005f;
 constexpr int BLUR_RADIUS = 2;
 constexpr int NUM_AREA_LIGHT_SAMPLES = 16;
