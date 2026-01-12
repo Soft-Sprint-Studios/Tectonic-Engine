@@ -73,26 +73,20 @@ Fl_Text_Display::Style_Table_Entry style_table[] = {
 
 socket_t server_socket = INVALID_SOCKET;
 socket_t client_socket = INVALID_SOCKET;
-std::vector<std::string> message_queue;
-std::mutex queue_mutex;
-std::thread server_thread;
+vector<string> message_queue;
+mutex queue_mutex;
+thread server_thread;
 bool should_exit = false;
 
-void append_message(const std::string& msg, char style_char);
-void send_command(Fl_Widget*, void*);
-void on_window_close(Fl_Widget*, void*);
-void on_quit_cb(Fl_Widget*, void* data);
-void on_clear_cb(Fl_Widget*, void* data);
-void on_about_cb(Fl_Widget*, void* data);
-void server_loop();
-void idle_callback(void*);
-
-void append_message(const std::string& msg, char style_char = 'A') {
+void append_message(const string& msg, char style_char = 'A') {
     if (msg.rfind("[ERROR]", 0) == 0) {
         style_char = 'C';
     }
     else if (msg.rfind("[WARNING]", 0) == 0) {
         style_char = 'B';
+    }
+    else if (msg.rfind("[TConsole]", 0) == 0) {
+        style_char = 'D';
     }
     else if (msg.rfind("> ", 0) == 0) {
         style_char = 'D';
@@ -101,7 +95,7 @@ void append_message(const std::string& msg, char style_char = 'A') {
     text_buffer->append(msg.c_str());
     text_buffer->append("\n");
 
-    std::string style_line(msg.length(), style_char);
+    string style_line(msg.length(), style_char);
     style_buffer->append(style_line.c_str());
     style_buffer->append("\n");
 
@@ -109,9 +103,9 @@ void append_message(const std::string& msg, char style_char = 'A') {
 }
 
 void idle_callback(void*) {
-    std::vector<std::string> local_queue;
+    vector<string> local_queue;
     {
-        std::lock_guard<std::mutex> lock(queue_mutex);
+        lock_guard<mutex> lock(queue_mutex);
         if (!message_queue.empty()) {
             local_queue.swap(message_queue);
         }
@@ -138,13 +132,13 @@ void idle_callback(void*) {
 void send_command_callback(Fl_Widget*, void*) {
     const char* command = input_field->value();
     if (strlen(command) > 0 && client_socket != INVALID_SOCKET) {
-        std::string full_command = std::string(command) + "\n";
+        string full_command = string(command) + "\n";
         send(client_socket, full_command.c_str(), full_command.length(), 0);
-        append_message("> " + std::string(command), 'D');
+        append_message("> " + string(command), 'D');
         input_field->value("");
     }
     else if (strlen(command) > 0) {
-        append_message("[!] Engine not connected. Command not sent: " + std::string(command), 'C');
+        append_message("[!] Engine not connected. Command not sent: " + string(command), 'C');
     }
     input_field->take_focus();
 }
@@ -217,7 +211,7 @@ void server_loop() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(queue_mutex);
+            lock_guard<mutex> lock(queue_mutex);
             message_queue.push_back("[TConsole] Engine connected.");
         }
         Fl::awake();
@@ -226,21 +220,21 @@ void server_loop() {
 
         char buffer[BUFFER_SIZE];
         int bytes_received;
-        std::string line_buffer;
+        string line_buffer;
 
         while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
             buffer[bytes_received] = '\0';
             line_buffer += buffer;
 
             size_t pos;
-            while ((pos = line_buffer.find('\n')) != std::string::npos) {
-                std::string line = line_buffer.substr(0, pos);
+            while ((pos = line_buffer.find('\n')) != string::npos) {
+                string line = line_buffer.substr(0, pos);
                 if (!line.empty() && line.back() == '\r') {
                     line.pop_back();
                 }
 
                 if (!line.empty()) {
-                    std::lock_guard<std::mutex> lock(queue_mutex);
+                    lock_guard<mutex> lock(queue_mutex);
                     message_queue.push_back(line);
                 }
                 Fl::awake();
@@ -249,7 +243,7 @@ void server_loop() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(queue_mutex);
+            lock_guard<mutex> lock(queue_mutex);
             message_queue.push_back("[TConsole] Engine disconnected.");
         }
         Fl::awake();
@@ -299,7 +293,7 @@ int main(int argc, char** argv) {
 
     Fl::add_timeout(0.05, idle_callback);
 
-    server_thread = std::thread(server_loop);
+    server_thread = thread(server_loop);
 
     return Fl::run();
 }
