@@ -48,7 +48,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
         return;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->volumetricFBO);
-    glViewport(0, 0, engine->width / VOLUMETRIC_DOWNSAMPLE, engine->height / VOLUMETRIC_DOWNSAMPLE);
+    glViewport(0, 0, engine->width / Cvar_GetInt("r_volumetrics_downsample"), engine->height / Cvar_GetInt("r_volumetrics_downsample"));
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(renderer->volumetricShader);

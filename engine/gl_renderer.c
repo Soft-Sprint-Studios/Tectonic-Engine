@@ -115,8 +115,8 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) Console_Printf("G-Buffer Framebuffer not complete!\n");
-    const int bloom_width = engine->width / BLOOM_DOWNSAMPLE;
-    const int bloom_height = engine->height / BLOOM_DOWNSAMPLE;
+    const int bloom_width = engine->width / Cvar_GetInt("r_bloom_downsample");
+    const int bloom_height = engine->height / Cvar_GetInt("r_bloom_downsample");
     glGenFramebuffers(1, &renderer->bloomFBO); glBindFramebuffer(GL_FRAMEBUFFER, renderer->bloomFBO);
     glGenTextures(1, &renderer->bloomBrightnessTexture); glBindTexture(GL_TEXTURE_2D, renderer->bloomBrightnessTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
@@ -173,7 +173,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->volumetricFBO);
     glGenTextures(1, &renderer->volumetricTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / VOLUMETRIC_DOWNSAMPLE, engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / Cvar_GetInt("r_volumetrics_downsample"), engine->height / Cvar_GetInt("r_volumetrics_downsample"), 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -185,7 +185,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, renderer->volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / VOLUMETRIC_DOWNSAMPLE, engine->height / VOLUMETRIC_DOWNSAMPLE, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / Cvar_GetInt("r_volumetrics_downsample"), engine->height / Cvar_GetInt("r_volumetrics_downsample"), 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -274,8 +274,8 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderer->histogramSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    const int ssao_width = engine->width / SSAO_DOWNSAMPLE;
-    const int ssao_height = engine->height / SSAO_DOWNSAMPLE;
+    const int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
+    const int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glGenFramebuffers(1, &renderer->ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);

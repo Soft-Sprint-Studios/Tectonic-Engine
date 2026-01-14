@@ -21,13 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "cvar.h"
 #include "gl_bloom.h"
 #include "gl_renderer.h"
 
 void Bloom_RenderPass(Renderer* renderer, Engine* engine) {
     glUseProgram(renderer->bloomShader); 
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->bloomFBO);
-    glViewport(0, 0, engine->width / BLOOM_DOWNSAMPLE, engine->height / BLOOM_DOWNSAMPLE);
+    glViewport(0, 0, engine->width / Cvar_GetInt("r_bloom_downsample"), engine->height / Cvar_GetInt("r_bloom_downsample"));
     glActiveTexture(GL_TEXTURE0); 
     glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
     glBindVertexArray(renderer->quadVAO); 

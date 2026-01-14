@@ -26,8 +26,8 @@
 #include "cvar.h"
 
 void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection) {
-    const int ssao_width = engine->width / SSAO_DOWNSAMPLE;
-    const int ssao_height = engine->height / SSAO_DOWNSAMPLE;
+    const int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
+    const int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
     glViewport(0, 0, ssao_width, ssao_height);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);

@@ -31,10 +31,6 @@
 extern "C" {
 #endif
 
-#define BLOOM_DOWNSAMPLE 2
-#define SSAO_DOWNSAMPLE 2
-#define VOLUMETRIC_DOWNSAMPLE 2
-
 	void Renderer_Init(Renderer* renderer, Engine* engine);
 	void Renderer_Shutdown(Renderer* renderer);
 	void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, int viewMode);
