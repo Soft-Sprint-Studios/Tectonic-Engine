@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "cvar.h"
 #include "gl_ssao.h"
 #include "gl_renderer.h"
-#include "cvar.h"
 
 void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection) {
     const int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
