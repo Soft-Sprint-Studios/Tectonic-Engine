@@ -45,8 +45,6 @@
 extern "C" {
 #endif
 
-#define GEOMETRY_PASS_DOWNSAMPLE_FACTOR 1.1
-
 #define MAX_LIGHTS 256
 #define MAX_BRUSHES 8192
 #define MAX_MODELS 8192

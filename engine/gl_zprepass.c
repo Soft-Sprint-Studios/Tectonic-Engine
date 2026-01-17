@@ -37,7 +37,7 @@ void Zprepass_Shutdown(Renderer* renderer) {
 
 void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat4* view, const Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
-    glViewport(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+    glViewport(0, 0, engine->width / Cvar_GetFloat("r_geometry_downsample"), engine->height / Cvar_GetFloat("r_geometry_downsample"));
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);

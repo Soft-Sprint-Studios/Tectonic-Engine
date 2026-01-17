@@ -370,7 +370,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     renderer->stats.totalBrushes = scene->numBrushes;
 
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
-    glViewport(0, 0, engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR, engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+    glViewport(0, 0, engine->width / Cvar_GetFloat("r_geometry_downsample"), engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
     if (Cvar_GetInt("r_zprepass") && !is_reflection_pass) {
         Zprepass_Render(renderer, scene, engine, view, projection);
@@ -399,7 +399,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(renderer->mainShader, "viewportSize"), (float)(engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR), (float)(engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR));
+    glUniform2f(glGetUniformLocation(renderer->mainShader, "viewportSize"), (float)(engine->width / Cvar_GetFloat("r_geometry_downsample")), (float)(engine->height / Cvar_GetFloat("r_geometry_downsample")));
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "prevViewProjection"), 1, GL_FALSE, renderer->prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(renderer->mainShader, "viewPos"), 1, &cameraPos.x);
     glUniform1f(glGetUniformLocation(renderer->mainShader, "u_time"), engine->lastFrame);
@@ -568,8 +568,8 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
 
     if (Cvar_GetInt("r_particles")) {
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        float scrW = (float)(engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
-        float scrH = (float)(engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR);
+        float scrW = (float)(engine->width / Cvar_GetFloat("r_geometry_downsample"));
+        float scrH = (float)(engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
         for (int i = 0; i < scene->numParticleEmitters; ++i) {
             ParticleEmitter_Render(&scene->particleEmitters[i], *view, *projection, renderer->gPosition, scrW, scrH);

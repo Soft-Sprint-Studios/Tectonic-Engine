@@ -234,8 +234,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
-        const int LOW_RES_WIDTH = engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-        const int LOW_RES_HEIGHT = engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+        const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+        const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
         glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT,
             0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type],
             GL_DEPTH_BUFFER_BIT, GL_NEAREST);

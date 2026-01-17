@@ -73,8 +73,8 @@ static void Renderer_InitShaders(Renderer* renderer) {
 }
 
 static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
-    const int LOW_RES_WIDTH = engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-    const int LOW_RES_HEIGHT = engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+    const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+    const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
 
     glGenFramebuffers(1, &renderer->gBufferFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);

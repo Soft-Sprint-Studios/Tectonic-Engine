@@ -300,8 +300,8 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
             glEnable(GL_FRAMEBUFFER_SRGB);
 
-            const int LOW_RES_WIDTH = engine->width / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
-            const int LOW_RES_HEIGHT = engine->height / GEOMETRY_PASS_DOWNSAMPLE_FACTOR;
+            const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+            const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
 
             glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
