@@ -166,6 +166,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     SDL_ShowCursor(SDL_ENABLE);
     IPC_Init();
     g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
+    g_engine->flashlight_on = false;
     g_engine->camera.radiation_level = 0.0f;
     g_engine->camera.rads_per_second = 0.0f;
     g_engine->active_camera_brush_index = -1;

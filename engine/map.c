@@ -1594,7 +1594,10 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene, 0, sizeof(Scene));
     scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
-    engine->camera.health = 100.0f;
+    if (engine) {
+        engine->camera.health = 100.0f;
+        engine->camera.radiation_level = 0.0f;
+    }
     scene->post.enabled = true;
     scene->post.crtCurvature = 0.1f;
     scene->post.vignetteStrength = 0.8f;
@@ -1924,6 +1927,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 scene->playerStart.pitch = 0.0f;
             }
         }
+        else if (strcmp(keyword, "player_status") == 0) {
+            int flashlight_on_int = 0;
+            if (sscanf(line, "%*s %f %f %d", &engine->camera.health, &engine->camera.radiation_level, &flashlight_on_int) == 3) {
+                engine->flashlight_on = (bool)flashlight_on_int;
+            }
+        }
         else if (strcmp(keyword, "lightmap_resolution") == 0) {
             sscanf(line, "%*s %d", &scene->lightmapResolution);
         }
@@ -1984,6 +1993,15 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
             while (fgets(line, sizeof(line), file) && strncmp(line, "brush_end", 9) != 0) {
                 int dummy_int;
+                int active_int, has_fired_int, touching_int, door_state_int, plat_state_int;
+                if (sscanf(line, " runtime_states %d %d %d %f %d %d", &active_int, &has_fired_int, &touching_int, &b->wait_timer, &door_state_int, &plat_state_int) == 6) {
+                    b->runtime_active = (bool)active_int;
+                    b->runtime_hasFired = (bool)has_fired_int;
+                    b->runtime_playerIsTouching = (bool)touching_int;
+                    b->door_state = (DoorState)door_state_int;
+                    b->plat_state = (PlatState)plat_state_int;
+                    continue;
+                }
                 char face_keyword[64];
                 sscanf(line, "%s", face_keyword);
                 if (sscanf(line, " num_verts %d", &b->numVertices) == 1) {
@@ -2649,6 +2667,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     fprintf(file, "lightmap_resolution %d\n", scene->lightmapResolution);
     if (engine) {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", engine->camera.position.x, engine->camera.position.y, engine->camera.position.z, engine->camera.yaw, engine->camera.pitch);
+        fprintf(file, "player_status %.2f %.2f %d\n\n", engine->camera.health, engine->camera.radiation_level, (int)engine->flashlight_on);
     }
     else {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z, scene->playerStart.yaw, scene->playerStart.pitch);
@@ -2675,6 +2694,9 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         fprintf(file, "brush_begin %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", b->pos.x, b->pos.y, b->pos.z, b->rot.x, b->rot.y, b->rot.z, b->scale.x, b->scale.y, b->scale.z);
+        if (engine) {
+            fprintf(file, "  runtime_states %d %d %d %f %d %d\n", (int)b->runtime_active, (int)b->runtime_hasFired, (int)b->runtime_playerIsTouching, b->wait_timer, (int)b->door_state, (int)b->plat_state);
+        }
         if (strlen(b->targetname) > 0) fprintf(file, "  targetname \"%s\"\n", b->targetname);
         if (strlen(b->classname) > 0) fprintf(file, "  classname \"%s\"\n", b->classname);
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
