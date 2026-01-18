@@ -489,6 +489,53 @@ void Cmd_Kill(int argc, char** argv) {
     g_engine->camera.health = 0.0f;
 }
 
+void Cmd_Skyname(int argc, char** argv) {
+    if (argc != 2) {
+        Console_Printf("Usage: skyname <cubemap_base_name>");
+        return;
+    }
+
+    const char* new_skybox_name = argv[1];
+
+    if (g_scene.skybox_cubemap) {
+        glDeleteTextures(1, &g_scene.skybox_cubemap);
+        g_scene.skybox_cubemap = 0;
+    }
+
+    strncpy(g_scene.skybox_path, new_skybox_name, sizeof(g_scene.skybox_path) - 1);
+    g_scene.skybox_path[sizeof(g_scene.skybox_path) - 1] = '\0';
+
+    const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+    char face_paths[6][256];
+    const char* face_pointers[6];
+    bool all_files_exist = true;
+
+    for (int i = 0; i < 6; ++i) {
+        snprintf(face_paths[i], sizeof(face_paths[i]), "skybox/%s%s", g_scene.skybox_path, suffixes[i]);
+        face_pointers[i] = face_paths[i];
+
+        FILE* f = fopen(face_paths[i], "rb");
+        if (f) {
+            fclose(f);
+        }
+        else {
+            all_files_exist = false;
+            Console_Printf_Error("Skybox texture not found: %s", face_paths[i]);
+        }
+    }
+
+    if (all_files_exist) {
+        g_scene.skybox_cubemap = loadCubemap(face_pointers);
+        g_scene.use_cubemap_skybox = true;
+        Console_Printf("Skybox changed to '%s'", new_skybox_name);
+    }
+    else {
+        Console_Printf_Error("Failed to load skybox '%s', one or more faces missing.", new_skybox_name);
+        g_scene.use_cubemap_skybox = false;
+        g_scene.skybox_path[0] = '\0';
+    }
+}
+
 void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("s_volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
@@ -602,6 +649,7 @@ void init_commands() {
     Commands_Register("help", Cmd_Help, "Shows a list of all available commands and cvars.", CMD_NONE);
     Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
     Commands_Register("condump", Cmd_Condump, "Dump the contents of the console into a condump file", CMD_NONE);
+    Commands_Register("skyname", Cmd_Skyname, "Changes the skybox cubemap. Usage: skyname <basename>", CMD_CHEAT);
     Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
     Commands_Register("screenshake", Cmd_ScreenShake, "Applies a screen shake effect. Usage: screenshake <amplitude> <frequency> <duration>", CMD_CHEAT);
     Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
