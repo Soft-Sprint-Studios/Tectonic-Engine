@@ -592,6 +592,8 @@ void init_cvars() {
     Cvar_Register("g_crouch_height", "1.37", "Player height when crouching", CVAR_NONE);
     Cvar_Register("g_sprint_fov", "10.0", "Additional FOV added when sprinting", CVAR_NONE);
     Cvar_Register("g_sprint_fov_speed", "5.0", "Speed of FOV interpolation", CVAR_NONE);
+    Cvar_Register("g_zoom_fov", "20.0", "FOV when zoomed in (degrees).", CVAR_NONE);
+    Cvar_Register("g_zoom_speed", "10.0", "Speed of the zoom in/out transition.", CVAR_NONE);
     Cvar_Register("g_map_backup_path", "", "Directory to store timestamped map backups on save. e.g., 'D:/maps/backups'", CVAR_NONE);
 #ifdef GAME_RELEASE
     Cvar_Register("g_cheats", "0", "Enable cheats (0=off, 1=on)", CVAR_NONE);

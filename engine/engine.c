@@ -1847,13 +1847,22 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             const Uint8* k_state = SDL_GetKeyboardState(NULL);
             float target_fov_offset = 0.0f;
-            float sprint_fov_max = Cvar_GetFloat("g_sprint_fov");
-            float sprint_fov_speed = Cvar_GetFloat("g_sprint_fov_speed");
+            float base_fov = Cvar_GetFloat("fov_vertical");
+            bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
 
-            if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
-                target_fov_offset = sprint_fov_max;
+            if (is_zoomed) {
+                float zoom_fov = Cvar_GetFloat("g_zoom_fov");
+                target_fov_offset = zoom_fov - base_fov;
             }
-            g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * sprint_fov_speed;
+            else {
+                float sprint_fov_max = Cvar_GetFloat("g_sprint_fov");
+                if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
+                    target_fov_offset = sprint_fov_max;
+                }
+            }
+
+            float zoom_speed = Cvar_GetFloat("g_zoom_speed");
+            g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * zoom_speed;
 
             float roll_max = Cvar_GetFloat("g_roll_angle");
             float roll_speed = Cvar_GetFloat("g_roll_speed");
