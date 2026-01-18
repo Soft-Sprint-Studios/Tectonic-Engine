@@ -1032,7 +1032,7 @@ void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
     const char* last_slash = strrchr(mapPath, '/');
     const char* last_bslash = strrchr(mapPath, '\\');
     const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    char* dot = strrchr(map_filename_start, '.');
+    const char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -1076,7 +1076,7 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPat
     const char* last_slash = strrchr(mapPath, '/');
     const char* last_bslash = strrchr(mapPath, '\\');
     const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    char* dot = strrchr(map_filename_start, '.');
+    const char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -1116,7 +1116,10 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* map
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
     char map_name_sanitized[128];
-    char* dot = strrchr(mapPath, '.');
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
@@ -1161,7 +1164,10 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
     char map_name_sanitized[128];
-    char* dot = strrchr(mapPath, '.');
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
@@ -1207,7 +1213,7 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
     const char* last_slash = strrchr(mapPath, '/');
     const char* last_bslash = strrchr(mapPath, '\\');
     const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    char* dot = strrchr(map_filename_start, '.');
+    const char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -1592,11 +1598,13 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 
     scene->numSprites = 0;
     memset(scene, 0, sizeof(Scene));
+    scene->originalMapPath[0] = '\0';
     scene->static_shadows_generated = false;
     scene->playerStart.position = (Vec3){ 0, 5, 0 };
     if (engine) {
         engine->camera.health = 100.0f;
         engine->camera.radiation_level = 0.0f;
+        engine->flashlight_on = false;
     }
     scene->post.enabled = true;
     scene->post.crtCurvature = 0.1f;
@@ -1733,7 +1741,8 @@ void Scene_LoadAmbientProbes(Scene* scene) {
     }
 }
 
-void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution) {
+void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index, int resolution) {
+    if (mapPath[0] == '\0') return;
     if (b->lightmapAtlasHandle) {
         glMakeTextureHandleNonResidentARB(b->lightmapAtlasHandle);
         b->lightmapAtlasHandle = 0;
@@ -1764,6 +1773,20 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int b
     int valid_faces = 0;
     int max_width = 0;
     int max_height = 0;
+
+    char map_name_sanitized[128];
+    const char* last_slash = strrchr(mapPath, '/');
+    const char* last_bslash = strrchr(mapPath, '\\');
+    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        size_t len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
 
     char brush_name_sanitized[128];
     if (strlen(b->targetname) > 0) {
@@ -1933,6 +1956,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 engine->flashlight_on = (bool)flashlight_on_int;
             }
         }
+        else if (strcmp(keyword, "original_map_path") == 0) {
+            sscanf(line, "%*s \"%255[^\"]\"", scene->originalMapPath);
+        }
         else if (strcmp(keyword, "lightmap_resolution") == 0) {
             sscanf(line, "%*s %d", &scene->lightmapResolution);
         }
@@ -2087,9 +2113,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
             }
             char map_name_sanitized[128];
-            const char* m_last_slash = strrchr(scene->mapPath, '/');
-            const char* m_last_bslash = strrchr(scene->mapPath, '\\');
-            const char* m_filename = (m_last_slash > m_last_bslash) ? m_last_slash + 1 : (m_last_bslash ? m_last_bslash + 1 : scene->mapPath);
+            const char* m_last_slash = strrchr(scene->originalMapPath, '/');
+            const char* m_last_bslash = strrchr(scene->originalMapPath, '\\');
+            const char* m_filename = (m_last_slash > m_last_bslash) ? m_last_slash + 1 : (m_last_bslash ? m_last_bslash + 1 : scene->originalMapPath);
             const char* m_dot = strrchr(m_filename, '.');
             if (m_dot) {
                 size_t len = m_dot - m_filename;
@@ -2110,8 +2136,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             Brush_UpdateMatrix(b);
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
             if (b->useVertexLighting) {
-                Brush_LoadVertexLighting(b, scene->numBrushes, scene->mapPath);
-                Brush_LoadVertexDirectionalLighting(b, scene->numBrushes, scene->mapPath);
+                Brush_LoadVertexLighting(b, scene->numBrushes, scene->originalMapPath);
+                Brush_LoadVertexDirectionalLighting(b, scene->numBrushes, scene->originalMapPath);
             }
             Brush_CreateRenderData(b);
             if (Brush_IsSolid(b) && b->numVertices > 0) {
@@ -2196,11 +2222,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 newObj->current_animation = 0;
             }
             if (newObj->useLightmap) {
-                SceneObject_LoadLightmaps(newObj, scene->numObjects - 1, scene->mapPath);
+                SceneObject_LoadLightmaps(newObj, scene->numObjects - 1, scene->originalMapPath);
             }
             else {
-                SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->mapPath);
-                SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->mapPath);
+                SceneObject_LoadVertexLighting(newObj, scene->numObjects - 1, scene->originalMapPath);
+                SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->originalMapPath);
             }
             if (!newObj->model) { scene->numObjects--; continue; }
             if (newObj->mass > 0.0f) { newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
@@ -2345,11 +2371,11 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 const char* dot = strrchr(map_filename, '.');
                 if (dot) {
                     size_t len = dot - map_filename;
-                    strncpy(map_name_sanitized, map_filename, len);
+                    strncpy(map_name_sanitized, scene->originalMapPath, len);
                     map_name_sanitized[len] = '\0';
                 }
                 else {
-                    strcpy(map_name_sanitized, map_filename);
+                    strcpy(map_name_sanitized, scene->originalMapPath);
                 }
                 Decal_LoadLightmaps(d, map_name_sanitized, scene->numDecals);
                 scene->numDecals++;
@@ -2550,6 +2576,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         }
     }
     fclose(file);
+    if (scene->originalMapPath[0] == '\0') {
+        strncpy(scene->originalMapPath, scene->mapPath, sizeof(scene->originalMapPath) - 1);
+        scene->originalMapPath[sizeof(scene->originalMapPath) - 1] = '\0';
+    }
     if (scene->use_cubemap_skybox && strlen(scene->skybox_path) > 0) {
         const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
         char face_paths[6][256]; const char* face_pointers[6];
@@ -2566,13 +2596,12 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
     char* dot = strrchr(scene->mapPath, '.');
     if (dot) {
         size_t len = dot - scene->mapPath;
-        strncpy(map_name_sanitized, scene->mapPath, len);
+        strncpy(map_name_sanitized, scene->originalMapPath, len);
         map_name_sanitized[len] = '\0';
     }
     else {
-        strcpy(map_name_sanitized, scene->mapPath);
+        strcpy(map_name_sanitized, scene->originalMapPath);
     }
-
     Scene_LoadAmbientProbes(scene);
 
     for (int i = 0; i < scene->numLogicEntities; ++i) {
@@ -2664,6 +2693,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         return false;
     }
     fprintf(file, "MAP_VERSION %d\n\n", MAP_VERSION);
+    fprintf(file, "original_map_path \"%s\"\n\n", scene->originalMapPath);
     fprintf(file, "lightmap_resolution %d\n", scene->lightmapResolution);
     if (engine) {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", engine->camera.position.x, engine->camera.position.y, engine->camera.position.z, engine->camera.yaw, engine->camera.pitch);

@@ -522,6 +522,7 @@ extern "C" {
 
     typedef struct {
         char mapPath[256];
+        char originalMapPath[256];
         Light lights[MAX_LIGHTS];
         int numActiveLights;
         SceneObject* objects;
