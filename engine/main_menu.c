@@ -181,6 +181,10 @@ static void MainMenu_RenderOptionsMenu() {
                     snprintf(value_str, sizeof(value_str), "%.2f", sensitivity);
                     Cvar_Set("sensitivity", value_str);
                 }
+                bool raw_input = Cvar_GetInt("in_rawinput");
+                if (UI_Checkbox("Raw Mouse Input", &raw_input)) {
+                    Cvar_Set("in_rawinput", raw_input ? "1" : "0");
+                }
                 UI_EndTabItem();
             }
             UI_EndTabBar();

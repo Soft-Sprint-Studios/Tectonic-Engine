@@ -159,6 +159,9 @@ void Cmd_Maps(int argc, char** argv) {
         for (int i = 0; i < count; ++i) {
             Console_Printf("  %s", files[i]);
         }
+
+        Console_Printf("%d maps found total.", count);
+
         IO_FreeFileList(files, count);
     }
 }
@@ -591,7 +594,8 @@ void init_cvars() {
     Cvar_Register("crosshair", "1", "Enable crosshair (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("timescale", "1.0", "Game speed scale", CVAR_CHEAT);
     Cvar_Register("sensitivity", "1.0", "Mouse sensitivity.", CVAR_NONE);
-    Cvar_Register("p_disable_deactivation", "0", "Disables physics objects sleeping (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("p_disable_deactivation", "0", "Disables physics objects sleeping. (0=off, 1=on).", CVAR_NONE);
+    Cvar_Register("in_rawinput", "1", "Enable raw mouse input. (0=off, 1=on)", CVAR_NONE);
 }
 
 void init_commands() {

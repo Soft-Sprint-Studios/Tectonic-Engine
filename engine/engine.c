@@ -81,6 +81,7 @@ bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
 static int g_last_monitor_cvar_state = -1;
+static int g_last_rawinput_cvar_state = -1;
 
 bool g_player_input_disabled = false;
 
@@ -208,6 +209,8 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Binds_Init();
     GameData_Init("tectonic.tgd");
     Sentry_Init();
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, Cvar_GetInt("in_rawinput") ? "0" : "1");
+    g_last_rawinput_cvar_state = Cvar_GetInt("in_rawinput");
     FILE* autoexec_file = fopen("autoexec.cfg", "r");
     if (autoexec_file) {
         fclose(autoexec_file);
@@ -670,6 +673,13 @@ void process_input() {
 }
 
 void update_state() {
+    int current_rawinput_cvar = Cvar_GetInt("in_rawinput");
+    if (current_rawinput_cvar != g_last_rawinput_cvar_state) {
+        if (!SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, current_rawinput_cvar ? "0" : "1")) {
+            Console_Printf_Warning("Failed to set raw mouse input hint.");
+        }
+        g_last_rawinput_cvar_state = current_rawinput_cvar;
+    }
     int current_monitor_cvar = Cvar_GetInt("r_monitor");
     if (current_monitor_cvar != g_last_monitor_cvar_state) {
         int num_displays = SDL_GetNumVideoDisplays();
