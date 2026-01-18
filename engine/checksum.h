@@ -29,7 +29,6 @@
 // Brief: Checksum that runs at start of game
 //----------------------------------------//
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

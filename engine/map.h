@@ -31,7 +31,6 @@
 
 #include <SDL.h>
 #include <GL/glew.h>
-#include <stdbool.h>
 #include "math_lib.h"
 #include "texturemanager.h"
 #include "water_manager.h"

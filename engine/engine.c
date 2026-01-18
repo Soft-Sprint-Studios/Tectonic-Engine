@@ -27,7 +27,6 @@
 #include <GL/glew.h>
 #include <SDL_opengl.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <time.h>
 #include "cvar.h"
 #include "commands.h"

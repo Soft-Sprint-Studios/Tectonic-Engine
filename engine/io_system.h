@@ -29,7 +29,6 @@
 // Brief: The input/output handling
 //----------------------------------------//
 
-#include <stdbool.h>
 #include "map.h"
 
 #ifdef __cplusplus
