@@ -213,20 +213,6 @@ void Cmd_Ping(int argc, char** argv) {
     }
 }
 
-void Cmd_BuildCubemaps(int argc, char** argv) {
-    int resolution = 256;
-    if (argc > 1) {
-        int res_arg = atoi(argv[1]);
-        if (res_arg > 0 && (res_arg & (res_arg - 1)) == 0) {
-            resolution = res_arg;
-        }
-        else {
-            Console_Printf_Warning("Invalid cubemap resolution '%s'. Must be a power of two. Using default 256.", argv[1]);
-        }
-    }
-    MiscRender_BuildCubemaps(&g_renderer, &g_scene, g_engine, resolution);
-}
-
 void Cmd_Screenshot(int argc, char** argv) {
     if (g_screenshot_requested) {
         Console_Printf("Screenshot already queued.");
@@ -381,33 +367,6 @@ void Cmd_LoadGame(int argc, char** argv) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
         MainMenu_SetInGameMenuMode(false, false);
     }
-}
-
-void Cmd_BuildLighting(int argc, char** argv) {
-    int resolution = 128;
-    int bounces = 1;
-
-    if (argc > 1) {
-        int res_arg = atoi(argv[1]);
-        if (res_arg > 0 && (res_arg & (res_arg - 1)) == 0) {
-            resolution = res_arg;
-        }
-        else {
-            Console_Printf_Warning("Invalid lightmap resolution '%s'. Must be a power of two. Using default 128.", argv[1]);
-        }
-    }
-
-    if (argc > 2) {
-        int bounce_arg = atoi(argv[2]);
-        if (bounce_arg >= 0) {
-            bounces = bounce_arg;
-        }
-        else {
-            Console_Printf_Warning("Invalid bounce count '%s'. Must be >= 0. Using default 1.", argv[2]);
-        }
-    }
-
-    Lightmapper_Generate(&g_scene, g_engine, resolution, bounces);
 }
 
 void Cmd_ScreenShake(int argc, char** argv) {
@@ -666,10 +625,8 @@ void init_commands() {
     Commands_Register("disconnect", Cmd_Disconnect, "Disconnects from the current map and returns to the main menu.", CMD_NONE);
     Commands_Register("save", Cmd_SaveGame, "Saves the current game state.", CMD_NONE);
     Commands_Register("load", Cmd_LoadGame, "Loads a saved game state.", CMD_NONE);
-    Commands_Register("build_lighting", Cmd_BuildLighting, "Builds static lighting for the scene. Usage: build_lighting [resolution] [bounces]", CMD_NONE);
     Commands_Register("download", Cmd_Download, "Downloads a file from a URL.", CMD_NONE);
     Commands_Register("ping", Cmd_Ping, "Pings a network host to check connectivity.", CMD_NONE);
-    Commands_Register("build_cubemaps", Cmd_BuildCubemaps, "Builds cubemaps for all reflection probes. Usage: build_cubemaps [resolution]", CMD_NONE);
     Commands_Register("screenshot", Cmd_Screenshot, "Saves a screenshot to disk.", CMD_NONE);
     Commands_Register("exec", Cmd_Exec, "Executes a script file from the root directory.", CMD_NONE);
     Commands_Register("version", Cmd_Version, "Displays engine and map version information.", CMD_NONE);
