@@ -572,7 +572,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         float scrH = (float)(engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
         for (int i = 0; i < scene->numParticleEmitters; ++i) {
-            ParticleEmitter_Render(&scene->particleEmitters[i], *view, *projection, renderer->gPosition, scrW, scrH);
+            ParticleEmitter_Render(&scene->particleEmitters[i], (void*)scene, (void*)engine, *view, *projection, renderer->gPosition, scrW, scrH);
         }
         glDrawBuffers(7, attachments);
     }

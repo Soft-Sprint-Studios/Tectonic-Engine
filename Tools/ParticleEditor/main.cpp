@@ -64,6 +64,7 @@ struct ParticleProperties {
     Vec3_t startVelocity;
     Vec3_t velocityVariation;
     bool additiveBlending;
+    bool useLighting;
 };
 
 Fl_Window* g_mainWindow = nullptr;
@@ -97,6 +98,7 @@ Fl_Float_Input* g_velVarXInput = nullptr;
 Fl_Float_Input* g_velVarYInput = nullptr;
 Fl_Float_Input* g_velVarZInput = nullptr;
 Fl_Check_Button* g_additiveBlendCheck = nullptr;
+Fl_Check_Button* g_useLightingCheck = nullptr;
 
 ParticleProperties g_currentProps;
 string g_currentFilePath = "";
@@ -157,6 +159,7 @@ void update_ui_from_props() {
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.velocityVariation.z); g_velVarZInput->value(buffer);
     
     g_additiveBlendCheck->value(g_currentProps.additiveBlending);
+    g_useLightingCheck->value(g_currentProps.useLighting);
 
     set_dirty(false);
 }
@@ -198,6 +201,7 @@ void update_props_from_ui() {
     g_currentProps.velocityVariation.z = atof(g_velVarZInput->value());
     
     g_currentProps.additiveBlending = g_additiveBlendCheck->value();
+    g_currentProps.useLighting = g_useLightingCheck->value();
 }
 
 void new_file() {
@@ -211,6 +215,7 @@ void new_file() {
     g_currentProps.startSize = 0.5f;
     g_currentProps.endSize = 0.1f;
     g_currentProps.gravity = {0.0f, -9.81f, 0.0f};
+    g_currentProps.useLighting = true;
     g_currentFilePath = "";
     update_ui_from_props();
 }
@@ -244,6 +249,7 @@ bool save_file(const string& path) {
     if (g_currentProps.additiveBlending) {
         file << "blendFunc additive\n";
     }
+    file << "useLighting " << (g_currentProps.useLighting ? 1 : 0) << "\n";
 
     file.close();
     g_currentFilePath = path;
@@ -299,6 +305,11 @@ void open_file(const string& path) {
             if (blendMode == "additive") {
                 g_currentProps.additiveBlending = true;
             }
+        }
+        else if (key == "useLighting") {
+            int val;
+            ss >> val;
+            g_currentProps.useLighting = (val != 0);
         }
     }
     file.close();
@@ -412,6 +423,7 @@ int main(int argc, char** argv) {
             g_spawnRateInput = new Fl_Float_Input(150, 135, 100, 25, "Spawn Rate");
             g_additiveBlendCheck = new Fl_Check_Button(150, 165, 150, 25, "Additive Blending");
             g_softnessInput = new Fl_Float_Input(150, 195, 100, 25, "Softness");
+            g_useLightingCheck = new Fl_Check_Button(150, 225, 150, 25, "Use Lighting");
         }
         generalGroup->end();
 
@@ -495,7 +507,7 @@ int main(int argc, char** argv) {
     g_velVarYInput->callback(mark_dirty_cb);
     g_velVarZInput->callback(mark_dirty_cb);
     g_additiveBlendCheck->callback(mark_dirty_cb);
-
+    g_useLightingCheck->callback(mark_dirty_cb);
 
     g_mainWindow->end();
     g_mainWindow->show(argc, argv);

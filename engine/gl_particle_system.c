@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <float.h>
 
 static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
 
@@ -51,6 +52,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
     ps->material = &g_MissingMaterial;
     ps->blend_sfactor = GL_SRC_ALPHA;
     ps->blend_dfactor = GL_ONE_MINUS_SRC_ALPHA;
+    ps->useLighting = true;
 
     char line[256];
     while (fgets(line, sizeof(line), file)) {
@@ -77,6 +79,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
         else if (strcmp(key, "blendFunc") == 0 && strcmp(value, "additive") == 0) {
             ps->blend_sfactor = GL_SRC_ALPHA; ps->blend_dfactor = GL_ONE;
         }
+        else if (strcmp(key, "useLighting") == 0) ps->useLighting = (atoi(value) != 0);
     }
     fclose(file);
 
@@ -185,12 +188,65 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
     }
 }
 
-void ParticleEmitter_Render(ParticleEmitter* emitter, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight) {
+void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* engine_ptr, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight) {
     if (!emitter || !emitter->system || emitter->activeParticles == 0) return;
+
+    Scene* scene = (Scene*)scene_ptr;
+    Engine* engine = (Engine*)engine_ptr;
     ParticleSystem* ps = emitter->system;
+
     glUseProgram(ps->shader);
     glUniformMatrix4fv(glGetUniformLocation(ps->shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(ps->shader, "projection"), 1, GL_FALSE, projection.m);
+    glUniform3fv(glGetUniformLocation(ps->shader, "viewPos"), 1, &engine->camera.position.x);
+    glUniform1i(glGetUniformLocation(ps->shader, "u_useLighting"), ps->useLighting);
+
+    glUniform1i(glGetUniformLocation(ps->shader, "sun.enabled"), scene->sun.enabled);
+    glUniform3fv(glGetUniformLocation(ps->shader, "sun.direction"), 1, &scene->sun.direction.x);
+    glUniform3fv(glGetUniformLocation(ps->shader, "sun.color"), 1, &scene->sun.color.x);
+    glUniform1f(glGetUniformLocation(ps->shader, "sun.intensity"), scene->sun.intensity);
+
+    glUniform1i(glGetUniformLocation(ps->shader, "flashlight.enabled"), engine->flashlight_on);
+    if (engine->flashlight_on) {
+        Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
+        vec3_normalize(&forward);
+        glUniform3fv(glGetUniformLocation(ps->shader, "flashlight.position"), 1, &engine->camera.position.x);
+        glUniform3fv(glGetUniformLocation(ps->shader, "flashlight.direction"), 1, &forward.x);
+    }
+
+    glUniform1i(glGetUniformLocation(ps->shader, "u_numAmbientProbes"), scene->num_ambient_probes);
+    if (scene->num_ambient_probes > 0) {
+        AmbientProbe* nearest_probes[8] = { NULL };
+        float distances[8];
+        for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
+
+        for (int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
+            float d = vec3_length_sq(vec3_sub(engine->camera.position, scene->ambient_probes[p_idx].position));
+            for (int k = 0; k < 8; ++k) {
+                if (d < distances[k]) {
+                    for (int l = 7; l > k; --l) {
+                        distances[l] = distances[l - 1];
+                        nearest_probes[l] = nearest_probes[l - 1];
+                    }
+                    distances[k] = d;
+                    nearest_probes[k] = &scene->ambient_probes[p_idx];
+                    break;
+                }
+            }
+        }
+
+        for (int k = 0; k < 8; ++k) {
+            char buf[64];
+            if (nearest_probes[k]) {
+                sprintf(buf, "u_probes[%d].position", k);
+                glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->position.x);
+                for (int f = 0; f < 6; ++f) {
+                    sprintf(buf, "u_probes[%d].colors[%d]", k, f);
+                    glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->colors[f].x);
+                }
+            }
+        }
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ps->material->diffuseMap);

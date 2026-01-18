@@ -11,6 +11,7 @@ in VStoGS {
 out vec2 TexCoords;
 out vec4 ParticleColor;
 out float ParticleViewZ;
+out vec3 worldPos;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -18,6 +19,7 @@ uniform mat4 view;
 void main()
 {
     vec3 pos = gl_in[0].gl_Position.xyz;
+    worldPos = pos;
     float size = gs_in[0].size;
     float angle = gs_in[0].angle;
     ParticleColor = gs_in[0].color;

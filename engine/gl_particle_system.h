@@ -71,6 +71,7 @@ extern "C" {
         GLuint shader;
         GLenum blend_sfactor;
         GLenum blend_dfactor;
+        bool useLighting;
     } ParticleSystem;
 
     typedef struct {
@@ -86,7 +87,7 @@ extern "C" {
     void ParticleSystem_Free(ParticleSystem* system);
     void ParticleEmitter_Init(struct ParticleEmitter* emitter, ParticleSystem* system, Vec3 position);
     void ParticleEmitter_Update(struct ParticleEmitter* emitter, float deltaTime);
-    void ParticleEmitter_Render(struct ParticleEmitter* emitter, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight);
+    void ParticleEmitter_Render(struct ParticleEmitter* emitter, void* scene, void* engine, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight);
     void ParticleEmitter_Free(struct ParticleEmitter* emitter);
 
 #ifdef __cplusplus
