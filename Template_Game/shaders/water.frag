@@ -377,7 +377,7 @@ void main() {
             finalColor = texture(lightmap, v_texCoordLightmap).rgb;
         }
     } else if (r_debug_lightmaps_directional && useDirectionalLightmap) {
-                if (r_lightmaps_bicubic) {
+        if (r_lightmaps_bicubic) {
             finalColor = texture_bicubic(directionalLightmap, v_texCoordLightmap, textureSize(directionalLightmap, 0)).rgb;
         } else {
             finalColor = texture(directionalLightmap, v_texCoordLightmap).rgb;
