@@ -488,9 +488,11 @@ void process_input() {
                 }
             }
             else if (event.key.keysym.sym == SDLK_BACKQUOTE) {
-                Console_Toggle();
-                if (g_current_mode == MODE_GAME || g_current_mode == MODE_INGAMEMENU) {
-                    SDL_SetRelativeMouseMode(Console_IsVisible() ? SDL_FALSE : SDL_TRUE);
+                if (Cvar_GetInt("con_enable")) {
+                    Console_Toggle();
+                    if (g_current_mode == MODE_GAME || g_current_mode == MODE_INGAMEMENU) {
+                        SDL_SetRelativeMouseMode(Console_IsVisible() ? SDL_FALSE : SDL_TRUE);
+                    }
                 }
             }
 #ifndef GAME_RELEASE

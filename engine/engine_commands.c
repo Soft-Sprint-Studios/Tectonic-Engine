@@ -491,7 +491,7 @@ void Cmd_Kill(int argc, char** argv) {
 
 void Cmd_Skyname(int argc, char** argv) {
     if (argc != 2) {
-        Console_Printf("Usage: skyname <cubemap_base_name>");
+        Console_Printf("Usage: skyname <sky>");
         return;
     }
 
@@ -537,6 +537,7 @@ void Cmd_Skyname(int argc, char** argv) {
 }
 
 void init_cvars() {
+    Cvar_Register("con_enable", "1", "Enables the ` key to toggle the console.", CVAR_HIDDEN);
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("s_volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("s_mute", "0", "Global mute switch (0=off, 1=on)", CVAR_NONE);
