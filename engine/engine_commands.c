@@ -34,6 +34,7 @@
 #include "network.h"
 #include "lightmapper.h"
 #include "gl_render_misc.h"
+#include "gl_loading_screen.h"
 #include "io_system.h"
 #include <time.h>
 #include <errno.h>
@@ -132,6 +133,12 @@ void Cmd_Map(int argc, char** argv) {
         char map_path[256];
         snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
         Console_Printf("Loading map: %s", map_path);
+
+        LoadingScreen_Show(argv[1]);
+        glClear(GL_COLOR_BUFFER_BIT);
+        LoadingScreen_Render();
+
+        SDL_GL_SwapWindow(g_engine->window);
         if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
             g_current_mode = MODE_GAME;
             SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -143,6 +150,8 @@ void Cmd_Map(int argc, char** argv) {
     else {
         Console_Printf("Usage: map <mapname>");
     }
+
+    LoadingScreen_Hide();
 }
 
 void Cmd_Maps(int argc, char** argv) {
@@ -352,6 +361,11 @@ void Cmd_LoadGame(int argc, char** argv) {
 
     Console_Printf("Loading game from %s...", savePath);
 
+    LoadingScreen_Show(NULL);
+    glClear(GL_COLOR_BUFFER_BIT);
+    LoadingScreen_Render();
+    SDL_GL_SwapWindow(g_engine->window);
+
     if (g_is_editor_mode) {
         Editor_Shutdown();
     }
@@ -367,6 +381,8 @@ void Cmd_LoadGame(int argc, char** argv) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
         MainMenu_SetInGameMenuMode(false, false);
     }
+
+    LoadingScreen_Hide();
 }
 
 void Cmd_ScreenShake(int argc, char** argv) {

@@ -60,6 +60,7 @@
 #include "gl_ssr.h"
 #include "gl_volumetrics.h"
 #include "gl_monitor.h"
+#include "gl_loading_screen.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "checksum.h"
@@ -239,6 +240,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf_Error("Failed to initialize Main Menu.");
         g_engine->running = false;
     }
+    LoadingScreen_Init(g_engine->width, g_engine->height);
     PrintSystemInfo();
     Console_Printf("Tectonic Engine initialized.\n");
     Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
@@ -1653,6 +1655,7 @@ void cleanup() {
     }
     Renderer_Shutdown(&g_renderer);
     WaterManager_Shutdown();
+    LoadingScreen_Shutdown();
     SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
     SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
     SoundSystem_DeleteBuffer(g_jump_sound_buffer);

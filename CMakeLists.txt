@@ -111,6 +111,7 @@ set(ENGINE_SOURCES
     engine/gl_keypad.c
     engine/gl_note.c
     engine/gl_monitor.c
+    engine/gl_loading_screen.c
     engine/engine_commands.c
     engine/gl_skybox.c
     engine/animations.c
@@ -147,6 +148,7 @@ set(ENGINE_HEADERS
     engine/gl_keypad.h
     engine/gl_note.h
     engine/gl_monitor.h
+    engine/gl_loading_screen.h
     engine/engine_commands.h
     engine/gl_skybox.h
     engine/animations.h
