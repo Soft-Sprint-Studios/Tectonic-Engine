@@ -227,7 +227,6 @@ extern "C" {
         GLuint ssrShader, ssrFBO, ssrTexture;
         GLuint histogramShader;
         GLuint exposureShader;
-        GLuint modelShadowShader;
         GLuint histogramSSBO;
         GLuint exposureSSBO;
         GLuint waterShader;

@@ -590,33 +590,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 
-    if (Cvar_GetInt("r_physics_shadows")) {
-        glUseProgram(renderer->modelShadowShader);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->modelShadowShader, "view"), 1, GL_FALSE, view->m);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->modelShadowShader, "projection"), 1, GL_FALSE, projection->m);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
-        for (int i = 0; i < scene->numObjects; i++) {
-            SceneObject* obj = &scene->objects[i];
-            if (obj->mass > 0.0f && obj->model) {
-                glUniformMatrix4fv(glGetUniformLocation(renderer->modelShadowShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
-                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
-                    Mesh* mesh = &obj->model->meshes[meshIdx];
-                    glBindVertexArray(mesh->VAO);
-                    if (mesh->useEBO) {
-                        glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
-                    }
-                    else {
-                        glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount);
-                    }
-                }
-            }
-        }
-        glDepthMask(GL_TRUE);
-        glDisable(GL_BLEND);
-    }
-
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }

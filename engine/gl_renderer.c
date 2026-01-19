@@ -64,7 +64,6 @@ static void Renderer_InitShaders(Renderer* renderer) {
     renderer->volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
     renderer->ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     renderer->ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
-    renderer->modelShadowShader = createShaderProgram("shaders/shadow_model.vert", "shaders/shadow_model.frag");
     renderer->ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
     renderer->glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     renderer->waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
@@ -482,7 +481,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->volumetricBlurShader);
     glDeleteProgram(renderer->histogramShader);
     glDeleteProgram(renderer->exposureShader);
-    glDeleteProgram(renderer->modelShadowShader);
     glDeleteProgram(renderer->waterShader);
     glDeleteProgram(renderer->glassShader);
     glDeleteProgram(renderer->spriteShader);
