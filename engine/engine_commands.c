@@ -137,8 +137,8 @@ void Cmd_Map(int argc, char** argv) {
         LoadingScreen_Show(argv[1]);
         glClear(GL_COLOR_BUFFER_BIT);
         LoadingScreen_Render();
-
         SDL_GL_SwapWindow(g_engine->window);
+
         if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
             g_current_mode = MODE_GAME;
             SDL_SetRelativeMouseMode(SDL_TRUE);
