@@ -23,7 +23,7 @@ BEGIN
             VALUE "CompanyName", "Soft Sprint Studios"
             VALUE "FileDescription", "Tectonic Engine Launcher"
             VALUE "FileVersion", "1.0.0.0"
-            VALUE "InternalName", "launcher.exe"
+            VALUE "InternalName", "launcher"
             VALUE "LegalCopyright", "Soft Sprint Studios"
             VALUE "OriginalFilename", "launcher.exe"
             VALUE "ProductName", "Tectonic Engine"
