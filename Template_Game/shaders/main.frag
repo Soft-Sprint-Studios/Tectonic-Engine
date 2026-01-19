@@ -101,6 +101,7 @@ uniform float heightScale2;
 uniform float heightScale3;
 uniform float heightScale4;
 uniform bool u_isParallaxEnabled;
+uniform bool u_useAlphaTest;
 
 uniform float u_roughness_override;
 uniform float u_metalness_override;
@@ -482,8 +483,10 @@ void main()
     }
 
     alpha *= fadeAlpha;
-    if (alpha < 0.1) 
-        discard;
+    if (u_useAlphaTest) {
+        if (alpha < 0.1) 
+            discard;
+    }
 	
     vec3 N = normalize(TBN * (normalTex * 2.0 - 1.0));
     vec3 V = normalize(viewPos - FragPos_world);

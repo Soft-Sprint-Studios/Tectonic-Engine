@@ -535,6 +535,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
             current_material->roughness = -1.0f;
             current_material->metalness = -1.0f;
             current_material->useTesselation = false;
+            current_material->alpha = false;
             sscanf(trimmed_line, "\"%[^\"]\"", current_material->name);
         }
         else if (trimmed_line[0] == '{') {
@@ -581,6 +582,9 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                     }
                     else if (strcmp(key, "usetesselation") == 0) {
                         current_material->useTesselation = (float_val != 0.0f);
+                    }
+                    else if (strcmp(key, "alpha") == 0) {
+                        current_material->alpha = (float_val != 0.0f);
                     }
                 }
             }

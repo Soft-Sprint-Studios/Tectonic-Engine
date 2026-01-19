@@ -64,6 +64,7 @@ extern "C" {
         float roughness;
         float metalness;
         bool useTesselation;
+        bool alpha;
     } Material;
 
     extern MATERIALS_API Material g_MissingMaterial;

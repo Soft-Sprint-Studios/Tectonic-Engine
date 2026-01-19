@@ -174,6 +174,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             if (shader == renderer->mainShader) {
                 bool isTesselationEnabled = material->useTesselation;
                 glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabled);
+                glUniform1i(glGetUniformLocation(shader, "u_useAlphaTest"), material->alpha);
 
                 bool parallaxEnabledForThisMesh = !isTesselationEnabled && Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
                 glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), parallaxEnabledForThisMesh);
@@ -303,6 +304,12 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 (batch_material4 && batch_material4->useTesselation);
 
             glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabledForBatch);
+
+            bool use_alpha_test_for_batch = (batch_material && batch_material->alpha) ||
+                (batch_material2 && batch_material2->alpha) ||
+                (batch_material3 && batch_material3->alpha) ||
+                (batch_material4 && batch_material4->alpha);
+            glUniform1i(glGetUniformLocation(shader, "u_useAlphaTest"), use_alpha_test_for_batch);
 
             bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
             bool isParallaxEnabledForBatch = !isTesselationEnabledForBatch && parallaxEnabled && (
