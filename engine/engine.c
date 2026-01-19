@@ -81,6 +81,7 @@ bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
 static int g_last_monitor_cvar_state = -1;
+static bool g_sent_initial_ipc_data = false;
 static int g_last_rawinput_cvar_state = -1;
 
 bool g_player_input_disabled = false;
@@ -675,6 +676,28 @@ void process_input() {
 }
 
 void update_state() {
+    if (IPC_IsTConsoleConnected() && !g_sent_initial_ipc_data) {
+        for (int i = 0; i < Cvar_GetCount(); ++i) {
+            const Cvar* c = Cvar_GetCvar(i);
+            if (c && !(c->flags & CVAR_HIDDEN)) {
+                char buffer[512];
+                snprintf(buffer, sizeof(buffer), "register_cvar \"%s\" \"%s\" \"%s\"", c->name, c->stringValue, c->helpText);
+                IPC_SendMessage(buffer);
+            }
+        }
+        for (int i = 0; i < Commands_GetCount(); ++i) {
+            const Command* cmd = Commands_GetCommand(i);
+            if (cmd) {
+                char buffer[512];
+                snprintf(buffer, sizeof(buffer), "register_cmd \"%s\" \"%s\"", cmd->name, cmd->description);
+                IPC_SendMessage(buffer);
+            }
+        }
+        g_sent_initial_ipc_data = true;
+    }
+    if (!IPC_IsTConsoleConnected()) {
+        g_sent_initial_ipc_data = false;
+    }
     int current_rawinput_cvar = Cvar_GetInt("in_rawinput");
     if (current_rawinput_cvar != g_last_rawinput_cvar_state) {
         if (!SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, current_rawinput_cvar ? "0" : "1")) {

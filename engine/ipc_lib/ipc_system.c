@@ -169,3 +169,7 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
         g_tconsole_connected = false;
     }
 }
+
+bool IPC_IsTConsoleConnected(void) {
+    return g_tconsole_connected;
+}

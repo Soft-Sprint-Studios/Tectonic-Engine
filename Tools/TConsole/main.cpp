@@ -34,6 +34,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
+#include <algorithm>
 
 #ifdef PLATFORM_WINDOWS
 #include <winsock2.h>
@@ -71,9 +72,22 @@ Fl_Text_Display::Style_Table_Entry style_table[] = {
     { FL_CYAN, FL_COURIER_BOLD, 14}, // D - User Input
 };
 
+struct CvarInfo {
+    string name;
+    string value;
+    string description;
+};
+
+struct CommandInfo {
+    string name;
+    string description;
+};
+
 socket_t server_socket = INVALID_SOCKET;
 socket_t client_socket = INVALID_SOCKET;
 vector<string> message_queue;
+vector<CvarInfo> g_cvars;
+vector<CommandInfo> g_commands;
 mutex queue_mutex;
 thread server_thread;
 bool should_exit = false;
@@ -102,6 +116,50 @@ void append_message(const string& msg, char style_char = 'A') {
     text_display->scroll(text_display->count_lines(0, text_buffer->length(), 1), 0);
 }
 
+class ConsoleInput : public Fl_Input {
+public:
+    ConsoleInput(int X, int Y, int W, int H)
+        : Fl_Input(X, Y, W, H) {
+    }
+
+    int handle(int event) override {
+        if (event == FL_KEYBOARD && Fl::event_key() == FL_Tab) {
+            const char* current_text = value();
+            int current_len = strlen(current_text);
+
+            if (current_len == 0) return 1;
+
+            vector<string> matches;
+            for (const auto& cvar : g_cvars) {
+                if (cvar.name.rfind(current_text, 0) == 0) {
+                    matches.push_back(cvar.name);
+                }
+            }
+            for (const auto& cmd : g_commands) {
+                if (cmd.name.rfind(current_text, 0) == 0) {
+                    matches.push_back(cmd.name);
+                }
+            }
+
+            if (matches.empty()) return 1;
+
+            if (matches.size() == 1) {
+                value(matches[0].c_str());
+                insert(" ");
+                position(size());
+            }
+            else {
+                append_message("> " + string(current_text), 'D');
+                for (const auto& match : matches) {
+                    append_message("  " + match);
+                }
+            }
+            return 1;
+        }
+        return Fl_Input::handle(event);
+    }
+};
+
 void idle_callback(void*) {
     vector<string> local_queue;
     {
@@ -112,7 +170,21 @@ void idle_callback(void*) {
     }
 
     for (const auto& msg : local_queue) {
-        append_message(msg);
+        if (msg.rfind("register_cvar", 0) == 0) {
+            char name[64], value[128], desc[128];
+            if (sscanf(msg.c_str(), "register_cvar \"%63[^\"]\" \"%127[^\"]\" \"%127[^\"]\"", name, value, desc) == 3) {
+                g_cvars.push_back({ name, value, desc });
+            }
+        }
+        else if (msg.rfind("register_cmd", 0) == 0) {
+            char name[64], desc[128];
+            if (sscanf(msg.c_str(), "register_cmd \"%63[^\"]\" \"%127[^\"]\"", name, desc) == 2) {
+                g_commands.push_back({ name, desc });
+            }
+        }
+        else {
+            append_message(msg);
+        }
     }
 
     static bool last_connected_state = false;
@@ -276,7 +348,7 @@ int main(int argc, char** argv) {
     text_display->textfont(FL_COURIER);
     text_display->textsize(14);
 
-    input_field = new Fl_Input(10, 560, 700, 30);
+    input_field = new ConsoleInput(10, 560, 700, 30);
     input_field->callback(input_callback);
     input_field->when(FL_WHEN_ENTER_KEY | FL_WHEN_RELEASE);
 
