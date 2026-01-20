@@ -62,7 +62,7 @@ void WaterManager_Shutdown(void) {
 void WaterManager_ParseWaters(const char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf("WaterManager WARNING: Could not open water file '%s'. Using default only.\n", filepath);
+        Console_Printf_Warning("Could not open water file '%s'. Using default only.\n", filepath);
         return;
     }
 
