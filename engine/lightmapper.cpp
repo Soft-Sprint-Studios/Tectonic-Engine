@@ -247,7 +247,7 @@ namespace
             if (strcmp(b.classname, "func_water") == 0) {
                 continue;
             }
-            if (!IsBrushBakeable(b)) continue;
+            if (!IsBrushBakeable(b) || !b.casts_shadows) continue;
 
             for (int j = 0; j < b.numFaces; ++j)
             {

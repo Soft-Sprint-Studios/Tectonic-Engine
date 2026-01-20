@@ -457,6 +457,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Vertex Lighting");
         }
+        if (UI_Checkbox("Casts Shadows", &b->casts_shadows)) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Shadows");
+        }
         if (transform_changed) { Brush_UpdateMatrix(b); if (b->physicsBody) { Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); } }
         UI_Separator();
         UI_Text("Physics Properties");

@@ -2015,6 +2015,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             b->runtime_active = true;
             b->runtime_playerIsTouching = false;
             b->runtime_hasFired = false;
+            b->casts_shadows = true;
             char water_def_name[64] = "";
             sscanf(line, "%*s %f %f %f %f %f %f %f %f %f", &b->pos.x, &b->pos.y, &b->pos.z, &b->rot.x, &b->rot.y, &b->rot.z, &b->scale.x, &b->scale.y, &b->scale.z);
             while (fgets(line, sizeof(line), file) && strncmp(line, "brush_end", 9) != 0) {
@@ -2094,6 +2095,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (bool)dummy_int; }
                 else if (sscanf(line, " useVertexLighting %d", &dummy_int) == 1) { b->useVertexLighting = (bool)dummy_int; }
+                else if (sscanf(line, " casts_shadows %d", &dummy_int) == 1) { b->casts_shadows = (bool)dummy_int; }
                 else if (sscanf(line, " classname \"%63[^\"]\"", b->classname) == 1) {}
                 else if (strstr(line, "properties")) {
                     b->numProperties = 0;
@@ -2733,6 +2735,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (int)b->isPhysicsEnabled);
         fprintf(file, "  useVertexLighting %d\n", (int)b->useVertexLighting);
+        fprintf(file, "  casts_shadows %d\n", (int)b->casts_shadows);
         if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
         }

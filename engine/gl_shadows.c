@@ -84,6 +84,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             render_object(renderer, scene, current_shader, &scene->objects[j], false, NULL);
         }
         for (int j = 0; j < scene->numBrushes; ++j) {
+            if (!scene->brushes[j].casts_shadows) continue;
             render_brush(renderer, scene, current_shader, &scene->brushes[j], false, NULL);
         }
         if (light->is_static_shadow) {
@@ -110,6 +111,7 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
     }
     for (int j = 0; j < scene->numBrushes; ++j) {
         Brush* b = &scene->brushes[j];
+        if (!scene->brushes[j].casts_shadows) continue;
         if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {
             continue;
         }

@@ -378,6 +378,7 @@ extern "C" {
         PlatState plat_state;
         float wait_timer;
         bool useVertexLighting;
+        bool casts_shadows;
         Vec4* bakedVertexColors;
         Vec4* bakedVertexDirections;
     } Brush;
