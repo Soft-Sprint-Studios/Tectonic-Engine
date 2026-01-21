@@ -575,7 +575,7 @@ void init_cvars() {
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("s_volume", "2.5", "Master volume for the game (0.0 to 4.0)", CVAR_NONE);
     Cvar_Register("s_mute", "0", "Global mute switch (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("noclip", "0", "Enable noclip mode (0=off, 1=on)", CVAR_CHEAT);
     Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
     Cvar_Register("engine_running", "1", "Engine state (0=off, 1=on)", CVAR_HIDDEN);
@@ -632,7 +632,7 @@ void init_cvars() {
     Cvar_Register("fps_max", "300", "Max FPS (0=unlimited)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_showgraph", "0", "Show framerate graph (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_speeds", "0", "Show rendering statistics (0=off, 1=on)", CVAR_CHEAT);
+    Cvar_Register("r_speeds", "0", "Show rendering statistics (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_pos", "0", "Show player position (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("show_health", "1", "Show player health (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_albedo", "0", "Show albedo buffer (0=off, 1=on)", CVAR_NONE);
@@ -648,7 +648,7 @@ void init_cvars() {
     Cvar_Register("r_debug_lightmaps_directional", "0", "Show directional lightmap buffer (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_vertex_light", "0", "Show baked vertex lighting buffer (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_debug_vertex_light_directional", "0", "Show baked directional vertex lighting buffer (0=off, 1=on)", CVAR_NONE);
-    Cvar_Register("r_debug_water_reflection", "0", "Forces water to show pure reflection texture (0=off, 1=on)", CVAR_CHEAT);
+    Cvar_Register("r_debug_water_reflection", "0", "Forces water to show pure reflection texture (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_sun_shadow_distance", "50.0", "Sun shadow frustum size", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality (1=very low to 5=very high)", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "Vertical field of view (degrees)", CVAR_NONE);
