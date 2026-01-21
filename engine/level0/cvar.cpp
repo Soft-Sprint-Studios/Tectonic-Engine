@@ -98,6 +98,7 @@ public:
         c = &cvar_list[num_cvars++];
         strcpy(c->name, name);
         strcpy(c->stringValue, defaultValue);
+        strcpy(c->defaultValue, defaultValue);
         strcpy(c->helpText, helpText);
         c->flags = flags;
         UpdateValues(c);

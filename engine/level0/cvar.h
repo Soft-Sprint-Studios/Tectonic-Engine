@@ -46,6 +46,7 @@ extern "C" {
     typedef struct {
         char name[64];
         char stringValue[MAX_COMMAND_LENGTH];
+        char defaultValue[MAX_COMMAND_LENGTH];
         float floatValue;
         int intValue;
         char helpText[128];

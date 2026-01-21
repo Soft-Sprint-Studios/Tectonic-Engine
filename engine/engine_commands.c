@@ -511,6 +511,65 @@ void Cmd_Skyname(int argc, char** argv) {
     }
 }
 
+void Cmd_Reset(int argc, char** argv) {
+    if (argc != 2) {
+        Console_Printf("Usage: reset <cvar>\n");
+        return;
+    }
+
+    const char* cvar_name = argv[1];
+    Cvar* c = Cvar_Find(cvar_name);
+
+    if (c) {
+        Cvar_Set(c->name, c->defaultValue);
+    }
+    else {
+        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+    }
+}
+
+void Cmd_Inc_f(int argc, char** argv) {
+    if (argc < 2 || argc > 3) {
+        Console_Printf("Usage: inc <cvar> [amount]\n");
+        return;
+    }
+
+    const char* cvar_name = argv[1];
+    Cvar* c = Cvar_Find(cvar_name);
+    if (!c) {
+        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        return;
+    }
+
+    float increment_amount = (argc == 3) ? (float)atof(argv[2]) : 1.0f;
+    float new_value = Cvar_GetFloat(cvar_name) + increment_amount;
+
+    char new_value_str[128];
+    snprintf(new_value_str, sizeof(new_value_str), "%g", new_value);
+    Cvar_Set(cvar_name, new_value_str);
+}
+
+void Cmd_Dec_f(int argc, char** argv) {
+    if (argc < 2 || argc > 3) {
+        Console_Printf("Usage: dec <cvar> [amount]\n");
+        return;
+    }
+
+    const char* cvar_name = argv[1];
+    Cvar* c = Cvar_Find(cvar_name);
+    if (!c) {
+        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        return;
+    }
+
+    float decrement_amount = (argc == 3) ? (float)atof(argv[2]) : 1.0f;
+    float new_value = Cvar_GetFloat(cvar_name) - decrement_amount;
+
+    char new_value_str[128];
+    snprintf(new_value_str, sizeof(new_value_str), "%g", new_value);
+    Cvar_Set(cvar_name, new_value_str);
+}
+
 void init_cvars() {
     Cvar_Register("con_enable", "1", "Enables the ` key to toggle the console.", CVAR_HIDDEN);
     Cvar_Register("developer", "0", "Show developer console log on screen (0=off, 1=on)", CVAR_CHEAT);
@@ -649,6 +708,9 @@ void init_commands() {
     Commands_Register("version", Cmd_Version, "Displays engine and map version information.", CMD_NONE);
     Commands_Register("echo", Cmd_Echo, "Prints a message to the console.", CMD_NONE);
     Commands_Register("clear", Cmd_Clear, "Clears the console text.", CMD_NONE);
+    Commands_Register("reset", Cmd_Reset, "Resets a cvar to its default value.", CMD_NONE);
+    Commands_Register("inc", Cmd_Inc_f, "Increments the value of a cvar.", CMD_NONE);
+    Commands_Register("dec", Cmd_Dec_f, "Decrements the value of a cvar.", CMD_NONE);
     Commands_Register("pos", Cmd_PlayerPosition, "Position of the player in the world.", CMD_NONE);
     Commands_Register("hurtme", Cmd_HurtMe, "Hurts the player. Usage: hurtme <damage>", CMD_NONE);
     Commands_Register("kill", Cmd_Kill, "Kills the player.", CMD_NONE);
