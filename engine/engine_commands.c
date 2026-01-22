@@ -135,7 +135,6 @@ void Cmd_Map(int argc, char** argv) {
         Console_Printf("Loading map: %s", map_path);
 
         LoadingScreen_Show(argv[1]);
-        glClear(GL_COLOR_BUFFER_BIT);
         LoadingScreen_Render();
         SDL_GL_SwapWindow(g_engine->window);
 
@@ -362,7 +361,6 @@ void Cmd_LoadGame(int argc, char** argv) {
     Console_Printf("Loading game from %s...", savePath);
 
     LoadingScreen_Show(NULL);
-    glClear(GL_COLOR_BUFFER_BIT);
     LoadingScreen_Render();
     SDL_GL_SwapWindow(g_engine->window);
 
