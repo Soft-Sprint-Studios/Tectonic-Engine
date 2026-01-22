@@ -29,6 +29,7 @@
 #include "editor_selection.h"
 #include "editor_actions.h"
 #include "editor_geometry.h"
+#include "editor_geometry_helpers.h"
 #include "editor_misc.h"
 #include "commands.h"
 #include <stdlib.h>

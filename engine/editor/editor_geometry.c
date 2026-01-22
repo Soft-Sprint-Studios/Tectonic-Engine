@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 #include "editor_geometry.h"
+#include "editor_geometry_helpers.h"
 #include "editor_selection.h"
 #include "editor_math.h"
 #include "editor_undo.h"

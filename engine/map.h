@@ -626,18 +626,10 @@ extern "C" {
     void Light_InitShadowMap(Light* light);
     void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition);
     void Light_DestroyShadowMap(Light* light);
-    void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
-    void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
-    void Brush_SetVerticesFromWedge(Brush* b, Vec3 size);
-    void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides);
-    void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides);
-    void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides);
-    void Brush_SetVerticesFromTube(Brush* b, Vec3 size, int num_sides, float wall_thickness);
     void Brush_UpdateMatrix(Brush* b);
     void Brush_CreateRenderData(Brush* b);
     void Brush_FreeData(Brush* b);
     void Brush_DeepCopy(Brush* dest, const Brush* src);
-    void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
     bool Brush_IsSolid(const Brush* b);
     void Decal_UpdateMatrix(Decal* d);
     void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
