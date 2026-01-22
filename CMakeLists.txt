@@ -88,7 +88,7 @@ set(ENGINE_SOURCES
     engine/editor/editor.c engine/editor/editor_windows.c engine/editor/editor_ui.c engine/editor/editor_math.c engine/editor/editor_selection.c engine/editor/editor_actions.c engine/editor/editor_geometry.c engine/editor/editor_geometry_helpers.c engine/editor/editor_render.c engine/editor/editor_undo.c engine/editor/editor_misc.c
     engine/game_data.c
     engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
-    engine/map.c engine/gl_particle_system.c
+    engine/map.c engine/map_lighting.c engine/gl_particle_system.c
     engine/gl_video_player.c engine/weapons.cpp
     engine/sentry_wrapper.cpp engine/checksum.cpp
     engine/gl_beams.c
@@ -125,7 +125,7 @@ set(ENGINE_HEADERS
     engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_windows.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_geometry_helpers.h engine/editor/editor_render.h engine/editor/editor_undo.h engine/editor/editor_misc.h
     engine/game_data.h
     engine/engine.h
-    engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h
+    engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h engine/map_lighting.h
     engine/gl_particle_system.h
     engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
     engine/gl_beams.h

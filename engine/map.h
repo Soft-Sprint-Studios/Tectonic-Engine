@@ -623,9 +623,6 @@ extern "C" {
         GameTextMessage active_messages[MAX_GAME_TEXT_MESSAGES];
     } Engine;
 
-    void Light_InitShadowMap(Light* light);
-    void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition);
-    void Light_DestroyShadowMap(Light* light);
     void Brush_UpdateMatrix(Brush* b);
     void Brush_CreateRenderData(Brush* b);
     void Brush_FreeData(Brush* b);
@@ -637,14 +634,7 @@ extern "C" {
     void Scene_Clear(Scene* scene, Engine* engine);
     bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine* engine);
     bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath);
-    void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution);
-    void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath);
-    void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath);
-    void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
-    void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
-    void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath);
     void SceneObject_UpdateMatrix(SceneObject* obj);
-    void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
     void Scene_LoadAmbientProbes(Scene* scene);
 
 #ifdef __cplusplus

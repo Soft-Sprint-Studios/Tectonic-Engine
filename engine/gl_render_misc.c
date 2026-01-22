@@ -137,6 +137,100 @@ void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine
     glBindVertexArray(0);
 }
 
+void Light_InitShadowMap(Light* light) {
+    Light_DestroyShadowMap(light);
+    glGenFramebuffers(1, &light->shadowFBO);
+    glGenTextures(1, &light->shadowMapTexture);
+    glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
+    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
+    if (shadow_map_size <= 0) {
+        shadow_map_size = 1024;
+    }
+    if (light->type == LIGHT_POINT) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, light->shadowMapTexture);
+        for (int i = 0; i < 6; ++i) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        }
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, light->shadowMapTexture, 0);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, light->shadowMapTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, light->shadowMapTexture, 0);
+    }
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        Console_Printf("Shadow Framebuffer not complete! Light Type: %d\n", light->type);
+
+    light->shadowMapHandle = glGetTextureHandleARB(light->shadowMapTexture);
+    glMakeTextureHandleResidentARB(light->shadowMapHandle);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition) {
+    const float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
+
+    float shadowOrthoSize = Cvar_GetFloat("r_sun_shadow_distance");
+
+    float near_plane = 1.0f;
+    float far_plane = shadowOrthoSize * 4.0f;
+
+    Vec3 lightFocusPos = cameraPosition;
+    Vec3 lightPos = vec3_sub(lightFocusPos, vec3_muls(sun->direction, far_plane * 0.5f));
+
+    Mat4 lightProjection = mat4_ortho(-shadowOrthoSize, shadowOrthoSize, -shadowOrthoSize, shadowOrthoSize, near_plane, far_plane);
+    Mat4 lightView = mat4_lookAt(lightPos, lightFocusPos, (Vec3) { 0.0f, 1.0f, 0.0f });
+
+    Mat4 initialLightSpaceMatrix;
+    mat4_multiply(&initialLightSpaceMatrix, &lightProjection, &lightView);
+
+    Vec4 shadowOrigin = mat4_mul_vec4(&initialLightSpaceMatrix, (Vec4) { 0.0f, 0.0f, 0.0f, 1.0f });
+
+    shadowOrigin.x *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);
+    shadowOrigin.y *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);
+
+    Vec4 roundedOrigin = { roundf(shadowOrigin.x), roundf(shadowOrigin.y), roundf(shadowOrigin.z), roundf(shadowOrigin.w) };
+
+    Vec4 roundOffset;
+    roundOffset.x = (roundedOrigin.x - shadowOrigin.x) * (2.0f / SUN_SHADOW_MAP_SIZE_F);
+    roundOffset.y = (roundedOrigin.y - shadowOrigin.y) * (2.0f / SUN_SHADOW_MAP_SIZE_F);
+    roundOffset.z = 0.0f;
+    roundOffset.w = 0.0f;
+
+    lightProjection.m[12] += roundOffset.x;
+    lightProjection.m[13] += roundOffset.y;
+
+    mat4_multiply(outMatrix, &lightProjection, &lightView);
+}
+
+void Light_DestroyShadowMap(Light* light) {
+    if (light->shadowMapHandle) {
+        glMakeTextureHandleNonResidentARB(light->shadowMapHandle);
+        light->shadowMapHandle = 0;
+    }
+    if (light->shadowFBO) {
+        glDeleteFramebuffers(1, &light->shadowFBO);
+        light->shadowFBO = 0;
+    }
+    if (light->shadowMapTexture) {
+        glDeleteTextures(1, &light->shadowMapTexture);
+        light->shadowMapTexture = 0;
+    }
+}
+
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     unsigned char* pixels = (unsigned char*)malloc(width * height * 4);

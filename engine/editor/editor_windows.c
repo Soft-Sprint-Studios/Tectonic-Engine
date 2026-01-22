@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "map_lighting.h"
 #include "editor_windows.h"
 #include "editor_undo.h"
 #include "editor_math.h"

@@ -26,6 +26,7 @@
 #include "editor_undo.h"
 #include "sound_system.h"
 #include "gl_video_player.h"
+#include "gl_render_misc.h"
 
 void Editor_GroupSelection() {
     if (g_EditorState.num_selections < 2) return;

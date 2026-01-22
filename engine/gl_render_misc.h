@@ -44,6 +44,9 @@ extern "C" {
     void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO);
     void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
     void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+    void Light_InitShadowMap(Light* light);
+    void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition);
+    void Light_DestroyShadowMap(Light* light);
     void MiscRender_SaveScreenshot(Engine* engine, const char* filepath);
     void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution);
 

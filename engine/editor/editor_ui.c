@@ -31,6 +31,7 @@
 #include "sound_system.h"
 #include "gl_video_player.h"
 #include "gl_console.h"
+#include "gl_render_misc.h"
 #include "game_data.h"
 #include "commands.h"
 #include "cvar.h"
