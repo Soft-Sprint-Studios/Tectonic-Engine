@@ -195,10 +195,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->current_fov_offset = 0.0f;
     g_engine->current_roll_angle = 0.0f;
     GameConfig_Init();
-    const GameConfig* config = GameConfig_Get();
-    if (strlen(config->gamename) > 0) {
-        SDL_SetWindowTitle(window, config->gamename);
-    }
     UI_Init(window, context);
     SoundSystem_Init();
     Cvar_Init();
@@ -1772,7 +1768,11 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         if (_stricmp(argv[i], "-w") == 0 && i + 1 < argc) g_startup_width = atoi(argv[++i]);
         if (_stricmp(argv[i], "-h") == 0 && i + 1 < argc) g_startup_height = atoi(argv[++i]);
     }
+#ifdef BRANCH_NOCTURNE
+    SDL_Window* window = SDL_CreateWindow("Nocturne Descent", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
+#else
     SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
+#endif
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE; glewInit();
     GL_InitDebugOutput();
