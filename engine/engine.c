@@ -296,10 +296,23 @@ void process_input() {
         if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
             MainMenuAction action = MainMenu_HandleEvent(&event);
             if (action == MAINMENU_ACTION_START_GAME) {
-                g_current_mode = MODE_GAME;
-                SDL_SetRelativeMouseMode(SDL_TRUE);
-                Console_Printf("Starting game...");
-                MainMenu_SetInGameMenuMode(false, true);
+                const GameConfig* config = GameConfig_Get();
+                if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
+                    char map_name_no_ext[128];
+                    strncpy(map_name_no_ext, config->startmap, sizeof(map_name_no_ext) - 1);
+                    map_name_no_ext[sizeof(map_name_no_ext) - 1] = '\0';
+
+                    char* dot = strrchr(map_name_no_ext, '.');
+                    if (dot) {
+                        *dot = '\0';
+                    }
+
+                    char* argv[] = { (char*)"map", map_name_no_ext };
+                    Commands_Execute(2, argv);
+                }
+                else {
+                    Console_Printf_Error("No startmap defined in gameconf.txt! Cannot start game.");
+                }
             }
             else if (action == MAINMENU_ACTION_CONTINUE_GAME) {
                 g_current_mode = MODE_GAME;
