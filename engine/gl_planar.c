@@ -33,7 +33,8 @@
 #ifdef BRANCH_NOCTURNE
 // hack alert
 static bool NoSkyReflectionMap(const char* map) {
-    return strcmp(map, "level2.map") == 0 ||
+    return strcmp(map, "level1.map") == 0 ||
+        strcmp(map, "level2.map") == 0 ||
         strcmp(map, "level3.map") == 0 ||
         strcmp(map, "level4.map") == 0;
 }
@@ -106,7 +107,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     glViewport(0, 0, reflection_width, reflection_height);
 
 #ifdef BRANCH_NOCTURNE
-    // hacky fix to prevent glitches in level2,level3,level4.map
+    // hacky fix to prevent glitches in level1,level2,level3,level4.map
     if (!NoSkyReflectionMap(scene->mapPath)) {
         Skybox_Render(renderer, scene, engine, &reflection_view, projection);
     }
