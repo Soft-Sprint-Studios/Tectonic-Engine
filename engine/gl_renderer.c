@@ -138,9 +138,6 @@ static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, LOW_RES_WIDTH, LOW_RES_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        Console_Printf("G-Buffer Framebuffer not complete!\n");
 }
 
 static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
