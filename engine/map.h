@@ -74,7 +74,7 @@ extern "C" {
     typedef struct {
         char targetname[64];
         LightType type;
-        Vec3 position;
+        Vec3 pos;
         Vec3 direction;
         Vec3 rot;
         Vec3 color;
@@ -401,7 +401,7 @@ extern "C" {
     } Decal;
 
     typedef struct {
-        Vec3 position;
+        Vec3 pos;
         float yaw;
         float pitch;
     } PlayerStart;

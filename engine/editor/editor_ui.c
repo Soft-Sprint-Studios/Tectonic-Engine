@@ -103,7 +103,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
-        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->position = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
+        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
     if (UI_CollapsingHeader("Decals", 1)) {
@@ -665,7 +665,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
     }
     else if (primary && primary->type == ENTITY_PLAYERSTART) {
-        UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.position.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.position.x = SnapValue(scene->playerStart.position.x, g_EditorState.grid_size); scene->playerStart.position.y = SnapValue(scene->playerStart.position.y, g_EditorState.grid_size); scene->playerStart.position.z = SnapValue(scene->playerStart.position.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
+        UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.pos.x = SnapValue(scene->playerStart.pos.x, g_EditorState.grid_size); scene->playerStart.pos.y = SnapValue(scene->playerStart.pos.y, g_EditorState.grid_size); scene->playerStart.pos.z = SnapValue(scene->playerStart.pos.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
     }
     else if (primary && primary->type == ENTITY_SPRITE) {
         Sprite* s = &scene->sprites[primary->index];
@@ -738,15 +738,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
         UI_Separator();
 
-        UI_DragFloat3("Position", &light->position.x, 0.1f, 0, 0);
+        UI_DragFloat3("Position", &light->pos.x, 0.1f, 0, 0);
         if (UI_IsItemActivated()) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
         }
         if (UI_IsItemDeactivatedAfterEdit()) {
             if (g_EditorState.snap_to_grid) {
-                light->position.x = SnapValue(light->position.x, g_EditorState.grid_size);
-                light->position.y = SnapValue(light->position.y, g_EditorState.grid_size);
-                light->position.z = SnapValue(light->position.z, g_EditorState.grid_size);
+                light->pos.x = SnapValue(light->pos.x, g_EditorState.grid_size);
+                light->pos.y = SnapValue(light->pos.y, g_EditorState.grid_size);
+                light->pos.z = SnapValue(light->pos.z, g_EditorState.grid_size);
             }
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Move Light");
         }

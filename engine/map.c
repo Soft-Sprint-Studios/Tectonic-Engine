@@ -583,7 +583,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene, 0, sizeof(Scene));
     scene->originalMapPath[0] = '\0';
     scene->static_shadows_generated = false;
-    scene->playerStart.position = (Vec3){ 0, 5, 0 };
+    scene->playerStart.pos = (Vec3){ 0, 5, 0 };
     if (engine) {
         engine->camera.health = 100.0f;
         engine->camera.radiation_level = 0.0f;
@@ -664,8 +664,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         char keyword[64];
         sscanf(line, "%s", keyword);
         if (strcmp(keyword, "player_start") == 0) {
-            if (sscanf(line, "%*s %f %f %f %f %f", &scene->playerStart.position.x, &scene->playerStart.position.y, &scene->playerStart.position.z, &scene->playerStart.yaw, &scene->playerStart.pitch) != 5) {
-                sscanf(line, "%*s %f %f %f", &scene->playerStart.position.x, &scene->playerStart.position.y, &scene->playerStart.position.z);
+            if (sscanf(line, "%*s %f %f %f %f %f", &scene->playerStart.pos.x, &scene->playerStart.pos.y, &scene->playerStart.pos.z, &scene->playerStart.yaw, &scene->playerStart.pitch) != 5) {
+                sscanf(line, "%*s %f %f %f", &scene->playerStart.pos.x, &scene->playerStart.pos.y, &scene->playerStart.pos.z);
                 scene->playerStart.yaw = 0.0f;
                 scene->playerStart.pitch = 0.0f;
             }
@@ -976,7 +976,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
             sscanf(p, "%d %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %d %d %d %f %f",
                 &type_int,
-                &light->position.x, &light->position.y, &light->position.z,
+                &light->pos.x, &light->pos.y, &light->pos.z,
                 &light->rot.x, &light->rot.y, &light->rot.z,
                 &light->color.x, &light->color.y, &light->color.z,
                 &light->base_intensity,
@@ -1309,8 +1309,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         scene->skybox_cubemap = loadCubemap(face_pointers);
     }
     else { scene->skybox_cubemap = 0; }
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.position);
-    engine->camera.position = scene->playerStart.position;
+    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.pos);
+    engine->camera.position = scene->playerStart.pos;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;
 
@@ -1422,7 +1422,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         fprintf(file, "player_status %.2f %.2f %d\n\n", engine->camera.health, engine->camera.radiation_level, (int)engine->flashlight_on);
     }
     else {
-        fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.position.x, scene->playerStart.position.y, scene->playerStart.position.z, scene->playerStart.yaw, scene->playerStart.pitch);
+        fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.pos.x, scene->playerStart.pos.y, scene->playerStart.pos.z, scene->playerStart.yaw, scene->playerStart.pitch);
     }
     fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",
         (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
@@ -1510,7 +1510,7 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         Light* light = &scene->lights[i];
         const char* cookiePathStr = (strlen(light->cookiePath) > 0) ? light->cookiePath : "none";
         fprintf(file, "light \"%s\" %d %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d %d %d %.4f %.4f \"%s\" \"%s\" %d\n",
-            light->targetname, (int)light->type, light->position.x, light->position.y, light->position.z, light->rot.x, light->rot.y, light->rot.z,
+            light->targetname, (int)light->type, light->pos.x, light->pos.y, light->pos.z, light->rot.x, light->rot.y, light->rot.z,
             light->color.x, light->color.y, light->color.z, light->base_intensity, light->radius,
             light->cutOff, light->outerCutOff, light->shadowFarPlane, light->shadowBias, light->volumetricIntensity,
             light->preset, (int)light->is_static, (int)light->is_static_shadow, light->width, light->height, cookiePathStr, light->custom_style_string, (int)light->is_on);

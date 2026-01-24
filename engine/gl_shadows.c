@@ -44,7 +44,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         }
         if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
-        if (vec3_length_sq(vec3_sub(light->position, engine->camera.position)) > max_shadow_dist_sq) continue;
+        if (vec3_length_sq(vec3_sub(light->pos, engine->camera.position)) > max_shadow_dist_sq) continue;
         
         glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -54,12 +54,12 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             glUseProgram(current_shader);
             Mat4 shadowProj = mat4_perspective(90.0f * M_PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Mat4 shadowTransforms[6];
-            shadowTransforms[0] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[1] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[2] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 1, 0 }), (Vec3) { 0, 0, 1 });
-            shadowTransforms[3] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, -1, 0 }), (Vec3) { 0, 0, -1 });
-            shadowTransforms[4] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, 1 }), (Vec3) { 0, -1, 0 });
-            shadowTransforms[5] = mat4_lookAt(light->position, vec3_add(light->position, (Vec3) { 0, 0, -1 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[0] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { 1, 0, 0 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[1] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { -1, 0, 0 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[2] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { 0, 1, 0 }), (Vec3) { 0, 0, 1 });
+            shadowTransforms[3] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { 0, -1, 0 }), (Vec3) { 0, 0, -1 });
+            shadowTransforms[4] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { 0, 0, 1 }), (Vec3) { 0, -1, 0 });
+            shadowTransforms[5] = mat4_lookAt(light->pos, vec3_add(light->pos, (Vec3) { 0, 0, -1 }), (Vec3) { 0, -1, 0 });
             for (int j = 0; j < 6; ++j) {
                 mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]);
                 char uName[64];
@@ -67,7 +67,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
                 glUniformMatrix4fv(glGetUniformLocation(current_shader, uName), 1, GL_FALSE, shadowTransforms[j].m);
             }
             glUniform1f(glGetUniformLocation(current_shader, "far_plane"), light->shadowFarPlane);
-            glUniform3fv(glGetUniformLocation(current_shader, "lightPos"), 1, &light->position.x);
+            glUniform3fv(glGetUniformLocation(current_shader, "lightPos"), 1, &light->pos.x);
         }
         else {
             current_shader = renderer->spotDepthShader;
@@ -75,7 +75,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
             Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Vec3 up_vector = (Vec3){ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = (Vec3){ 1, 0, 0 }; }
-            Mat4 lightView = mat4_lookAt(light->position, vec3_add(light->position, light->direction), up_vector);
+            Mat4 lightView = mat4_lookAt(light->pos, vec3_add(light->pos, light->direction), up_vector);
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }

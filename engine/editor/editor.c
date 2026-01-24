@@ -264,7 +264,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     switch (sel->type) {
                     case ENTITY_MODEL: pos = scene->objects[sel->index].pos; break;
                     case ENTITY_BRUSH: pos = scene->brushes[sel->index].pos; break;
-                    case ENTITY_LIGHT: pos = scene->lights[sel->index].position; break;
+                    case ENTITY_LIGHT: pos = scene->lights[sel->index].pos; break;
                     case ENTITY_DECAL: pos = scene->decals[sel->index].pos; break;
                     case ENTITY_SOUND: pos = scene->soundEntities[sel->index].pos; break;
                     case ENTITY_PARTICLE_EMITTER: pos = scene->particleEmitters[sel->index].pos; break;
@@ -272,7 +272,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[sel->index].pos; break;
                     case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[sel->index].pos; break;
                     case ENTITY_LOGIC: pos = scene->logicEntities[sel->index].pos; break;
-                    case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
+                    case ENTITY_PLAYERSTART: pos = scene->playerStart.pos; break;
                     }
                     g_EditorState.gizmo_drag_start_positions[i] = pos;
                 }
@@ -329,12 +329,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 switch (g_EditorState.selections[i].type) {
                 case ENTITY_MODEL: pos = scene->objects[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_BRUSH: pos = scene->brushes[g_EditorState.selections[i].index].pos; break;
-                case ENTITY_LIGHT: pos = scene->lights[g_EditorState.selections[i].index].position; break;
+                case ENTITY_LIGHT: pos = scene->lights[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_DECAL: pos = scene->decals[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_SOUND: pos = scene->soundEntities[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARTICLE_EMITTER: pos = scene->particleEmitters[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_SPRITE: pos = scene->sprites[g_EditorState.selections[i].index].pos; break;
-                case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
+                case ENTITY_PLAYERSTART: pos = scene->playerStart.pos; break;
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
@@ -367,7 +367,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_start_scales[i] = scene->brushes[sel->index].scale;
                     break;
                 case ENTITY_LIGHT:
-                    g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].position;
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot;
                     g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
                     break;
@@ -407,7 +407,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
                     break;
                 case ENTITY_PLAYERSTART:
-                    g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.position;
+                    g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
                     g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
                     break;
@@ -442,7 +442,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         g_EditorState.gizmo_drag_object_start_scale = scene->brushes[primary->index].scale;
                         break;
                     case ENTITY_LIGHT:
-                        g_EditorState.gizmo_drag_object_start_pos = scene->lights[primary->index].position;
+                        g_EditorState.gizmo_drag_object_start_pos = scene->lights[primary->index].pos;
                         g_EditorState.gizmo_drag_object_start_rot = scene->lights[primary->index].rot;
                         g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
                         break;
@@ -467,7 +467,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->sprites[primary->index].scale, 1, 1 };
                         break;
                     case ENTITY_PLAYERSTART:
-                        g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.position;
+                        g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.pos;
                         g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
                         g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
                         break;
@@ -858,7 +858,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     SceneObject_UpdateMatrix(obj);
                     if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
                 }
-                else if (sel->type == ENTITY_LIGHT) scene->lights[sel->index].position = new_pos;
+                else if (sel->type == ENTITY_LIGHT) scene->lights[sel->index].pos = new_pos;
                 else if (sel->type == ENTITY_DECAL) { scene->decals[sel->index].pos = new_pos; Decal_UpdateMatrix(&scene->decals[sel->index]); }
                 else if (sel->type == ENTITY_SOUND) { scene->soundEntities[sel->index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, new_pos); }
                 else if (sel->type == ENTITY_PARTICLE_EMITTER) scene->particleEmitters[sel->index].pos = new_pos;
@@ -866,7 +866,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 else if (sel->type == ENTITY_VIDEO_PLAYER) scene->videoPlayers[sel->index].pos = new_pos;
                 else if (sel->type == ENTITY_PARALLAX_ROOM) { scene->parallaxRooms[sel->index].pos = new_pos; ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[sel->index]); }
                 else if (sel->type == ENTITY_LOGIC) scene->logicEntities[sel->index].pos = new_pos;
-                else if (sel->type == ENTITY_PLAYERSTART) scene->playerStart.position = new_pos;
+                else if (sel->type == ENTITY_PLAYERSTART) scene->playerStart.pos = new_pos;
             }
         }
         else if (g_EditorState.is_manipulating_vertex_gizmo) {
@@ -1094,7 +1094,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         switch (sel->type) {
                         case ENTITY_MODEL: g_EditorState.gizmo_drag_start_positions[i] = scene->objects[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->objects[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->objects[sel->index].scale; break;
                         case ENTITY_BRUSH: g_EditorState.gizmo_drag_start_positions[i] = scene->brushes[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->brushes[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->brushes[sel->index].scale; break;
-                        case ENTITY_LIGHT: g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].position; g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_LIGHT: g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
                         case ENTITY_DECAL: g_EditorState.gizmo_drag_start_positions[i] = scene->decals[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->decals[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->decals[sel->index].size; break;
                         case ENTITY_SOUND: g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
                         case ENTITY_PARTICLE_EMITTER: g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
@@ -1102,7 +1102,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_VIDEO_PLAYER: g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f }; break;
                         case ENTITY_PARALLAX_ROOM: g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f }; break;
                         case ENTITY_LOGIC: g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
-                        case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.position; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
                         default: g_EditorState.gizmo_drag_start_positions[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
                         }
                     }
@@ -1251,7 +1251,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
                 case ENTITY_LIGHT: {
                     Light* l = &scene->lights[sel->index];
-                    l->position = new_pos; l->rot = new_rot; break;
+                    l->pos = new_pos; l->rot = new_rot; break;
                 }
                 case ENTITY_DECAL: {
                     Decal* d = &scene->decals[sel->index];
@@ -1284,7 +1284,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     l->pos = new_pos; l->rot = new_rot; break;
                 }
                 case ENTITY_PLAYERSTART: {
-                    scene->playerStart.position = new_pos; break;
+                    scene->playerStart.pos = new_pos; break;
                 }
                 default: break;
                 }
@@ -1502,8 +1502,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     }
                     break;
                 }
-                case ENTITY_LIGHT:              target_pos = scene->lights[primary->index].position; break;
-                case ENTITY_PLAYERSTART:        target_pos = scene->playerStart.position; break;
+                case ENTITY_LIGHT:              target_pos = scene->lights[primary->index].pos; break;
+                case ENTITY_PLAYERSTART:        target_pos = scene->playerStart.pos; break;
                 case ENTITY_DECAL:              target_pos = scene->decals[primary->index].pos; break;
                 case ENTITY_SOUND:              target_pos = scene->soundEntities[primary->index].pos; break;
                 case ENTITY_PARTICLE_EMITTER:   target_pos = scene->particleEmitters[primary->index].pos; break;
@@ -2248,12 +2248,12 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 switch (g_EditorState.selections[i].type) {
                 case ENTITY_MODEL: pos = scene->objects[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_BRUSH: pos = scene->brushes[g_EditorState.selections[i].index].pos; break;
-                case ENTITY_LIGHT: pos = scene->lights[g_EditorState.selections[i].index].position; break;
+                case ENTITY_LIGHT: pos = scene->lights[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_DECAL: pos = scene->decals[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_SOUND: pos = scene->soundEntities[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARTICLE_EMITTER: pos = scene->particleEmitters[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_SPRITE: pos = scene->sprites[g_EditorState.selections[i].index].pos; break;
-                case ENTITY_PLAYERSTART: pos = scene->playerStart.position; break;
+                case ENTITY_PLAYERSTART: pos = scene->playerStart.pos; break;
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;

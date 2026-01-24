@@ -587,7 +587,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Light* light = &scene->lights[i];
         bool is_selected = Editor_IsSelected(ENTITY_LIGHT, i);
 
-        Mat4 modelMatrix = mat4_translate(light->position);
+        Mat4 modelMatrix = mat4_translate(light->pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
 
         float color[] = { light->color.x, light->color.y, light->color.z, 1.0f };
@@ -636,9 +636,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Vec3 world_dir = mat4_mul_vec3_dir(&rot_mat, forward);
                 vec3_normalize(&world_dir);
 
-                Vec3 line_end = vec3_add(light->position, vec3_muls(world_dir, 2.0f));
+                Vec3 line_end = vec3_add(light->pos, vec3_muls(world_dir, 2.0f));
 
-                Vec3 line_verts[] = { light->position, line_end };
+                Vec3 line_verts[] = { light->pos, line_end };
 
                 Mat4 identity_mat;
                 mat4_identity(&identity_mat);
@@ -670,8 +670,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 for (int k = 0; k < 4; ++k) {
                     float theta = (k / 4.0f) * 2.0f * M_PI;
                     Vec3 p_on_circle = vec3_add(vec3_muls(right, cosf(theta) * radius), vec3_muls(up, sinf(theta) * radius));
-                    Vec3 world_p = vec3_add(light->position, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
-                    cone_verts[vert_count++] = light->position;
+                    Vec3 world_p = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
+                    cone_verts[vert_count++] = light->pos;
                     cone_verts[vert_count++] = world_p;
                 }
                 for (int k = 0; k < segments; ++k) {
@@ -679,8 +679,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     float theta2 = ((k + 1) / (float)segments) * 2.0f * M_PI;
                     Vec3 p1_on_circle = vec3_add(vec3_muls(right, cosf(theta1) * radius), vec3_muls(up, sinf(theta1) * radius));
                     Vec3 p2_on_circle = vec3_add(vec3_muls(right, cosf(theta2) * radius), vec3_muls(up, sinf(theta2) * radius));
-                    cone_verts[vert_count++] = vec3_add(light->position, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
-                    cone_verts[vert_count++] = vec3_add(light->position, vec3_add(vec3_muls(dir, far_plane), p2_on_circle));
+                    cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
+                    cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p2_on_circle));
                 }
                 Mat4 identity_mat; mat4_identity(&identity_mat);
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
@@ -914,7 +914,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glUseProgram(g_EditorState.debug_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-    Mat4 player_model_matrix = mat4_translate(scene->playerStart.position);
+    Mat4 player_model_matrix = mat4_translate(scene->playerStart.pos);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, player_model_matrix.m);
 
     bool is_selected = Editor_IsSelected(ENTITY_PLAYERSTART, 0);

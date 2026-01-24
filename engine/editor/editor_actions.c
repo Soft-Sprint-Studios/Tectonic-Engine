@@ -116,7 +116,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
         switch (sel->type) {
         case ENTITY_MODEL: pos = &scene->objects[sel->index].pos; rot = &scene->objects[sel->index].rot; break;
         case ENTITY_BRUSH: pos = &scene->brushes[sel->index].pos; rot = &scene->brushes[sel->index].rot; break;
-        case ENTITY_LIGHT: pos = &scene->lights[sel->index].position; rot = &scene->lights[sel->index].rot; break;
+        case ENTITY_LIGHT: pos = &scene->lights[sel->index].pos; rot = &scene->lights[sel->index].rot; break;
         case ENTITY_DECAL: pos = &scene->decals[sel->index].pos; rot = &scene->decals[sel->index].rot; break;
         case ENTITY_SOUND: pos = &scene->soundEntities[sel->index].pos; break;
         case ENTITY_PARTICLE_EMITTER: pos = &scene->particleEmitters[sel->index].pos; break;
@@ -124,7 +124,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
         case ENTITY_VIDEO_PLAYER: pos = &scene->videoPlayers[sel->index].pos; rot = &scene->videoPlayers[sel->index].rot; break;
         case ENTITY_PARALLAX_ROOM: pos = &scene->parallaxRooms[sel->index].pos; rot = &scene->parallaxRooms[sel->index].rot; break;
         case ENTITY_LOGIC: pos = &scene->logicEntities[sel->index].pos; rot = &scene->logicEntities[sel->index].rot; break;
-        case ENTITY_PLAYERSTART: pos = &scene->playerStart.position; break;
+        case ENTITY_PLAYERSTART: pos = &scene->playerStart.pos; break;
         default: continue;
         }
 
@@ -328,7 +328,7 @@ void Editor_DuplicateLight(Scene* scene, int index) {
     memcpy(new_light, src_light, sizeof(Light));
     sprintf(new_light->targetname, "Light_%d", scene->numActiveLights);
     new_light->shadowFBO = 0; new_light->shadowMapTexture = 0;
-    new_light->position.x += 1.0f;
+    new_light->pos.x += 1.0f;
     Light_InitShadowMap(new_light);
     int new_light_index = scene->numActiveLights;
     scene->numActiveLights++;

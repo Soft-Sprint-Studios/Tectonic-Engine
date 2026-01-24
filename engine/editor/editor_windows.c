@@ -1867,7 +1867,7 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                     }
                     case ENTITY_LIGHT: {
                         Light* l = &scene->lights[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->position = vec3_add(l->position, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = vec3_add(l->pos, g_EditorState.transform_window_values);
                         if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = vec3_add(l->rot, g_EditorState.transform_window_values);
                         break;
                     }
@@ -1924,7 +1924,7 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                         break;
                     }
                     case ENTITY_PLAYERSTART: {
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.position = vec3_add(scene->playerStart.position, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.pos = vec3_add(scene->playerStart.pos, g_EditorState.transform_window_values);
                         break;
                     }
                     default:

@@ -439,9 +439,9 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
         ShaderLight* shader_light = &dynamic_lights[num_dynamic_lights];
-        shader_light->position.x = light->position.x;
-        shader_light->position.y = light->position.y;
-        shader_light->position.z = light->position.z;
+        shader_light->position.x = light->pos.x;
+        shader_light->position.y = light->pos.y;
+        shader_light->position.z = light->pos.z;
         shader_light->position.w = (float)light->type;
         shader_light->direction.x = light->direction.x;
         shader_light->direction.y = light->direction.y;

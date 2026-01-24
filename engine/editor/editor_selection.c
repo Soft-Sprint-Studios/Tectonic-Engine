@@ -189,7 +189,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (int i = 0; i < g_CurrentScene->numActiveLights; ++i) {
         Light* light = &g_CurrentScene->lights[i];
         float light_gizmo_radius = 0.5f;
-        Vec3 P = vec3_sub(light->position, ray_origin_world);
+        Vec3 P = vec3_sub(light->pos, ray_origin_world);
         float b_dot = vec3_dot(P, ray_dir_world);
         float det = b_dot * b_dot - vec3_dot(P, P) + light_gizmo_radius * light_gizmo_radius;
         if (det < 0) continue;
@@ -270,7 +270,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     }
 
     float player_start_radius = 1.0f;
-    Vec3 P = vec3_sub(g_CurrentScene->playerStart.position, ray_origin_world);
+    Vec3 P = vec3_sub(g_CurrentScene->playerStart.pos, ray_origin_world);
     float b_dot = vec3_dot(P, ray_dir_world);
     float det = b_dot * b_dot - vec3_dot(P, P) + player_start_radius * player_start_radius;
     if (det >= 0) {
@@ -515,7 +515,7 @@ bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_po
         switch (type) {
         case ENTITY_MODEL: *out_pos = scene->objects[index].pos; return true;
         case ENTITY_BRUSH: *out_pos = scene->brushes[index].pos; return true;
-        case ENTITY_LIGHT: *out_pos = scene->lights[index].position; return true;
+        case ENTITY_LIGHT: *out_pos = scene->lights[index].pos; return true;
         case ENTITY_SOUND: *out_pos = scene->soundEntities[index].pos; return true;
         case ENTITY_PARTICLE_EMITTER: *out_pos = scene->particleEmitters[index].pos; return true;
         case ENTITY_VIDEO_PLAYER: *out_pos = scene->videoPlayers[index].pos; return true;

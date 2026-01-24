@@ -253,7 +253,7 @@ void init_scene() {
     }
     strncpy(g_scene.mapPath, config->startmap, sizeof(g_scene.mapPath) - 1);
     g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
-    g_last_player_pos = g_scene.playerStart.position;
+    g_last_player_pos = g_scene.playerStart.pos;
 }
 
 void process_input() {
@@ -1306,8 +1306,7 @@ void update_state() {
     if (g_engine->camera.health <= 0.0f) {
         g_engine->camera.health = 100.0f;
         g_engine->prev_health = g_engine->camera.health;
-        Physics_Teleport(g_engine->camera.physicsBody, g_scene.playerStart.position);
-        Console_Printf("Player died and respawned.");
+        Physics_Teleport(g_engine->camera.physicsBody, g_scene.playerStart.pos);
     }
     Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) {

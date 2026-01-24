@@ -1577,7 +1577,7 @@ namespace
                         float v = ((float)y + jitter_dist(rng)) / (float)grid_size - 0.5f;
 
                         Vec3 sample_offset = vec3_add(vec3_muls(light_right, u * light.width), vec3_muls(light_up, v * light.height));
-                        Vec3 sample_pos = vec3_add(light.position, sample_offset);
+                        Vec3 sample_pos = vec3_add(light.pos, sample_offset);
 
                         Vec3 light_dir = vec3_sub(sample_pos, pos);
                         float dist_sq = vec3_length_sq(light_dir);
@@ -1610,7 +1610,7 @@ namespace
                 continue;
             }
 
-            Vec3 light_dir = vec3_sub(light.position, pos);
+            Vec3 light_dir = vec3_sub(light.pos, pos);
             float dist = vec3_length(light_dir);
             vec3_normalize(&light_dir);
             if (dist > light.radius) continue;
@@ -1618,7 +1618,7 @@ namespace
             float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
 
-            if (is_in_shadow(point_to_light_check, light.position)) continue;
+            if (is_in_shadow(point_to_light_check, light.pos)) continue;
 
             float spotFactor = 1.0f;
             if (light.type == LIGHT_SPOT)
