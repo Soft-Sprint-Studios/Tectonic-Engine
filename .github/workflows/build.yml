@@ -30,10 +30,10 @@ jobs:
         run: cmake --build build --config Release -- -j$(nproc)
 
       - name: Upload Linux Release artifacts
-          uses: actions/upload-artifact@v4
-          with:
-              name: linux-x64-release
-              path: build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-release
+          path: build
 
   build-linux-x64-relwithdebinfo:
     name: Build - Linux x64 (RelWithDebInfo)
@@ -62,10 +62,10 @@ jobs:
           objcopy --strip-debug --add-gnu-debuglink=build/launcher.debugsymbols build/launcher
 
       - name: Upload Linux RelWithDebInfo artifacts
-          uses: actions/upload-artifact@v4
-          with:
-              name: linux-x64-relwithdebinfo
-              path: build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-relwithdebinfo
+          path: build
 
   build-windows-x64-release:
     name: Build - Windows x64 (Release)
@@ -84,9 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64-release
-          path: |
-            build/Release/*.exe
-            build/Release/*.dll
+          path: build/Release
 
   build-windows-x64-relwithdebinfo:
     name: Build - Windows x64 (RelWithDebInfo)
@@ -105,10 +103,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64-relwithdebinfo
-          path: |
-            build/RelWithDebInfo/*.exe
-            build/RelWithDebInfo/*.dll
-            build/RelWithDebInfo/*.pdb
+          path: build/RelWithDebInfo
 
   build-windows-x86-release:
     name: Build - Windows x86 (Release)
@@ -127,9 +122,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-x86-release
-          path: |
-            build/Release/*.exe
-            build/Release/*.dll
+          path: build/Release
 
   build-windows-x86-relwithdebinfo:
     name: Build - Windows x86 (RelWithDebInfo)
@@ -148,7 +141,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-x86-relwithdebinfo
-          path: |
-            build/RelWithDebInfo/*.exe
-            build/RelWithDebInfo/*.dll
-            build/RelWithDebInfo/*.pdb
+          path: build/RelWithDebInfo
