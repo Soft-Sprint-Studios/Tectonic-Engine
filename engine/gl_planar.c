@@ -79,7 +79,6 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     int reflection_height = engine->height / downsample;
 
     glEnable(GL_CLIP_DISTANCE0);
-    glEnable(GL_FRAMEBUFFER_SRGB);
 
     Camera reflection_camera = *camera;
 
@@ -116,7 +115,6 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
 #endif
 
     glDisable(GL_CLIP_DISTANCE0);
-    glDisable(GL_FRAMEBUFFER_SRGB);
     glUseProgram(renderer->mainShader);
     glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, 0, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -124,26 +122,21 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
 }
 
 void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
+    glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
+
+    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
+    glDrawBuffers(7, attachments);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+
     glUseProgram(renderer->waterShader);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform3fv(glGetUniformLocation(renderer->waterShader, "viewPos"), 1, &engine->camera.position.x);
     glUniform1i(glGetUniformLocation(renderer->waterShader, "u_debug_reflection"), Cvar_GetInt("r_debug_water_reflection"));
-
-    LogicEntity* fog_ent = FindActiveEntityByClass(scene, "env_fog");
-    if (fog_ent) {
-        glUniform1i(glGetUniformLocation(renderer->waterShader, "u_fogEnabled"), 1);
-        Vec3 fog_color;
-        sscanf(LogicEntity_GetProperty(fog_ent, "color", "0.5 0.6 0.7"), "%f %f %f", &fog_color.x, &fog_color.y, &fog_color.z);
-        glUniform3fv(glGetUniformLocation(renderer->waterShader, "u_fogColor"), 1, &fog_color.x);
-        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_fogStart"), atof(LogicEntity_GetProperty(fog_ent, "start", "50.0")));
-        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_fogEnd"), atof(LogicEntity_GetProperty(fog_ent, "end", "200.0")));
-    }
-    else {
-        glUniform1i(glGetUniformLocation(renderer->waterShader, "u_fogEnabled"), 0);
-    }
 
     glUniform1i(glGetUniformLocation(renderer->waterShader, "sun.enabled"), scene->sun.enabled);
     glUniform3fv(glGetUniformLocation(renderer->waterShader, "sun.direction"), 1, &scene->sun.direction.x);
@@ -240,6 +233,8 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }
     glBindVertexArray(0);
+    glDepthMask(GL_TRUE);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
 }
 
 void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {

@@ -1,7 +1,13 @@
 #version 450 core
 #extension GL_ARB_bindless_texture : require
 
-out vec4 fragColor;
+layout (location = 0) out vec4 out_LitColor;
+layout (location = 1) out vec3 out_Position;
+layout (location = 2) out vec3 out_Normal;
+layout (location = 3) out vec4 out_AlbedoSpec;
+layout (location = 4) out vec4 out_PBRParams;
+layout (location = 5) out vec2 out_Velocity;
+layout (location = 6) out vec3 out_GeometryNormal;
 
 in vec3 v_incident;
 in vec3 v_bitangent;
@@ -12,6 +18,7 @@ in vec4 FragPosSunLightSpace;
 in vec3 FragPos_world;
 in vec2 v_texCoordLightmap;
 in vec4 v_clipSpace;
+in vec3 FragPos_view;
 
 uniform sampler2D reflectionTexture;
 uniform sampler2D flowMap;
@@ -26,10 +33,6 @@ uniform bool r_lightmaps_bicubic;
 uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 
-uniform int u_fogEnabled;
-uniform vec3 u_fogColor;
-uniform float u_fogStart;
-uniform float u_fogEnd;
 uniform float u_uv_scale;
 
 struct ShaderLight {
@@ -73,6 +76,7 @@ uniform bool useFlowMap;
 uniform vec3 u_waterAabbMin;
 uniform vec3 u_waterAabbMax;
 uniform bool u_debug_reflection;
+uniform mat4 view;
 
 mat4 perspective(float fov, float aspect, float near, float far) {
     float f = 1.0 / tan(fov / 2.0);
@@ -162,10 +166,10 @@ float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(int y = -1; y <= 1; ++y)
         {
             float pcfDepth = texture(sunShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth > pcfDepth + bias ? 1.0 : 0.0;        
+            shadow += currentDepth - 0.001 > pcfDepth ? 1.0 : 0.0;        
         }
     }
-    return shadow / 9.0;
+    return 1.0 - (shadow / 9.0);
 }
 
 // Bicubic filtering functions adapted from Godot Engine
@@ -224,6 +228,7 @@ vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
 		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
 }
 
+
 void main() {
     vec2 base_uv;
     if (u_uv_scale > 0.0) {
@@ -245,13 +250,10 @@ void main() {
 
     mat3 TBN = mat3(v_tangent, v_bitangent, v_normal);
     vec3 N = normalize(TBN * normalMapSample);
-
     vec3 V = normalize(viewPos - FragPos_world);
 
     vec2 ndc = (v_clipSpace.xy / v_clipSpace.w) / 2.0 + 0.5;
-    vec2 reflectTexCoords = vec2(ndc.x, 1.0 - ndc.y);
-
-    reflectTexCoords += distortion;
+    vec2 reflectTexCoords = vec2(ndc.x, 1.0 - ndc.y) + distortion;
     
     vec3 reflectionColor = 2.0 * texture(reflectionTexture, clamp(reflectTexCoords, 0.0, 1.0)).rgb;
     vec3 baseWaterColor = reflectionColor;
@@ -359,16 +361,16 @@ void main() {
         float outerCutOff = cos(radians(17.5));
         if (theta > outerCutOff) {
             float cone_intensity = clamp((theta - outerCutOff) / (innerCutOff - outerCutOff), 0.0, 1.0);
-            diffuse += vec3(1.0) * NdotL * attenuation * cone_intensity;
+            diffuse += NdotL * attenuation * cone_intensity;
             if (NdotL > 0.0) {
                 vec3 H = normalize(L + V);
                 float NdotH = max(dot(N, H), 0.0);
-                specular += vec3(1.0) * specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
+                specular += specularStrength * pow(NdotH, shininess) * attenuation * cone_intensity;
             }
         }
     }
 
-    vec3 finalColor = baseWaterColor + diffuse + specular + ambient + bakedDiffuse + bakedSpecular;
+    vec3 finalColor = (baseWaterColor + diffuse + specular + ambient + bakedDiffuse + bakedSpecular) * 0.1;
 
     if (r_debug_lightmaps && useLightmap) {
         if (r_lightmaps_bicubic) {
@@ -387,12 +389,12 @@ void main() {
     if (u_debug_reflection) {
         finalColor = reflectionColor;
     }
-	
-	if (u_fogEnabled == 1) {
-        float frag_dist = length(FragPos_world - viewPos);
-        float fogFactor = smoothstep(u_fogStart, u_fogEnd, frag_dist);
-        finalColor = mix(finalColor, u_fogColor, fogFactor);
-    }
 
-    fragColor = vec4(finalColor, 0.95); 
+    out_LitColor = vec4(finalColor, 0.95);
+    out_Position = FragPos_view;
+    out_Normal = normalize(mat3(transpose(inverse(view))) * N);
+    out_GeometryNormal = normalize(mat3(transpose(inverse(view))) * v_normal);
+    out_AlbedoSpec = vec4(baseWaterColor, 1.0); 
+    out_PBRParams = vec4(0.0, 0.1, 1.0, 0.95);
+    out_Velocity = vec2(0.0);
 }

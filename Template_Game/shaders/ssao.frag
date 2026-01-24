@@ -12,6 +12,11 @@ const float intensity = 10.0;
 const int radius = 3;
 
 void main() {
+    vec3 viewPos = texture(gPosition, TexCoords).xyz;
+    if (viewPos.z == 0.0) {
+        FragColor = 1.0;
+        return;
+    }
     vec2 texelSize = 1.0 / screenSize;
     vec3 centerNormal = normalize(texture(gGeometryNormal, TexCoords).rgb);
     float fragDepth = abs(texture(gPosition, TexCoords).z);

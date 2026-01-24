@@ -25,9 +25,9 @@
 #include "cvar.h"
 #include "io_system.h"
 
-void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
-    glBindFramebuffer(GL_FRAMEBUFFER, renderer->finalRenderFBO);
-    glViewport(0, 0, engine->width, engine->height);
+void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, GLuint sourceTexture, GLuint destFBO, int width, int height) {
+    glBindFramebuffer(GL_FRAMEBUFFER, destFBO);
+    glViewport(0, 0, width, height);
     if (Cvar_GetInt("r_clear")) {
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -106,7 +106,7 @@ void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     }
     glUniform2fv(glGetUniformLocation(renderer->postProcessShader, "lightPosOnScreen"), 1, &light_pos_on_screen.x);
     glUniform1f(glGetUniformLocation(renderer->postProcessShader, "flareIntensity"), flare_intensity);
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, sourceTexture);
     glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, renderer->pingpongColorbuffers[0]);
     glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
     glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, renderer->volPingpongTextures[0]);

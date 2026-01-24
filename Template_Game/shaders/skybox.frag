@@ -157,34 +157,33 @@ vec3 getCloudColor(vec3 r0, vec3 rd, vec3 sunDir) {
     return vec3(1.0) * alpha;
 }
 
-vec3 gammaCorrect(vec3 color, float gamma) {
-    return pow(color, vec3(1.0 / gamma));
-}
-
 void main()
 {
+    vec3 color;
+
     if (u_use_cubemap) {
-        FragColor = texture(u_skybox_cubemap, v_worldPos);
-        return;
+        color = texture(u_skybox_cubemap, v_worldPos).rgb;
+    } else {
+        vec3 rayOrigin = vec3(0.0, cameraPos.y + 6371e3, 0.0);
+        vec3 rayDir = normalize(v_worldPos);
+
+        color = atmosphere(
+            rayDir,
+            rayOrigin,
+            sunDirection,
+            22.0,
+            6371e3,
+            6471e3,
+            vec3(5.5e-6, 13.0e-6, 22.4e-6),
+            21e-6,
+            8e3,
+            1.2e3,
+            0.758
+        );
+
+        color += getCloudColor(rayOrigin, rayDir, sunDirection);
     }
-    vec3 rayOrigin = vec3(0.0, cameraPos.y + 6371e3, 0.0);
-    vec3 rayDir = normalize(v_worldPos);
-    vec3 color = atmosphere(
-        rayDir,
-        rayOrigin,
-        sunDirection,
-        22.0,
-        6371e3,
-        6471e3,
-        vec3(5.5e-6, 13.0e-6, 22.4e-6),
-        21e-6,
-        8e3,
-        1.2e3,
-        0.758
-    );
-    vec3 cloudCol = getCloudColor(rayOrigin, rayDir, sunDirection);
-    color += cloudCol;
-    color = 1.0 - exp(-1.0 * color);
-    color = gammaCorrect(color, 2.2);
+
+    color *= 0.2;
     FragColor = vec4(color, 1.0);
 }

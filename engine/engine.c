@@ -1938,46 +1938,59 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
                 Monitor_RenderCameras(&g_scene, &g_renderer, g_engine, &sunLightSpaceMatrix);
             }
             Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode, false);
+            if (Cvar_GetInt("r_water")) {
+                Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
+            }
+
             if (Cvar_GetInt("r_ssao")) {
                 SSAO_RenderPass(&g_renderer, g_engine, &projection);
             }
+
             if (Cvar_GetInt("r_volumetrics")) {
                 Volumetrics_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
             }
+
             if (Cvar_GetInt("r_bloom")) {
                 Bloom_RenderPass(&g_renderer, g_engine);
             }
             MiscRender_AutoexposurePass(&g_renderer, g_engine);
-            PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
+
             const int LOW_RES_WIDTH = g_engine->width / Cvar_GetFloat("r_geometry_downsample");
             const int LOW_RES_HEIGHT = g_engine->height / Cvar_GetFloat("r_geometry_downsample");
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
+            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
             glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            if(Cvar_GetInt("r_skybox")) {
+            if (Cvar_GetInt("r_skybox")) {
                 Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             }
             Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
             glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
             Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            if (Cvar_GetInt("r_water")) {
-                Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
-            }
             MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
             Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
+
             GLuint source_fbo = g_renderer.finalRenderFBO;
             GLuint source_tex = g_renderer.finalRenderTexture;
+            GLuint dest_fbo = g_renderer.postProcessFBO;
+
             if (Cvar_GetInt("r_ssr")) {
-                SSR_RenderPass(&g_renderer, g_engine, source_tex, g_renderer.postProcessFBO, &view, &projection);
-                source_fbo = g_renderer.postProcessFBO;
-                source_tex = g_renderer.postProcessTexture;
+                SSR_RenderPass(&g_renderer, g_engine, source_tex, dest_fbo, &view, &projection);
+                GLuint temp_tex = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = temp_tex;
+                GLuint temp_fbo = source_fbo; source_fbo = dest_fbo; dest_fbo = temp_fbo;
             }
+
             if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
-                MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, g_renderer.postProcessFBO);
-                source_fbo = g_renderer.postProcessFBO;
-                source_tex = g_renderer.postProcessTexture;
+                MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, dest_fbo);
+                GLuint temp_tex = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = temp_tex;
+                GLuint temp_fbo = source_fbo; source_fbo = dest_fbo; dest_fbo = temp_fbo;
             }
+
+            PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, source_tex, dest_fbo, g_engine->width, g_engine->height);
+            source_fbo = dest_fbo;
+            source_tex = (dest_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
 
             bool debug_view_active = false;
             if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }

@@ -30,6 +30,8 @@
 #include "gl_render_misc.h"
 #include "gl_shadows.h"
 #include "gl_ssao.h"
+#include "gl_skybox.h"
+#include "gl_postprocess.h"
 #include "game_data.h"
 #include "cvar.h"
 #include "io_system.h"
@@ -190,65 +192,33 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
         g_proj_matrix[type] = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 10000.0f);
+
         Geometry_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode, false);
+
         if (Cvar_GetInt("r_ssao")) {
             SSAO_RenderPass(renderer, engine, &g_proj_matrix[type]);
         }
-
         if (Cvar_GetInt("r_bloom")) {
             Bloom_RenderPass(renderer, engine);
         }
         MiscRender_AutoexposurePass(renderer, engine);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
-        glViewport(0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(renderer->postProcessShader);
-
-        glUniform2f(glGetUniformLocation(renderer->postProcessShader, "resolution"), g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "time"), (float)SDL_GetTicks() / 1000.0f);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_exposure"), renderer->currentExposure);
-
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_postEnabled"), scene->post.enabled);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_crtCurvature"), scene->post.crtCurvature);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_vignetteStrength"), scene->post.vignetteStrength);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_vignetteRadius"), scene->post.vignetteRadius);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_lensFlareEnabled"), scene->post.lensFlareEnabled);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_lensFlareStrength"), scene->post.lensFlareStrength);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_scanlineStrength"), scene->post.scanlineStrength);
-        glUniform1f(glGetUniformLocation(renderer->postProcessShader, "u_grainIntensity"), scene->post.grainIntensity);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_bloomEnabled"), Cvar_GetInt("r_bloom"));
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "u_volumetricsEnabled"), Cvar_GetInt("r_volumetrics"));
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
-        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, renderer->pingpongColorbuffers[0]);
-        glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
-        glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, renderer->volPingpongTextures[0]);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "sceneTexture"), 0);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "bloomBlur"), 1);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "gPosition"), 2);
-        glUniform1i(glGetUniformLocation(renderer->postProcessShader, "volumetricTexture"), 3);
-
-        glBindVertexArray(renderer->quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
         const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
         const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
-        glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT,
-            0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type],
-            GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
-        glDepthFunc(GL_LEQUAL);
-        glUseProgram(renderer->skyboxShader);
-        Mat4 skyboxView = g_view_matrix[type];
-        skyboxView.m[12] = skyboxView.m[13] = skyboxView.m[14] = 0;
-        glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "view"), 1, GL_FALSE, skyboxView.m);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-        glBindVertexArray(renderer->skyboxVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthFunc(GL_LESS);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderer->finalRenderFBO);
+        glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, engine->width, engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, engine->width, engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, renderer->finalRenderFBO);
+        Skybox_Render(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type]);
+
+        PostProcess_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], renderer->finalRenderTexture, g_EditorState.viewport_fbo[type], g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->finalRenderFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
+        glBlitFramebuffer(0, 0, engine->width, engine->height, 0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type], GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
         break;
     }
     case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt((Vec3) { p.x, 1000.0f, p.z }, (Vec3) { p.x, 0.0f, p.z }, (Vec3) { 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
