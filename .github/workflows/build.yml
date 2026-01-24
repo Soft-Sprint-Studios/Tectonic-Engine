@@ -30,13 +30,10 @@ jobs:
         run: cmake --build build --config Release -- -j$(nproc)
 
       - name: Upload Linux Release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-x64-release
-          path: |
-            build/launcher
-            build/lib*.so
-            build/T* # Upload all Tectonic tools
+          uses: actions/upload-artifact@v4
+          with:
+              name: linux-x64-release
+              path: build
 
   build-linux-x64-relwithdebinfo:
     name: Build - Linux x64 (RelWithDebInfo)
@@ -65,15 +62,10 @@ jobs:
           objcopy --strip-debug --add-gnu-debuglink=build/launcher.debugsymbols build/launcher
 
       - name: Upload Linux RelWithDebInfo artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-x64-relwithdebinfo
-          path: |
-            build/launcher
-            build/lib*.so
-            build/launcher.debugsymbols
-            build/libengine.so.debugsymbols
-            build/T* # Upload all Tectonic tools
+          uses: actions/upload-artifact@v4
+          with:
+              name: linux-x64-relwithdebinfo
+              path: build
 
   build-windows-x64-release:
     name: Build - Windows x64 (Release)
