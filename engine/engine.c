@@ -1727,7 +1727,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
 #endif
     if (!Checksum_Verify(dllPath)) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", NULL);
-        return 1;
+        return 0;
     }
 #endif
 
@@ -1738,7 +1738,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
             if (g_hMutex) CloseHandle(g_hMutex);
-            return 1;
+            return 0;
         }
     }
 #else
@@ -1747,12 +1747,12 @@ static int Engine_Initialize(int argc, char* argv[]) {
         g_lockFileFd = open(lockFilePath, O_CREAT | O_RDWR, 0666);
         if (g_lockFileFd == -1) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", NULL);
-            return 1;
+            return 0;
         }
         if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1 && errno == EWOULDBLOCK) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
             close(g_lockFileFd);
-            return 1;
+            return 0;
         }
     }
 #endif
