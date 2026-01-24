@@ -1706,13 +1706,15 @@ void cleanup() {
     SDL_Quit();
 }
 
-ENGINE_API int Engine_Main(int argc, char* argv[]) {
+static int Engine_Initialize(int argc, char* argv[]) {
     GameConfig_ParseCommandLine(argc, argv);
+
 #ifdef ENABLE_CHECKSUM
     char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
     HMODULE hModule = NULL;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)Engine_Main, &hModule);
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR)Engine_Main, &hModule);
     GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
 #else
     Dl_info info;
@@ -1725,6 +1727,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
         return 1;
     }
 #endif
+
 #ifdef PLATFORM_WINDOWS
     if (!g_allow_multiple_instances) {
         const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
@@ -1743,61 +1746,257 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", NULL);
             return 1;
         }
-        if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1) {
-            if (errno == EWOULDBLOCK) {
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
-                close(g_lockFileFd);
-                return 1;
-            }
+        if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1 && errno == EWOULDBLOCK) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
+            close(g_lockFileFd);
+            return 1;
         }
     }
 #endif
-    SDL_Init(SDL_INIT_VIDEO); IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4); SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
+
+    SDL_Init(SDL_INIT_VIDEO);
+    IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 #ifndef GAME_RELEASE
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 #endif
-    Uint32 window_flags = SDL_WINDOW_OPENGL;
-    if (g_start_fullscreen && !g_start_windowed) {
-        window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    }
+
     PreParse_GetResolution(&g_startup_width, &g_startup_height);
-    for (int i = 1; i < argc; ++i) {
-        if (_stricmp(argv[i], "-w") == 0 && i + 1 < argc) g_startup_width = atoi(argv[++i]);
-        if (_stricmp(argv[i], "-h") == 0 && i + 1 < argc) g_startup_height = atoi(argv[++i]);
+
+    return 1;
+}
+
+static SDL_Window* Engine_CreateWindow() {
+    Uint32 window_flags = SDL_WINDOW_OPENGL;
+    if (g_start_fullscreen && !g_start_windowed) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+    for (int i = 1; i < __argc; ++i) {
+        if (_stricmp(__argv[i], "-w") == 0 && i + 1 < __argc) g_startup_width = atoi(__argv[++i]);
+        if (_stricmp(__argv[i], "-h") == 0 && i + 1 < __argc) g_startup_height = atoi(__argv[++i]);
     }
+
 #ifdef BRANCH_NOCTURNE
-    SDL_Window* window = SDL_CreateWindow("Nocturne Descent", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
+    return SDL_CreateWindow("Nocturne Descent", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
 #else
-    SDL_Window* window = SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
+    return SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
 #endif
+}
+
+static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
     SDL_GLContext context = SDL_GL_CreateContext(window);
-    glewExperimental = GL_TRUE; glewInit();
+    glewExperimental = GL_TRUE;
+    glewInit();
     GL_InitDebugOutput();
-    init_engine(window, context);
+    return context;
+}
 
-    if (g_start_with_console) {
-        Console_Toggle();
-    }
-    if (g_dev_mode_requested) {
-        Cvar_Set("developer", "1");
-    }
-    if (Cvar_GetInt("r_vsync")) {
-        SDL_GL_SetSwapInterval(1);
-    }
-    else {
-        SDL_GL_SetSwapInterval(0);
-    }
-    if (!GLEW_ARB_bindless_texture) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
-        return -1;
-    }
-    SDL_SetRelativeMouseMode(SDL_FALSE);
-    MainMenu_SetInGameMenuMode(false, false);
+static void Engine_RenderGame() {
+    char details_str[128];
+    sprintf(details_str, "Map: %s", g_scene.mapPath);
+    Discord_Update("Playing", details_str);
 
+    Vec3 forward = {
+        cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),
+        sinf(g_engine->camera.pitch),
+        -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw)
+    };
+    vec3_normalize(&forward);
+    Vec3 target = vec3_add(g_engine->camera.position, forward);
+    Mat4 view = mat4_lookAt(g_engine->camera.position, target, (Vec3) { 0, 1, 0 });
+
+    if (g_engine->shake_amplitude > 0.0f) {
+        float shake_offset_x = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        float shake_offset_y = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        Mat4 shake_matrix = mat4_translate((Vec3) { shake_offset_x, shake_offset_y, 0.0f });
+        mat4_multiply(&view, &shake_matrix, &view);
+    }
+
+    Vec3 velocity = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+    float speed = sqrtf(velocity.x * velocity.x + velocity.z * velocity.z);
+    if (speed > 0.1f) {
+        float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
+        float bob_amt = Cvar_GetFloat("g_bob");
+
+        Mat4 bob_matrix;
+        mat4_identity(&bob_matrix);
+        bob_matrix.m[13] = -fabs(sin(bob_cycle)) * bob_amt;
+        bob_matrix.m[12] = cos(bob_cycle * 2.0f) * bob_amt * 0.5f;
+
+        mat4_multiply(&view, &view, &bob_matrix);
+    }
+
+    const Uint8* k_state = SDL_GetKeyboardState(NULL);
+    float target_fov_offset = 0.0f;
+    float base_fov = Cvar_GetFloat("fov_vertical");
+    bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
+
+    if (is_zoomed) {
+        target_fov_offset = Cvar_GetFloat("g_zoom_fov") - base_fov;
+    }
+    else if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
+        target_fov_offset = Cvar_GetFloat("g_sprint_fov");
+    }
+
+    float zoom_speed = Cvar_GetFloat("g_zoom_speed");
+    g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * zoom_speed;
+
+    float roll_max = Cvar_GetFloat("g_roll_angle");
+    float roll_speed = Cvar_GetFloat("g_roll_speed");
+    float target_roll = 0.0f;
+    if (k_state[SDL_SCANCODE_A]) target_roll = roll_max;
+    if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
+
+    g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
+    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (M_PI / 180.0f));
+    mat4_multiply(&view, &roll_mat, &view);
+
+    float fov_degrees = Cvar_GetFloat("fov_vertical");
+    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (M_PI / 180.f),
+        (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
+
+    Mat4 sunLightSpaceMatrix;
+    mat4_identity(&sunLightSpaceMatrix);
+
+    if (Cvar_GetInt("r_shadows")) {
+        if ((g_frame_counter % 2) == 0) 
+            Shadows_RenderPointAndSpot(&g_renderer, &g_scene, g_engine);
+        if (g_scene.sun.enabled) {
+            Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
+            if ((g_frame_counter % 2) == 0) 
+                Shadows_RenderSun(&g_renderer, &g_scene, &sunLightSpaceMatrix);
+        }
+    }
+
+    if (Cvar_GetInt("r_planar")) 
+        Planar_RenderReflections(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
+
+    Monitor_RenderCameras(&g_scene, &g_renderer, g_engine, &sunLightSpaceMatrix);
+    Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode, false);
+
+    if (Cvar_GetInt("r_water")) 
+        Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
+
+    if (Cvar_GetInt("r_ssao")) 
+        SSAO_RenderPass(&g_renderer, g_engine, &projection);
+
+    if (Cvar_GetInt("r_volumetrics")) 
+        Volumetrics_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
+
+    if (Cvar_GetInt("r_bloom")) 
+        Bloom_RenderPass(&g_renderer, g_engine);
+
+    MiscRender_AutoexposurePass(&g_renderer, g_engine);
+
+    const int LOW_RES_WIDTH = g_engine->width / Cvar_GetFloat("r_geometry_downsample");
+    const int LOW_RES_HEIGHT = g_engine->height / Cvar_GetFloat("r_geometry_downsample");
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
+    glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
+
+    if (Cvar_GetInt("r_skybox")) 
+        Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
+
+    Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
+    Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
+    MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
+    Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
+
+    GLuint source_fbo = g_renderer.finalRenderFBO;
+    GLuint source_tex = g_renderer.finalRenderTexture;
+    GLuint dest_fbo = g_renderer.postProcessFBO;
+
+    if (Cvar_GetInt("r_ssr")) {
+        SSR_RenderPass(&g_renderer, g_engine, source_tex, dest_fbo, &view, &projection);
+        GLuint tmp = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = tmp;
+        tmp = source_fbo; source_fbo = dest_fbo; dest_fbo = tmp;
+    }
+
+    if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
+        MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, dest_fbo);
+        GLuint tmp = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = tmp;
+        tmp = source_fbo; source_fbo = dest_fbo; dest_fbo = tmp;
+    }
+
+    PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, source_tex, dest_fbo, g_engine->width, g_engine->height);
+
+    source_fbo = dest_fbo;
+    source_tex = (dest_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
+
+    bool debug_view_active = false;
+    if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_normals")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gNormal, 5); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_position")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPosition, 5); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_metallic")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 1); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_roughness")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 2); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_ao")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_velocity")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gVelocity, 0); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_volumetric")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
+    else if (Cvar_GetInt("r_debug_bloom")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
+
+    if (!debug_view_active) Renderer_Present(source_fbo, g_engine);
+
+    Overlay_Render(&g_scene, g_engine);
+
+    Mat4 currentViewProjection;
+    mat4_multiply(&currentViewProjection, &projection, &view);
+    g_renderer.prevViewProjection = currentViewProjection;
+
+    const char* texts[MAX_GAME_TEXT_MESSAGES];
+    float positions_x[MAX_GAME_TEXT_MESSAGES];
+    float positions_y[MAX_GAME_TEXT_MESSAGES];
+    Vec4 colors[MAX_GAME_TEXT_MESSAGES];
+    float alphas[MAX_GAME_TEXT_MESSAGES];
+    int states[MAX_GAME_TEXT_MESSAGES];
+    float scales[MAX_GAME_TEXT_MESSAGES];
+
+    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+        texts[i] = g_engine->active_messages[i].text;
+        positions_x[i] = g_engine->active_messages[i].x;
+        positions_y[i] = g_engine->active_messages[i].y;
+        colors[i] = g_engine->active_messages[i].color;
+        alphas[i] = g_engine->active_messages[i].currentAlpha;
+        states[i] = g_engine->active_messages[i].state;
+        scales[i] = g_engine->active_messages[i].scale;
+    }
+
+    if (Cvar_GetInt("g_drawhud")) {
+        UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels,
+            g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes,
+            g_fps_display, g_engine->camera.position.x,
+            g_engine->camera.position.y, g_engine->camera.position.z,
+            g_engine->camera.health, g_engine->canUse,
+            g_engine->camera.radiation_level, g_engine->camera.rads_per_second,
+            g_fps_history, FPS_GRAPH_SAMPLES);
+
+        UI_RenderGameText(MAX_GAME_TEXT_MESSAGES, texts, positions_x, positions_y, colors, alphas, states, scales);
+    }
+
+    UI_RenderDeveloperOverlay();
+    Keypad_RenderUI(&g_scene, g_engine);
+    Note_RenderUI(&g_scene, g_engine);
+
+    if (g_engine->credits_active) {
+        UI_RenderCredits(g_engine->credits_active, g_engine->credits_text, g_engine->credits_timer, g_engine->credits_duration);
+    }
+
+    if (g_screenshot_requested) {
+        MiscRender_SaveScreenshot(g_engine, g_screenshot_path);
+        g_screenshot_requested = false;
+    }
+}
+
+static void Engine_RunLoop(SDL_Window* window) {
     g_fps_last_update = SDL_GetTicks();
+
     while (g_engine->running) {
+        Uint32 frameStartTicks = SDL_GetTicks();
+
         if (g_pending_mode_transition != TRANSITION_NONE) {
             if (g_pending_mode_transition == TRANSITION_TO_EDITOR) {
                 g_current_mode = MODE_EDITOR;
@@ -1811,14 +2010,7 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             g_pending_mode_transition = TRANSITION_NONE;
         }
-        Uint32 frameStartTicks = SDL_GetTicks();
-        g_scene.post.fade_active = false;
-        g_scene.post.fade_alpha = 0.0f;
-        int current_vsync_cvar = Cvar_GetInt("r_vsync");
-        if (current_vsync_cvar != g_last_vsync_cvar_state) {
-            SDL_GL_SetSwapInterval(current_vsync_cvar);
-            g_last_vsync_cvar_state = current_vsync_cvar;
-        }
+
         float currentFrame = (float)SDL_GetTicks() / 1000.0f;
         g_engine->unscaledDeltaTime = currentFrame - g_engine->lastFrame;
         g_engine->lastFrame = currentFrame;
@@ -1828,253 +2020,53 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             g_fps_history_index = (g_fps_history_index + 1) % FPS_GRAPH_SAMPLES;
         }
 
-        float time_scale_val = Cvar_GetFloat("timescale");
-        if (time_scale_val < 0.0f) {
-            time_scale_val = 0.0f;
-        }
-        g_engine->deltaTime = g_engine->unscaledDeltaTime * time_scale_val;
+        g_engine->deltaTime = g_engine->unscaledDeltaTime * fmaxf(Cvar_GetFloat("timescale"), 0.0f);
         g_engine->scaledTime += g_engine->deltaTime;
         g_fps_frame_count++;
+
         Uint32 currentTicks = SDL_GetTicks();
         if (currentTicks - g_fps_last_update >= 1000) {
             g_fps_display = (float)g_fps_frame_count / ((float)(currentTicks - g_fps_last_update) / 1000.0f);
             g_fps_last_update = currentTicks;
             g_fps_frame_count = 0;
         }
+
         UI_BeginFrame();
         IPC_ReceiveCommands(Commands_Execute);
-        process_input(); update_state();
-        if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
-            const GameConfig* config = GameConfig_Get();
-            if (g_current_mode == MODE_MAINMENU) {
-                Discord_Update(config->gamename, "In Main Menu");
-            }
-            else {
-                Discord_Update(config->gamename, "Paused");
-            }
+        process_input();
+        update_state();
+
+        switch (g_current_mode) {
+        case MODE_MAINMENU:
+        case MODE_INGAMEMENU:
             MainMenu_Update(g_engine->unscaledDeltaTime);
             MainMenu_Render();
-        }
-        else if (g_current_mode == MODE_GAME) {
-            char details_str[128];
-            sprintf(details_str, "Map: %s", g_scene.mapPath);
-            Discord_Update("Playing", details_str);
-            Vec3 f = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw),sinf(g_engine->camera.pitch),-cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) }; vec3_normalize(&f);
-            Vec3 t = vec3_add(g_engine->camera.position, f);
-            Mat4 view = mat4_lookAt(g_engine->camera.position, t, (Vec3) { 0, 1, 0 });
-            if (g_engine->shake_amplitude > 0.0f) {
-                float time = g_engine->scaledTime * g_engine->shake_frequency;
-                float shake_offset_x = (rand_float_range(-1.0f, 1.0f)) * g_engine->shake_amplitude * 0.015f;
-                float shake_offset_y = (rand_float_range(-1.0f, 1.0f)) * g_engine->shake_amplitude * 0.015f;
+            break;
 
-                Mat4 shake_matrix = mat4_translate((Vec3) { shake_offset_x, shake_offset_y, 0.0f });
-                mat4_multiply(&view, &shake_matrix, &view);
-            }
-            Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-            float speed = sqrtf(vel.x * vel.x + vel.z * vel.z);
-            if (speed > 0.1f) {
-                float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
-                float bob_amt = Cvar_GetFloat("g_bob");
-
-                Mat4 bob_matrix;
-                mat4_identity(&bob_matrix);
-                bob_matrix.m[13] = -fabs(sin(bob_cycle)) * bob_amt;
-                bob_matrix.m[12] = cos(bob_cycle * 2.0f) * bob_amt * 0.5f;
-
-                mat4_multiply(&view, &view, &bob_matrix);
-            }
-            const Uint8* k_state = SDL_GetKeyboardState(NULL);
-            float target_fov_offset = 0.0f;
-            float base_fov = Cvar_GetFloat("fov_vertical");
-            bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
-
-            if (is_zoomed) {
-                float zoom_fov = Cvar_GetFloat("g_zoom_fov");
-                target_fov_offset = zoom_fov - base_fov;
-            }
-            else {
-                float sprint_fov_max = Cvar_GetFloat("g_sprint_fov");
-                if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
-                    target_fov_offset = sprint_fov_max;
-                }
-            }
-
-            float zoom_speed = Cvar_GetFloat("g_zoom_speed");
-            g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * zoom_speed;
-
-            float roll_max = Cvar_GetFloat("g_roll_angle");
-            float roll_speed = Cvar_GetFloat("g_roll_speed");
-
-            float target_roll = 0.0f;
-            if (k_state[SDL_SCANCODE_A]) target_roll = roll_max;
-            if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
-
-            g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
-
-            Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (M_PI / 180.0f));
-            mat4_multiply(&view, &roll_mat, &view);
-            float fov_degrees = Cvar_GetFloat("fov_vertical");
-            Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (M_PI / 180.f), (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
-            Mat4 sunLightSpaceMatrix;
-            mat4_identity(&sunLightSpaceMatrix);
-
-            if (Cvar_GetInt("r_shadows")) {
-                if ((g_frame_counter % 2) == 0) {
-                    Shadows_RenderPointAndSpot(&g_renderer, &g_scene, g_engine);
-                }
-
-                if (g_scene.sun.enabled) {
-                    Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &g_scene.sun, g_engine->camera.position);
-                    if ((g_frame_counter % 2) == 0) {
-                        Shadows_RenderSun(&g_renderer, &g_scene, &sunLightSpaceMatrix);
-                    }
-                }
-            }
-            if (Cvar_GetInt("r_planar")) {
-                Planar_RenderReflections(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, &g_engine->camera);
-            }
-            if (g_current_mode == MODE_GAME) {
-                Monitor_RenderCameras(&g_scene, &g_renderer, g_engine, &sunLightSpaceMatrix);
-            }
-            Geometry_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix, g_engine->camera.position, g_is_unlit_mode, false);
-            if (Cvar_GetInt("r_water")) {
-                Planar_RenderWater(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
-            }
-
-            if (Cvar_GetInt("r_ssao")) {
-                SSAO_RenderPass(&g_renderer, g_engine, &projection);
-            }
-
-            if (Cvar_GetInt("r_volumetrics")) {
-                Volumetrics_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, &sunLightSpaceMatrix);
-            }
-
-            if (Cvar_GetInt("r_bloom")) {
-                Bloom_RenderPass(&g_renderer, g_engine);
-            }
-            MiscRender_AutoexposurePass(&g_renderer, g_engine);
-
-            const int LOW_RES_WIDTH = g_engine->width / Cvar_GetFloat("r_geometry_downsample");
-            const int LOW_RES_HEIGHT = g_engine->height / Cvar_GetFloat("r_geometry_downsample");
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            if (Cvar_GetInt("r_skybox")) {
-                Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
-            }
-            Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
-            glBindFramebuffer(GL_FRAMEBUFFER, g_renderer.finalRenderFBO);
-            Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
-            Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
-
-            GLuint source_fbo = g_renderer.finalRenderFBO;
-            GLuint source_tex = g_renderer.finalRenderTexture;
-            GLuint dest_fbo = g_renderer.postProcessFBO;
-
-            if (Cvar_GetInt("r_ssr")) {
-                SSR_RenderPass(&g_renderer, g_engine, source_tex, dest_fbo, &view, &projection);
-                GLuint temp_tex = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = temp_tex;
-                GLuint temp_fbo = source_fbo; source_fbo = dest_fbo; dest_fbo = temp_fbo;
-            }
-
-            if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
-                MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, dest_fbo);
-                GLuint temp_tex = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = temp_tex;
-                GLuint temp_fbo = source_fbo; source_fbo = dest_fbo; dest_fbo = temp_fbo;
-            }
-
-            PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, source_tex, dest_fbo, g_engine->width, g_engine->height);
-            source_fbo = dest_fbo;
-            source_tex = (dest_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
-
-            bool debug_view_active = false;
-            if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_normals")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gNormal, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_position")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPosition, 5); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_metallic")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 1); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_roughness")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPBRParams, 2); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_ao")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.ssaoBlurColorBuffer, 1); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_velocity")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gVelocity, 0); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_volumetric")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.volPingpongTextures[0], 0); debug_view_active = true; }
-            else if (Cvar_GetInt("r_debug_bloom")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.bloomBrightnessTexture, 0); debug_view_active = true; }
-
-            if (!debug_view_active) {
-                Renderer_Present(source_fbo, g_engine);
-            }
-            Overlay_Render(&g_scene, g_engine);
-            Mat4 currentViewProjection;
-            mat4_multiply(&currentViewProjection, &projection, &view);
-            g_renderer.prevViewProjection = currentViewProjection;
-        }
-        else {
-            char details_str[128];
-            sprintf(details_str, "Map: %s", g_scene.mapPath);
-            Discord_Update("In the Editor", details_str);
+        case MODE_EDITOR:
+            glClear(GL_COLOR_BUFFER_BIT);
             Editor_RenderAllViewports(g_engine, &g_renderer, &g_scene);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        }
-        if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
-        }
-        else if (g_current_mode == MODE_EDITOR) { Editor_RenderUI(g_engine, &g_scene, &g_renderer); }
-        else {
-            const char* texts[MAX_GAME_TEXT_MESSAGES];
-            float positions_x[MAX_GAME_TEXT_MESSAGES];
-            float positions_y[MAX_GAME_TEXT_MESSAGES];
-            Vec4 colors[MAX_GAME_TEXT_MESSAGES];
-            float alphas[MAX_GAME_TEXT_MESSAGES];
-            int states[MAX_GAME_TEXT_MESSAGES];
-            float scales[MAX_GAME_TEXT_MESSAGES];
-            for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
-                texts[i] = g_engine->active_messages[i].text;
-                positions_x[i] = g_engine->active_messages[i].x;
-                positions_y[i] = g_engine->active_messages[i].y;
-                colors[i] = g_engine->active_messages[i].color;
-                alphas[i] = g_engine->active_messages[i].currentAlpha;
-                states[i] = g_engine->active_messages[i].state;
-                scales[i] = g_engine->active_messages[i].scale;
-            }
+            Editor_RenderUI(g_engine, &g_scene, &g_renderer);
+            break;
 
-            if (Cvar_GetInt("g_drawhud")) {
-                UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels, g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes, g_fps_display, g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z, g_engine->camera.health, g_engine->canUse, g_engine->camera.radiation_level, g_engine->camera.rads_per_second, g_fps_history, FPS_GRAPH_SAMPLES);
-                UI_RenderGameText(MAX_GAME_TEXT_MESSAGES, texts, positions_x, positions_y, colors, alphas, states, scales);
-            }
-            UI_RenderDeveloperOverlay();
-            if (g_current_mode == MODE_GAME) {
-                Keypad_RenderUI(&g_scene, g_engine);
-                Note_RenderUI(&g_scene, g_engine);
-            }
-        }
-        Console_Draw(); 
-        if (g_engine->credits_active) {
-            UI_RenderCredits(g_engine->credits_active, g_engine->credits_text, g_engine->credits_timer, g_engine->credits_duration);
-        }
-        if (g_screenshot_requested) {
-            MiscRender_SaveScreenshot(g_engine, g_screenshot_path);
-            g_screenshot_requested = false;
-        }
-        int vsync_enabled = Cvar_GetInt("r_vsync");
-        int fps_max = Cvar_GetInt("fps_max");
+        case MODE_GAME:
+            Engine_RenderGame();
+            break;
 
-        if (vsync_enabled == 0 && fps_max > 0) {
-            float targetFrameTimeMs = 1000.0f / (float)fps_max;
-            Uint32 frameTicks = SDL_GetTicks() - frameStartTicks;
-            if (frameTicks < targetFrameTimeMs) {
-                SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
-            }
+        default:
+            break;
         }
-        if (g_quit_requested) {
+
+        Console_Draw();
+
+        if (g_quit_requested) 
             UI_OpenPopup("Quit Confirmation");
-        }
+
         if (UI_BeginPopupModal("Quit Confirmation", NULL, 1 << 3)) {
             UI_Text("Are you sure you want to quit?");
             UI_Spacing();
-            if (UI_Button("Quit")) {
+            if (UI_Button("Quit")) 
                 Cvar_EngineSet("engine_running", "0");
-            }
             UI_SameLine();
             if (UI_Button("Cancel")) {
                 g_quit_requested = false;
@@ -2082,12 +2074,53 @@ ENGINE_API int Engine_Main(int argc, char* argv[]) {
             }
             UI_EndPopup();
         }
+
         g_frame_counter++;
         UI_EndFrame(window);
+
+        int vsync_enabled = Cvar_GetInt("r_vsync");
+        int fps_max = Cvar_GetInt("fps_max");
+        if (vsync_enabled == 0 && fps_max > 0) {
+            float targetFrameTimeMs = 1000.0f / (float)fps_max;
+            Uint32 frameTicks = SDL_GetTicks() - frameStartTicks;
+            if (frameTicks < targetFrameTimeMs) 
+                SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
+        }
     }
+}
+
+static void Engine_Cleanup() {
     cleanup();
-    if (g_restart_requested) {
-        return 2;
-    }
-    return 0;
+#ifdef PLATFORM_WINDOWS
+    if (g_hMutex) CloseHandle(g_hMutex);
+#else
+    if (g_lockFileFd != -1) close(g_lockFileFd);
+#endif
+}
+
+ENGINE_API int Engine_Main(int argc, char* argv[]) {
+    if (!Engine_Initialize(argc, argv)) 
+        return 1;
+
+    SDL_Window* window = Engine_CreateWindow();
+    if (!window) 
+        return 1;
+
+    SDL_GLContext context = Engine_CreateContext(window);
+    if (!context) 
+        return 1;
+
+    init_engine(window, context);
+
+    if (g_start_with_console) 
+        Console_Toggle();
+
+    if (g_dev_mode_requested) 
+        Cvar_Set("developer", "1");
+
+    Engine_RunLoop(window);
+
+    Engine_Cleanup();
+
+    return g_restart_requested ? 2 : 0;
 }

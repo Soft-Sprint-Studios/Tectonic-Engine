@@ -35,4 +35,14 @@
     #define ENGINE_API __attribute__((visibility("default")))
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    ENGINE_API int Engine_Main(int argc, char* argv[]);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // ENGINE_API_H
