@@ -78,6 +78,9 @@
 #include <dlfcn.h>
 #endif
 
+int g_argc_stored = 0;
+char** g_argv_stored = NULL;
+
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
 static int g_last_deactivation_cvar_state = -1;
@@ -1773,9 +1776,9 @@ static SDL_Window* Engine_CreateWindow() {
     Uint32 window_flags = SDL_WINDOW_OPENGL;
     if (g_start_fullscreen && !g_start_windowed) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    for (int i = 1; i < __argc; ++i) {
-        if (_stricmp(__argv[i], "-w") == 0 && i + 1 < __argc) g_startup_width = atoi(__argv[++i]);
-        if (_stricmp(__argv[i], "-h") == 0 && i + 1 < __argc) g_startup_height = atoi(__argv[++i]);
+    for (int i = 1; i < g_argc_stored; ++i) {
+        if (_stricmp(g_argv_stored[i], "-w") == 0 && i + 1 < g_argc_stored) g_startup_width = atoi(g_argv_stored[++i]);
+        if (_stricmp(g_argv_stored[i], "-h") == 0 && i + 1 < g_argc_stored) g_startup_height = atoi(g_argv_stored[++i]);
     }
 
 #ifdef BRANCH_NOCTURNE
@@ -2099,7 +2102,10 @@ static void Engine_Cleanup() {
 }
 
 ENGINE_API int Engine_Main(int argc, char* argv[]) {
-    if (!Engine_Initialize(argc, argv)) 
+    g_argc_stored = argc;
+    g_argv_stored = argv;
+
+    if (!Engine_Initialize(g_argc_stored, g_argv_stored))
         return 1;
 
     SDL_Window* window = Engine_CreateWindow();
