@@ -97,7 +97,6 @@ void Cmd_Noclip(int argc, char** argv) {
     if (c) {
         bool currently_noclip = c->intValue;
         Cvar_Set("noclip", currently_noclip ? "0" : "1");
-        Console_Printf("noclip %s", Cvar_GetString("noclip"));
         if (currently_noclip) {
             Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position);
         }
