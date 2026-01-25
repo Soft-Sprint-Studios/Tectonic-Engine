@@ -628,6 +628,8 @@ extern "C" {
     void Brush_FreeData(Brush* b);
     void Brush_DeepCopy(Brush* dest, const Brush* src);
     bool Brush_IsSolid(const Brush* b);
+    void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
+    void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
     void Decal_UpdateMatrix(Decal* d);
     void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
     void LogicSystem_Update(Scene* scene, float deltaTime);

@@ -42,20 +42,9 @@ int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
         if (strcmp(b->classname, "env_reflectionprobe") != 0) {
             continue;
         }
-        if (b->numVertices == 0 || b->vertices == NULL) continue;
 
-        Vec3 min_aabb_world = { FLT_MAX, FLT_MAX, FLT_MAX };
-        Vec3 max_aabb_world = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-
-        for (int j = 0; j < b->numVertices; ++j) {
-            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-            min_aabb_world.x = fminf(min_aabb_world.x, world_v.x);
-            min_aabb_world.y = fminf(min_aabb_world.y, world_v.y);
-            min_aabb_world.z = fminf(min_aabb_world.z, world_v.z);
-            max_aabb_world.x = fmaxf(max_aabb_world.x, world_v.x);
-            max_aabb_world.y = fmaxf(max_aabb_world.y, world_v.y);
-            max_aabb_world.z = fmaxf(max_aabb_world.z, world_v.z);
-        }
+        Vec3 min_aabb_world, max_aabb_world;
+        Brush_GetWorldAABB(b, &min_aabb_world, &max_aabb_world);
 
         if (p.x >= min_aabb_world.x && p.x <= max_aabb_world.x &&
             p.y >= min_aabb_world.y && p.y <= max_aabb_world.y &&
@@ -79,14 +68,8 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_brush->cubemapTexture);
                 glUniform1i(glGetUniformLocation(shader, "environmentMap"), 10);
                 glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 1);
-
-                Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-                Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                for (int i = 0; i < reflection_brush->numVertices; ++i) {
-                    Vec3 world_v = mat4_mul_vec3(&reflection_brush->modelMatrix, reflection_brush->vertices[i].pos);
-                    min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
-                    max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-                }
+                Vec3 min_aabb, max_aabb;
+                Brush_GetWorldAABB(reflection_brush, &min_aabb, &max_aabb);
                 glUniform3fv(glGetUniformLocation(shader, "probeBoxMin"), 1, &min_aabb.x);
                 glUniform3fv(glGetUniformLocation(shader, "probeBoxMax"), 1, &max_aabb.x);
                 glUniform3fv(glGetUniformLocation(shader, "probePosition"), 1, &reflection_brush->pos.x);
@@ -227,13 +210,8 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 glBindTexture(GL_TEXTURE_CUBE_MAP, reflection_brush->cubemapTexture);
                 glUniform1i(glGetUniformLocation(shader, "environmentMap"), 10);
                 glUniform1i(glGetUniformLocation(shader, "useParallaxCorrection"), 1);
-                Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-                Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                for (int i = 0; i < reflection_brush->numVertices; ++i) {
-                    Vec3 world_v = mat4_mul_vec3(&reflection_brush->modelMatrix, reflection_brush->vertices[i].pos);
-                    min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
-                    max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-                }
+                Vec3 min_aabb, max_aabb;
+                Brush_GetWorldAABB(reflection_brush, &min_aabb, &max_aabb);
                 glUniform3fv(glGetUniformLocation(shader, "probeBoxMin"), 1, &min_aabb.x);
                 glUniform3fv(glGetUniformLocation(shader, "probeBoxMax"), 1, &max_aabb.x);
                 glUniform3fv(glGetUniformLocation(shader, "probePosition"), 1, &reflection_brush->pos.x);

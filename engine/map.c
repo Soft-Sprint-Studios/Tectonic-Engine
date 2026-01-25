@@ -203,6 +203,58 @@ bool Brush_IsSolid(const Brush* b) {
     return true;
 }
 
+void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
+    *out_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+    *out_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+    if (b->numVertices > 0) {
+        for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+            out_min->x = fminf(out_min->x, b->vertices[v_idx].pos.x);
+            out_min->y = fminf(out_min->y, b->vertices[v_idx].pos.y);
+            out_min->z = fminf(out_min->z, b->vertices[v_idx].pos.z);
+            out_max->x = fmaxf(out_max->x, b->vertices[v_idx].pos.x);
+            out_max->y = fmaxf(out_max->y, b->vertices[v_idx].pos.y);
+            out_max->z = fmaxf(out_max->z, b->vertices[v_idx].pos.z);
+        }
+    }
+    else {
+        *out_min = (Vec3){ -0.5f, -0.5f, -0.5f };
+        *out_max = (Vec3){ 0.5f,  0.5f,  0.5f };
+    }
+}
+
+void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
+    *out_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+    *out_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+    if (b->numVertices == 0) {
+        Vec3 local_min = { -0.5f, -0.5f, -0.5f };
+        Vec3 local_max = { 0.5f,  0.5f,  0.5f };
+        *out_min = mat4_mul_vec3(&b->modelMatrix, local_min);
+        *out_max = mat4_mul_vec3(&b->modelMatrix, local_max);
+        return;
+    }
+
+    if (b->rot.x == 0.0f && b->rot.y == 0.0f && b->rot.z == 0.0f &&
+        b->scale.x == 1.0f && b->scale.y == 1.0f && b->scale.z == 1.0f) {
+        Vec3 local_min, local_max;
+        Brush_GetLocalAABB(b, &local_min, &local_max);
+        *out_min = vec3_add(local_min, b->pos);
+        *out_max = vec3_add(local_max, b->pos);
+    }
+    else {
+        for (int i = 0; i < b->numVertices; ++i) {
+            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+            out_min->x = fminf(out_min->x, world_v.x);
+            out_min->y = fminf(out_min->y, world_v.y);
+            out_min->z = fminf(out_min->z, world_v.z);
+            out_max->x = fmaxf(out_max->x, world_v.x);
+            out_max->y = fmaxf(out_max->y, world_v.y);
+            out_max->z = fmaxf(out_max->z, world_v.z);
+        }
+    }
+}
+
 static int getNumFaces(const SMikkTSpaceContext* pContext) {
     return g_mikk_userdata.numTriangles;
 }

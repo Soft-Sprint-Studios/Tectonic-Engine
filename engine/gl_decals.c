@@ -95,12 +95,9 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
             glActiveTexture(GL_TEXTURE10);
             glBindTexture(GL_TEXTURE_CUBE_MAP, probe->cubemapTexture);
 
-            Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX }, max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int v = 0; v < probe->numVertices; ++v) {
-                Vec3 world_v = mat4_mul_vec3(&probe->modelMatrix, probe->vertices[v].pos);
-                min_aabb.x = fminf(min_aabb.x, world_v.x); min_aabb.y = fminf(min_aabb.y, world_v.y); min_aabb.z = fminf(min_aabb.z, world_v.z);
-                max_aabb.x = fmaxf(max_aabb.x, world_v.x); max_aabb.y = fmaxf(max_aabb.y, world_v.y); max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-            }
+            Vec3 min_aabb, max_aabb;
+            Brush_GetWorldAABB(probe, &min_aabb, &max_aabb);
+
             glUniform3fv(probeMinLoc, 1, &min_aabb.x);
             glUniform3fv(probeMaxLoc, 1, &max_aabb.x);
             glUniform3fv(probePosLoc, 1, &probe->pos.x);

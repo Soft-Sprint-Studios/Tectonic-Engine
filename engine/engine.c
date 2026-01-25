@@ -349,22 +349,8 @@ void process_input() {
                 for (int i = 0; i < g_scene.numBrushes; ++i) {
                     Brush* brush = &g_scene.brushes[i];
                     if (strcmp(brush->classname, "func_button") == 0) {
-                        Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
-                        Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                        if (brush->numVertices > 0) {
-                            for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
-                                brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
-                                brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
-                                brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
-                                brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
-                                brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
-                                brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
-                            }
-                        }
-                        else {
-                            brush_local_min = (Vec3){ -0.1f, -0.1f, -0.1f };
-                            brush_local_max = (Vec3){ 0.1f,  0.1f,  0.1f };
-                        }
+                        Vec3 brush_local_min, brush_local_max;
+                        Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                         float t;
                         if (RayIntersectsOBB(g_engine->camera.position, forward,
@@ -385,22 +371,9 @@ void process_input() {
                     }
                     if (strcmp(brush->classname, "func_door") == 0) {
                         if (atoi(Brush_GetProperty(brush, "OpenOnUse", "1")) == 1) {
-                            Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
-                            Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                            if (brush->numVertices > 0) {
-                                for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
-                                    brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
-                                    brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
-                                    brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
-                                    brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
-                                    brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
-                                    brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
-                                }
-                            }
-                            else {
-                                brush_local_min = (Vec3){ -0.1f, -0.1f, -0.1f };
-                                brush_local_max = (Vec3){ 0.1f,  0.1f,  0.1f };
-                            }
+                            Vec3 brush_local_min, brush_local_max;
+                            Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
+
                             float t;
                             if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                                 if (brush->door_state == DOOR_STATE_CLOSED || brush->door_state == DOOR_STATE_CLOSING) {
@@ -414,22 +387,8 @@ void process_input() {
                         }
                     }
                     if (strcmp(brush->classname, "func_healthcharger") == 0) {
-                        Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
-                        Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                        if (brush->numVertices > 0) {
-                            for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
-                                brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
-                                brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
-                                brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
-                                brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
-                                brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
-                                brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
-                            }
-                        }
-                        else {
-                            brush_local_min = (Vec3){ -0.5f, -0.5f, -0.5f };
-                            brush_local_max = (Vec3){ 0.5f, 0.5f, 0.5f };
-                        }
+                        Vec3 brush_local_min, brush_local_max;
+                        Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                         float t;
                         if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
@@ -890,22 +849,9 @@ void update_state() {
             }
 
             if (is_usable) {
-                Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
-                Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                if (brush->numVertices > 0) {
-                    for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
-                        brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
-                        brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
-                        brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
-                        brush_local_max.x = fmaxf(brush_local_max.x, brush->vertices[v_idx].pos.x);
-                        brush_local_max.y = fmaxf(brush_local_max.y, brush->vertices[v_idx].pos.y);
-                        brush_local_max.z = fmaxf(brush_local_max.z, brush->vertices[v_idx].pos.z);
-                    }
-                }
-                else {
-                    brush_local_min = (Vec3){ -0.5f, -0.5f, -0.5f };
-                    brush_local_max = (Vec3){ 0.5f, 0.5f, 0.5f };
-                }
+                Vec3 brush_local_min, brush_local_max;
+                Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
+
                 float t;
                 if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                     g_engine->canUse = true;
@@ -1050,19 +996,9 @@ void update_state() {
     for (int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "trigger_dspzone") != 0) continue;
-        if (b->numVertices == 0) continue;
 
-        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-        for (int v = 0; v < b->numVertices; ++v) {
-            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
-            min_aabb.x = fminf(min_aabb.x, world_v.x);
-            min_aabb.y = fminf(min_aabb.y, world_v.y);
-            min_aabb.z = fminf(min_aabb.z, world_v.z);
-            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
-            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
-            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-        }
+        Vec3 min_aabb, max_aabb;
+        Brush_GetWorldAABB(b, &min_aabb, &max_aabb);
 
         if (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
             playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
@@ -1089,19 +1025,8 @@ void update_state() {
         Brush* b = &g_scene.brushes[i];
         if (strlen(b->classname) == 0 || !b->runtime_active) continue;
 
-        if (b->numVertices == 0) continue;
-
-        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-        for (int v = 0; v < b->numVertices; ++v) {
-            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
-            min_aabb.x = fminf(min_aabb.x, world_v.x);
-            min_aabb.y = fminf(min_aabb.y, world_v.y);
-            min_aabb.z = fminf(min_aabb.z, world_v.z);
-            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
-            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
-            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-        }
+        Vec3 min_aabb, max_aabb;
+        Brush_GetWorldAABB(b, &min_aabb, &max_aabb);
 
         bool is_inside = (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
             playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
@@ -1253,13 +1178,7 @@ void update_state() {
 
         Vec3 conveyor_min, conveyor_max;
         if (b->numVertices > 0) {
-            conveyor_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
-            conveyor_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                conveyor_min.x = fminf(conveyor_min.x, world_v.x); conveyor_min.y = fminf(conveyor_min.y, world_v.y); conveyor_min.z = fminf(conveyor_min.z, world_v.z);
-                conveyor_max.x = fmaxf(conveyor_max.x, world_v.x); conveyor_max.y = fmaxf(conveyor_max.y, world_v.y); conveyor_max.z = fmaxf(conveyor_max.z, world_v.z);
-            }
+            Brush_GetWorldAABB(b, &conveyor_min, &conveyor_max);
 
             for (int obj_idx = 0; obj_idx < g_scene.numObjects; ++obj_idx) {
                 SceneObject* obj = &g_scene.objects[obj_idx];
@@ -1385,21 +1304,10 @@ void update_state() {
                 float move_dist = atof(Brush_GetProperty(b, "distance", "0"));
 
                 if (move_dist <= 0) {
-                    Vec3 min_aabb_local = { FLT_MAX, FLT_MAX, FLT_MAX };
-                    Vec3 max_aabb_local = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                    for (int v = 0; v < b->numVertices; ++v) {
-                        min_aabb_local.x = fminf(min_aabb_local.x, b->vertices[v].pos.x);
-                        min_aabb_local.y = fminf(min_aabb_local.y, b->vertices[v].pos.y);
-                        min_aabb_local.z = fminf(min_aabb_local.z, b->vertices[v].pos.z);
-                        max_aabb_local.x = fmaxf(max_aabb_local.x, b->vertices[v].pos.x);
-                        max_aabb_local.y = fmaxf(max_aabb_local.y, b->vertices[v].pos.y);
-                        max_aabb_local.z = fmaxf(max_aabb_local.z, b->vertices[v].pos.z);
-                    }
+                    Vec3 min_aabb_local, max_aabb_local;
+                    Brush_GetLocalAABB(b, &min_aabb_local, &max_aabb_local);
                     Vec3 size = vec3_sub(max_aabb_local, min_aabb_local);
-                    Vec3 extent_x = vec3_muls((Vec3) { 1, 0, 0 }, size.x);
-                    Vec3 extent_y = vec3_muls((Vec3) { 0, 1, 0 }, size.y);
-                    Vec3 extent_z = vec3_muls((Vec3) { 0, 0, 1 }, size.z);
-                    move_dist = fabsf(vec3_dot(extent_x, b->door_move_dir)) + fabsf(vec3_dot(extent_y, b->door_move_dir)) + fabsf(vec3_dot(extent_z, b->door_move_dir));
+                    move_dist = fabsf(size.x * b->door_move_dir.x) + fabsf(size.y * b->door_move_dir.y) + fabsf(size.z * b->door_move_dir.z);
                 }
 
                 b->door_end_pos = vec3_add(b->door_start_pos, vec3_muls(b->door_move_dir, move_dist));
@@ -1596,17 +1504,8 @@ void update_state() {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_water") != 0) continue;
 
-        Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-        Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-        for (int v = 0; v < b->numVertices; ++v) {
-            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
-            min_aabb.x = fminf(min_aabb.x, world_v.x);
-            min_aabb.y = fminf(min_aabb.y, world_v.y);
-            min_aabb.z = fminf(min_aabb.z, world_v.z);
-            max_aabb.x = fmaxf(max_aabb.x, world_v.x);
-            max_aabb.y = fmaxf(max_aabb.y, world_v.y);
-            max_aabb.z = fmaxf(max_aabb.z, world_v.z);
-        }
+        Vec3 min_aabb, max_aabb;
+        Brush_GetWorldAABB(b, &min_aabb, &max_aabb);
 
         if (g_engine->camera.position.x >= min_aabb.x && g_engine->camera.position.x <= max_aabb.x &&
             g_engine->camera.position.y >= min_aabb.y && g_engine->camera.position.y <= max_aabb.y &&

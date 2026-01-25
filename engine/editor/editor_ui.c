@@ -1498,17 +1498,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             EditorSelection* sel = Editor_GetPrimarySelection();
             Brush* b = &scene->brushes[sel->index];
             if (b->numVertices > 0) {
-                b_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
-                b_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                    Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                    b_min.x = fminf(b_min.x, world_v.x);
-                    b_min.y = fminf(b_min.y, world_v.y);
-                    b_min.z = fminf(b_min.z, world_v.z);
-                    b_max.x = fmaxf(b_max.x, world_v.x);
-                    b_max.y = fmaxf(b_max.y, world_v.y);
-                    b_max.z = fmaxf(b_max.z, world_v.z);
-                }
+                Brush_GetWorldAABB(b, &b_min, &b_max);
             }
             else {
                 b_min = b->pos;

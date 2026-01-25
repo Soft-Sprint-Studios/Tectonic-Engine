@@ -366,17 +366,8 @@ namespace
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b) || b.numVertices == 0) continue;
 
-            Vec3 min_aabb = { FLT_MAX, FLT_MAX, FLT_MAX };
-            Vec3 max_aabb = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int j = 0; j < b.numVertices; ++j) {
-                Vec3 world_v = mat4_mul_vec3(&b.modelMatrix, b.vertices[j].pos);
-                min_aabb.x = min(min_aabb.x, world_v.x);
-                min_aabb.y = min(min_aabb.y, world_v.y);
-                min_aabb.z = min(min_aabb.z, world_v.z);
-                max_aabb.x = max(max_aabb.x, world_v.x);
-                max_aabb.y = max(max_aabb.y, world_v.y);
-                max_aabb.z = max(max_aabb.z, world_v.z);
-            }
+            Vec3 min_aabb, max_aabb;
+            Brush_GetWorldAABB(&b, &min_aabb, &max_aabb);
 
             for (float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
                 for (float y = min_aabb.y; y <= max_aabb.y; y += probe_spacing) {
