@@ -624,6 +624,9 @@ void init_cvars() {
     Cvar_Register("r_shadow_distance_max", "100.0", "Max shadow casting distance", CVAR_NONE);
     Cvar_Register("r_shadow_map_size", "1024", "Shadow map resolution", CVAR_NONE);
     Cvar_Register("r_relief_mapping", "1", "Enable relief mapping (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_relief_max_steps", "12.0", "Relief Mapping: Maximum initial steps (quality)", CVAR_NONE);
+    Cvar_Register("r_relief_min_steps", "1.0", "Relief Mapping: Minimum initial steps (performance)", CVAR_NONE);
+    Cvar_Register("r_relief_refine_steps", "6", "Relief Mapping: Refinement steps (accuracy)", CVAR_NONE);
     Cvar_Register("r_cubemaps", "1", "Enable environment mapping reflections (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_colorcorrection", "1", "Enable color correction (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_vignette", "1", "Enable vignette (0=off, 1=on)", CVAR_NONE);

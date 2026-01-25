@@ -101,6 +101,9 @@ uniform float heightScale2;
 uniform float heightScale3;
 uniform float heightScale4;
 uniform bool u_isParallaxEnabled;
+uniform float u_relief_max_steps;
+uniform float u_relief_min_steps;
+uniform int u_relief_refine_steps;
 uniform bool u_useAlphaTest;
 
 uniform float u_roughness_override;
@@ -237,12 +240,8 @@ vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec
         return texCoords;
     }
 
-    const float MAX_INITIAL_STEPS = 12.0;
-    const float MIN_INITIAL_STEPS = 1.0;
-    const int REFINEMENT_STEPS = 6;
-
-    float numLayers = mix(MAX_INITIAL_STEPS, MIN_INITIAL_STEPS, distanceFade);
-    numLayers = mix(numLayers, MIN_INITIAL_STEPS, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+    float numLayers = mix(u_relief_max_steps, u_relief_min_steps, distanceFade);
+    numLayers = mix(numLayers, u_relief_min_steps, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
     
     float layerDepth = 1.0 / numLayers;
     vec2 p = viewDir.xy * hScale;
@@ -269,7 +268,7 @@ vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec
     vec2 texCoordsStart = prevTexCoords;
     vec2 texCoordsEnd = currentTexCoords;
 
-    for (int i = 0; i < REFINEMENT_STEPS; i++)
+    for (int i = 0; i < u_relief_refine_steps; i++)
     {
         float midDepth = (depthStart + depthEnd) * 0.5;
         vec2 midTexCoords = mix(texCoordsStart, texCoordsEnd, 0.5);

@@ -408,6 +408,9 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), Cvar_GetInt("r_fullbright"));
     glUniform1i(glGetUniformLocation(renderer->mainShader, "u_numAmbientProbes"), scene->num_ambient_probes);
     glUniform1i(glGetUniformLocation(renderer->mainShader, "numActiveLights"), scene->numActiveLights);
+    glUniform1f(glGetUniformLocation(renderer->mainShader, "u_relief_max_steps"), Cvar_GetFloat("r_relief_max_steps"));
+    glUniform1f(glGetUniformLocation(renderer->mainShader, "u_relief_min_steps"), Cvar_GetFloat("r_relief_min_steps"));
+    glUniform1i(glGetUniformLocation(renderer->mainShader, "u_relief_refine_steps"), Cvar_GetInt("r_relief_refine_steps"));
 
     ShaderLight dynamic_lights[MAX_LIGHTS];
     int num_dynamic_lights = 0;
