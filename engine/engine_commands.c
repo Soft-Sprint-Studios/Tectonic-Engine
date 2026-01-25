@@ -649,7 +649,7 @@ void init_cvars() {
     Cvar_Register("r_water", "1", "Enable water rendering (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_planar", "1", "Enable planar reflections for water and reflective glass (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_planar_downsample", "2", "Downsample factor for planar reflections/refractions (e.g., 2 = 1/4 resolution)", CVAR_NONE);
-    Cvar_Register("r_lightmaps_bicubic", "0", "Enable Bicubic lightmap filtering (0=off, 1=on)", CVAR_NONE);
+    Cvar_Register("r_lightmaps_bicubic", "1", "Enable Bicubic lightmap filtering (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("fps_max", "300", "Max FPS (0=unlimited)", CVAR_NONE);
     Cvar_Register("show_fps", "0", "Show FPS counter (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_showgraph", "0", "Show framerate graph (0=off, 1=on)", CVAR_NONE);
