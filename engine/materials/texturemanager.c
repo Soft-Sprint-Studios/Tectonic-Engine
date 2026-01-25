@@ -586,6 +586,12 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                     else if (strcmp(key, "alpha") == 0) {
                         current_material->alpha = (float_val != 0.0f);
                     }
+                    else {
+                        Console_Printf_Error("Unknown float key '%s' in material '%s'\n", key, current_material->name);
+                    }
+                }
+                else {
+                    Console_Printf_Error("Failed to parse line in material '%s': %s\n", current_material->name, trimmed_line);
                 }
             }
         }
