@@ -187,6 +187,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
     switch (type) {
     case VIEW_PERSPECTIVE: {
+        glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         Vec3 f = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
         vec3_normalize(&f);
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
