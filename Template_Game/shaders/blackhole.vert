@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 layout (location = 0) in vec2 aPos;
 layout (location = 1) in vec2 aTexCoords;
 

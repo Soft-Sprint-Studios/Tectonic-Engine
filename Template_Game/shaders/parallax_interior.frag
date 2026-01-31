@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 layout (location = 0) out vec4 out_LitColor;
 layout (location = 1) out vec3 out_Position;
 layout (location = 2) out vec3 out_Normal;
@@ -53,8 +52,7 @@ vec3 gammaCorrect(vec3 color, float gamma) {
     return pow(color, vec3(1.0 / gamma));
 }
 
-void main()
-{
+void main() {
     vec3 viewDir_world = normalize(fs_in.FragPos_world - viewPos);
     vec3 rd_local = transpose(fs_in.TBN) * viewDir_world;
     vec3 ro_local = vec3(0.0, 0.0, 0.0);

@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 layout (location = 0) out vec4 out_LitColor;
 layout (location = 1) out vec3 out_Position;
 layout (location = 2) out vec3 out_Normal;
