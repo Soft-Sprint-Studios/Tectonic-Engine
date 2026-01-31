@@ -58,4 +58,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // COMMANDS_H

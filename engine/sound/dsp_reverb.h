@@ -72,4 +72,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif // DSP_REVERB_H
