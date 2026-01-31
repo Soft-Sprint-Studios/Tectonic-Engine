@@ -48,7 +48,11 @@ char* load_shader_source(const char* path) {
 
 GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &src, NULL);
+    const char* header =
+        "#version 450 core\n"
+        "#extension GL_ARB_bindless_texture : require\n";
+    const char* sources[2] = { header, src };
+    glShaderSource(shader, 2, sources, NULL);
     glCompileShader(shader);
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
