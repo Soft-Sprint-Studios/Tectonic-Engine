@@ -61,6 +61,7 @@ GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
         "#extension GL_ARB_bindless_texture : require\n"
         "#extension GL_ARB_shading_language_include : require\n"
         "#include \"/common.h\"\n"
+        "#include \"/pbr.h\"\n"
         "#line 1\n";
     const char* sources[2] = { header, src };
     glShaderSource(shader, 2, sources, NULL);

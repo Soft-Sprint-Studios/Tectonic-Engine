@@ -130,77 +130,6 @@ uniform bool r_lightmaps_bicubic;
 const float PARALLAX_START_FADE_DISTANCE = 20.0;
 const float PARALLAX_END_FADE_DISTANCE = 40.0;
 
-vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec3 viewDir, float distanceFade)
-{
-    if (hScale <= 0.001 || distanceFade >= 1.0) {
-        return texCoords;
-    }
-
-    float numLayers = mix(u_relief_max_steps, u_relief_min_steps, distanceFade);
-    numLayers = mix(numLayers, u_relief_min_steps, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
-    
-    float layerDepth = 1.0 / numLayers;
-    vec2 p = viewDir.xy * hScale;
-    vec2 deltaTexCoords = p / numLayers;
-
-    vec2  currentTexCoords = texCoords;
-    float currentLayerDepth = 0.0;
-    float currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-
-    for (int i = 0; i < int(numLayers); i++)
-    {
-        if(currentLayerDepth >= currentHeightMapValue) {
-            break;
-        }
-        currentTexCoords -= deltaTexCoords;
-        currentLayerDepth += layerDepth;
-        currentHeightMapValue = 1.0 - texture(heightMapSampler, currentTexCoords).r;
-    }
-    
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-
-    float depthStart = currentLayerDepth - layerDepth;
-    float depthEnd = currentLayerDepth;
-    vec2 texCoordsStart = prevTexCoords;
-    vec2 texCoordsEnd = currentTexCoords;
-
-    for (int i = 0; i < u_relief_refine_steps; i++)
-    {
-        float midDepth = (depthStart + depthEnd) * 0.5;
-        vec2 midTexCoords = mix(texCoordsStart, texCoordsEnd, 0.5);
-        float midHeightMapValue = 1.0 - texture(heightMapSampler, midTexCoords).r;
-        
-        if (midDepth > midHeightMapValue)
-        {
-            depthEnd = midDepth;
-            texCoordsEnd = midTexCoords;
-        }
-        else
-        {
-            depthStart = midDepth;
-            texCoordsStart = midTexCoords;
-        }
-    }
-    
-    return texCoordsEnd;
-}
-
-vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probePos) {
-    vec3 invR = 1.0 / R;
-    vec3 t1 = (boxMin - fragPos) * invR;
-    vec3 t2 = (boxMax - fragPos) * invR;
-    vec3 tmin = min(t1, t2);
-    vec3 tmax = max(t1, t2);
-    float t_near = max(max(tmin.x, tmin.y), tmin.z);
-    float t_far = min(min(tmax.x, tmax.y), tmax.z);
-    if (t_near > t_far || t_far < 0.0) {
-        return R;
-    }
-    float intersection_t = t_far;
-    vec3 intersectPos = fragPos + R * intersection_t;
-    return normalize(intersectPos - probePos);
-}
-
 void main()
 {
     vec2 finalTexCoords1 = TexCoords;
@@ -213,10 +142,10 @@ void main()
         vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
         float dist = length(FragPos_world - viewPos);
         float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
-        finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor);
-        finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor);
-        finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor);
-        finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor);
+        finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
+        finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
+        finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
+        finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
     }
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);
