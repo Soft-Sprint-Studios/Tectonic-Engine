@@ -1817,26 +1817,27 @@ static void Engine_RenderGame() {
     MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
     Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
 
-    GLuint source_fbo = g_renderer.finalRenderFBO;
-    GLuint source_tex = g_renderer.finalRenderTexture;
-    GLuint dest_fbo = g_renderer.postProcessFBO;
+    GLuint read_tex = g_renderer.finalRenderTexture;
+    GLuint write_tex = g_renderer.postProcessTexture;
+    GLuint read_fbo = g_renderer.finalRenderFBO;
+    GLuint write_fbo = g_renderer.postProcessFBO;
 
     if (Cvar_GetInt("r_ssr")) {
-        SSR_RenderPass(&g_renderer, g_engine, source_tex, dest_fbo, &view, &projection);
-        GLuint tmp = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = tmp;
-        tmp = source_fbo; source_fbo = dest_fbo; dest_fbo = tmp;
+        SSR_RenderPass(&g_renderer, g_engine, read_tex, write_fbo, &view, &projection);
+        GLuint temp_tex = read_tex; read_tex = write_tex; write_tex = temp_tex;
+        GLuint temp_fbo = read_fbo; read_fbo = write_fbo; write_fbo = temp_fbo;
     }
 
     if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
-        MiscRender_DoFPass(&g_renderer, &g_scene, source_tex, g_renderer.finalDepthTexture, dest_fbo);
-        GLuint tmp = source_tex; source_tex = g_renderer.postProcessTexture; g_renderer.postProcessTexture = tmp;
-        tmp = source_fbo; source_fbo = dest_fbo; dest_fbo = tmp;
+        MiscRender_DoFPass(&g_renderer, &g_scene, read_tex, g_renderer.finalDepthTexture, write_fbo);
+        GLuint temp_tex = read_tex; read_tex = write_tex; write_tex = temp_tex;
+        GLuint temp_fbo = read_fbo; read_fbo = write_fbo; write_fbo = temp_fbo;
     }
 
-    PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, source_tex, dest_fbo, g_engine->width, g_engine->height);
+    PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, read_tex, write_fbo, g_engine->width, g_engine->height);
 
-    source_fbo = dest_fbo;
-    source_tex = (dest_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
+    GLuint source_fbo = write_fbo;
+    GLuint source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
 
     bool debug_view_active = false;
     if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
