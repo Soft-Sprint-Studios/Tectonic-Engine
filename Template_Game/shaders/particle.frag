@@ -33,25 +33,6 @@ uniform sampler2D gPosition;
 uniform vec2 screenSize;
 uniform float softness;
 
-struct Sun {
-    bool enabled;
-    vec3 direction;
-    vec3 color;
-    float intensity;
-};
-
-struct Flashlight {
-    bool enabled;
-    vec3 position;
-    vec3 direction;
-};
-
-struct AmbientProbe {
-    vec3 position;
-    vec3 colors[6];
-    vec3 dominant_direction;
-};
-
 uniform Sun sun;
 uniform Flashlight flashlight;
 uniform vec3 viewPos;

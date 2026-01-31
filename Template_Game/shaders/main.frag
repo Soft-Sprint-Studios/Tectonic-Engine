@@ -52,29 +52,6 @@ in vec2 Velocity;
 uniform mat4 view;
 uniform mat4 projection;
 
-struct ShaderLight {
-    vec4 position;
-    vec4 direction;
-    vec4 color;
-    vec4 params1;
-    vec4 params2;
-    uvec2 shadowMapHandle;
-    uvec2 cookieMapHandle;
-};
-
-struct Sun {
-    bool enabled;
-    vec3 direction;
-    vec3 color;
-    float intensity;
-};
-
-struct Flashlight {
-    bool enabled;
-    vec3 position;
-    vec3 direction;
-};
-
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D rmaMap;
@@ -135,11 +112,6 @@ uniform float u_metalness_override3;
 uniform float u_roughness_override4;
 uniform float u_metalness_override4;
 
-struct AmbientProbe {
-    vec3 position;
-    vec3 colors[6];
-    vec3 dominant_direction;
-};
 uniform AmbientProbe u_probes[8];
 uniform int u_numAmbientProbes;
 
@@ -154,102 +126,6 @@ uniform bool r_debug_lightmaps_directional;
 uniform bool r_debug_vertex_light;
 uniform bool r_debug_vertex_light_directional;
 uniform bool r_lightmaps_bicubic;
-
-const float PI = 3.14159265359;
-
-mat4 perspective(float fov, float aspect, float near, float far) {
-    float f = 1.0 / tan(fov / 2.0);
-    return mat4(
-        f / aspect, 0, 0, 0,
-        0, f, 0, 0,
-        0, 0, (far + near) / (near - far), -1,
-        0, 0, (2.0 * far * near) / (near - far), 0
-    );
-}
-
-mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
-    vec3 f = normalize(center - eye);
-    vec3 s = normalize(cross(f, up));
-    vec3 u = cross(s, f);
-    return mat4(
-        s.x, u.x, -f.x, 0,
-        s.y, u.y, -f.y, 0,
-        s.z, u.z, -f.z, 0,
-        -dot(s, eye), -dot(u, eye), dot(f, eye), 1
-    );
-}
-
-float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias)
-{
-    sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if(projCoords.z > 1.0)
-        return 0.0;
-    float currentDepth = projCoords.z;
-    float final_bias = max(bias * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowSampler, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth > pcfDepth + final_bias ? 1.0 : 0.0;
-        }
-    }
-    return shadow / 9.0;
-}
-
-float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias)
-{
-    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
-    vec3 fragToLight = fragPos - lightPos;
-    float currentDepth = length(fragToLight);
-    if(currentDepth > farPlane) {
-        return 0.0;
-    }
-    float shadow = 0.0;
-    float closestDepth = 0.0;
-    vec3 sampleOffsetDirections[20] = vec3[](
-       vec3( 1, 1, 1), vec3( 1,-1, 1), vec3(-1,-1, 1), vec3(-1, 1, 1), 
-       vec3( 1, 1,-1), vec3( 1,-1,-1), vec3(-1,-1,-1), vec3(-1, 1,-1),
-       vec3( 1, 1, 0), vec3( 1,-1, 0), vec3(-1,-1, 0), vec3(-1, 1, 0),
-       vec3( 1, 0, 1), vec3(-1, 0, 1), vec3( 1, 0,-1), vec3(-1, 0,-1),
-       vec3( 0, 1, 1), vec3( 0,-1, 1), vec3( 0,-1,-1), vec3( 0, 1,-1)
-    );
-    float viewDistance = length(viewPos - fragPos);
-    float diskRadius = (1.0 + viewDistance / farPlane) * 0.02;
-    for(int i = 0; i < 20; ++i)
-    {
-        closestDepth = texture(shadowSampler, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
-        closestDepth *= farPlane; 
-        if(currentDepth > closestDepth + bias)
-            shadow += 1.0;
-    }
-    return shadow / 20.0;
-}
-
-float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
-{
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if(projCoords.z > 1.0)
-        return 0.0;
-    float currentDepth = projCoords.z;
-    float bias = max(0.0015 * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(sunShadowMap, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(sunShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth > pcfDepth + bias ? 1.0 : 0.0;        
-        }
-    }
-    return shadow / 9.0;
-}
 
 const float PARALLAX_START_FADE_DISTANCE = 20.0;
 const float PARALLAX_END_FADE_DISTANCE = 40.0;
@@ -309,41 +185,6 @@ vec2 ReliefMapping(sampler2D heightMapSampler, vec2 texCoords, float hScale, vec
     return texCoordsEnd;
 }
 
-float DistributionGGX(vec3 N, vec3 H, float roughness)
-{
-    float a      = roughness*roughness;
-    float a2     = a*a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH*NdotH;
-    float num   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-    return num / denom;
-}
-
-float GeometrySchlickGGX(float NdotV, float roughness)
-{
-    float r = (roughness + 1.0);
-    float k = (r*r) / 8.0;
-    float num   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-    return num / denom;
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
-{
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-    return ggx1 * ggx2;
-}
-
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
-{
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
 vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probePos) {
     vec3 invR = 1.0 / R;
     vec3 t1 = (boxMin - fragPos) * invR;
@@ -358,63 +199,6 @@ vec3 ParallaxCorrect(vec3 R, vec3 fragPos, vec3 boxMin, vec3 boxMax, vec3 probeP
     float intersection_t = t_far;
     vec3 intersectPos = fragPos + R * intersection_t;
     return normalize(intersectPos - probePos);
-}
-
-// Bicubic filtering functions adapted from Godot Engine
-float w0(float a) {
-	return (1.0 / 6.0) * (a * (a * (-a + 3.0) - 3.0) + 1.0);
-}
-
-float w1(float a) {
-	return (1.0 / 6.0) * (a * a * (3.0 * a - 6.0) + 4.0);
-}
-
-float w2(float a) {
-	return (1.0 / 6.0) * (a * (a * (-3.0 * a + 3.0) + 3.0) + 1.0);
-}
-
-float w3(float a) {
-	return (1.0 / 6.0) * (a * a * a);
-}
-
-float g0(float a) {
-	return w0(a) + w1(a);
-}
-
-float g1(float a) {
-	return w2(a) + w3(a);
-}
-
-float h0(float a) {
-	return -1.0 + w1(a) / (w0(a) + w1(a));
-}
-
-float h1(float a) {
-	return 1.0 + w3(a) / (w2(a) + w3(a));
-}
-
-vec4 texture_bicubic(sampler2D tex, vec2 uv) {
-	vec2 texel_size = vec2(1.0) / u_lightmap_sampler_size;
-
-	uv = uv * u_lightmap_sampler_size + vec2(0.5);
-
-	vec2 iuv = floor(uv);
-	vec2 fuv = fract(uv);
-
-	float g0x = g0(fuv.x);
-	float g1x = g1(fuv.x);
-	float h0x = h0(fuv.x);
-	float h1x = h1(fuv.x);
-	float h0y = h0(fuv.y);
-	float h1y = h1(fuv.y);
-
-	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) - vec2(0.5)) * texel_size;
-	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) - vec2(0.5)) * texel_size;
-	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) - vec2(0.5)) * texel_size;
-	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) - vec2(0.5)) * texel_size;
-
-	return (g0(fuv.y) * (g0x * texture(tex, p0) + g1x * texture(tex, p1))) +
-		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
 }
 
 void main()
@@ -521,7 +305,7 @@ void main()
         vec3 H = normalize(V + lightDir);
         float NdotL = max(dot(N, lightDir), 0.0);
         vec3 radiance = sun.color * sun.intensity;
-        float shadow = calculateSunShadow(FragPosSunLightSpace, N, lightDir);
+        float shadow = 1.0 - calculateSunShadow(sunShadowMap, FragPosSunLightSpace, N, lightDir);
         float NDF = DistributionGGX(N, H, roughness);
         float G   = GeometrySmith(N, V, lightDir, roughness);
         vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
@@ -558,7 +342,7 @@ void main()
         bool hasShadow = (light.shadowMapHandle.x > 0u) || (light.shadowMapHandle.y > 0u);
         if (hasShadow) {
             if (lightType < 0.5) {
-                shadow = calculatePointShadow(light.shadowMapHandle, FragPos_world, lightPos, light.params2.x, light.params2.y);
+                shadow = calculatePointShadow(light.shadowMapHandle, FragPos_world, lightPos, light.params2.x, light.params2.y, viewPos);
             } else {
                 float angle_rad = acos(clamp(light.params1.y, -1.0, 1.0));
                 angle_rad = max(angle_rad, 0.01);
@@ -629,7 +413,7 @@ void main()
 	vec3 bakedRadiance = vec3(0.0);
 
     if (useLightmap) {
-        bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap).rgb : texture(lightmap, TexCoordsLightmap).rgb;
+        bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, u_lightmap_sampler_size).rgb : texture(lightmap, TexCoordsLightmap).rgb;
         
         if (useDirectionalLightmap) {
             vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
@@ -755,22 +539,14 @@ void main()
 	
     if (r_debug_lightmaps) {
         if ((isBrush == 1 || isBrush == 0) && useLightmap) {
-            if (r_lightmaps_bicubic) {
-                finalColor = texture_bicubic(lightmap, TexCoordsLightmap).rgb;
-            } else {
-                finalColor = texture(lightmap, TexCoordsLightmap).rgb;
-            }
+            finalColor = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, u_lightmap_sampler_size).rgb : texture(lightmap, TexCoordsLightmap).rgb;
         } else {
             finalColor = vec3(0.0);
         }
     }
     else if (r_debug_lightmaps_directional) {
         if ((isBrush == 1 || isBrush == 0) && useDirectionalLightmap) {
-            if (r_lightmaps_bicubic) {
-                finalColor = texture_bicubic(directionalLightmap, TexCoordsLightmap).rgb;
-            } else {
-                finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
-            }
+            finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
         } else {
             finalColor = vec3(0.0);
         }

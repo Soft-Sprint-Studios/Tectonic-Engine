@@ -396,6 +396,7 @@ static void Renderer_InitUniforms(Renderer* renderer) {
 void Renderer_Init(Renderer* renderer, Engine* engine) {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+    load_and_register_named_shader_string("/common.h", "shaders/common.h");
     Renderer_InitShaders(renderer);
     Renderer_InitGBuffer(renderer, engine);
     Renderer_InitPostBuffers(renderer, engine);

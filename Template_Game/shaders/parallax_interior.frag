@@ -39,19 +39,6 @@ uniform float roomDepth;
 uniform mat4 view;
 uniform mat4 model;
 
-vec3 aces(vec3 x) {
-  const float a = 2.51;
-  const float b = 0.03;
-  const float c = 2.43;
-  const float d = 0.59;
-  const float e = 0.14;
-  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
-}
-
-vec3 gammaCorrect(vec3 color, float gamma) {
-    return pow(color, vec3(1.0 / gamma));
-}
-
 void main() {
     vec3 viewDir_world = normalize(fs_in.FragPos_world - viewPos);
     vec3 rd_local = transpose(fs_in.TBN) * viewDir_world;

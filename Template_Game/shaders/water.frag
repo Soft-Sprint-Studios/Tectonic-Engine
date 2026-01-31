@@ -45,8 +45,8 @@ uniform sampler2D flowMap;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
 uniform sampler2D sunShadowMap;
-uniform sampler2D lightmap;
-uniform sampler2D directionalLightmap;
+layout(bindless_sampler) uniform sampler2D lightmap;
+layout(bindless_sampler) uniform sampler2D directionalLightmap;
 uniform bool useLightmap;
 uniform bool useDirectionalLightmap;
 uniform bool r_lightmaps_bicubic;
@@ -54,29 +54,6 @@ uniform bool r_debug_lightmaps;
 uniform bool r_debug_lightmaps_directional;
 
 uniform float u_uv_scale;
-
-struct ShaderLight {
-    vec4 position;
-    vec4 direction;
-    vec4 color;
-    vec4 params1;
-    vec4 params2;
-    uvec2 shadowMapHandle;
-    uvec2 _padding;
-};
-
-struct Sun {
-    bool enabled;
-    vec3 direction;
-    vec3 color;
-    float intensity;
-};
-
-struct Flashlight {
-    bool enabled;
-    vec3 position;
-    vec3 direction;
-};
 
 layout(std430, binding = 3) readonly buffer LightBlock {
     ShaderLight lights[];
@@ -97,157 +74,6 @@ uniform vec3 u_waterAabbMin;
 uniform vec3 u_waterAabbMax;
 uniform bool u_debug_reflection;
 uniform mat4 view;
-
-mat4 perspective(float fov, float aspect, float near, float far) {
-    float f = 1.0 / tan(fov / 2.0);
-    return mat4(
-        f / aspect, 0, 0, 0,
-        0, f, 0, 0,
-        0, 0, (far + near) / (near - far), -1,
-        0, 0, (2.0 * far * near) / (near - far), 0
-    );
-}
-
-mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
-    vec3 f = normalize(center - eye);
-    vec3 s = normalize(cross(f, up));
-    vec3 u = cross(s, f);
-    return mat4(
-        s.x, u.x, -f.x, 0,
-        s.y, u.y, -f.y, 0,
-        s.z, u.z, -f.z, 0,
-        -dot(s, eye), -dot(u, eye), dot(f, eye), 1
-    );
-}
-
-float calculateSpotShadow(uvec2 shadowMapHandleUvec2, vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float bias)
-{
-    sampler2D shadowSampler = sampler2D(shadowMapHandleUvec2);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if(projCoords.z > 1.0)
-        return 0.0;
-    float currentDepth = projCoords.z;
-    float final_bias = max(bias * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowSampler, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowSampler, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth > pcfDepth + final_bias ? 1.0 : 0.0;
-        }
-    }
-    return shadow / 9.0;
-}
-
-float calculatePointShadow(uvec2 shadowMapHandleUvec2, vec3 fragPos, vec3 lightPos, float farPlane, float bias)
-{
-    samplerCube shadowSampler = samplerCube(shadowMapHandleUvec2);
-    vec3 fragToLight = fragPos - lightPos;
-    float currentDepth = length(fragToLight);
-    if(currentDepth > farPlane) {
-        return 0.0;
-    }
-    float shadow = 0.0;
-    float closestDepth = 0.0;
-    vec3 sampleOffsetDirections[20] = vec3[](
-       vec3( 1, 1, 1), vec3( 1,-1, 1), vec3(-1,-1, 1), vec3(-1, 1, 1), 
-       vec3( 1, 1,-1), vec3( 1,-1,-1), vec3(-1,-1,-1), vec3(-1, 1,-1),
-       vec3( 1, 1, 0), vec3( 1,-1, 0), vec3(-1,-1, 0), vec3(-1, 1, 0),
-       vec3( 1, 0, 1), vec3(-1, 0, 1), vec3( 1, 0,-1), vec3(-1, 0,-1),
-       vec3( 0, 1, 1), vec3( 0,-1, 1), vec3( 0,-1,-1), vec3( 0, 1,-1)
-    );
-    float viewDistance = length(viewPos - fragPos);
-    float diskRadius = (1.0 + viewDistance / farPlane) * 0.02;
-    for(int i = 0; i < 20; ++i)
-    {
-        closestDepth = texture(shadowSampler, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
-        closestDepth *= farPlane; 
-        if(currentDepth > closestDepth + bias)
-            shadow += 1.0;
-    }
-    return shadow / 20.0;
-}
-
-float calculateSunShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
-{
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if(projCoords.z > 1.0)
-        return 0.0;
-    float currentDepth = projCoords.z;
-    float bias = max(0.0015 * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(sunShadowMap, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(sunShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - 0.001 > pcfDepth ? 1.0 : 0.0;        
-        }
-    }
-    return 1.0 - (shadow / 9.0);
-}
-
-// Bicubic filtering functions adapted from Godot Engine
-float w0(float a) {
-	return (1.0 / 6.0) * (a * (a * (-a + 3.0) - 3.0) + 1.0);
-}
-
-float w1(float a) {
-	return (1.0 / 6.0) * (a * a * (3.0 * a - 6.0) + 4.0);
-}
-
-float w2(float a) {
-	return (1.0 / 6.0) * (a * (a * (-3.0 * a + 3.0) + 3.0) + 1.0);
-}
-
-float w3(float a) {
-	return (1.0 / 6.0) * (a * a * a);
-}
-
-float g0(float a) {
-	return w0(a) + w1(a);
-}
-
-float g1(float a) {
-	return w2(a) + w3(a);
-}
-
-float h0(float a) {
-	return -1.0 + w1(a) / (w0(a) + w1(a));
-}
-
-float h1(float a) {
-	return 1.0 + w3(a) / (w2(a) + w3(a));
-}
-
-vec4 texture_bicubic(sampler2D tex, vec2 uv, vec2 texture_size) {
-	vec2 texel_size = vec2(1.0) / texture_size;
-	uv = uv * texture_size + vec2(0.5);
-
-	vec2 iuv = floor(uv);
-	vec2 fuv = fract(uv);
-
-	float g0x = g0(fuv.x);
-	float g1x = g1(fuv.x);
-	float h0x = h0(fuv.x);
-	float h1x = h1(fuv.x);
-	float h0y = h0(fuv.y);
-	float h1y = h1(fuv.y);
-
-	vec2 p0 = (vec2(iuv.x + h0x, iuv.y + h0y) - vec2(0.5)) * texel_size;
-	vec2 p1 = (vec2(iuv.x + h1x, iuv.y + h0y) - vec2(0.5)) * texel_size;
-	vec2 p2 = (vec2(iuv.x + h0x, iuv.y + h1y) - vec2(0.5)) * texel_size;
-	vec2 p3 = (vec2(iuv.x + h1x, iuv.y + h1y) - vec2(0.5)) * texel_size;
-
-	return (g0(fuv.y) * (g0x * texture(tex, p0) + g1x * texture(tex, p1))) +
-		   (g1(fuv.y) * (g0x * texture(tex, p2) + g1x * texture(tex, p3)));
-}
-
 
 void main() {
     vec2 base_uv;
@@ -312,7 +138,7 @@ void main() {
     if (sun.enabled) {
         vec3 L = normalize(-sun.direction);
         float NdotL = max(dot(N, L), 0.0);
-        float shadow = calculateSunShadow(FragPosSunLightSpace, N, L);
+        float shadow = 1.0 - calculateSunShadow(sunShadowMap, FragPosSunLightSpace, N, L);
         diffuse += sun.color * sun.intensity * NdotL * (1.0 - shadow);
         if (NdotL > 0.0) {
             vec3 H = normalize(L + V);
@@ -332,7 +158,7 @@ void main() {
         bool hasShadow = (lights[i].shadowMapHandle.x > 0u) || (lights[i].shadowMapHandle.y > 0u);
         if (hasShadow) {
             if (lightType < 0.5) {
-                shadow = 1.0 - calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y);
+                shadow = 1.0 - calculatePointShadow(lights[i].shadowMapHandle, FragPos_world, lightPos, lights[i].params2.x, lights[i].params2.y, viewPos);
             } else {
                 float angle_rad = acos(clamp(lights[i].params1.y, -1.0, 1.0));
                 if (angle_rad < 0.01) angle_rad = 0.01;

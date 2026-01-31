@@ -38,6 +38,7 @@
 extern "C" {
 #endif
 
+	void load_and_register_named_shader_string(const char* name, const char* path);
 	char* load_shader_source(const char* path);
 	GLuint compileShader(GLenum type, const char* src, const char* pathHint);
 	GLuint createShaderProgram(const char* vertPath, const char* fragPath);

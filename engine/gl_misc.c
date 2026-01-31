@@ -25,6 +25,14 @@
 #include "gl_console.h"
 #include <stdlib.h>
 
+void load_and_register_named_shader_string(const char* name, const char* path) {
+    char* source = load_shader_source(path);
+    if (source) {
+        glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, -1, source);
+        free(source);
+    }
+}
+
 char* load_shader_source(const char* path) {
     char* buffer = NULL;
     long length;
@@ -50,7 +58,10 @@ GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
     GLuint shader = glCreateShader(type);
     const char* header =
         "#version 450 core\n"
-        "#extension GL_ARB_bindless_texture : require\n";
+        "#extension GL_ARB_bindless_texture : require\n"
+        "#extension GL_ARB_shading_language_include : require\n"
+        "#include \"/common.h\"\n"
+        "#line 1\n";
     const char* sources[2] = { header, src };
     glShaderSource(shader, 2, sources, NULL);
     glCompileShader(shader);
