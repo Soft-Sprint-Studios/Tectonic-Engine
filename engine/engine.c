@@ -1697,7 +1697,7 @@ static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
         return NULL;
     }
     if (!GL_ARB_shading_language_include) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_shading_language_include), which is required by this engine.", window);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support glsl includes (GL_ARB_shading_language_include), which is required by this engine.", window);
         return NULL;
     }
     return context;
