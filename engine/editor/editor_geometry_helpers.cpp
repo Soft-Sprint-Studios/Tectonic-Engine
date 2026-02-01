@@ -488,9 +488,20 @@ static int compare_cap_verts(const void* a, const void* b) {
 void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     if (!b || b->numVertices == 0 || b->numFaces == 0) return;
 
-    float* dists = (float*)malloc(b->numVertices * sizeof(float));
-    int* side = (int*)malloc(b->numVertices * sizeof(int));
-    if (!dists || !side) { free(dists); free(side); return; }
+    float* dists = NULL;
+    int* side = NULL;
+    BrushVertex* temp_new_verts = NULL;
+    int* temp_face_verts_idx = NULL;
+    BrushVertex* temp_cap_verts = NULL;
+    BrushFace* new_face_list_array = NULL;
+    int current_new_face_count = 0;
+
+    dists = (float*)malloc(b->numVertices * sizeof(float));
+    side = (int*)malloc(b->numVertices * sizeof(int));
+
+    if (!dists || !side) {
+        goto cleanup_and_return;
+    }
 
     int positive_count = 0;
     int negative_count = 0;
@@ -503,25 +514,20 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     }
 
     if (positive_count == 0 || negative_count == 0) {
-        free(dists);
-        free(side);
         if (positive_count == 0) {
             Brush_FreeData(b);
         }
-        return;
+        goto cleanup_and_return;
     }
 
-    BrushVertex* temp_new_verts = (BrushVertex*)malloc(MAX_BRUSH_VERTS * 2 * sizeof(BrushVertex));
-    int* temp_face_verts_idx = (int*)malloc(MAX_BRUSH_VERTS * sizeof(int));
-    BrushVertex* temp_cap_verts = (BrushVertex*)malloc((MAX_BRUSH_FACES + 1) * sizeof(BrushVertex));
-
-    BrushFace* new_face_list_array = (BrushFace*)malloc(MAX_BRUSH_FACES * sizeof(BrushFace));
+    temp_new_verts = (BrushVertex*)malloc(MAX_BRUSH_VERTS * 2 * sizeof(BrushVertex));
+    temp_face_verts_idx = (int*)malloc(MAX_BRUSH_VERTS * sizeof(int));
+    temp_cap_verts = (BrushVertex*)malloc((MAX_BRUSH_FACES + 1) * sizeof(BrushVertex));
+    new_face_list_array = (BrushFace*)malloc(MAX_BRUSH_FACES * sizeof(BrushFace));
 
     if (!temp_new_verts || !temp_face_verts_idx || !temp_cap_verts || !new_face_list_array) {
         Console_Printf_Error("Brush_Clip: Failed to allocate temporary memory.\n");
-        free(dists); free(side);
-        free(temp_new_verts); free(temp_face_verts_idx); free(temp_cap_verts); free(new_face_list_array);
-        return;
+        goto cleanup_and_return;
     }
 
     int new_vert_count = 0;
@@ -539,7 +545,6 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         }
     }
 
-    int current_new_face_count = 0;
     BrushFace* old_faces = b->faces;
     int old_face_count = b->numFaces;
 
