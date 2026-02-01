@@ -26,9 +26,16 @@
 #include <float.h>
 
 void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index) {
+    EditorSelection* new_selections = new EditorSelection[g_EditorState.num_selections + 1];
+
+    for (int i = 0; i < g_EditorState.num_selections; ++i)
+        new_selections[i] = g_EditorState.selections[i];
+
+    delete[] g_EditorState.selections;
+    g_EditorState.selections = new_selections;
+
+    g_EditorState.selections[g_EditorState.num_selections] = EditorSelection{ type, index, face_index, vertex_index };
     g_EditorState.num_selections++;
-    g_EditorState.selections = realloc(g_EditorState.selections, g_EditorState.num_selections * sizeof(EditorSelection));
-    g_EditorState.selections[g_EditorState.num_selections - 1] = (EditorSelection){ type, index, face_index, vertex_index };
 }
 
 void Editor_RemoveFromSelection(EntityType type, int index) {
@@ -140,8 +147,8 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
             }
         }
         else {
-            brush_local_min = (Vec3){ 0,0,0 };
-            brush_local_max = (Vec3){ 0,0,0 };
+            brush_local_min = Vec3{ 0,0,0 };
+            brush_local_max = Vec3{ 0,0,0 };
         }
 
         float t_obb_dummy;
@@ -288,7 +295,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
 
         Vec3 vp_local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 vp_local_max = { 0.5f, 0.5f, 0.5f };
-        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 0.01f });
+        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 0.01f });
 
         float t;
         if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
@@ -305,7 +312,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
 
     for (int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) {
         ParallaxRoom* p = &g_CurrentScene->parallaxRooms[i];
-        p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, 0.01f });
+        p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 0.01f });
         Vec3 local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 local_max = { 0.5f, 0.5f, 0.5f };
         float t;
