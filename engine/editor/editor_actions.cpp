@@ -268,39 +268,53 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
 
 void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numObjects) return;
-    if (scene->numObjects >= MAX_MODELS) {
-        return;
-    }
+    if (scene->numObjects >= MAX_MODELS) return;
+
     SceneObject* src_obj = &scene->objects[index];
+
+    SceneObject* new_objects = new SceneObject[scene->numObjects + 1];
+    for (int i = 0; i < scene->numObjects; ++i)
+        new_objects[i] = scene->objects[i];
+    delete[] scene->objects;
+    scene->objects = new_objects;
+
     scene->numObjects++;
-    scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
     SceneObject* new_obj = &scene->objects[scene->numObjects - 1];
     memcpy(new_obj, src_obj, sizeof(SceneObject));
+
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
-    new_obj->bone_matrices = NULL;
+    new_obj->bone_matrices = nullptr;
     mat4_identity(&new_obj->animated_local_transform);
-    new_obj->bone_matrices = NULL;
-    new_obj->physicsBody = NULL;
+    new_obj->physicsBody = nullptr;
     new_obj->pos.x += 1.0f;
+
     SceneObject_UpdateMatrix(new_obj);
     new_obj->model = Model_Load(new_obj->modelPath);
+
     if (new_obj->model && new_obj->model->combinedVertexData && new_obj->model->totalIndexCount > 0) {
-        Mat4 physics_transform = create_trs_matrix(new_obj->pos, new_obj->rot, (Vec3) { 1, 1, 1 });
+        Mat4 physics_transform = create_trs_matrix(new_obj->pos, new_obj->rot, Vec3{ 1, 1, 1 });
         new_obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
     }
+
     Editor_AddToSelection(ENTITY_MODEL, scene->numObjects - 1, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Duplicate Model");
 }
 
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     if (index < 0 || index >= scene->numBrushes || scene->numBrushes >= MAX_BRUSHES) return;
+
     Brush* src_brush = &scene->brushes[index];
-    Brush* new_brush = &scene->brushes[scene->numBrushes];
+
+    int new_brush_index = scene->numBrushes;
+    Brush* new_brush = &scene->brushes[new_brush_index];
     Brush_DeepCopy(new_brush, src_brush);
-    sprintf(new_brush->targetname, "Brush_%d", scene->numBrushes);
+
+    sprintf(new_brush->targetname, "Brush_%d", new_brush_index);
     new_brush->pos.x += 1.0f;
+
     Brush_UpdateMatrix(new_brush);
     Brush_CreateRenderData(new_brush);
+
     if (Brush_IsSolid(new_brush) && new_brush->numVertices > 0) {
         if (new_brush->mass > 0.0f) {
             new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
@@ -309,13 +323,15 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
             }
         }
         else {
-            Vec3* world_verts = malloc(new_brush->numVertices * sizeof(Vec3));
-            for (int i = 0; i < new_brush->numVertices; i++) world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
-            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_brush->numVertices);
-            free(world_verts);
+            Vec3* world_verts = new Vec3[new_brush->numVertices];
+            for (int i = 0; i < new_brush->numVertices; i++)
+                world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
+
+            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), new_brush->numVertices);
+            delete[] world_verts;
         }
     }
-    int new_brush_index = scene->numBrushes;
+
     scene->numBrushes++;
     Editor_AddToSelection(ENTITY_BRUSH, new_brush_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Duplicate Brush");
