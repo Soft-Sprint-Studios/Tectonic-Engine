@@ -103,7 +103,6 @@ set(ENGINE_SOURCES
     engine/gl_geometry.c
     engine/gl_planar.c
     engine/gl_ssao.c
-    engine/gl_ssr.c
     engine/gl_bloom.c
     engine/gl_volumetrics.c
     engine/gl_render_misc.c
@@ -140,7 +139,6 @@ set(ENGINE_HEADERS
     engine/gl_geometry.h
     engine/gl_planar.h
     engine/gl_ssao.h 
-    engine/gl_ssr.h
     engine/gl_bloom.h
     engine/gl_volumetrics.h
     engine/gl_render_misc.h

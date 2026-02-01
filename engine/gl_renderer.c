@@ -39,7 +39,6 @@
 #include "gl_geometry.h"
 #include "gl_planar.h"
 #include "gl_ssao.h"
-#include "gl_ssr.h"
 #include "gl_bloom.h"
 #include "gl_volumetrics.h"
 #include "gl_postprocess.h"
@@ -64,7 +63,6 @@ static void Renderer_InitShaders(Renderer* renderer) {
     renderer->volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
     renderer->ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
     renderer->ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
-    renderer->ssrShader = createShaderProgram("shaders/ssr.vert", "shaders/ssr.frag");
     renderer->glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     renderer->waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
     renderer->reflectiveGlassShader = createShaderProgram("shaders/reflective_glass.vert", "shaders/reflective_glass.frag");
@@ -190,15 +188,6 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->ssaoBlurColorBuffer, 0);
-
-    glGenFramebuffers(1, &renderer->ssrFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssrFBO);
-    glGenTextures(1, &renderer->ssrTexture);
-    glBindTexture(GL_TEXTURE_2D, renderer->ssrTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, engine->width, engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->ssrTexture, 0);
 
     int vol_downsample = Cvar_GetInt("r_volumetrics_downsample");
     glGenFramebuffers(1, &renderer->volumetricFBO);
@@ -475,7 +464,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->ssaoShader);
     glDeleteProgram(renderer->ssaoBlurShader);
     glDeleteProgram(renderer->parallaxInteriorShader);
-    glDeleteProgram(renderer->ssrShader);
     glDeleteProgram(renderer->volumetricShader);
     glDeleteProgram(renderer->volumetricBlurShader);
     glDeleteProgram(renderer->histogramShader);
@@ -497,9 +485,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteFramebuffers(1, &renderer->ssaoBlurFBO);
     glDeleteTextures(1, &renderer->ssaoColorBuffer);
     glDeleteTextures(1, &renderer->ssaoBlurColorBuffer);
-
-    glDeleteFramebuffers(1, &renderer->ssrFBO);
-    glDeleteTextures(1, &renderer->ssrTexture);
 
     glDeleteFramebuffers(1, &renderer->finalRenderFBO);
     glDeleteTextures(1, &renderer->finalRenderTexture);

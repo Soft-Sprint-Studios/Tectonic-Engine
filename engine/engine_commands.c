@@ -610,7 +610,6 @@ void init_cvars() {
     Cvar_Register("r_autoexposure_key", "0.18", "Auto-exposure middle-grey value", CVAR_NONE);
     Cvar_Register("r_ssao", "1", "Enable SSAO (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_ssao_downsample", "2", "Downsample factor for ssao (e.g., 2 = 1/4 resolution)", CVAR_NONE);
-    Cvar_Register("r_ssr", "0", "Enable Screen Space Reflections (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_bloom", "1", "Enable bloom (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_bloom_downsample", "2", "Downsample factor for bloom (e.g., 2 = 1/4 resolution)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);

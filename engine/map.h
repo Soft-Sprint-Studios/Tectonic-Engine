@@ -224,7 +224,6 @@ extern "C" {
         GLuint ssaoShader, ssaoBlurShader;
         GLuint postProcessFBO;
         GLuint postProcessTexture;
-        GLuint ssrShader, ssrFBO, ssrTexture;
         GLuint histogramShader;
         GLuint exposureShader;
         GLuint histogramSSBO;
