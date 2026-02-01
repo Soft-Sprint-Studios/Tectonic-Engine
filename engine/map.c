@@ -649,9 +649,6 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.lensFlareStrength = 1.0f;
     scene->post.scanlineStrength = 0.0f;
     scene->post.grainIntensity = 0.07f;
-    scene->post.dofEnabled = false;
-    scene->post.dofFocusDistance = 0.1f;
-    scene->post.dofAperture = 10.0f;
     scene->post.chromaticAberrationEnabled = true;
     scene->post.chromaticAberrationStrength = 0.005f;
     scene->post.sharpenEnabled = false;
@@ -735,14 +732,27 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             sscanf(line, "%*s %d", &scene->lightmapResolution);
         }
         else if (strcmp(keyword, "post_settings") == 0) {
-            int enabled_int, flare_int, dof_enabled_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int, invert_enabled_int;
-            sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f %d %f %d %f", &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
-                &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity,
-                &dof_enabled_int, &scene->post.dofFocusDistance, &scene->post.dofAperture, &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount,
-                &bw_enabled_int, &scene->post.bwStrength, &invert_enabled_int, &scene->post.invertStrength);
+            int enabled_int, flare_int, ca_enabled_int, sharpen_enabled_int, bw_enabled_int, invert_enabled_int;
+
+            if (map_file_version <= 21) {
+                int dummy_dof_enabled_int;
+                float dummy_dof_focus, dummy_dof_aperture;
+                sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %f %d %f %d %f %d %f %d %f",
+                    &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
+                    &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity,
+                    &dummy_dof_enabled_int, &dummy_dof_focus, &dummy_dof_aperture,
+                    &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount,
+                    &bw_enabled_int, &scene->post.bwStrength, &invert_enabled_int, &scene->post.invertStrength);
+            }
+            else {
+                sscanf(line, "%*s %d %f %f %f %d %f %f %f %d %f %d %f %d %f %d %f",
+                    &enabled_int, &scene->post.crtCurvature, &scene->post.vignetteStrength,
+                    &scene->post.vignetteRadius, &flare_int, &scene->post.lensFlareStrength, &scene->post.scanlineStrength, &scene->post.grainIntensity,
+                    &ca_enabled_int, &scene->post.chromaticAberrationStrength, &sharpen_enabled_int, &scene->post.sharpenAmount,
+                    &bw_enabled_int, &scene->post.bwStrength, &invert_enabled_int, &scene->post.invertStrength);
+            }
             scene->post.enabled = (bool)enabled_int;
             scene->post.lensFlareEnabled = (bool)flare_int;
-            scene->post.dofEnabled = (bool)dof_enabled_int;
             scene->post.chromaticAberrationEnabled = (bool)ca_enabled_int;
             scene->post.sharpenEnabled = (bool)sharpen_enabled_int;
             scene->post.bwEnabled = (bool)bw_enabled_int;
@@ -1476,10 +1486,9 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
     else {
         fprintf(file, "player_start %.4f %.4f %.4f %.4f %.4f\n\n", scene->playerStart.pos.x, scene->playerStart.pos.y, scene->playerStart.pos.z, scene->playerStart.yaw, scene->playerStart.pitch);
     }
-    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %.4f %d %.4f %d %.4f %d %.4f\n\n",
+    fprintf(file, "post_settings %d %.4f %.4f %.4f %d %.4f %.4f %.4f %d %.4f %d %.4f %d %.4f %d %.4f\n\n",
         (int)scene->post.enabled, scene->post.crtCurvature, scene->post.vignetteStrength, scene->post.vignetteRadius,
         (int)scene->post.lensFlareEnabled, scene->post.lensFlareStrength, scene->post.scanlineStrength, scene->post.grainIntensity,
-        (int)scene->post.dofEnabled, scene->post.dofFocusDistance, scene->post.dofAperture,
         (int)scene->post.chromaticAberrationEnabled, scene->post.chromaticAberrationStrength,
         (int)scene->post.sharpenEnabled, scene->post.sharpenAmount,
         (int)scene->post.bwEnabled, scene->post.bwStrength,

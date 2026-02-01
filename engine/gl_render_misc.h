@@ -41,7 +41,6 @@ extern "C" {
     };
 
     void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine);
-    void MiscRender_DoFPass(Renderer* renderer, Scene* scene, GLuint sourceTexture, GLuint sourceDepthTexture, GLuint destFBO);
     void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
     void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
     void Light_InitShadowMap(Light* light);

@@ -59,7 +59,7 @@ extern "C" {
 #define MAX_ENTITY_PROPERTIES 32
 
 #define MIN_MAP_VERSION 18
-#define MAP_VERSION 21
+#define MAP_VERSION 22
 
 #define PLAYER_HEIGHT_NORMAL 1.83f
 
@@ -141,9 +141,6 @@ extern "C" {
         float lensFlareStrength;
         float scanlineStrength;
         float grainIntensity;
-        bool dofEnabled;
-        float dofFocusDistance;
-        float dofAperture;
         bool chromaticAberrationEnabled;
         float chromaticAberrationStrength;
         bool sharpenEnabled;
@@ -218,7 +215,6 @@ extern "C" {
         GLuint volumetricTexture;
         GLuint volPingpongFBO[2];
         GLuint volPingpongTextures[2];
-        GLuint dofShader;
         GLuint ssaoFBO, ssaoBlurFBO;
         GLuint ssaoColorBuffer, ssaoBlurColorBuffer;
         GLuint ssaoShader, ssaoBlurShader;

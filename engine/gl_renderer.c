@@ -58,7 +58,6 @@ static void Renderer_InitShaders(Renderer* renderer) {
     renderer->exposureShader = createShaderProgramCompute("shaders/exposure.comp");
     renderer->bloomShader = createShaderProgram("shaders/bloom.vert", "shaders/bloom.frag");
     renderer->bloomBlurShader = createShaderProgram("shaders/bloom_blur.vert", "shaders/bloom_blur.frag");
-    renderer->dofShader = createShaderProgram("shaders/dof.vert", "shaders/dof.frag");
     renderer->volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
     renderer->volumetricBlurShader = createShaderProgram("shaders/volumetric_blur.vert", "shaders/volumetric_blur.frag");
     renderer->ssaoShader = createShaderProgram("shaders/ssao.vert", "shaders/ssao.frag");
@@ -362,10 +361,6 @@ static void Renderer_InitUniforms(Renderer* renderer) {
     glUseProgram(renderer->bloomBlurShader);
     glUniform1i(glGetUniformLocation(renderer->bloomBlurShader, "image"), 0);
 
-    glUseProgram(renderer->dofShader);
-    glUniform1i(glGetUniformLocation(renderer->dofShader, "screenTexture"), 0);
-    glUniform1i(glGetUniformLocation(renderer->dofShader, "depthTexture"), 1);
-
     glUseProgram(renderer->ssaoShader);
     glUniform1i(glGetUniformLocation(renderer->ssaoShader, "gPosition"), 0);
     glUniform1i(glGetUniformLocation(renderer->ssaoShader, "gGeometryNormal"), 1);
@@ -460,7 +455,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteProgram(renderer->postProcessShader);
     glDeleteProgram(renderer->bloomShader);
     glDeleteProgram(renderer->bloomBlurShader);
-    glDeleteProgram(renderer->dofShader);
     glDeleteProgram(renderer->ssaoShader);
     glDeleteProgram(renderer->ssaoBlurShader);
     glDeleteProgram(renderer->parallaxInteriorShader);

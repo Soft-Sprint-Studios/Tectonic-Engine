@@ -1817,15 +1817,7 @@ static void Engine_RenderGame() {
     Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
 
     GLuint read_tex = g_renderer.finalRenderTexture;
-    GLuint write_tex = g_renderer.postProcessTexture;
-    GLuint read_fbo = g_renderer.finalRenderFBO;
     GLuint write_fbo = g_renderer.postProcessFBO;
-
-    if (g_scene.post.dofEnabled && Cvar_GetInt("r_dof")) {
-        MiscRender_DoFPass(&g_renderer, &g_scene, read_tex, g_renderer.finalDepthTexture, write_fbo);
-        GLuint temp_tex = read_tex; read_tex = write_tex; write_tex = temp_tex;
-        GLuint temp_fbo = read_fbo; read_fbo = write_fbo; write_fbo = temp_fbo;
-    }
 
     PostProcess_RenderPass(&g_renderer, &g_scene, g_engine, &view, &projection, read_tex, write_fbo, g_engine->width, g_engine->height);
 
