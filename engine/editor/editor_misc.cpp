@@ -51,8 +51,17 @@ void Editor_LoadRecentFiles() {
     while (fgets(line, sizeof(line), file) && g_EditorState.num_recent_map_files < MAX_RECENT_FILES) {
         line[strcspn(line, "\r\n")] = 0;
         if (strlen(line) > 0) {
-            g_EditorState.recent_map_files = realloc(g_EditorState.recent_map_files, (g_EditorState.num_recent_map_files + 1) * sizeof(char*));
-            g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = _strdup(line);
+            char** new_files = new char* [g_EditorState.num_recent_map_files + 1];
+            for (int i = 0; i < g_EditorState.num_recent_map_files; ++i)
+                new_files[i] = g_EditorState.recent_map_files[i];
+
+            delete[] g_EditorState.recent_map_files;
+            g_EditorState.recent_map_files = new_files;
+
+            size_t len = strlen(line) + 1;
+            g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = new char[len];
+            memcpy(g_EditorState.recent_map_files[g_EditorState.num_recent_map_files], line, len);
+
             g_EditorState.num_recent_map_files++;
         }
     }
@@ -62,25 +71,28 @@ void Editor_LoadRecentFiles() {
 void Editor_AddRecentFile(const char* path) {
     for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
         if (strcmp(g_EditorState.recent_map_files[i], path) == 0) {
-            free(g_EditorState.recent_map_files[i]);
-            for (int j = i; j < g_EditorState.num_recent_map_files - 1; ++j) {
+            delete[] g_EditorState.recent_map_files[i];
+            for (int j = i; j < g_EditorState.num_recent_map_files - 1; ++j)
                 g_EditorState.recent_map_files[j] = g_EditorState.recent_map_files[j + 1];
-            }
             g_EditorState.num_recent_map_files--;
             break;
         }
     }
 
     if (g_EditorState.num_recent_map_files >= MAX_RECENT_FILES) {
-        free(g_EditorState.recent_map_files[MAX_RECENT_FILES - 1]);
+        delete[] g_EditorState.recent_map_files[MAX_RECENT_FILES - 1];
         g_EditorState.num_recent_map_files = MAX_RECENT_FILES - 1;
     }
-    g_EditorState.recent_map_files = realloc(g_EditorState.recent_map_files, (g_EditorState.num_recent_map_files + 1) * sizeof(char*));
-    for (int i = g_EditorState.num_recent_map_files; i > 0; --i) {
-        g_EditorState.recent_map_files[i] = g_EditorState.recent_map_files[i - 1];
-    }
 
-    g_EditorState.recent_map_files[0] = _strdup(path);
+    char** new_files = new char* [g_EditorState.num_recent_map_files + 1];
+    new_files[0] = new char[strlen(path) + 1];
+    memcpy(new_files[0], path, strlen(path) + 1);
+
+    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i)
+        new_files[i + 1] = g_EditorState.recent_map_files[i];
+
+    delete[] g_EditorState.recent_map_files;
+    g_EditorState.recent_map_files = new_files;
     g_EditorState.num_recent_map_files++;
 
     Editor_SaveRecentFiles();
@@ -173,7 +185,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         Vec3 intersect_point;
         float closest_dist = FLT_MAX;
 
-        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 1, 0 }, -object_pos.y, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 1, 0 }, -object_pos.y, & intersect_point)) {
             float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
@@ -183,7 +195,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
             }
         }
 
-        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 1, 0, 0 }, -object_pos.x, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 1, 0, 0 }, -object_pos.x, & intersect_point)) {
             float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
@@ -193,7 +205,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
             }
         }
 
-        if (ray_plane_intersect(ray_origin, ray_dir, (Vec3) { 0, 0, 1 }, -object_pos.z, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 0, 1 }, -object_pos.z, & intersect_point)) {
             float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
@@ -246,15 +258,15 @@ void Editor_InitDebugRenderer() {
         float x2 = p_radius * cosf(angle2);
         float z2 = p_radius * sinf(angle2);
 
-        p_verts[p_vert_count++] = (Vec3){ x1, bottom_center.y, z1 };
-        p_verts[p_vert_count++] = (Vec3){ x2, bottom_center.y, z2 };
+        p_verts[p_vert_count++] = Vec3{ x1, bottom_center.y, z1 };
+        p_verts[p_vert_count++] = Vec3{ x2, bottom_center.y, z2 };
 
-        p_verts[p_vert_count++] = (Vec3){ x1, top_center.y, z1 };
-        p_verts[p_vert_count++] = (Vec3){ x2, top_center.y, z2 };
+        p_verts[p_vert_count++] = Vec3{ x1, top_center.y, z1 };
+        p_verts[p_vert_count++] = Vec3{ x2, top_center.y, z2 };
 
         if (i % (segments / 4) == 0) {
-            p_verts[p_vert_count++] = (Vec3){ x1, bottom_center.y, z1 };
-            p_verts[p_vert_count++] = (Vec3){ x1, top_center.y, z1 };
+            p_verts[p_vert_count++] = Vec3{ x1, bottom_center.y, z1 };
+            p_verts[p_vert_count++] = Vec3{ x1, top_center.y, z1 };
         }
     }
 
@@ -263,14 +275,14 @@ void Editor_InitDebugRenderer() {
         float angle1 = (i / (float)arc_segments) * 0.5f * M_PI;
         float angle2 = ((i + 1) / (float)arc_segments) * 0.5f * M_PI;
 
-        p_verts[p_vert_count++] = (Vec3){ top_center.x, top_center.y + p_radius * sinf(angle1), top_center.z + p_radius * cosf(angle1) };
-        p_verts[p_vert_count++] = (Vec3){ top_center.x, top_center.y + p_radius * sinf(angle2), top_center.z + p_radius * cosf(angle2) };
-        p_verts[p_vert_count++] = (Vec3){ top_center.x + p_radius * cosf(angle1), top_center.y + p_radius * sinf(angle1), top_center.z };
-        p_verts[p_vert_count++] = (Vec3){ top_center.x + p_radius * cosf(angle2), top_center.y + p_radius * sinf(angle2), top_center.z };
-        p_verts[p_vert_count++] = (Vec3){ bottom_center.x, bottom_center.y - p_radius * sinf(angle1), bottom_center.z + p_radius * cosf(angle1) };
-        p_verts[p_vert_count++] = (Vec3){ bottom_center.x, bottom_center.y - p_radius * sinf(angle2), bottom_center.z + p_radius * cosf(angle2) };
-        p_verts[p_vert_count++] = (Vec3){ bottom_center.x + p_radius * cosf(angle1), bottom_center.y - p_radius * sinf(angle1), bottom_center.z };
-        p_verts[p_vert_count++] = (Vec3){ bottom_center.x + p_radius * cosf(angle2), bottom_center.y - p_radius * sinf(angle1), bottom_center.z };
+        p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle1), top_center.z + p_radius * cosf(angle1) };
+        p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle2), top_center.z + p_radius * cosf(angle2) };
+        p_verts[p_vert_count++] = Vec3{ top_center.x + p_radius * cosf(angle1), top_center.y + p_radius * sinf(angle1), top_center.z };
+        p_verts[p_vert_count++] = Vec3{ top_center.x + p_radius * cosf(angle2), top_center.y + p_radius * sinf(angle2), top_center.z };
+        p_verts[p_vert_count++] = Vec3{ bottom_center.x, bottom_center.y - p_radius * sinf(angle1), bottom_center.z + p_radius * cosf(angle1) };
+        p_verts[p_vert_count++] = Vec3{ bottom_center.x, bottom_center.y - p_radius * sinf(angle2), bottom_center.z + p_radius * cosf(angle2) };
+        p_verts[p_vert_count++] = Vec3{ bottom_center.x + p_radius * cosf(angle1), bottom_center.y - p_radius * sinf(angle1), bottom_center.z };
+        p_verts[p_vert_count++] = Vec3{ bottom_center.x + p_radius * cosf(angle2), bottom_center.y - p_radius * sinf(angle1), bottom_center.z };
     }
 
     g_EditorState.player_start_gizmo_vertex_count = p_vert_count;
@@ -309,7 +321,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
         g_EditorState.editor_camera = g_last_editor_camera_state;
     }
     else {
-        g_EditorState.editor_camera.position = (Vec3){ 0, 5, 15 };
+        g_EditorState.editor_camera.position = Vec3{ 0, 5, 15 };
         g_EditorState.editor_camera.yaw = -M_PI / 2.0f;
         g_EditorState.editor_camera.pitch = -0.4f;
     }
@@ -354,8 +366,8 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.arch_preview_texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    g_EditorState.model_preview_cam_dist = 5.0f; g_EditorState.model_preview_cam_angles = (Vec2){ 0.f, -0.5f };
-    for (int i = 0; i < 3; i++) { g_EditorState.ortho_cam_pos[i] = (Vec3){ 0,0,0 }; g_EditorState.ortho_cam_zoom[i] = 10.0f; }
+    g_EditorState.model_preview_cam_dist = 5.0f; g_EditorState.model_preview_cam_angles = Vec2{ 0.f, -0.5f };
+    for (int i = 0; i < 3; i++) { g_EditorState.ortho_cam_pos[i] = Vec3{ 0,0,0 }; g_EditorState.ortho_cam_zoom[i] = 10.0f; }
     Editor_InitDebugRenderer();
     glGenVertexArrays(1, &g_EditorState.vertex_points_vao); glGenBuffers(1, &g_EditorState.vertex_points_vbo);
     glGenVertexArrays(1, &g_EditorState.selected_face_vao); glGenBuffers(1, &g_EditorState.selected_face_vbo);
@@ -441,7 +453,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_map_info_window = false;
     g_EditorState.show_transform_window = false;
     g_EditorState.transform_window_mode = TRANSFORM_MODE_MOVE;
-    g_EditorState.transform_window_values = (Vec3){ 0,0,0 };
+    g_EditorState.transform_window_values = Vec3{ 0,0,0 };
     g_EditorState.show_particle_browser_popup = false;
     g_EditorState.particle_file_list = NULL;
     g_EditorState.num_particle_files = 0;
