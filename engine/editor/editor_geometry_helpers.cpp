@@ -500,7 +500,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     side = (int*)malloc(b->numVertices * sizeof(int));
 
     if (!dists || !side) {
-        goto cleanup_and_return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
 
     int positive_count = 0;
@@ -508,16 +513,27 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     for (int i = 0; i < b->numVertices; ++i) {
         Vec3 world_vertex_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         dists[i] = vec3_dot(plane_normal, world_vertex_pos) + plane_d;
-        if (dists[i] > 1e-5) { side[i] = 1; positive_count++; }
-        else if (dists[i] < -1e-5) { side[i] = -1; negative_count++; }
-        else { side[i] = 0; }
+        if (dists[i] > 1e-5) { 
+            side[i] = 1; positive_count++; 
+        }
+        else if (dists[i] < -1e-5) { 
+            side[i] = -1; negative_count++; 
+        }
+        else { 
+            side[i] = 0; 
+        }
     }
 
     if (positive_count == 0 || negative_count == 0) {
         if (positive_count == 0) {
             Brush_FreeData(b);
         }
-        goto cleanup_and_return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
 
     temp_new_verts = (BrushVertex*)malloc(MAX_BRUSH_VERTS * 2 * sizeof(BrushVertex));
@@ -527,7 +543,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
 
     if (!temp_new_verts || !temp_face_verts_idx || !temp_cap_verts || !new_face_list_array) {
         Console_Printf_Error("Brush_Clip: Failed to allocate temporary memory.\n");
-        goto cleanup_and_return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
 
     int new_vert_count = 0;
@@ -538,7 +559,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         if (side[i] >= 0) {
             if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
                 Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
-                goto cleanup_and_return;
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             vert_map[i] = new_vert_count;
             temp_new_verts[new_vert_count++] = b->vertices[i];
@@ -559,7 +585,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
             if (side[p1_idx] >= 0) {
                 if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
-                    goto cleanup_and_return;
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
                 }
                 temp_face_verts_idx[face_verts_current_idx_count++] = vert_map[p1_idx];
             }
@@ -575,11 +606,21 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
 
                 if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
-                    goto cleanup_and_return;
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
                 }
                 if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
-                    goto cleanup_and_return;
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
                 }
 
                 temp_face_verts_idx[face_verts_current_idx_count++] = new_vert_count;
@@ -592,7 +633,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         if (face_verts_current_idx_count >= 3) {
             if (current_new_face_count >= MAX_BRUSH_FACES) {
                 Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
-                goto cleanup_and_return;
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             BrushFace new_face_entry = *face;
             new_face_entry.numVertexIndices = face_verts_current_idx_count;
@@ -600,7 +646,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
             if (!new_face_entry.vertexIndices) {
                 Console_Printf_Error("Brush_Clip: Failed to allocate vertexIndices for new face.\n");
                 for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
-                goto cleanup_and_return;
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             memcpy(new_face_entry.vertexIndices, temp_face_verts_idx, face_verts_current_idx_count * sizeof(int));
             new_face_list_array[current_new_face_count++] = new_face_entry;
@@ -633,7 +684,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
                 if (!is_duplicate) {
                     if (cap_vert_count >= MAX_BRUSH_FACES + 1) {
                         Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
-                        goto cleanup_and_return;
+                        free(dists);
+                        free(side);
+                        free(temp_new_verts);
+                        free(temp_face_verts_idx);
+                        free(temp_cap_verts);
+                        free(new_face_list_array);
                     }
                     temp_cap_verts[cap_vert_count].pos = intersect_pos;
                     temp_cap_verts[cap_vert_count].color = intersect_color;
@@ -654,7 +710,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
 
         if (current_new_face_count >= MAX_BRUSH_FACES) {
             Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
-            goto cleanup_and_return;
+            free(dists);
+            free(side);
+            free(temp_new_verts);
+            free(temp_face_verts_idx);
+            free(temp_cap_verts);
+            free(new_face_list_array);
         }
 
         BrushFace cap_face;
@@ -680,7 +741,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         if (!cap_face.vertexIndices) {
             Console_Printf_Error("Brush_Clip: Failed to allocate vertexIndices for cap face.\n");
             for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
-            goto cleanup_and_return;
+            free(dists);
+            free(side);
+            free(temp_new_verts);
+            free(temp_face_verts_idx);
+            free(temp_cap_verts);
+            free(new_face_list_array);
         }
 
         for (int i = 0; i < cap_vert_count; ++i) {
@@ -695,7 +761,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
                 Console_Printf_Error("Brush_Clip: Capping vertex not found in temp_new_verts.\n");
                 free(cap_face.vertexIndices);
                 for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
-                goto cleanup_and_return;
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             cap_face.vertexIndices[i] = vert_idx;
         }
@@ -714,7 +785,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     if (!b->vertices) {
         Console_Printf_Error("Brush_Clip: Failed to allocate final brush vertices.\n");
         for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
-        goto cleanup_and_return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
     memcpy(b->vertices, temp_new_verts, new_vert_count * sizeof(BrushVertex));
 
@@ -724,15 +800,12 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         Console_Printf_Error("Brush_Clip: Failed to allocate final brush faces.\n");
         free(b->vertices); b->vertices = NULL;
         for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
-        goto cleanup_and_return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
     memcpy(b->faces, new_face_list_array, current_new_face_count * sizeof(BrushFace));
-
-cleanup_and_return:
-    free(dists);
-    free(side);
-    free(temp_new_verts);
-    free(temp_face_verts_idx);
-    free(temp_cap_verts);
-    free(new_face_list_array);
 }
