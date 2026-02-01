@@ -25,7 +25,9 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern bool g_player_input_disabled;
+extern "C" {
+    extern bool g_player_input_disabled;
+}
 
 void Note_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->note_active) {
@@ -42,7 +44,7 @@ void Note_RenderUI(Scene* scene, Engine* engine) {
 
     if (UI_Begin_WithFlags("##NoteUI", &engine->note_active, 1 << 0 | 1 << 3 | 1 << 5)) {
         UI_SetNextItemWidth(window_w - 20);
-        UI_TextColored((Vec4) { 1.0f, 0.8f, 0.2f, 1.0f }, "%s", engine->note_title);
+        UI_TextColored(Vec4{ 1.0f, 0.8f, 0.2f, 1.0f }, "%s", engine->note_title);
         UI_Separator();
         UI_Spacing();
 

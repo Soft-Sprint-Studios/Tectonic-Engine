@@ -471,7 +471,7 @@ void MainMenu_Render() {
         g_title_y_offset_base = g_screen_height / 2.0f - g_text_height_game_title * 2.5f;
         render_textured_quad(g_text_texture_game_title, title_x, g_title_current_y_offset,
             g_text_width_game_title, g_text_height_game_title,
-            (SDL_Color) {
+            SDL_Color{
             255, 255, 0, 255
         }, 0.0f);
     }

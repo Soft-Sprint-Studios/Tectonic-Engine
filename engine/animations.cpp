@@ -39,11 +39,11 @@ void evaluate_animation(SceneObject* obj, float time) {
     if (!skin) return;
 
     if (!obj->bone_matrices) {
-        obj->bone_matrices = malloc(sizeof(Mat4) * skin->num_joints);
+        obj->bone_matrices = new Mat4[skin->num_joints]();
         if (!obj->bone_matrices) return;
     }
 
-    Mat4* local_transforms = (Mat4*)malloc(sizeof(Mat4) * num_nodes);
+    Mat4* local_transforms = new Mat4[num_nodes]();
     if (!local_transforms) return;
 
     for (size_t i = 0; i < num_nodes; ++i) {
@@ -88,9 +88,9 @@ void evaluate_animation(SceneObject* obj, float time) {
         mat4_compose(&local_transforms[joint_index], final_t, final_r, final_s);
     }
 
-    Mat4* global_transforms = (Mat4*)malloc(sizeof(Mat4) * num_nodes);
+    Mat4* global_transforms = new Mat4[num_nodes]();
     if (!global_transforms) {
-        free(local_transforms);
+        delete[] local_transforms;
         return;
     }
 
@@ -113,8 +113,8 @@ void evaluate_animation(SceneObject* obj, float time) {
         }
     }
 
-    free(local_transforms);
-    free(global_transforms);
+    delete[] local_transforms;
+    delete[] global_transforms;
 }
 
 void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
@@ -196,7 +196,7 @@ void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
         }
         else if (obj->model->num_skins > 0) {
             if (!obj->bone_matrices) {
-                obj->bone_matrices = malloc(sizeof(Mat4) * obj->model->skins[0].num_joints);
+                obj->bone_matrices = new Mat4[obj->model->skins[0].num_joints]();
             }
             if (obj->bone_matrices) {
                 for (int j = 0; j < obj->model->skins[0].num_joints; ++j) {

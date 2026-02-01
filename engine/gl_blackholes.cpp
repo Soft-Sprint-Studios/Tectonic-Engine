@@ -64,7 +64,7 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
 
             Mat4 view_proj;
             mat4_multiply(&view_proj, projection, view);
-            Vec4 clip_pos = mat4_mul_vec4(&view_proj, (Vec4) { ent->pos.x, ent->pos.y, ent->pos.z, 1.0f });
+            Vec4 clip_pos = mat4_mul_vec4(&view_proj, Vec4{ ent->pos.x, ent->pos.y, ent->pos.z, 1.0f });
 
             Vec2 screen_pos;
             screen_pos.x = (clip_pos.x / clip_pos.w) * 0.5f + 0.5f;
@@ -76,8 +76,8 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
             const float deg_to_rad = (float)M_PI / 180.0f;
             float rotation_rad = ent->rot.y * deg_to_rad;
 
-            Vec3 offset_pos = vec3_add(ent->pos, (Vec3) { scale, 0.0f, 0.0f });
-            Vec4 clip_offset = mat4_mul_vec4(&view_proj, (Vec4) { offset_pos.x, offset_pos.y, offset_pos.z, 1.0f });
+            Vec3 offset_pos = vec3_add(ent->pos, Vec3{ scale, 0.0f, 0.0f });
+            Vec4 clip_offset = mat4_mul_vec4(&view_proj, Vec4{ offset_pos.x, offset_pos.y, offset_pos.z, 1.0f });
 
             Vec2 offset_screen_pos;
             offset_screen_pos.x = (clip_offset.x / clip_offset.w) * 0.5f + 0.5f;
