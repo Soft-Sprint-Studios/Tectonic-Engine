@@ -27,20 +27,12 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution);
-    void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath);
-    void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath);
-    void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
-    void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
-    void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath);
-    void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
-
-#ifdef __cplusplus
-}
-#endif
+void Brush_GenerateLightmapAtlas(Brush* b, const char* map_name_sanitized, int brush_index, int resolution);
+void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath);
+void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath);
+void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath);
+void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath);
+void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath);
+void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index);
 
 #endif // MAP_LIGHTING_H

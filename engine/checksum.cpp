@@ -176,9 +176,7 @@ public:
 uint32_t Checksum::crc_table[256];
 bool Checksum::table_initialized = false;
 
-// TODO: convert engine.c to cpp so we dont need this extern C anymore
-
-extern "C" bool Checksum_Verify(const char* exePath) {
+bool Checksum_Verify(const char* exePath) {
     return Checksum::Verify(exePath);
 }
 

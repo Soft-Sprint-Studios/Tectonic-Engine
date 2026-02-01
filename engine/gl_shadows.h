@@ -27,19 +27,11 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define SUN_SHADOW_MAP_SIZE 8192
 
-	void Shadows_Init(Renderer* renderer);
-	void Shadows_Shutdown(Renderer* renderer);
-	void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine);
-	void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
-
-#ifdef __cplusplus
-}
-#endif
+void Shadows_Init(Renderer* renderer);
+void Shadows_Shutdown(Renderer* renderer);
+void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine);
+void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
 
 #endif // GL_SHADOWS_H

@@ -27,10 +27,6 @@
 
 #include "editor.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MAX_RECENT_FILES 10
 
     typedef enum {
@@ -259,9 +255,5 @@ extern "C" {
     extern PendingEditorAction g_pending_action;
     extern Camera g_last_editor_camera_state;
     extern bool g_has_last_camera_state;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_INTERNAL_H

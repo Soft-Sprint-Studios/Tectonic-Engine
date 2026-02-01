@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include <cstdarg>
 
-extern "C" {
-
     void UI_Init(SDL_Window* window, SDL_GLContext context) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -238,4 +236,3 @@ extern "C" {
     unsigned int UI_GetColorU32(int r, int g, int b, int a) {
         return IM_COL32(r, g, b, a);
     }
-}

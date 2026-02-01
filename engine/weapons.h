@@ -31,10 +31,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
     typedef enum {
         WEAPON_NONE,
         WEAPON_PISTOL,
@@ -48,9 +44,5 @@ extern "C" {
     void Weapons_SwitchNext(void);
     void Weapons_SwitchPrev(void);
     void Weapons_TryFire(Engine* engine, Scene* scene);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

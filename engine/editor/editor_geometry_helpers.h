@@ -27,21 +27,13 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
-    void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
-    void Brush_SetVerticesFromWedge(Brush* b, Vec3 size);
-    void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides);
-    void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides);
-    void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides);
-    void Brush_SetVerticesFromTube(Brush* b, Vec3 size, int num_sides, float wall_thickness);
-    void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
-
-#ifdef __cplusplus
-}
-#endif
+void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
+void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
+void Brush_SetVerticesFromWedge(Brush* b, Vec3 size);
+void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides);
+void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides);
+void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides);
+void Brush_SetVerticesFromTube(Brush* b, Vec3 size, int num_sides, float wall_thickness);
+void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
 
 #endif // EDITOR_GEOMETRY_HELPERS_H

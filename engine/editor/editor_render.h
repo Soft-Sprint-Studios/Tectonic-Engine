@@ -27,18 +27,10 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-	void Editor_RenderGrid(ViewportType type, float aspect);
-	void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type);
-	void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
-	void Editor_RenderModelPreviewerScene(Renderer* renderer);
-	void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
-
-#ifdef __cplusplus
-}
-#endif
+void Editor_RenderGrid(ViewportType type, float aspect);
+void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type);
+void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
+void Editor_RenderModelPreviewerScene(Renderer* renderer);
+void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
 
 #endif // EDITOR_RENDER_H

@@ -27,16 +27,8 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-	void Blackhole_Init(Renderer* renderer);
-	void Blackhole_Shutdown(Renderer* renderer);
-	void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
-
-#ifdef __cplusplus
-}
-#endif
+void Blackhole_Init(Renderer* renderer);
+void Blackhole_Shutdown(Renderer* renderer);
+void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
 
 #endif // GL_BLACKHOLES_H

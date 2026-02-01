@@ -31,14 +31,10 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    typedef struct {
-        uint32_t signature;
-        uint32_t checksum;
-    } EmbeddedChecksum;
+typedef struct {
+    uint32_t signature;
+    uint32_t checksum;
+} EmbeddedChecksum;
 
 #ifdef PLATFORM_LINUX
     __attribute__((used))
@@ -51,10 +47,6 @@ extern "C" {
         extern EmbeddedChecksum g_EmbeddedChecksum;
 #endif
 
-    bool Checksum_Verify(const char* exePath);
-
-#ifdef __cplusplus
-}
-#endif
+bool Checksum_Verify(const char* exePath);
 
 #endif // CHECKSUM_H

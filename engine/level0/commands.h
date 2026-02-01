@@ -31,10 +31,6 @@
 
 #include "level0_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define CMD_NONE   (0)
 #define CMD_CHEAT  (1 << 0)
 
@@ -47,15 +43,11 @@ extern "C" {
         int flags;
     } Command;
 
-    LEVEL0_API void Commands_Init(void);
-    LEVEL0_API void Commands_Shutdown(void);
-    LEVEL0_API void Commands_Register(const char* name, command_func_t func, const char* description, int flags);
-    LEVEL0_API void Commands_Execute(int argc, char** argv);
-    LEVEL0_API int Commands_GetCount();
-    LEVEL0_API const Command* Commands_GetCommand(int index);
-
-#ifdef __cplusplus
-}
-#endif
+LEVEL0_API void Commands_Init(void);
+LEVEL0_API void Commands_Shutdown(void);
+LEVEL0_API void Commands_Register(const char* name, command_func_t func, const char* description, int flags);
+LEVEL0_API void Commands_Execute(int argc, char** argv);
+LEVEL0_API int Commands_GetCount();
+LEVEL0_API const Command* Commands_GetCommand(int index);
 
 #endif // COMMANDS_H

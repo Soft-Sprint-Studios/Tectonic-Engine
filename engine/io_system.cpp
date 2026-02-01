@@ -41,9 +41,7 @@ IOConnection g_io_connections[MAX_IO_CONNECTIONS];
 int g_num_io_connections = 0;
 static PendingEvent g_pending_events[MAX_PENDING_EVENTS];
 static int g_num_pending_events = 0;
-extern "C" {
-    extern bool g_player_input_disabled;
-}
+extern bool g_player_input_disabled;
 
 void IO_Init() {
     IO_Clear();

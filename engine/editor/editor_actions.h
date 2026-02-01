@@ -27,28 +27,20 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void Editor_GroupSelection();
+void Editor_UngroupSelection();
+void Editor_FlipSelection(Scene* scene, Engine* engine, int axis);
+void Editor_MergeSelection(Scene* scene, Engine* engine);
 
-	void Editor_GroupSelection();
-	void Editor_UngroupSelection();
-	void Editor_FlipSelection(Scene* scene, Engine* engine, int axis);
-	void Editor_MergeSelection(Scene* scene, Engine* engine);
-
-	void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateLight(Scene* scene, int index);
-	void Editor_DuplicateDecal(Scene* scene, int index);
-	void Editor_DuplicateSoundEntity(Scene* scene, int index);
-	void Editor_DuplicateParticleEmitter(Scene* scene, int index);
-	void Editor_DuplicateVideoPlayer(Scene* scene, int index);
-	void Editor_DuplicateParallaxRoom(Scene* scene, int index);
-	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateSprite(Scene* scene, int index);
-
-#ifdef __cplusplus
-}
-#endif
+void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateLight(Scene* scene, int index);
+void Editor_DuplicateDecal(Scene* scene, int index);
+void Editor_DuplicateSoundEntity(Scene* scene, int index);
+void Editor_DuplicateParticleEmitter(Scene* scene, int index);
+void Editor_DuplicateVideoPlayer(Scene* scene, int index);
+void Editor_DuplicateParallaxRoom(Scene* scene, int index);
+void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
+void Editor_DuplicateSprite(Scene* scene, int index);
 
 #endif // EDITOR_ACTIONS_H

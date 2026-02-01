@@ -27,16 +27,8 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    void Overlay_Init(void);
-    void Overlay_Shutdown(void);
-    void Overlay_Render(Scene* scene, Engine* engine);
-
-#ifdef __cplusplus
-}
-#endif
+void Overlay_Init(void);
+void Overlay_Shutdown(void);
+void Overlay_Render(Scene* scene, Engine* engine);
 
 #endif // GL_OVERLAY_H

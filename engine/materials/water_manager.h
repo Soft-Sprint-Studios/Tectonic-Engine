@@ -32,10 +32,6 @@
 #include "texturemanager.h"
 #include "materials_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MAX_WATER_DEFS 64
 
     typedef struct {
@@ -49,15 +45,11 @@ extern "C" {
         float flowSpeed;
     } WaterDef;
 
-    MATERIALS_API void WaterManager_Init(void);
-    MATERIALS_API void WaterManager_Shutdown(void);
-    MATERIALS_API void WaterManager_ParseWaters(const char* filepath);
-    MATERIALS_API WaterDef* WaterManager_FindWaterDef(const char* name);
-    MATERIALS_API int WaterManager_GetWaterDefCount(void);
-    MATERIALS_API WaterDef* WaterManager_GetWaterDef(int index);
-
-#ifdef __cplusplus
-}
-#endif
+MATERIALS_API void WaterManager_Init(void);
+MATERIALS_API void WaterManager_Shutdown(void);
+MATERIALS_API void WaterManager_ParseWaters(const char* filepath);
+MATERIALS_API WaterDef* WaterManager_FindWaterDef(const char* name);
+MATERIALS_API int WaterManager_GetWaterDefCount(void);
+MATERIALS_API WaterDef* WaterManager_GetWaterDef(int index);
 
 #endif // WATER_MANAGER_H

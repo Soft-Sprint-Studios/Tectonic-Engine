@@ -31,10 +31,6 @@
 
 #include "level1_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
     typedef struct {
         char startmap[128];
         char gamename[128];
@@ -48,13 +44,9 @@ extern "C" {
     extern LEVEL1_API int g_startup_height;
     extern LEVEL1_API bool g_allow_multiple_instances;
 
-    LEVEL1_API void GameConfig_Init(void);
-    LEVEL1_API const GameConfig* GameConfig_Get(void);
-    LEVEL1_API void PreParse_GetResolution(int* width, int* height);
-    LEVEL1_API void GameConfig_ParseCommandLine(int argc, char* argv[]);
-
-#ifdef __cplusplus
-}
-#endif
+LEVEL1_API void GameConfig_Init(void);
+LEVEL1_API const GameConfig* GameConfig_Get(void);
+LEVEL1_API void PreParse_GetResolution(int* width, int* height);
+LEVEL1_API void GameConfig_ParseCommandLine(int argc, char* argv[]);
 
 #endif // GAMECONFIG_H

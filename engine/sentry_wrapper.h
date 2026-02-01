@@ -29,15 +29,7 @@
 // Brief: Wrapper for sentry crash reporting
 //----------------------------------------//
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-	void Sentry_Init(void);
-	void Sentry_Shutdown(void);
-
-#ifdef __cplusplus
-}
-#endif
+void Sentry_Init(void);
+void Sentry_Shutdown(void);
 
 #endif // SENTRY_WRAPPER_H

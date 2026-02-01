@@ -43,8 +43,6 @@ struct RigidBody {
     btRigidBody* body;
 };
 
-extern "C" {
-
     PhysicsWorldHandle Physics_CreateWorld(float gravity_y) {
         PhysicsWorld* world = new PhysicsWorld();
         world->collisionConfiguration = new btDefaultCollisionConfiguration();
@@ -652,4 +650,3 @@ extern "C" {
             }
         }
     }
-}

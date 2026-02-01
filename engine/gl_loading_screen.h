@@ -27,18 +27,10 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    void LoadingScreen_Init(int screen_width, int screen_height);
-    void LoadingScreen_Shutdown();
-    void LoadingScreen_Show(const char* map_name);
-    void LoadingScreen_Hide();
-    void LoadingScreen_Render();
-
-#ifdef __cplusplus
-}
-#endif
+void LoadingScreen_Init(int screen_width, int screen_height);
+void LoadingScreen_Shutdown();
+void LoadingScreen_Show(const char* map_name);
+void LoadingScreen_Hide();
+void LoadingScreen_Render();
 
 #endif // GL_LOADING_SCREEN_H

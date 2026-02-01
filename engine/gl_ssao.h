@@ -27,14 +27,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-	void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection);
-
-#ifdef __cplusplus
-}
-#endif
+void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection);
 
 #endif // GL_SSAO_H

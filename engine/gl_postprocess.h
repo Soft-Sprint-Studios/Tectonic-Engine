@@ -27,14 +27,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-	void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, GLuint sourceTexture, GLuint destFBO, int width, int height);
-
-#ifdef __cplusplus
-}
-#endif
+void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, GLuint sourceTexture, GLuint destFBO, int width, int height);
 
 #endif // GL_POSTPROCESS_H
