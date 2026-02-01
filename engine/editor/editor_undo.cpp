@@ -21,6 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "gl_render_misc.h"
+#include "gl_video_player.h"
 #include "editor_undo.h"
 #include "editor_selection.h"
 #include "editor_misc.h"
@@ -55,21 +57,6 @@ static int g_redo_top = -1;
 static EntityState* g_multi_before_states = NULL;
 static int g_num_multi_before_states = 0;
 static bool g_is_modifying = false;
-
-extern void SceneObject_UpdateMatrix(SceneObject* obj);
-extern void Brush_UpdateMatrix(Brush* b);
-extern void Decal_UpdateMatrix(Decal* d);
-extern void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
-extern void Light_InitShadowMap(Light* light);
-extern void Light_DestroyShadowMap(Light* light);
-extern void Physics_SetWorldTransform(RigidBodyHandle body, Mat4 transform);
-extern void Brush_CreateRenderData(Brush* b);
-extern void Brush_DeepCopy(Brush* dest, const Brush* src);
-extern void Brush_FreeData(Brush* b);
-extern void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3 position);
-extern void ParticleEmitter_Free(ParticleEmitter* emitter);
-extern void VideoPlayer_Load(VideoPlayer* vp);
-extern void VideoPlayer_Free(VideoPlayer* vp);
 
 void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     if (index < 0 || index >= scene->numObjects) return;
@@ -225,7 +212,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         obj->physicsBody = NULL;
 
         if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0) {
-            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, (Vec3) { 1, 1, 1 });
+            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
             obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, obj->model->combinedVertexData, obj->model->totalVertexCount, obj->model->combinedIndexData, obj->model->totalIndexCount, physics_transform, obj->scale);
         }
         break;
@@ -291,7 +278,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         scene->soundEntities[state->index] = state->data.soundEntity;
         scene->soundEntities[state->index].bufferID = SoundSystem_LoadSound(state->soundPath);
         break;
-    case ENTITY_PARTICLE_EMITTER:
+    case ENTITY_PARTICLE_EMITTER: {
         if (is_creation) {
             if (scene->numParticleEmitters >= MAX_PARTICLE_EMITTERS) return;
             memmove(&scene->particleEmitters[state->index + 1], &scene->particleEmitters[state->index], (scene->numParticleEmitters - state->index) * sizeof(ParticleEmitter));
@@ -305,6 +292,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         ParticleSystem* ps = ParticleSystem_Load(state->parFile);
         if (ps) ParticleEmitter_Init(&scene->particleEmitters[state->index], ps, state->data.particleEmitter.pos);
         break;
+    }
     case ENTITY_SPRITE:
         if (is_creation) {
             if (scene->numSprites >= MAX_SPRITES) return;

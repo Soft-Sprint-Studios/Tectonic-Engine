@@ -47,11 +47,11 @@
 
 static void render_markdown_line(const char* line) {
     if (strncmp(line, "## ", 3) == 0) {
-        UI_TextColored((Vec4) { 0.6f, 0.8f, 1.0f, 1.0f }, "%s", line + 3);
+        UI_TextColored(Vec4{ 0.6f, 0.8f, 1.0f, 1.0f }, "%s", line + 3);
         return;
     }
     if (strncmp(line, "# ", 2) == 0) {
-        UI_TextColored((Vec4) { 0.8f, 1.0f, 0.8f, 1.0f }, "%s", line + 2);
+        UI_TextColored(Vec4{ 0.8f, 1.0f, 0.8f, 1.0f }, "%s", line + 2);
         return;
     }
     if (strcmp(line, "---") == 0) {
@@ -83,7 +83,7 @@ static void render_markdown_line(const char* line) {
             strncpy(buffer, p, len);
             buffer[len] = '\0';
             UI_TextWrapped("%s", buffer);
-            UI_SameLine(0, 0);
+            UI_SameLine();
         }
 
         const char* bold_end = strstr(bold_start + 2, "**");
@@ -99,12 +99,12 @@ static void render_markdown_line(const char* line) {
         strncpy(bold_text, bold_start + 2, bold_len);
         bold_text[bold_len] = '\0';
 
-        UI_TextColored((Vec4) { 1.0f, 1.0f, 0.5f, 1.0f }, "%s", bold_text);
+        UI_TextColored(Vec4{ 1.0f, 1.0f, 0.5f, 1.0f }, "%s", bold_text);
 
         p = bold_end + 2;
 
         if (*p) {
-            UI_SameLine(0, 0);
+            UI_SameLine();
         }
     }
 }
@@ -260,14 +260,15 @@ void ScanModelFiles() {
     char** files = IO_ScanDirectory("models/", exts, 2, &count);
 
     if (files) {
-        g_EditorState.model_browser_entries = malloc(count * sizeof(ModelBrowserEntry));
+        g_EditorState.model_browser_entries = new ModelBrowserEntry[count];
         g_EditorState.num_model_files = count;
 
         for (int i = 0; i < count; ++i) {
             g_EditorState.model_browser_entries[i].file_path = files[i];
             g_EditorState.model_browser_entries[i].thumbnail_texture = 0;
         }
-        free(files);
+
+        delete[] files;
     }
 }
 
@@ -389,7 +390,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         glClearColor(0.2f, 0.2f, 0.25f, 1.0f);
                         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                        Mat4 view = mat4_lookAt((Vec3) { 1, 1, 1 }, (Vec3) { 0, 0, 0 }, (Vec3) { 0, 1, 0 });
+                        Mat4 view = mat4_lookAt(Vec3{ 1, 1, 1 }, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
                         Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
 
                         glUseProgram(renderer->mainShader);
@@ -422,7 +423,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                     else {
                         if (scene->numObjects < MAX_MODELS) {
                             scene->numObjects++;
-                            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
+                            scene->objects = new SceneObject[scene->numObjects];
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                             memset(newObj, 0, sizeof(SceneObject));
 
@@ -435,7 +436,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
                             vec3_normalize(&forward);
                             newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
-                            newObj->scale = (Vec3){ 1,1,1 };
+                            newObj->scale = Vec3{ 1,1,1 };
                             newObj->casts_shadows = true;
                             newObj->lightmapScale = 1.0f;
                             SceneObject_UpdateMatrix(newObj);
@@ -443,7 +444,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             newObj->model = Model_Load(newObj->modelPath);
 
                             if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1, 1, 1 });
+                                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1, 1, 1 });
                                 newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
                             }
                             Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
@@ -558,22 +559,26 @@ void Editor_RenderHelpWindow() {
             ScanDocFiles();
         }
         UI_Separator();
+
         if (g_EditorState.num_doc_files > 0) {
             for (int i = 0; i < g_EditorState.num_doc_files; ++i) {
                 if (UI_Selectable(g_EditorState.doc_files[i], g_EditorState.selected_doc_index == i)) {
                     g_EditorState.selected_doc_index = i;
                     char path_buffer[256];
-                    sprintf(path_buffer, "docs/%s", g_EditorState.doc_files[i]);
+                    snprintf(path_buffer, sizeof(path_buffer), "docs/%s", g_EditorState.doc_files[i]);
 
                     FILE* f = fopen(path_buffer, "rb");
                     if (f) {
                         fseek(f, 0, SEEK_END);
                         long length = ftell(f);
                         fseek(f, 0, SEEK_SET);
+
                         if (g_EditorState.current_doc_content) {
-                            free(g_EditorState.current_doc_content);
+                            delete[] g_EditorState.current_doc_content;
+                            g_EditorState.current_doc_content = nullptr;
                         }
-                        g_EditorState.current_doc_content = malloc(length + 1);
+
+                        g_EditorState.current_doc_content = new char[length + 1];
                         if (g_EditorState.current_doc_content) {
                             fread(g_EditorState.current_doc_content, 1, length, f);
                             g_EditorState.current_doc_content[length] = '\0';
@@ -588,7 +593,10 @@ void Editor_RenderHelpWindow() {
 
         UI_BeginChild("doc_preview_child", 0, 0, true, 0);
         if (g_EditorState.current_doc_content) {
-            char* content_copy = strdup(g_EditorState.current_doc_content);
+            const char* content_ptr = g_EditorState.current_doc_content;
+            char* content_copy = new char[strlen(content_ptr) + 1];
+            strcpy(content_copy, content_ptr);
+
             char* line = strtok(content_copy, "\n");
             bool in_table = false;
             bool in_code_block = false;
@@ -596,19 +604,20 @@ void Editor_RenderHelpWindow() {
             while (line) {
                 if (strncmp(line, "```", 3) == 0) {
                     in_code_block = !in_code_block;
-                    line = strtok(NULL, "\n");
+                    line = strtok(nullptr, "\n");
                     continue;
                 }
 
                 if (in_code_block) {
-                    UI_TextColored((Vec4) { 0.8f, 0.9f, 1.0f, 1.0f }, "%s", line);
-                    line = strtok(NULL, "\n");
+                    UI_TextColored(Vec4{ 0.8f, 0.9f, 1.0f, 1.0f }, "%s", line);
+                    line = strtok(nullptr, "\n");
                     continue;
                 }
-                if (strncmp(line, "|", 1) == 0) {
+
+                if (line[0] == '|') {
                     if (!in_table) {
                         int columns = 0;
-                        for (const char* p = line; *p; p++) if (*p == '|') columns++;
+                        for (const char* p = line; *p; ++p) if (*p == '|') columns++;
                         if (columns > 1) {
                             if (UI_BeginTable("md_table", columns - 1, 1 | (1 << 6), 0, 0)) {
                                 in_table = true;
@@ -616,15 +625,18 @@ void Editor_RenderHelpWindow() {
                         }
                     }
 
-                    char next_line_peek = "";
-                    char* next_line_ptr = strtok(NULL, "\n");
-                    if (next_line_ptr) strcpy(next_line_peek, next_line_ptr);
+                    char next_line_peek[128] = { 0 };
+                    char* next_line_ptr = strtok(nullptr, "\n");
+                    if (next_line_ptr) {
+                        strncpy(next_line_peek, next_line_ptr, sizeof(next_line_peek) - 1);
+                        next_line_peek[sizeof(next_line_peek) - 1] = '\0';
+                    }
 
                     if (in_table && strncmp(next_line_peek, "|:---", 5) == 0) {
                         UI_TableHeadersRow();
                         render_markdown_line(line);
-                        line = strtok(NULL, "\n");
-                        line = strtok(NULL, "\n");
+                        line = strtok(nullptr, "\n");
+                        line = strtok(nullptr, "\n");
                     }
                     else if (in_table) {
                         UI_TableNextRow();
@@ -638,17 +650,17 @@ void Editor_RenderHelpWindow() {
                         in_table = false;
                     }
                     render_markdown_line(line);
-                    line = strtok(NULL, "\n");
+                    line = strtok(nullptr, "\n");
                 }
             }
-            if (in_table) {
-                UI_EndTable();
-            }
-            free(content_copy);
+
+            if (in_table) UI_EndTable();
+            delete[] content_copy;
         }
         else {
             UI_Text("Select a document to view.");
         }
+
         UI_EndChild();
     }
     UI_End();
@@ -882,7 +894,7 @@ void Editor_RenderTextureBrowser(Scene* scene) {
             UI_PushID(i);
             char btn_id[32];
             sprintf(btn_id, "##mat_btn_%d", i);
-            if (UI_ImageButton(btn_id, (void*)(intptr_t)mat->diffuseMap, 64, 64)) {
+            if (UI_ImageButton(btn_id, mat->diffuseMap, 64, 64)) {
                 bool is_face_material_target = (g_EditorState.texture_browser_target >= 0 && g_EditorState.texture_browser_target <= 3);
 
                 if (g_EditorState.num_selections > 0 && is_face_material_target) {
@@ -1520,7 +1532,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
                         if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0 && obj->mass <= 0.0f) {
                             SceneObject_UpdateMatrix(obj);
-                            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, (Vec3) { 1, 1, 1 });
+                            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
                             obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld,
                                 obj->model->combinedVertexData, obj->model->totalVertexCount,
                                 obj->model->combinedIndexData, obj->model->totalIndexCount,
@@ -1619,15 +1631,15 @@ void Editor_UpdatePreviewBrushForArch() {
 
     if (view == VIEW_TOP_XZ) {
         width = fabsf(p2.x - p1.x);
-        center = (Vec3){ (p1.x + p2.x) / 2.0f, p1.y, (p1.z + p2.z) / 2.0f };
+        center = Vec3{ (p1.x + p2.x) / 2.0f, p1.y, (p1.z + p2.z) / 2.0f };
     }
     else if (view == VIEW_FRONT_XY) {
         width = fabsf(p2.x - p1.x);
-        center = (Vec3){ (p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f, p1.z };
+        center = Vec3{ (p1.x + p2.x) / 2.0f, (p1.y + p2.y) / 2.0f, p1.z };
     }
     else if (view == VIEW_SIDE_YZ) {
         width = fabsf(p2.z - p1.z);
-        center = (Vec3){ p1.x, (p1.y + p2.y) / 2.0f, (p1.z + p2.z) / 2.0f };
+        center = Vec3{ p1.x, (p1.y + p2.y) / 2.0f, (p1.z + p2.z) / 2.0f };
     }
 
     float outer_radius = width / 2.0f;
@@ -1644,7 +1656,7 @@ void Editor_UpdatePreviewBrushForArch() {
 
     int verts_per_ring = num_sides + 1;
     b->numVertices = verts_per_ring * 4;
-    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+    b->vertices = new BrushVertex[b->numVertices]{};
 
     for (int i = 0; i <= num_sides; i++) {
         float angle = start_angle_rad + i * angle_step;
@@ -1656,14 +1668,14 @@ void Editor_UpdatePreviewBrushForArch() {
         int outer_top_idx = i + verts_per_ring * 2;
         int inner_top_idx = i + verts_per_ring * 3;
 
-        b->vertices[outer_bottom_idx].pos = (Vec3){ cos_a * outer_radius, 0, sin_a * outer_radius };
-        b->vertices[inner_bottom_idx].pos = (Vec3){ cos_a * inner_radius, 0, sin_a * inner_radius };
-        b->vertices[outer_top_idx].pos = (Vec3){ cos_a * outer_radius, height, sin_a * outer_radius };
-        b->vertices[inner_top_idx].pos = (Vec3){ cos_a * inner_radius, height, sin_a * inner_radius };
+        b->vertices[outer_bottom_idx].pos = Vec3{ cos_a * outer_radius, 0, sin_a * outer_radius };
+        b->vertices[inner_bottom_idx].pos = Vec3{ cos_a * inner_radius, 0, sin_a * inner_radius };
+        b->vertices[outer_top_idx].pos = Vec3{ cos_a * outer_radius, height, sin_a * outer_radius };
+        b->vertices[inner_top_idx].pos = Vec3{ cos_a * inner_radius, height, sin_a * inner_radius };
     }
 
     b->numFaces = (num_sides * 4) + 2;
-    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+    b->faces = new BrushFace[b->numFaces]{};
 
     for (int i = 0; i < num_sides; i++) {
         int ob = i;
@@ -1671,39 +1683,29 @@ void Editor_UpdatePreviewBrushForArch() {
         int ot = i + verts_per_ring * 2;
         int it = i + verts_per_ring * 3;
 
-        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[i].vertexIndices[0] = ob; b->faces[i].vertexIndices[1] = ot; b->faces[i].vertexIndices[2] = ot + 1; b->faces[i].vertexIndices[3] = ob + 1;
-
-        b->faces[num_sides + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides + i].vertexIndices[0] = ib + 1; b->faces[num_sides + i].vertexIndices[1] = it + 1; b->faces[num_sides + i].vertexIndices[2] = it; b->faces[num_sides + i].vertexIndices[3] = ib;
-
-        b->faces[num_sides * 2 + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides * 2 + i].vertexIndices[0] = ot; b->faces[num_sides * 2 + i].vertexIndices[1] = it; b->faces[num_sides * 2 + i].vertexIndices[2] = it + 1; b->faces[num_sides * 2 + i].vertexIndices[3] = ot + 1;
-
-        b->faces[num_sides * 3 + i].vertexIndices = malloc(4 * sizeof(int));
-        b->faces[num_sides * 3 + i].vertexIndices[0] = ob + 1; b->faces[num_sides * 3 + i].vertexIndices[1] = ib + 1; b->faces[num_sides * 3 + i].vertexIndices[2] = ib; b->faces[num_sides * 3 + i].vertexIndices[3] = ob;
+        b->faces[i].vertexIndices = new int[4] { ob, ot, ot + 1, ob + 1 };
+        b->faces[num_sides + i].vertexIndices = new int[4] { ib + 1, it + 1, it, ib };
+        b->faces[num_sides * 2 + i].vertexIndices = new int[4] { ot, it, it + 1, ot + 1 };
+        b->faces[num_sides * 3 + i].vertexIndices = new int[4] { ob + 1, ib + 1, ib, ob };
 
         for (int j = 0; j < 4; ++j) b->faces[num_sides * j + i].numVertexIndices = 4;
     }
 
-    b->faces[num_sides * 4].vertexIndices = malloc(4 * sizeof(int));
-    b->faces[num_sides * 4].vertexIndices[0] = 0; b->faces[num_sides * 4].vertexIndices[1] = verts_per_ring; b->faces[num_sides * 4].vertexIndices[2] = verts_per_ring * 3; b->faces[num_sides * 4].vertexIndices[3] = verts_per_ring * 2;
-
-    b->faces[num_sides * 4 + 1].vertexIndices = malloc(4 * sizeof(int));
-    b->faces[num_sides * 4 + 1].vertexIndices[0] = num_sides; b->faces[num_sides * 4 + 1].vertexIndices[1] = num_sides + verts_per_ring * 2; b->faces[num_sides * 4 + 1].vertexIndices[2] = num_sides + verts_per_ring * 3; b->faces[num_sides * 4 + 1].vertexIndices[3] = num_sides + verts_per_ring;
+    b->faces[num_sides * 4].vertexIndices = new int[4] { 0, verts_per_ring, verts_per_ring * 3, verts_per_ring * 2 };
+    b->faces[num_sides * 4 + 1].vertexIndices = new int[4] { num_sides, num_sides + verts_per_ring * 2, num_sides + verts_per_ring * 3, num_sides + verts_per_ring };
 
     b->faces[num_sides * 4].numVertexIndices = 4;
     b->faces[num_sides * 4 + 1].numVertexIndices = 4;
 
     for (int i = 0; i < b->numFaces; i++) {
         b->faces[i].material = TextureManager_GetMaterial(0);
-        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].uv_scale = Vec2{ 1,1 };
         b->faces[i].lightmap_scale = 1.0f;
     }
 
     b->pos = center;
-    b->rot = (Vec3){ 0,0,0 };
-    b->scale = (Vec3){ 1,1,1 };
+    b->rot = Vec3{ 0,0,0 };
+    b->scale = Vec3{ 1,1,1 };
     Brush_UpdateMatrix(b);
     Brush_CreateRenderData(b);
 }
@@ -1815,17 +1817,17 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
         UI_BeginGroup();
         UI_Text("Mode:");
         if (UI_RadioButton_Int("Rotate", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_ROTATE)) {
-            g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+            g_EditorState.transform_window_values = Vec3{ 0, 0, 0 };
         }
         if (UI_RadioButton_Int("Scale", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_SCALE)) {
-            g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+            g_EditorState.transform_window_values = Vec3{ 1, 1, 1 };
         }
         if (UI_RadioButton_Int("Move", (int*)&g_EditorState.transform_window_mode, TRANSFORM_MODE_MOVE)) {
-            g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+            g_EditorState.transform_window_values = Vec3{ 0, 0, 0 };
         }
         UI_EndGroup();
 
-        UI_SameLine(0, 40);
+        UI_SameLine();
 
         UI_BeginGroup();
         UI_Text("Values:");
@@ -1984,9 +1986,9 @@ void Editor_RenderStatusBar()
     UI_Begin_NoTitlebar_NoResize_NoMove("Status Bar", NULL);
 
     UI_Text("For Help, press F1");
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_SeparatorEx(1 << 1);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
 
     if (g_EditorState.num_selections > 0) {
         char selection_text[128];
@@ -2017,9 +2019,9 @@ void Editor_RenderStatusBar()
     else {
         UI_Text("no selection.");
     }
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_SeparatorEx(1 << 1);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
 
     ViewportType active_2d_view = VIEW_COUNT;
     for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
@@ -2043,7 +2045,7 @@ void Editor_RenderStatusBar()
     }
 
     float right_align_pos = screen_w - 400.0f;
-    UI_SameLine(right_align_pos, 0);
+    UI_SameLine();
 
     float zoom_level = 0.0f;
     int hovered_2d_view_index = -1;
@@ -2062,21 +2064,21 @@ void Editor_RenderStatusBar()
     }
 
     UI_Text("Zoom: %.2f", zoom_level);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_SeparatorEx(1 << 1);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_Text("Speed: %.1f", g_EditorState.editor_camera_speed);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_SeparatorEx(1 << 1);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
 
     UI_Text("Snap: %s", g_EditorState.snap_to_grid ? "On" : "Off");
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
     UI_SeparatorEx(1 << 1);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
 
     UI_Text("Grid: %g", g_EditorState.grid_size);
-    UI_SameLine(0, 20.0f);
+    UI_SameLine();
 
     UI_End();
 }
@@ -2122,27 +2124,27 @@ void Editor_RenderArchPreview() {
     float arc = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
     float angle_step = arc / num_sides;
 
-    Vec3* lines = malloc((num_sides * 4 + 4) * sizeof(Vec3));
+    Vec3* lines = new Vec3[num_sides * 4 + 4]{};
     int line_idx = 0;
 
     for (int i = 0; i <= num_sides; ++i) {
         float angle = start_angle + i * angle_step;
         if (i > 0) {
             float prev_angle = start_angle + (i - 1) * angle_step;
-            lines[line_idx++] = (Vec3){ center_x + cosf(prev_angle) * outer_radius, center_y + sinf(prev_angle) * outer_radius, 0 };
-            lines[line_idx++] = (Vec3){ center_x + cosf(angle) * outer_radius, center_y + sinf(angle) * outer_radius, 0 };
-            lines[line_idx++] = (Vec3){ center_x + cosf(prev_angle) * inner_radius, center_y + sinf(prev_angle) * inner_radius, 0 };
-            lines[line_idx++] = (Vec3){ center_x + cosf(angle) * inner_radius, center_y + sinf(angle) * inner_radius, 0 };
+            lines[line_idx++] = Vec3{ center_x + cosf(prev_angle) * outer_radius, center_y + sinf(prev_angle) * outer_radius, 0 };
+            lines[line_idx++] = Vec3{ center_x + cosf(angle) * outer_radius, center_y + sinf(angle) * outer_radius, 0 };
+            lines[line_idx++] = Vec3{ center_x + cosf(prev_angle) * inner_radius, center_y + sinf(prev_angle) * inner_radius, 0 };
+            lines[line_idx++] = Vec3{ center_x + cosf(angle) * inner_radius, center_y + sinf(angle) * inner_radius, 0 };
         }
     }
 
     float start_cap_angle = start_angle;
-    lines[line_idx++] = (Vec3){ center_x + cosf(start_cap_angle) * outer_radius, center_y + sinf(start_cap_angle) * outer_radius, 0 };
-    lines[line_idx++] = (Vec3){ center_x + cosf(start_cap_angle) * inner_radius, center_y + sinf(start_cap_angle) * inner_radius, 0 };
+    lines[line_idx++] = Vec3{ center_x + cosf(start_cap_angle) * outer_radius, center_y + sinf(start_cap_angle) * outer_radius, 0 };
+    lines[line_idx++] = Vec3{ center_x + cosf(start_cap_angle) * inner_radius, center_y + sinf(start_cap_angle) * inner_radius, 0 };
 
     float end_cap_angle = start_angle + arc;
-    lines[line_idx++] = (Vec3){ center_x + cosf(end_cap_angle) * outer_radius, center_y + sinf(end_cap_angle) * outer_radius, 0 };
-    lines[line_idx++] = (Vec3){ center_x + cosf(end_cap_angle) * inner_radius, center_y + sinf(end_cap_angle) * inner_radius, 0 };
+    lines[line_idx++] = Vec3{ center_x + cosf(end_cap_angle) * outer_radius, center_y + sinf(end_cap_angle) * outer_radius, 0 };
+    lines[line_idx++] = Vec3{ center_x + cosf(end_cap_angle) * inner_radius, center_y + sinf(end_cap_angle) * inner_radius, 0 };
 
     glBindVertexArray(g_EditorState.vertex_points_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -2152,7 +2154,7 @@ void Editor_RenderArchPreview() {
     glDrawArrays(GL_LINES, 0, line_idx);
     glBindVertexArray(0);
 
-    free(lines);
+    delete[] lines;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
