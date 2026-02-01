@@ -39,7 +39,7 @@ float SnapValue(float value, float snap_interval) {
 
 Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
     float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
-    if (width <= 0 || height <= 0) return (Vec3) { 0, 0, 0 };
+    if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
     float aspect = width / height; float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
     float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
     Vec3 world_pos = { 0 };
@@ -55,11 +55,11 @@ Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
 
 Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewport) {
     if (viewport == VIEW_PERSPECTIVE || viewport >= VIEW_COUNT) {
-        return (Vec3) { 0, 0, 0 };
+        return Vec3{ 0, 0, 0 };
     }
     float width = (float)g_EditorState.viewport_width[viewport];
     float height = (float)g_EditorState.viewport_height[viewport];
-    if (width <= 0 || height <= 0) return (Vec3) { 0, 0, 0 };
+    if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
     float aspect = width / height;
     int ortho_array_idx = viewport - 1;
     float zoom = g_EditorState.ortho_cam_zoom[ortho_array_idx];
@@ -91,7 +91,7 @@ Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewp
 
 Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
     float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
-    if (width <= 0 || height <= 0) return (Vec3) { 0, 0, 0 };
+    if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
     float aspect = width / height; float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
     float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
     Vec3 world_pos = { 0 };
@@ -110,7 +110,7 @@ Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
 }
 
 Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
-    if (viewport >= VIEW_COUNT) return (Vec2) { 0, 0 };
+    if (viewport >= VIEW_COUNT) return Vec2{ 0, 0 };
 
     Vec4 clip_pos = { world_pos.x, world_pos.y, world_pos.z, 1.0f };
 
@@ -125,7 +125,7 @@ Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
     float screen_x = ((clip_pos.x + 1.0f) / 2.0f) * g_EditorState.viewport_width[viewport];
     float screen_y = ((1.0f - clip_pos.y) / 2.0f) * g_EditorState.viewport_height[viewport];
 
-    return (Vec2) { screen_x, screen_y };
+    return Vec2{ screen_x, screen_y };
 }
 
 float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg) {

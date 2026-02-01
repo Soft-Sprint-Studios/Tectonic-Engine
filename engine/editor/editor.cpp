@@ -93,9 +93,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec3 plane_normal;
                 Vec3 dir = vec3_sub(p2, p1);
 
-                if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, (Vec3) { 0, 1, 0 }); }
-                else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, (Vec3) { 0, 0, 1 }); }
-                else { plane_normal = vec3_cross(dir, (Vec3) { 1, 0, 0 }); }
+                if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, Vec3{ 0, 1, 0 }); }
+                else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, Vec3{ 0, 0, 1 }); }
+                else { plane_normal = vec3_cross(dir, Vec3{ 1, 0, 0 }); }
                 vec3_normalize(&plane_normal);
 
                 float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
@@ -111,10 +111,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_CreateRenderData(original_brush);
                 if (original_brush->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, original_brush->physicsBody);
                 if (Brush_IsSolid(original_brush) && original_brush->numVertices > 0) {
-                    Vec3* world_verts = malloc(original_brush->numVertices * sizeof(Vec3));
-                    for (int k = 0; k < original_brush->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
-                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, original_brush->numVertices);
-                    free(world_verts);
+                    Vec3* world_verts = new Vec3[original_brush->numVertices];
+
+                    for (int k = 0; k < original_brush->numVertices; ++k)
+                        world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
+
+                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), original_brush->numVertices);
+
+                    delete[] world_verts;
                 }
                 else {
                     original_brush->physicsBody = NULL;
@@ -130,10 +134,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Brush* new_b_ptr = &scene->brushes[new_brush_index];
                     Brush_CreateRenderData(new_b_ptr);
                     if (Brush_IsSolid(new_b_ptr) && new_b_ptr->numVertices > 0) {
-                        Vec3* world_verts = malloc(new_b_ptr->numVertices * sizeof(Vec3));
-                        for (int k = 0; k < new_b_ptr->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
-                        new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, new_b_ptr->numVertices);
-                        free(world_verts);
+                        Vec3* world_verts = new Vec3[new_b_ptr->numVertices];
+
+                        for (int k = 0; k < new_b_ptr->numVertices; ++k)
+                            world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
+
+                        new_b_ptr->physicsBody =Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), new_b_ptr->numVertices);
+
+                        delete[] world_verts;
                     }
                     else {
                         new_b_ptr->physicsBody = NULL;
@@ -253,8 +261,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     raw_start_mouse_world.z = SnapValue(raw_start_mouse_world.z, g_EditorState.grid_size);
                 }
                 g_EditorState.selected_brush_drag_body_start_mouse_world = raw_start_mouse_world;
-                if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
-                g_EditorState.gizmo_drag_start_positions = malloc(g_EditorState.num_selections * sizeof(Vec3));
+                if (g_EditorState.gizmo_drag_start_positions)
+                    delete[] g_EditorState.gizmo_drag_start_positions;
+
+                g_EditorState.gizmo_drag_start_positions = new Vec3[g_EditorState.num_selections];
 
                 Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
 
@@ -306,7 +316,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
             float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
-            if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = (Vec3){ 1, 0, 0 }; } }
+            if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
             else { g_EditorState.vertex_gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
             g_EditorState.vertex_gizmo_drag_plane_d = -vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
 
@@ -323,7 +333,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_drag_has_cloned = false;
-            g_EditorState.gizmo_selection_centroid = (Vec3){ 0 };
+            g_EditorState.gizmo_selection_centroid = Vec3{ 0 };
             for (int i = 0; i < g_EditorState.num_selections; ++i) {
                 Vec3 pos;
                 switch (g_EditorState.selections[i].type) {
@@ -338,7 +348,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
-                default: pos = (Vec3){ 0 }; break;
+                default: pos = Vec3{ 0 }; break;
                 }
                 g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }
@@ -369,7 +379,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_LIGHT:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot;
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 case ENTITY_DECAL:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->decals[sel->index].pos;
@@ -378,43 +388,43 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     break;
                 case ENTITY_SOUND:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos;
-                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 case ENTITY_PARTICLE_EMITTER:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos;
-                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 case ENTITY_SPRITE:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->sprites[sel->index].pos;
-                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->sprites[sel->index].scale, scene->sprites[sel->index].scale, scene->sprites[sel->index].scale };
+                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->sprites[sel->index].scale, scene->sprites[sel->index].scale, scene->sprites[sel->index].scale };
                     break;
                 case ENTITY_VIDEO_PLAYER:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot;
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f };
                     break;
                 case ENTITY_PARALLAX_ROOM:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot;
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f };
                     break;
                 case ENTITY_LOGIC:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos;
                     g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot;
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 case ENTITY_PLAYERSTART:
                     g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos;
-                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 default:
-                    g_EditorState.gizmo_drag_start_positions[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 };
+                    g_EditorState.gizmo_drag_start_positions[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
+                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
                 }
             }
@@ -444,7 +454,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     case ENTITY_LIGHT:
                         g_EditorState.gizmo_drag_object_start_pos = scene->lights[primary->index].pos;
                         g_EditorState.gizmo_drag_object_start_rot = scene->lights[primary->index].rot;
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ 1,1,1 };
                         break;
                     case ENTITY_DECAL:
                         g_EditorState.gizmo_drag_object_start_pos = scene->decals[primary->index].pos;
@@ -453,33 +463,33 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         break;
                     case ENTITY_SOUND:
                         g_EditorState.gizmo_drag_object_start_pos = scene->soundEntities[primary->index].pos;
-                        g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                        g_EditorState.gizmo_drag_object_start_rot = Vec3{ 0,0,0 };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ 1,1,1 };
                         break;
                     case ENTITY_PARTICLE_EMITTER:
                         g_EditorState.gizmo_drag_object_start_pos = scene->particleEmitters[primary->index].pos;
-                        g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                        g_EditorState.gizmo_drag_object_start_rot = Vec3{ 0,0,0 };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ 1,1,1 };
                         break;
                     case ENTITY_SPRITE:
                         g_EditorState.gizmo_drag_object_start_pos = scene->sprites[primary->index].pos;
-                        g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->sprites[primary->index].scale, 1, 1 };
+                        g_EditorState.gizmo_drag_object_start_rot = Vec3{ 0,0,0 };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ scene->sprites[primary->index].scale, 1, 1 };
                         break;
                     case ENTITY_PLAYERSTART:
                         g_EditorState.gizmo_drag_object_start_pos = scene->playerStart.pos;
-                        g_EditorState.gizmo_drag_object_start_rot = (Vec3){ 0,0,0 };
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ 1,1,1 };
+                        g_EditorState.gizmo_drag_object_start_rot = Vec3{ 0,0,0 };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ 1,1,1 };
                         break;
                     case ENTITY_VIDEO_PLAYER:
                         g_EditorState.gizmo_drag_object_start_pos = scene->videoPlayers[primary->index].pos;
                         g_EditorState.gizmo_drag_object_start_rot = scene->videoPlayers[primary->index].rot;
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->videoPlayers[primary->index].size.x, scene->videoPlayers[primary->index].size.y, 1.0f };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ scene->videoPlayers[primary->index].size.x, scene->videoPlayers[primary->index].size.y, 1.0f };
                         break;
                     case ENTITY_PARALLAX_ROOM:
                         g_EditorState.gizmo_drag_object_start_pos = scene->parallaxRooms[primary->index].pos;
                         g_EditorState.gizmo_drag_object_start_rot = scene->parallaxRooms[primary->index].rot;
-                        g_EditorState.gizmo_drag_object_start_scale = (Vec3){ scene->parallaxRooms[primary->index].size.x, scene->parallaxRooms[primary->index].size.y, 1.0f };
+                        g_EditorState.gizmo_drag_object_start_scale = Vec3{ scene->parallaxRooms[primary->index].size.x, scene->parallaxRooms[primary->index].size.y, 1.0f };
                         break;
                     default: break;
                     }
@@ -497,7 +507,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
                     float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
-                    if (dot_product > 0.99f) { if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.gizmo_drag_plane_normal = (Vec3){ 0, 1, 0 }; } else { g_EditorState.gizmo_drag_plane_normal = (Vec3){ 1, 0, 0 }; } }
+                    if (dot_product > 0.99f) { if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
                     else { g_EditorState.gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.gizmo_drag_plane_normal); }
                     g_EditorState.gizmo_drag_plane_d = -vec3_dot(g_EditorState.gizmo_drag_plane_normal, drag_object_anchor_pos);
                     Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
@@ -516,9 +526,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             case GIZMO_OP_ROTATE: {
                 if (active_viewport != VIEW_PERSPECTIVE) break;
                 Vec3 object_pos_for_rotate_plane = g_EditorState.is_in_brush_creation_mode ? g_EditorState.preview_brush.pos : g_EditorState.gizmo_selection_centroid;
-                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 1,0,0 };
-                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 0,1,0 };
-                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) g_EditorState.gizmo_drag_plane_normal = (Vec3){ 0,0,1 };
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) g_EditorState.gizmo_drag_plane_normal = Vec3{ 1,0,0 };
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) g_EditorState.gizmo_drag_plane_normal = Vec3{ 0,1,0 };
+                if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) g_EditorState.gizmo_drag_plane_normal = Vec3{ 0,0,1 };
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
                 float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
@@ -798,10 +808,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
-                        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                        for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                        free(world_verts);
+                        Vec3* world_verts = new Vec3[b->numVertices];
+                        for (int k = 0; k < b->numVertices; ++k)
+                            world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        delete[] world_verts;
                     }
                     else {
                         b->physicsBody = NULL;
@@ -895,10 +906,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
-                        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                        for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                        free(world_verts);
+                        Vec3* world_verts = new Vec3[b->numVertices];
+                        for (int i = 0; i < b->numVertices; ++i)
+                            world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        delete[] world_verts;
                     }
                     else {
                         b->physicsBody = NULL;
@@ -955,12 +967,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
-                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                    for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    free(world_verts);
+                    Vec3* world_verts = new Vec3[b->numVertices];
+                    for (int j = 0; j < b->numVertices; ++j)
+                        world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    delete[] world_verts;
                 }
-                else { b->physicsBody = NULL; }
+                else {
+                    b->physicsBody = NULL;
+                }
             }
 
             g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
@@ -982,10 +997,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
-                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                    for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    free(world_verts);
+                    Vec3* world_verts = new Vec3[b->numVertices];
+                    for (int i = 0; i < b->numVertices; ++i)
+                        world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    delete[] world_verts;
                 }
                 else {
                     b->physicsBody = NULL;
@@ -1042,12 +1058,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
-                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                    for (int j = 0; j < b->numVertices; ++j) world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    free(world_verts);
+                    Vec3* world_verts = new Vec3[b->numVertices];
+                    for (int j = 0; j < b->numVertices; ++j)
+                        world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    delete[] world_verts;
                 }
-                else { b->physicsBody = NULL; }
+                else {
+                    b->physicsBody = NULL;
+                }
             }
 
             g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
@@ -1059,7 +1078,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.gizmo_drag_has_cloned = true;
 
                 int num_original_selections = g_EditorState.num_selections;
-                EditorSelection* original_selections = malloc(num_original_selections * sizeof(EditorSelection));
+                EditorSelection* original_selections = new EditorSelection[num_original_selections];
                 if (original_selections) {
                     memcpy(original_selections, g_EditorState.selections, num_original_selections * sizeof(EditorSelection));
                     Editor_ClearSelection();
@@ -1080,30 +1099,30 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         default: break;
                         }
                     }
-                    free(original_selections);
+                    delete[] original_selections;
 
-                    free(g_EditorState.gizmo_drag_start_positions);
-                    free(g_EditorState.gizmo_drag_start_rotations);
-                    free(g_EditorState.gizmo_drag_start_scales);
-                    g_EditorState.gizmo_drag_start_positions = malloc(g_EditorState.num_selections * sizeof(Vec3));
-                    g_EditorState.gizmo_drag_start_rotations = malloc(g_EditorState.num_selections * sizeof(Vec3));
-                    g_EditorState.gizmo_drag_start_scales = malloc(g_EditorState.num_selections * sizeof(Vec3));
+                    delete[] g_EditorState.gizmo_drag_start_positions;
+                    delete[] g_EditorState.gizmo_drag_start_rotations;
+                    delete[] g_EditorState.gizmo_drag_start_scales;
+                    g_EditorState.gizmo_drag_start_positions = new Vec3[g_EditorState.num_selections];
+                    g_EditorState.gizmo_drag_start_rotations = new Vec3[g_EditorState.num_selections];
+                    g_EditorState.gizmo_drag_start_scales = new Vec3[g_EditorState.num_selections];
 
                     for (int i = 0; i < g_EditorState.num_selections; ++i) {
                         EditorSelection* sel = &g_EditorState.selections[i];
                         switch (sel->type) {
                         case ENTITY_MODEL: g_EditorState.gizmo_drag_start_positions[i] = scene->objects[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->objects[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->objects[sel->index].scale; break;
                         case ENTITY_BRUSH: g_EditorState.gizmo_drag_start_positions[i] = scene->brushes[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->brushes[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->brushes[sel->index].scale; break;
-                        case ENTITY_LIGHT: g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_LIGHT: g_EditorState.gizmo_drag_start_positions[i] = scene->lights[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->lights[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
                         case ENTITY_DECAL: g_EditorState.gizmo_drag_start_positions[i] = scene->decals[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->decals[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->decals[sel->index].size; break;
-                        case ENTITY_SOUND: g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
-                        case ENTITY_PARTICLE_EMITTER: g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
-                        case ENTITY_SPRITE: g_EditorState.gizmo_drag_start_positions[i] = scene->sprites[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->sprites[sel->index].scale,1,1 }; break;
-                        case ENTITY_VIDEO_PLAYER: g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f }; break;
-                        case ENTITY_PARALLAX_ROOM: g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f }; break;
-                        case ENTITY_LOGIC: g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
-                        case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
-                        default: g_EditorState.gizmo_drag_start_positions[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_rotations[i] = (Vec3){ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = (Vec3){ 1,1,1 }; break;
+                        case ENTITY_SOUND: g_EditorState.gizmo_drag_start_positions[i] = scene->soundEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
+                        case ENTITY_PARTICLE_EMITTER: g_EditorState.gizmo_drag_start_positions[i] = scene->particleEmitters[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
+                        case ENTITY_SPRITE: g_EditorState.gizmo_drag_start_positions[i] = scene->sprites[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->sprites[sel->index].scale,1,1 }; break;
+                        case ENTITY_VIDEO_PLAYER: g_EditorState.gizmo_drag_start_positions[i] = scene->videoPlayers[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->videoPlayers[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->videoPlayers[sel->index].size.x, scene->videoPlayers[sel->index].size.y, 1.0f }; break;
+                        case ENTITY_PARALLAX_ROOM: g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f }; break;
+                        case ENTITY_LOGIC: g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
+                        case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
+                        default: g_EditorState.gizmo_drag_start_positions[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
                         }
                     }
                 }
@@ -1345,10 +1364,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.num_selections > 0) {
                 g_EditorState.show_transform_window = true;
                 if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
-                    g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+                    g_EditorState.transform_window_values = Vec3{ 1, 1, 1 };
                 }
                 else {
-                    g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+                    g_EditorState.transform_window_values = Vec3{ 0, 0, 0 };
                 }
             }
             return;
@@ -1396,7 +1415,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_d) {
             if (g_EditorState.num_selections > 0) {
                 int num_to_duplicate = g_EditorState.num_selections;
-                EditorSelection* original_selections = malloc(num_to_duplicate * sizeof(EditorSelection));
+                EditorSelection* original_selections = new EditorSelection[num_to_duplicate];
                 memcpy(original_selections, g_EditorState.selections, num_to_duplicate * sizeof(EditorSelection));
 
                 Editor_ClearSelection();
@@ -1416,7 +1435,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     default: Console_Printf("Duplication not implemented for this entity type yet."); break;
                     }
                 }
-                free(original_selections);
+                delete[] original_selections;
             }
             return;
         }
@@ -1578,12 +1597,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (b->physicsBody) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                         if (Brush_IsSolid(b) && b->numVertices > 0) {
-                            Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
+                            Vec3* world_verts = new Vec3[b->numVertices];
                             for (int i = 0; i < b->numVertices; ++i) {
                                 world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                             }
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                            free(world_verts);
+                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                            delete[] world_verts;
                         }
                         else {
                             b->physicsBody = NULL;
@@ -1597,12 +1616,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
-                    EntityState* deleted_states = calloc(g_EditorState.num_selections, sizeof(EntityState));
+                    EntityState* deleted_states = new EntityState[g_EditorState.num_selections]{};
                     int num_deleted = 0;
                     for (int i = 0; i < g_EditorState.num_selections; ++i) {
                         capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);
                     }
+
                     Undo_PushDeleteMultipleEntities(scene, deleted_states, num_deleted, "Delete Selection");
+
                     for (int i = g_EditorState.num_selections - 1; i >= 0; --i) {
                         EditorSelection* sel = &g_EditorState.selections[i];
                         switch (sel->type) {
@@ -1619,8 +1640,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         default: break;
                         }
                     }
+
+                    delete[] deleted_states;
+
+                    Editor_ClearSelection();
                 }
-                Editor_ClearSelection();
             }
         }
     }
@@ -1727,7 +1751,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
     if (can_move) {
         const Uint8* state = SDL_GetKeyboardState(NULL); float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
         Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-        vec3_normalize(&forward); Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 }); vec3_normalize(&right);
+        vec3_normalize(&forward); Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 }); vec3_normalize(&right);
         if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
         if (state[SDL_SCANCODE_S]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
         if (state[SDL_SCANCODE_D]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(right, speed));
@@ -1859,10 +1883,11 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 if (b->physicsBody) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
-                        Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                        for (int k = 0; k < b->numVertices; ++k) world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                        free(world_verts);
+                        Vec3* world_verts = new Vec3[b->numVertices];
+                        for (int k = 0; k < b->numVertices; ++k)
+                            world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        delete[] world_verts;
                     }
                     else {
                         b->physicsBody = NULL;
@@ -1940,9 +1965,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     if (g_EditorState.sprinkle_mode == 0) {
                         Vec3 surface_normal = g_EditorState.paint_brush_world_normal;
 
-                        Vec3 tangent = vec3_cross(surface_normal, (Vec3) { 0.0f, 1.0f, 0.0f });
+                        Vec3 tangent = vec3_cross(surface_normal, Vec3{ 0.0f, 1.0f, 0.0f });
                         if (vec3_length_sq(tangent) < 0.001f) {
-                            tangent = vec3_cross(surface_normal, (Vec3) { 1.0f, 0.0f, 0.0f });
+                            tangent = vec3_cross(surface_normal, Vec3{ 1.0f, 0.0f, 0.0f });
                         }
                         vec3_normalize(&tangent);
                         Vec3 bitangent = vec3_cross(surface_normal, tangent);
@@ -1955,38 +1980,43 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                         if (scene->numObjects < 8192) {
                             scene->numObjects++;
-                            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
-                            if (!scene->objects) {
-                                Console_Printf_Error("Failed to reallocate memory for scene objects!");
-                                scene->numObjects--;
-                                return;
+
+                            SceneObject* new_objects = new SceneObject[scene->numObjects];
+
+                            for (size_t i = 0; i < scene->numObjects - 1; ++i) {
+                                new_objects[i] = scene->objects[i];
                             }
 
-                            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
-                            memset(newObj, 0, sizeof(SceneObject));
+                            delete[] scene->objects;
+                            scene->objects = new_objects;
 
+                            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
+
+                            memset(newObj, 0, sizeof(SceneObject));
                             mat4_identity(&newObj->animated_local_transform);
 
                             strncpy(newObj->modelPath, g_EditorState.sprinkle_model_path, sizeof(newObj->modelPath) - 1);
                             newObj->pos = final_pos;
                             float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
-                            newObj->scale = (Vec3){ scale, scale, scale };
-                            newObj->rot = (Vec3){ 0,0,0 };
+                            newObj->scale = Vec3{ scale, scale, scale };
+                            newObj->rot = Vec3{ 0, 0, 0 };
 
                             if (g_EditorState.sprinkle_align_to_normal) {
                                 Vec3 obj_forward = surface_normal;
-                                Vec3 obj_up = (fabs(obj_forward.y) > 0.99f) ? (Vec3) { 1, 0, 0 } : (Vec3) { 0, 1, 0 };
+                                Vec3 obj_up = (fabs(obj_forward.y) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
                                 Vec3 obj_right = vec3_cross(obj_up, obj_forward);
                                 vec3_normalize(&obj_right);
                                 obj_up = vec3_cross(obj_forward, obj_right);
 
-                                Mat4 rot_matrix;
+                                Mat4 rot_matrix{};
                                 rot_matrix.m[0] = obj_right.x;  rot_matrix.m[4] = obj_up.x;  rot_matrix.m[8] = obj_forward.x;  rot_matrix.m[12] = 0;
                                 rot_matrix.m[1] = obj_right.y;  rot_matrix.m[5] = obj_up.y;  rot_matrix.m[9] = obj_forward.y;  rot_matrix.m[13] = 0;
-                                rot_matrix.m[2] = obj_right.z;  rot_matrix.m[6] = obj_up.z;  rot_matrix.m[10] = obj_forward.z; rot_matrix.m[14] = 0;
-                                rot_matrix.m[3] = 0;            rot_matrix.m[7] = 0;         rot_matrix.m[11] = 0;              rot_matrix.m[15] = 1;
+                                rot_matrix.m[2] = obj_right.z;  rot_matrix.m[6] = obj_up.z;  rot_matrix.m[10] = obj_forward.z;  rot_matrix.m[14] = 0;
+                                rot_matrix.m[3] = 0;            rot_matrix.m[7] = 0;         rot_matrix.m[11] = 0;                rot_matrix.m[15] = 1;
 
-                                mat4_decompose(&rot_matrix, &(Vec3){0}, & newObj->rot, & (Vec3){0});
+                                Vec3 dummyScale{};
+                                Vec3 dummyTranslation{};
+                                mat4_decompose(&rot_matrix, &dummyTranslation, &newObj->rot, &dummyScale);
                             }
 
                             if (g_EditorState.sprinkle_random_yaw) {
@@ -1995,6 +2025,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                             SceneObject_UpdateMatrix(newObj);
                             newObj->model = Model_Load(newObj->modelPath);
+
                             Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Sprinkle Object");
                         }
                     }
@@ -2099,12 +2130,12 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * pick_radius_factor, 2.0f);
 
                 Vec3 handle_centers_world[PREVIEW_BRUSH_HANDLE_COUNT];
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_X] = (Vec3){ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_X] = (Vec3){ g_EditorState.preview_brush_world_max.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_Y] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_min.y, g_EditorState.preview_brush.pos.z };
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_Y] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_max.y, g_EditorState.preview_brush.pos.z };
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_Z] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_min.z };
-                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_Z] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_max.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_X] = Vec3{ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_X] = Vec3{ g_EditorState.preview_brush_world_max.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_Y] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_min.y, g_EditorState.preview_brush.pos.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_Y] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_max.y, g_EditorState.preview_brush.pos.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_min.z };
+                handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_max.z };
 
                 for (int h_idx = 0; h_idx < PREVIEW_BRUSH_HANDLE_COUNT; ++h_idx) {
                     bool is_handle_relevant_to_view = false;
@@ -2242,7 +2273,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             use_gizmo = true;
         }
         else if (g_EditorState.num_selections > 0) {
-            g_EditorState.gizmo_selection_centroid = (Vec3){ 0 };
+            g_EditorState.gizmo_selection_centroid = Vec3{ 0 };
             for (int i = 0; i < g_EditorState.num_selections; ++i) {
                 Vec3 pos;
                 switch (g_EditorState.selections[i].type) {
@@ -2257,7 +2288,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
-                default: pos = (Vec3){ 0 }; break;
+                default: pos = Vec3{ 0 }; break;
                 }
                 g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }
