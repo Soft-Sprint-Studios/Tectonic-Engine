@@ -43,5 +43,5 @@ void main()
     vec4 scanline = texture(u_scanlineTexture, TexCoords * 4.0);
     color.rgb = mix(color.rgb, scanline.rgb, scanline.a);
 
-    FragColor = vec4(color.rgb * 3.0, 1.0);
+    FragColor = vec4(color.rgb, 1.0);
 }
