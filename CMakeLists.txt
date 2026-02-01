@@ -155,7 +155,7 @@ set(ENGINE_HEADERS
 
 # math_lib library
 add_library(math_lib SHARED
-    engine/math_lib/math_lib.c
+    engine/math_lib/math_lib.cpp
     engine/math_lib/math_lib.h
     engine/math_lib/math_api.h
 )
@@ -296,7 +296,7 @@ target_compile_options(materials PRIVATE
 
 # models library
 add_library(models SHARED
-    engine/models/model_loader.c
+    engine/models/model_loader.cpp
     engine/models/model_loader.h
     engine/models/models_api.h
 )
@@ -395,7 +395,7 @@ endif()
 
 # sound library
 add_library(sound SHARED
-    engine/sound/sound_system.c
+    engine/sound/sound_system.cpp
     engine/sound/dsp_reverb.cpp
     engine/sound/sound_system.h
     engine/sound/dsp_reverb.h
@@ -406,7 +406,6 @@ target_compile_definitions(sound PRIVATE
     $<$<BOOL:${WIN32}>:SOUND_DLL_EXPORTS>
     MINIMP3_IMPLEMENTATION
     OGG_IMPL
-    VORBIS_IMPL
 )
 
 target_include_directories(sound PUBLIC
@@ -416,7 +415,6 @@ target_include_directories(sound PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sdl/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minimp3"
-    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minivorbis"
 )
 
 target_compile_options(sound PRIVATE
@@ -456,7 +454,6 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/openal-soft-1.24.3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master/backends"
-    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minivorbis"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/sentry/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree-4.4.0/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn-2.3.3/include"
