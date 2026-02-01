@@ -123,15 +123,15 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Mat4 model = mat4_translate(object_pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
 
-        Vec3 color_x = { 1.0f, 0.2f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = (Vec3){ 1,1,0 };
+        Vec3 color_x = { 1.0f, 0.2f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
         glDrawArrays(GL_LINES, 0, 2);
 
-        Vec3 color_y = { 0.2f, 1.0f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = (Vec3){ 1,1,0 };
+        Vec3 color_y = { 0.2f, 1.0f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
         glDrawArrays(GL_LINES, 2, 2);
 
-        Vec3 color_z = { 0.2f, 0.2f, 1.0f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = (Vec3){ 1,1,0 };
+        Vec3 color_z = { 0.2f, 0.2f, 1.0f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
         glDrawArrays(GL_LINES, 4, 2);
         break;
@@ -145,31 +145,31 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         const float radius = 1.0f;
         Vec3 points[SEGMENTS + 1];
 
-        Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = (Vec3){ 1,1,0 };
+        Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
             float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, (Vec3) { cosf(angle)* radius, 0.0f, sinf(angle)* radius });
+            points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, 0.0f, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
 
-        Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = (Vec3){ 1,1,0 };
+        Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
             float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, (Vec3) { 0.0f, cosf(angle)* radius, sinf(angle)* radius });
+            points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle)* radius, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
 
-        Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = (Vec3){ 1,1,0 };
+        Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
         for (int i = 0; i <= SEGMENTS; ++i) {
             float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, (Vec3) { cosf(angle)* radius, sinf(angle)* radius, 0.0f });
+            points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, sinf(angle)* radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
@@ -193,7 +193,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Vec3 f = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
         vec3_normalize(&f);
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
-        g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, (Vec3) { 0, 1, 0 });
+        g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, Vec3{ 0, 1, 0 });
         g_proj_matrix[type] = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 10000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode, false);
@@ -224,9 +224,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         break;
     }
-    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt((Vec3) { p.x, 1000.0f, p.z }, (Vec3) { p.x, 0.0f, p.z }, (Vec3) { 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt((Vec3) { p.x, p.y, 1000.0f }, (Vec3) { p.x, p.y, 0.0f }, (Vec3) { 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt((Vec3) { 1000.0f, p.y, p.z }, (Vec3) { 0.0f, p.y, p.z }, (Vec3) { 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
     }
 
     if (type != VIEW_PERSPECTIVE) {
@@ -257,16 +257,16 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 float y2 = g_EditorState.paint_brush_radius * sinf(angle2);
 
                 if (type == VIEW_TOP_XZ) {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y, mouse_world_pos.z + y2 };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x + x2, mouse_world_pos.y, mouse_world_pos.z + y2 };
                 }
                 else if (type == VIEW_FRONT_XY) {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y + y1, mouse_world_pos.z };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y + y2, mouse_world_pos.z };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y + y1, mouse_world_pos.z };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x + x2, mouse_world_pos.y + y2, mouse_world_pos.z };
                 }
                 else {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y1, mouse_world_pos.z + x1 };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y2, mouse_world_pos.z + x2 };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x, mouse_world_pos.y + y1, mouse_world_pos.z + x1 };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x, mouse_world_pos.y + y2, mouse_world_pos.z + x2 };
                 }
             }
 
@@ -302,16 +302,16 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 float y2 = g_EditorState.sculpt_brush_radius * sinf(angle2);
 
                 if (type == VIEW_TOP_XZ) {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y, mouse_world_pos.z + y2 };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x + x2, mouse_world_pos.y, mouse_world_pos.z + y2 };
                 }
                 else if (type == VIEW_FRONT_XY) {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x + x1, mouse_world_pos.y + y1, mouse_world_pos.z };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x + x2, mouse_world_pos.y + y2, mouse_world_pos.z };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y + y1, mouse_world_pos.z };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x + x2, mouse_world_pos.y + y2, mouse_world_pos.z };
                 }
                 else {
-                    circle_verts[i * 2] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y1, mouse_world_pos.z + x1 };
-                    circle_verts[i * 2 + 1] = (Vec3){ mouse_world_pos.x, mouse_world_pos.y + y2, mouse_world_pos.z + x2 };
+                    circle_verts[i * 2] = Vec3{ mouse_world_pos.x, mouse_world_pos.y + y1, mouse_world_pos.z + x1 };
+                    circle_verts[i * 2 + 1] = Vec3{ mouse_world_pos.x, mouse_world_pos.y + y2, mouse_world_pos.z + x2 };
                 }
             }
 
@@ -356,7 +356,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (int i = 0; i < scene->numVideoPlayers; i++) {
         VideoPlayer* vp = &scene->videoPlayers[i];
-        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 1.0f });
+        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
         bool is_selected = Editor_IsSelected(ENTITY_VIDEO_PLAYER, i);
         float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
@@ -369,7 +369,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (int i = 0; i < scene->numParallaxRooms; i++) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
-        p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, p->roomDepth });
+        p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, p->roomDepth });
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, p->modelMatrix.m);
         bool is_selected = Editor_IsSelected(ENTITY_PARALLAX_ROOM, i);
         float color[] = { 0.5f, 0.0f, 1.0f, 1.0f };
@@ -409,12 +409,12 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             float handle_world_size = handle_screen_size * (g_EditorState.ortho_cam_zoom[type - 1] / (float)g_EditorState.viewport_height[type]);
 
             Vec3 handle_positions_world[PREVIEW_BRUSH_HANDLE_COUNT];
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_X] = (Vec3){ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_X] = (Vec3){ g_EditorState.preview_brush_world_max.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_Y] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_min.y, g_EditorState.preview_brush.pos.z };
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_Y] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_max.y, g_EditorState.preview_brush.pos.z };
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_Z] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_min.z };
-            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_Z] = (Vec3){ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_max.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_X] = Vec3{ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_X] = Vec3{ g_EditorState.preview_brush_world_max.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_Y] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_min.y, g_EditorState.preview_brush.pos.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_Y] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush_world_max.y, g_EditorState.preview_brush.pos.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_min.z };
+            handle_positions_world[PREVIEW_BRUSH_HANDLE_MAX_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_max.z };
 
             glBindVertexArray(g_EditorState.vertex_points_vao);
             glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -551,12 +551,14 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         if (sel->type == ENTITY_BRUSH) {
             Brush* b = &scene->brushes[sel->index];
             if (Brush_IsSolid(b) && b->numVertices > 0) {
-                BrushFace* face = &b->faces[sel->face_index];
                 if (sel->face_index < 0 || sel->face_index >= b->numFaces) continue;
+                BrushFace* face = &b->faces[sel->face_index];
                 if (face->numVertexIndices >= 3) {
                     int num_tris = face->numVertexIndices - 2;
                     int num_verts = num_tris * 3;
-                    float* face_verts = malloc(num_verts * 3 * sizeof(float));
+
+                    float* face_verts = new float[num_verts * 3];
+
                     for (int tri = 0; tri < num_tris; ++tri) {
                         int tri_indices[3] = { face->vertexIndices[0], face->vertexIndices[tri + 1], face->vertexIndices[tri + 2] };
                         for (int j = 0; j < 3; ++j) {
@@ -566,19 +568,31 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                             face_verts[(tri * 3 + j) * 3 + 2] = v.z;
                         }
                     }
-                    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glDepthMask(GL_FALSE); glUseProgram(g_EditorState.debug_shader);
+
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_FALSE);
+                    glUseProgram(g_EditorState.debug_shader);
+
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+
                     float color[] = { 0.835f, 0.333f, 0.0f, 0.4f };
                     glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-                    glBindVertexArray(g_EditorState.selected_face_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
+
+                    glBindVertexArray(g_EditorState.selected_face_vao);
+                    glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
                     glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(float), face_verts, GL_DYNAMIC_DRAW);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-                    glEnableVertexAttribArray(0); glDrawArrays(GL_TRIANGLES, 0, num_verts);
-                    glBindVertexArray(0); glDisable(GL_BLEND); glDepthMask(GL_TRUE);
-                    free(face_verts);
+                    glEnableVertexAttribArray(0);
+                    glDrawArrays(GL_TRIANGLES, 0, num_verts);
+
+                    glBindVertexArray(0);
+                    glDisable(GL_BLEND);
+                    glDepthMask(GL_TRUE);
+
+                    delete[] face_verts;
                 }
             }
         }
@@ -624,7 +638,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             }
             if (light->type == LIGHT_POINT) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                Mat4 scaleMatrix = mat4_scale((Vec3) { light->radius, light->radius, light->radius });
+                Mat4 scaleMatrix = mat4_scale(Vec3{ light->radius, light->radius, light->radius });
                 Mat4 scaledModelMatrix;
                 mat4_multiply(&scaledModelMatrix, &modelMatrix, &scaleMatrix);
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, scaledModelMatrix.m);
@@ -634,7 +648,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             if (light->type == LIGHT_SPOT || light->type == LIGHT_AREA) {
-                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, light->rot, (Vec3) { 1, 1, 1 });
+                Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
                 Vec3 forward = { 0, 0, -1 };
                 Vec3 world_dir = mat4_mul_vec3_dir(&rot_mat, forward);
                 vec3_normalize(&world_dir);
@@ -665,7 +679,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 float angle = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
                 float radius = tanf(angle) * far_plane;
                 Vec3 dir = light->direction; vec3_normalize(&dir);
-                Vec3 up_ish = (fabsf(vec3_dot(dir, (Vec3) { 0, 1, 0 })) > 0.99f) ? (Vec3) { 1, 0, 0 } : (Vec3) { 0, 1, 0 };
+                Vec3 up_ish = (fabsf(vec3_dot(dir, Vec3{ 0, 1, 0 })) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
                 Vec3 right = vec3_cross(dir, up_ish); vec3_normalize(&right);
                 Vec3 up = vec3_cross(right, dir);
                 int segments = 16;
@@ -746,7 +760,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
 
-            Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, (Vec3) { 1, 1, 1 });
+            Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, Vec3{ 1, 1, 1 });
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
 
             bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
@@ -815,7 +829,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
 
         Mat4 model_mat = mat4_translate(g_EditorState.sprinkle_brush_world_pos);
-        Mat4 scale_mat = mat4_scale((Vec3) { g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
+        Mat4 scale_mat = mat4_scale(Vec3{ g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
         mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
@@ -838,7 +852,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         float radius = g_EditorState.is_painting_mode_enabled ? g_EditorState.paint_brush_radius : g_EditorState.sculpt_brush_radius;
         Mat4 model_mat = mat4_translate(g_EditorState.paint_brush_world_pos);
-        Mat4 scale_mat = mat4_scale((Vec3) { radius, radius, radius });
+        Mat4 scale_mat = mat4_scale(Vec3{ radius, radius, radius });
         mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
@@ -895,9 +909,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             Vec3 plane_normal;
             Vec3 dir = vec3_sub(p2, p1);
 
-            if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, (Vec3) { 0, 1, 0 }); }
-            else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, (Vec3) { 0, 0, 1 }); }
-            else { plane_normal = vec3_cross(dir, (Vec3) { 1, 0, 0 }); }
+            if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, Vec3{ 0, 1, 0 }); }
+            else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, Vec3{ 0, 0, 1 }); }
+            else { plane_normal = vec3_cross(dir, Vec3{ 1, 0, 0 }); }
             vec3_normalize(&plane_normal);
 
             if (g_EditorState.clip_side_point.x != 0 || g_EditorState.clip_side_point.y != 0 || g_EditorState.clip_side_point.z != 0) {
@@ -964,16 +978,16 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                             float y2 = radius * sinf(angle2);
 
                             if (type == VIEW_TOP_XZ) {
-                                circle_verts[k * 2] = (Vec3){ ent->pos.x + x1, ent->pos.y, ent->pos.z + y1 };
-                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x + x2, ent->pos.y, ent->pos.z + y2 };
+                                circle_verts[k * 2] = Vec3{ ent->pos.x + x1, ent->pos.y, ent->pos.z + y1 };
+                                circle_verts[k * 2 + 1] = Vec3{ ent->pos.x + x2, ent->pos.y, ent->pos.z + y2 };
                             }
                             else if (type == VIEW_FRONT_XY) {
-                                circle_verts[k * 2] = (Vec3){ ent->pos.x + x1, ent->pos.y + y1, ent->pos.z };
-                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x + x2, ent->pos.y + y2, ent->pos.z };
+                                circle_verts[k * 2] = Vec3{ ent->pos.x + x1, ent->pos.y + y1, ent->pos.z };
+                                circle_verts[k * 2 + 1] = Vec3{ ent->pos.x + x2, ent->pos.y + y2, ent->pos.z };
                             }
                             else {
-                                circle_verts[k * 2] = (Vec3){ ent->pos.x, ent->pos.y + y1, ent->pos.z + x1 };
-                                circle_verts[k * 2 + 1] = (Vec3){ ent->pos.x, ent->pos.y + y2, ent->pos.z + x2 };
+                                circle_verts[k * 2] = Vec3{ ent->pos.x, ent->pos.y + y1, ent->pos.z + x1 };
+                                circle_verts[k * 2 + 1] = Vec3{ ent->pos.x, ent->pos.y + y2, ent->pos.z + x2 };
                             }
                         }
                         glBindVertexArray(g_EditorState.vertex_points_vao);
@@ -1005,21 +1019,21 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glLineWidth(2.0f);
         glBindVertexArray(g_EditorState.gizmo_vao);
 
-        Mat4 scale = mat4_scale((Vec3) { 0.5f, 0.5f, 0.5f });
+        Mat4 scale = mat4_scale(Vec3{ 0.5f, 0.5f, 0.5f });
         Mat4 trans = mat4_translate(vertex_world_pos);
         Mat4 model;
         mat4_multiply(&model, &trans, &scale);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
 
-        Vec3 color_x = { 1,0,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) color_x = (Vec3){ 1,1,0 };
+        Vec3 color_x = { 1,0,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
         glDrawArrays(GL_LINES, 0, 2);
 
-        Vec3 color_y = { 0,1,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) color_y = (Vec3){ 1,1,0 };
+        Vec3 color_y = { 0,1,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
         glDrawArrays(GL_LINES, 2, 2);
 
-        Vec3 color_z = { 0,0,1 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) color_z = (Vec3){ 1,1,0 };
+        Vec3 color_z = { 0,0,1 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
         glDrawArrays(GL_LINES, 4, 2);
 
@@ -1042,7 +1056,7 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         cam_pos.x = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * cosf(g_EditorState.model_preview_cam_angles.x);
         cam_pos.y = g_EditorState.model_preview_cam_dist * cosf(g_EditorState.model_preview_cam_angles.y);
         cam_pos.z = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * sinf(g_EditorState.model_preview_cam_angles.x);
-        Mat4 view = mat4_lookAt(cam_pos, (Vec3) { 0, 0, 0 }, (Vec3) { 0, 1, 0 });
+        Mat4 view = mat4_lookAt(cam_pos, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
         Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 1000.0f);
         glUseProgram(renderer->mainShader);
         glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 1);
