@@ -394,13 +394,12 @@ GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID) {
 static char* strip_numeric_suffix(const char* name) {
     const char* dot = strrchr(name, '.');
     if (dot && dot != name) {
-        bool all_digits = true;
         const char* p = dot + 1;
-        if (*p == '\0') {
-            all_digits = false;
-        }
+        if (*p == '\0') return nullptr;
+
+        bool all_digits = true;
         while (*p) {
-            if (!isdigit((unsigned char)*p)) {
+            if (!isdigit(static_cast<unsigned char>(*p))) {
                 all_digits = false;
                 break;
             }
@@ -409,15 +408,13 @@ static char* strip_numeric_suffix(const char* name) {
 
         if (all_digits) {
             size_t base_len = dot - name;
-            char* base_name = malloc(base_len + 1);
-            if (base_name) {
-                strncpy(base_name, name, base_len);
-                base_name[base_len] = '\0';
-                return base_name;
-            }
+            char* base_name = new char[base_len + 1];
+            strncpy(base_name, name, base_len);
+            base_name[base_len] = '\0';
+            return base_name;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void TextureManager_Init() {
