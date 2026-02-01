@@ -85,7 +85,7 @@ endif()
 # Source files
 set(ENGINE_SOURCES
     engine/discord_wrapper.cpp
-    engine/editor/editor.cpp engine/editor/editor_windows.c engine/editor/editor_ui.c engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.c engine/editor/editor_render.c engine/editor/editor_undo.c engine/editor/editor_misc.cpp
+    engine/editor/editor.cpp engine/editor/editor_windows.c engine/editor/editor_ui.c engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.cpp engine/editor/editor_render.c engine/editor/editor_undo.c engine/editor/editor_misc.cpp
     engine/game_data.c
     engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
     engine/map.c engine/map_lighting.c engine/gl_particle_system.c

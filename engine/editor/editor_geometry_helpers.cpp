@@ -30,23 +30,23 @@ static Vec3 g_sort_centroid;
 void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
     Brush_FreeData(b);
     b->numVertices = 8;
-    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)malloc(b->numVertices * sizeof(BrushVertex));
     Vec3 half_size = vec3_muls(size, 0.5f);
-    b->vertices[0].pos = (Vec3){ -half_size.x, -half_size.y,  half_size.z };
-    b->vertices[1].pos = (Vec3){ half_size.x, -half_size.y,  half_size.z };
-    b->vertices[2].pos = (Vec3){ half_size.x,  half_size.y,  half_size.z };
-    b->vertices[3].pos = (Vec3){ -half_size.x,  half_size.y,  half_size.z };
-    b->vertices[4].pos = (Vec3){ -half_size.x, -half_size.y, -half_size.z };
-    b->vertices[5].pos = (Vec3){ half_size.x, -half_size.y, -half_size.z };
-    b->vertices[6].pos = (Vec3){ half_size.x,  half_size.y, -half_size.z };
-    b->vertices[7].pos = (Vec3){ -half_size.x,  half_size.y, -half_size.z };
+    b->vertices[0].pos = Vec3{ -half_size.x, -half_size.y,  half_size.z };
+    b->vertices[1].pos = Vec3{ half_size.x, -half_size.y,  half_size.z };
+    b->vertices[2].pos = Vec3{ half_size.x,  half_size.y,  half_size.z };
+    b->vertices[3].pos = Vec3{ -half_size.x,  half_size.y,  half_size.z };
+    b->vertices[4].pos = Vec3{ -half_size.x, -half_size.y, -half_size.z };
+    b->vertices[5].pos = Vec3{ half_size.x, -half_size.y, -half_size.z };
+    b->vertices[6].pos = Vec3{ half_size.x,  half_size.y, -half_size.z };
+    b->vertices[7].pos = Vec3{ -half_size.x,  half_size.y, -half_size.z };
 
     for (int i = 0; i < 8; ++i) {
-        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        b->vertices[i].color = Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
     }
 
     b->numFaces = 6;
-    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
     static const int face_defs[6][4] = {
     {0, 1, 2, 3},
     {5, 4, 7, 6},
@@ -58,23 +58,23 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
     for (int i = 0; i < 6; ++i) {
         b->faces[i].material = TextureManager_GetMaterial(0);
         b->faces[i].material2 = NULL;
-        b->faces[i].uv_offset = (Vec2){ 0,0 };
-        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].uv_offset = Vec2{ 0,0 };
+        b->faces[i].uv_scale = Vec2{ 1,1 };
         b->faces[i].uv_rotation = 0;
-        b->faces[i].uv_offset2 = (Vec2){ 0,0 };
-        b->faces[i].uv_scale2 = (Vec2){ 1,1 };
+        b->faces[i].uv_offset2 = Vec2{ 0,0 };
+        b->faces[i].uv_scale2 = Vec2{ 1,1 };
         b->faces[i].uv_rotation2 = 0;
         b->faces[i].material3 = NULL;
-        b->faces[i].uv_offset3 = (Vec2){ 0,0 };
-        b->faces[i].uv_scale3 = (Vec2){ 1,1 };
+        b->faces[i].uv_offset3 = Vec2{ 0,0 };
+        b->faces[i].uv_scale3 = Vec2{ 1,1 };
         b->faces[i].uv_rotation3 = 0;
         b->faces[i].material4 = NULL;
-        b->faces[i].uv_offset4 = (Vec2){ 0,0 };
-        b->faces[i].uv_scale4 = (Vec2){ 1,1 };
+        b->faces[i].uv_offset4 = Vec2{ 0,0 };
+        b->faces[i].uv_scale4 = Vec2{ 1,1 };
         b->faces[i].uv_rotation4 = 0;
         b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].numVertexIndices = 4;
-        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[i].vertexIndices = (int*)malloc(4 * sizeof(int));
         for (int j = 0; j < 4; ++j) b->faces[i].vertexIndices[j] = face_defs[i][j];
     }
 }
@@ -88,42 +88,55 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides) {
     float height = size.y;
 
     b->numVertices = num_sides * 2;
-    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)malloc(b->numVertices * sizeof(BrushVertex));
 
     for (int i = 0; i < num_sides; ++i) {
         float angle = (float)i / (float)num_sides * 2.0f * M_PI;
         float x = cosf(angle) * radius_x;
         float z = sinf(angle) * radius_z;
 
-        b->vertices[i].pos = (Vec3){ x, height / 2.0f, z };
-        b->vertices[i + num_sides].pos = (Vec3){ x, -height / 2.0f, z };
+        b->vertices[i].pos = Vec3{ x, height / 2.0f, z };
+        b->vertices[i + num_sides].pos = Vec3{ x, -height / 2.0f, z };
     }
 
     for (int i = 0; i < b->numVertices; ++i) {
-        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        b->vertices[i].color = Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
     }
 
     b->numFaces = num_sides + 2;
-    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
 
     for (int i = 0; i < num_sides; ++i) {
-        b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1} };
+        BrushFace temp_face = {};
+        temp_face.material = TextureManager_GetMaterial(0);
+        temp_face.numVertexIndices = 4;
+        temp_face.uv_scale = Vec2{ 1, 1 };
+        b->faces[i] = temp_face;
+
         b->faces[i].lightmap_scale = 1.0f;
-        b->faces[i].vertexIndices = malloc(4 * sizeof(int));
+        b->faces[i].vertexIndices = (int*)malloc(4 * sizeof(int));
         b->faces[i].vertexIndices[0] = i;
         b->faces[i].vertexIndices[1] = (i + 1) % num_sides;
         b->faces[i].vertexIndices[2] = ((i + 1) % num_sides) + num_sides;
         b->faces[i].vertexIndices[3] = i + num_sides;
     }
 
-    b->faces[num_sides] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    BrushFace temp_face_cap1 = {};
+    temp_face_cap1.material = TextureManager_GetMaterial(0);
+    temp_face_cap1.numVertexIndices = num_sides;
+    temp_face_cap1.uv_scale = Vec2{ 1, 1 };
+    b->faces[num_sides] = temp_face_cap1;
     b->faces[num_sides].lightmap_scale = 1.0f;
-    b->faces[num_sides].vertexIndices = malloc(num_sides * sizeof(int));
+    b->faces[num_sides].vertexIndices = (int*)malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) b->faces[num_sides].vertexIndices[i] = i;
 
-    b->faces[num_sides + 1] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    BrushFace temp_face_cap2 = {};
+    temp_face_cap2.material = TextureManager_GetMaterial(0);
+    temp_face_cap2.numVertexIndices = num_sides;
+    temp_face_cap2.uv_scale = Vec2{ 1, 1 };
+    b->faces[num_sides + 1] = temp_face_cap2;
     b->faces[num_sides + 1].lightmap_scale = 1.0f;
-    b->faces[num_sides + 1].vertexIndices = malloc(num_sides * sizeof(int));
+    b->faces[num_sides + 1].vertexIndices = (int*)malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) b->faces[num_sides + 1].vertexIndices[i] = (num_sides - 1 - i) + num_sides;
 }
 
@@ -132,21 +145,21 @@ void Brush_SetVerticesFromWedge(Brush* b, Vec3 size) {
     Vec3 half_size = vec3_muls(size, 0.5f);
 
     b->numVertices = 6;
-    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)malloc(b->numVertices * sizeof(BrushVertex));
 
-    b->vertices[0].pos = (Vec3){ -half_size.x, -half_size.y, -half_size.z };
-    b->vertices[1].pos = (Vec3){ half_size.x, -half_size.y, -half_size.z };
-    b->vertices[2].pos = (Vec3){ half_size.x, -half_size.y,  half_size.z };
-    b->vertices[3].pos = (Vec3){ -half_size.x, -half_size.y,  half_size.z };
-    b->vertices[4].pos = (Vec3){ -half_size.x,  half_size.y, -half_size.z };
-    b->vertices[5].pos = (Vec3){ half_size.x,  half_size.y, -half_size.z };
+    b->vertices[0].pos = Vec3{ -half_size.x, -half_size.y, -half_size.z };
+    b->vertices[1].pos = Vec3{ half_size.x, -half_size.y, -half_size.z };
+    b->vertices[2].pos = Vec3{ half_size.x, -half_size.y,  half_size.z };
+    b->vertices[3].pos = Vec3{ -half_size.x, -half_size.y,  half_size.z };
+    b->vertices[4].pos = Vec3{ -half_size.x,  half_size.y, -half_size.z };
+    b->vertices[5].pos = Vec3{ half_size.x,  half_size.y, -half_size.z };
 
     for (int i = 0; i < b->numVertices; ++i) {
-        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        b->vertices[i].color = Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
     }
 
     b->numFaces = 5;
-    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
 
     int face_defs[5][4] = {
         {0, 3, 2, 1},
@@ -158,9 +171,14 @@ void Brush_SetVerticesFromWedge(Brush* b, Vec3 size) {
     int num_indices_per_face[] = { 4, 4, 4, 3, 3 };
 
     for (int i = 0; i < 5; ++i) {
-        b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_indices_per_face[i], .uv_scale = {1,1} };
+        BrushFace temp_face = {};
+        temp_face.material = TextureManager_GetMaterial(0);
+        temp_face.numVertexIndices = num_indices_per_face[i];
+        temp_face.uv_scale = Vec2{ 1, 1 };
+        b->faces[i] = temp_face;
+
         b->faces[i].lightmap_scale = 1.0f;
-        b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
+        b->faces[i].vertexIndices = (int*)malloc(b->faces[i].numVertexIndices * sizeof(int));
         for (int j = 0; j < b->faces[i].numVertexIndices; ++j) {
             b->faces[i].vertexIndices[j] = face_defs[i][j];
         }
@@ -176,36 +194,46 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, int num_sides) {
     float height = size.y;
 
     b->numVertices = num_sides + 1;
-    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)malloc(b->numVertices * sizeof(BrushVertex));
 
-    b->vertices[0].pos = (Vec3){ 0, height / 2.0f, 0 };
+    b->vertices[0].pos = Vec3{ 0, height / 2.0f, 0 };
 
     for (int i = 0; i < num_sides; ++i) {
         float angle = (float)i / (float)num_sides * 2.0f * M_PI;
         float x = cosf(angle) * radius_x;
         float z = sinf(angle) * radius_z;
-        b->vertices[i + 1].pos = (Vec3){ x, -height / 2.0f, z };
+        b->vertices[i + 1].pos = Vec3{ x, -height / 2.0f, z };
     }
 
     for (int i = 0; i < b->numVertices; ++i) {
-        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        b->vertices[i].color = Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
     }
 
     b->numFaces = num_sides + 1;
-    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
 
     for (int i = 0; i < num_sides; ++i) {
-        b->faces[i] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 3, .uv_scale = {1,1} };
-        b->faces[i].vertexIndices = malloc(3 * sizeof(int));
+        BrushFace temp_face = {};
+        temp_face.material = TextureManager_GetMaterial(0);
+        temp_face.numVertexIndices = 3;
+        temp_face.uv_scale = Vec2{ 1, 1 };
+        b->faces[i] = temp_face;
+
+        b->faces[i].vertexIndices = (int*)malloc(3 * sizeof(int));
         b->faces[i].lightmap_scale = 1.0f;
         b->faces[i].vertexIndices[0] = 0;
         b->faces[i].vertexIndices[1] = (i + 1) % num_sides + 1;
         b->faces[i].vertexIndices[2] = i + 1;
     }
 
-    b->faces[num_sides] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = num_sides, .uv_scale = {1,1} };
+    BrushFace temp_face_cap = {};
+    temp_face_cap.material = TextureManager_GetMaterial(0);
+    temp_face_cap.numVertexIndices = num_sides;
+    temp_face_cap.uv_scale = Vec2{ 1, 1 };
+    b->faces[num_sides] = temp_face_cap;
+
     b->faces[num_sides].lightmap_scale = 1.0f;
-    b->faces[num_sides].vertexIndices = malloc(num_sides * sizeof(int));
+    b->faces[num_sides].vertexIndices = (int*)malloc(num_sides * sizeof(int));
     for (int i = 0; i < num_sides; ++i) {
         b->faces[num_sides].vertexIndices[i] = (num_sides - i) + 0;
     }
@@ -215,7 +243,7 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides) {
     Brush_FreeData(b);
     int stacks = sides / 2;
     b->numVertices = (sides + 1) * (stacks + 1);
-    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)calloc(b->numVertices, sizeof(BrushVertex));
 
     Vec3 radius = vec3_muls(size, 0.5f);
 
@@ -228,12 +256,12 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides) {
             float sector_angle = j * 2 * M_PI / sides;
             float x = xy * cosf(sector_angle);
             float y = xy * sinf(sector_angle);
-            b->vertices[i * (sides + 1) + j].pos = (Vec3){ x, y, z };
+            b->vertices[i * (sides + 1) + j].pos = Vec3{ x, y, z };
         }
     }
 
     b->numFaces = sides * stacks;
-    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+    b->faces = (BrushFace*)calloc(b->numFaces, sizeof(BrushFace));
     int face_index = 0;
     for (int i = 0; i < stacks; i++) {
         for (int j = 0; j < sides; j++) {
@@ -243,14 +271,14 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, int sides) {
             int p4 = p3 + 1;
 
             b->faces[face_index].numVertexIndices = 4;
-            b->faces[face_index].vertexIndices = malloc(4 * sizeof(int));
+            b->faces[face_index].vertexIndices = (int*)malloc(4 * sizeof(int));
             b->faces[face_index].vertexIndices[0] = p1;
             b->faces[face_index].vertexIndices[1] = p3;
             b->faces[face_index].vertexIndices[2] = p4;
             b->faces[face_index].vertexIndices[3] = p2;
 
             b->faces[face_index].material = TextureManager_GetMaterial(0);
-            b->faces[face_index].uv_scale = (Vec2){ 1,1 };
+            b->faces[face_index].uv_scale = Vec2{ 1,1 };
             b->faces[face_index].lightmap_scale = 1.0f;
             face_index++;
         }
@@ -265,7 +293,7 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
     int num_dome_verts = ring_vertices * (stacks + 1);
 
     b->numVertices = num_dome_verts + 1;
-    b->vertices = calloc(b->numVertices, sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)calloc(b->numVertices, sizeof(BrushVertex));
 
     Vec3 radius = vec3_muls(size, 0.5f);
 
@@ -278,16 +306,16 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
             float sector_angle = j * 2 * M_PI / sides;
             float x = xy * cosf(sector_angle);
             float y = xy * sinf(sector_angle);
-            b->vertices[i * ring_vertices + j].pos = (Vec3){ x, y, z };
+            b->vertices[i * ring_vertices + j].pos = Vec3{ x, y, z };
         }
     }
 
     int bottom_center_index = b->numVertices - 1;
     float bottom_z = b->vertices[stacks * ring_vertices].pos.z;
-    b->vertices[bottom_center_index].pos = (Vec3){ 0, 0, bottom_z };
+    b->vertices[bottom_center_index].pos = Vec3{ 0, 0, bottom_z };
 
     b->numFaces = (sides * stacks) + sides;
-    b->faces = calloc(b->numFaces, sizeof(BrushFace));
+    b->faces = (BrushFace*)calloc(b->numFaces, sizeof(BrushFace));
 
     int face_index = 0;
 
@@ -299,7 +327,7 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
             int p4 = p3 + 1;
 
             b->faces[face_index].numVertexIndices = 4;
-            b->faces[face_index].vertexIndices = malloc(4 * sizeof(int));
+            b->faces[face_index].vertexIndices = (int*)malloc(4 * sizeof(int));
             b->faces[face_index].vertexIndices[0] = p1;
             b->faces[face_index].vertexIndices[1] = p3;
             b->faces[face_index].vertexIndices[2] = p4;
@@ -314,7 +342,7 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
         int p2 = base_start + (j + 1) % ring_vertices;
 
         b->faces[face_index].numVertexIndices = 3;
-        b->faces[face_index].vertexIndices = malloc(3 * sizeof(int));
+        b->faces[face_index].vertexIndices = (int*)malloc(3 * sizeof(int));
         b->faces[face_index].vertexIndices[0] = bottom_center_index;
         b->faces[face_index].vertexIndices[1] = p1;
         b->faces[face_index].vertexIndices[2] = p2;
@@ -332,7 +360,7 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, int sides) {
 
     for (int i = 0; i < b->numFaces; i++) {
         b->faces[i].material = TextureManager_GetMaterial(0);
-        b->faces[i].uv_scale = (Vec2){ 1,1 };
+        b->faces[i].uv_scale = Vec2{ 1,1 };
         b->faces[i].lightmap_scale = 1.0f;
     }
 }
@@ -351,56 +379,80 @@ void Brush_SetVerticesFromTube(Brush* b, Vec3 size, int num_sides, float wall_th
     if (inner_radius_z < 0.01f) inner_radius_z = 0.01f;
 
     b->numVertices = num_sides * 4;
-    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
+    b->vertices = (BrushVertex*)malloc(b->numVertices * sizeof(BrushVertex));
 
     for (int i = 0; i < num_sides; ++i) {
         float angle = (float)i / (float)num_sides * 2.0f * M_PI;
         float cos_a = cosf(angle);
         float sin_a = sinf(angle);
 
-        b->vertices[i].pos = (Vec3){ cos_a * radius_x, height / 2.0f, sin_a * radius_z };
-        b->vertices[i + num_sides].pos = (Vec3){ cos_a * radius_x, -height / 2.0f, sin_a * radius_z };
-        b->vertices[i + 2 * num_sides].pos = (Vec3){ cos_a * inner_radius_x, height / 2.0f, sin_a * inner_radius_z };
-        b->vertices[i + 3 * num_sides].pos = (Vec3){ cos_a * inner_radius_x, -height / 2.0f, sin_a * inner_radius_z };
+        b->vertices[i].pos = Vec3{ cos_a * radius_x, height / 2.0f, sin_a * radius_z };
+        b->vertices[i + num_sides].pos = Vec3{ cos_a * radius_x, -height / 2.0f, sin_a * radius_z };
+        b->vertices[i + 2 * num_sides].pos = Vec3{ cos_a * inner_radius_x, height / 2.0f, sin_a * inner_radius_z };
+        b->vertices[i + 3 * num_sides].pos = Vec3{ cos_a * inner_radius_x, -height / 2.0f, sin_a * inner_radius_z };
     }
 
     for (int i = 0; i < b->numVertices; ++i) {
-        b->vertices[i].color = (Vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        b->vertices[i].color = Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
     }
 
     b->numFaces = num_sides * 4;
-    b->faces = malloc(b->numFaces * sizeof(BrushFace));
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
 
     for (int i = 0; i < num_sides; ++i) {
         int next_i = (i + 1) % num_sides;
 
         int face_idx = i;
-        b->faces[face_idx] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1}, .lightmap_scale = 1.0f };
-        b->faces[face_idx].vertexIndices = malloc(4 * sizeof(int));
+        BrushFace temp_face1 = {};
+        temp_face1.material = TextureManager_GetMaterial(0);
+        temp_face1.numVertexIndices = 4;
+        temp_face1.uv_scale = Vec2{ 1, 1 };
+        temp_face1.lightmap_scale = 1.0f;
+        b->faces[face_idx] = temp_face1;
+
+        b->faces[face_idx].vertexIndices = (int*)malloc(4 * sizeof(int));
         b->faces[face_idx].vertexIndices[0] = i;
         b->faces[face_idx].vertexIndices[1] = next_i;
         b->faces[face_idx].vertexIndices[2] = next_i + num_sides;
         b->faces[face_idx].vertexIndices[3] = i + num_sides;
 
         face_idx = i + num_sides;
-        b->faces[face_idx] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1}, .lightmap_scale = 1.0f };
-        b->faces[face_idx].vertexIndices = malloc(4 * sizeof(int));
+        BrushFace temp_face2 = {};
+        temp_face2.material = TextureManager_GetMaterial(0);
+        temp_face2.numVertexIndices = 4;
+        temp_face2.uv_scale = Vec2{ 1, 1 };
+        temp_face2.lightmap_scale = 1.0f;
+        b->faces[face_idx] = temp_face2;
+
+        b->faces[face_idx].vertexIndices = (int*)malloc(4 * sizeof(int));
         b->faces[face_idx].vertexIndices[0] = next_i + 2 * num_sides;
         b->faces[face_idx].vertexIndices[1] = i + 2 * num_sides;
         b->faces[face_idx].vertexIndices[2] = i + 3 * num_sides;
         b->faces[face_idx].vertexIndices[3] = next_i + 3 * num_sides;
 
         face_idx = i + 2 * num_sides;
-        b->faces[face_idx] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1}, .lightmap_scale = 1.0f };
-        b->faces[face_idx].vertexIndices = malloc(4 * sizeof(int));
+        BrushFace temp_face3 = {};
+        temp_face3.material = TextureManager_GetMaterial(0);
+        temp_face3.numVertexIndices = 4;
+        temp_face3.uv_scale = Vec2{ 1, 1 };
+        temp_face3.lightmap_scale = 1.0f;
+        b->faces[face_idx] = temp_face3;
+
+        b->faces[face_idx].vertexIndices = (int*)malloc(4 * sizeof(int));
         b->faces[face_idx].vertexIndices[0] = next_i;
         b->faces[face_idx].vertexIndices[1] = i;
         b->faces[face_idx].vertexIndices[2] = i + 2 * num_sides;
         b->faces[face_idx].vertexIndices[3] = next_i + 2 * num_sides;
 
         face_idx = i + 3 * num_sides;
-        b->faces[face_idx] = (BrushFace){ .material = TextureManager_GetMaterial(0), .numVertexIndices = 4, .uv_scale = {1,1}, .lightmap_scale = 1.0f };
-        b->faces[face_idx].vertexIndices = malloc(4 * sizeof(int));
+        BrushFace temp_face4 = {};
+        temp_face4.material = TextureManager_GetMaterial(0);
+        temp_face4.numVertexIndices = 4;
+        temp_face4.uv_scale = Vec2{ 1, 1 };
+        temp_face4.lightmap_scale = 1.0f;
+        b->faces[face_idx] = temp_face4;
+
+        b->faces[face_idx].vertexIndices = (int*)malloc(4 * sizeof(int));
         b->faces[face_idx].vertexIndices[0] = i + num_sides;
         b->faces[face_idx].vertexIndices[1] = next_i + num_sides;
         b->faces[face_idx].vertexIndices[2] = next_i + 3 * num_sides;
@@ -415,8 +467,8 @@ static int compare_cap_verts(const void* a, const void* b) {
     Vec3 dir_a = vec3_sub(va, g_sort_centroid);
     Vec3 dir_b = vec3_sub(vb, g_sort_centroid);
 
-    Vec3 u_axis = vec3_cross(g_sort_normal, (Vec3) { 0, 0, 1 });
-    if (vec3_length_sq(u_axis) < 1e-6) u_axis = vec3_cross(g_sort_normal, (Vec3) { 0, 1, 0 });
+    Vec3 u_axis = vec3_cross(g_sort_normal, Vec3{ 0, 0, 1 });
+    if (vec3_length_sq(u_axis) < 1e-6) u_axis = vec3_cross(g_sort_normal, Vec3{ 0, 1, 0 });
     vec3_normalize(&u_axis);
     Vec3 v_axis = vec3_cross(g_sort_normal, u_axis);
 
@@ -605,17 +657,17 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
         cap_face.material2 = NULL;
         cap_face.material3 = NULL;
         cap_face.material4 = NULL;
-        cap_face.uv_offset = (Vec2){ 0, 0 };
-        cap_face.uv_scale = (Vec2){ 1, 1 };
+        cap_face.uv_offset = Vec2{ 0, 0 };
+        cap_face.uv_scale = Vec2{ 1, 1 };
         cap_face.uv_rotation = 0;
-        cap_face.uv_offset2 = (Vec2){ 0, 0 };
-        cap_face.uv_scale2 = (Vec2){ 1, 1 };
+        cap_face.uv_offset2 = Vec2{ 0, 0 };
+        cap_face.uv_scale2 = Vec2{ 1, 1 };
         cap_face.uv_rotation2 = 0;
-        cap_face.uv_offset3 = (Vec2){ 0, 0 };
-        cap_face.uv_scale3 = (Vec2){ 1, 1 };
+        cap_face.uv_offset3 = Vec2{ 0, 0 };
+        cap_face.uv_scale3 = Vec2{ 1, 1 };
         cap_face.uv_rotation3 = 0;
-        cap_face.uv_offset4 = (Vec2){ 0, 0 };
-        cap_face.uv_scale4 = (Vec2){ 1, 1 };
+        cap_face.uv_offset4 = Vec2{ 0, 0 };
+        cap_face.uv_scale4 = Vec2{ 1, 1 };
         cap_face.uv_rotation4 = 0;
 
         cap_face.numVertexIndices = cap_vert_count;
