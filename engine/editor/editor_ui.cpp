@@ -56,7 +56,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateModel(scene, engine, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { model_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
+            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
         }
         if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; }
     }
@@ -82,7 +82,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
+            UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
     if (brush_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_BRUSH, brush_to_delete, "Delete Brush"); _raw_delete_brush(scene, engine, brush_to_delete); Editor_RemoveFromSelection(ENTITY_BRUSH, brush_to_delete); }
@@ -101,9 +101,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateLight(scene, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { light_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
+            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
-        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = (Vec3){ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = (Vec3){ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
+        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = Vec3{ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = Vec3{ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
     if (UI_CollapsingHeader("Decals", 1)) {
@@ -121,12 +121,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateDecal(scene, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { decal_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
+            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
         if (UI_Button("Add Decal")) {
             if (scene->numDecals < MAX_DECALS) {
-                Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = (Vec3){ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name);
-                d->uv_scale = (Vec2){ 1.0f, 1.0f }; d->uv_offset = (Vec2){ 0.0f, 0.0f }; d->uv_rotation = 0.0f;
+                Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = Vec3{ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name);
+                d->uv_scale = Vec2{ 1.0f, 1.0f }; d->uv_offset = Vec2{ 0.0f, 0.0f }; d->uv_rotation = 0.0f;
                 d->lightmap_scale = 1.0f;
                 Decal_UpdateMatrix(d); scene->numDecals++; Undo_PushCreateEntity(scene, ENTITY_DECAL, scene->numDecals - 1, "Create Decal");
             }
@@ -148,7 +148,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateSoundEntity(scene, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { sound_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
+            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
         }
         if (UI_Button("Add Sound Entity")) {
             g_EditorState.show_sound_browser_popup = true;
@@ -171,7 +171,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
                 if (UI_MenuItem("Delete", NULL, false, true)) { particle_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(0, 20.0f); char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
+            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
         }
         if (UI_Button("Add Emitter")) {
             g_EditorState.show_particle_browser_popup = true;
@@ -194,7 +194,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Delete", NULL, false, true)) { sprite_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(0, 20.0f);
+            UI_SameLine();
             char del_label[32];
             sprintf(del_label, "[X]##sprite%d", i);
             if (UI_Button(del_label)) { sprite_to_delete = i; }
@@ -234,7 +234,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Delete", NULL, false, true)) { video_player_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(0, 20.0f);
+            UI_SameLine();
             char del_label[32];
             sprintf(del_label, "[X]##vidplayer%d", i);
             if (UI_Button(del_label)) { video_player_to_delete = i; }
@@ -245,7 +245,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 memset(vp, 0, sizeof(VideoPlayer));
                 sprintf(vp->targetname, "Video_%d", scene->numVideoPlayers);
                 vp->pos = g_EditorState.editor_camera.position;
-                vp->size = (Vec2){ 2, 2 };
+                vp->size = Vec2{ 2, 2 };
                 scene->numVideoPlayers++;
                 Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, scene->numVideoPlayers - 1, "Create Video Player");
             }
@@ -272,7 +272,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Delete", NULL, false, true)) { parallax_room_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(0, 20.0f);
+            UI_SameLine();
             char del_label[32];
             sprintf(del_label, "[X]##parallax%d", i);
             if (UI_Button(del_label)) { parallax_room_to_delete = i; }
@@ -283,7 +283,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 memset(p, 0, sizeof(ParallaxRoom));
                 sprintf(p->targetname, "Parallax_%d", scene->numParallaxRooms);
                 p->pos = g_EditorState.editor_camera.position;
-                p->size = (Vec2){ 2, 2 };
+                p->size = Vec2{ 2, 2 };
                 p->roomDepth = 2.0f;
                 strcpy(p->cubemapPath, "cubemaps/");
                 scene->numParallaxRooms++;
@@ -307,7 +307,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (UI_MenuItem("Delete", NULL, false, true)) { logic_entity_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(0, 20.0f);
+            UI_SameLine();
             char del_label[32];
             sprintf(del_label, "[X]##logic%d", i);
             if (UI_Button(del_label)) { logic_entity_to_delete = i; }
@@ -409,7 +409,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (obj->model && obj->model->num_animations > 0) {
             UI_Separator();
             if (UI_CollapsingHeader("Animation", 1)) {
-                const char** anim_names = malloc(obj->model->num_animations * sizeof(const char*));
+                const char** anim_names = new const char* [obj->model->num_animations];
                 if (anim_names) {
                     for (int i = 0; i < obj->model->num_animations; ++i) {
                         anim_names[i] = obj->model->animations[i].name;
@@ -418,7 +418,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                         g_EditorState.preview_animation_time = 0.0f;
                         g_EditorState.preview_animation_playing = false;
                     }
-                    free(anim_names);
+                    delete[] anim_names;
                 }
 
                 if (g_EditorState.preview_animation_index != -1) {
@@ -474,10 +474,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
                 }
                 else {
-                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                    for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    Vec3* world_verts = new Vec3[b->numVertices];
+                    for (int i = 0; i < b->numVertices; i++)
+                        world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    free(world_verts);
+                    delete[] world_verts;
                 }
             }
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Mass");
@@ -554,22 +556,38 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Separator();
             UI_Text("Properties");
 
-            const char** target_names = NULL;
             int num_targets = 0;
-            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->objects[k].targetname; }
-            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->brushes[k].targetname; }
-            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->lights[k].targetname; }
-            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->soundEntities[k].targetname; }
-            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->particleEmitters[k].targetname; }
-            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->videoPlayers[k].targetname; }
-            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->sprites[k].targetname; }
-            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->logicEntities[k].targetname; }
+            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
+
+            const char** target_names = NULL;
+            if (num_targets > 0) {
+                const char** target_names = new const char* [num_targets];
+                int idx = 0;
+
+                for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
+                for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
+                for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
+                for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
+                for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
+                for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
+                for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
+                for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
+
+                delete[] target_names;
+            }
 
             for (int i = 0; i < brush_def->num_properties; ++i) {
                 const TGD_Property* prop = &brush_def->properties[i];
                 if (i >= b->numProperties) continue;
-
                 UI_PushID(i);
+
                 switch (prop->type) {
                 case TGD_PROP_CHECKBOX: {
                     bool is_checked = (atoi(b->properties[i].value) != 0);
@@ -579,20 +597,31 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_CHOICES: {
-                    const char** display_items = (const char**)malloc(prop->num_choices * sizeof(const char*));
+                    if (prop->num_choices <= 0) break;
+
+                    const char** display_items = new const char* [prop->num_choices];
                     int current_item = -1;
                     for (int j = 0; j < prop->num_choices; ++j) {
                         display_items[j] = prop->choices[j].display_name;
-                        if (strcmp(b->properties[i].value, prop->choices[j].value) == 0) {
+                        if (strcmp(b->properties[i].value, prop->choices[j].value) == 0)
                             current_item = j;
-                        }
                     }
-                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1)) {
-                        if (current_item >= 0) {
-                            strcpy(b->properties[i].value, prop->choices[current_item].value);
-                        }
+
+                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1) && current_item >= 0) {
+                        strcpy(b->properties[i].value, prop->choices[current_item].value);
                     }
-                    free(display_items);
+
+                    delete[] display_items;
+                    break;
+                }
+                case TGD_PROP_ENTITIES: {
+                    int current_item = -1;
+                    for (int k = 0; k < num_targets; ++k) {
+                        if (strcmp(b->properties[i].value, target_names[k]) == 0) { current_item = k; break; }
+                    }
+                    if (UI_Combo(prop->display_name, &current_item, target_names, num_targets, -1) && current_item >= 0) {
+                        strncpy(b->properties[i].value, target_names[current_item], sizeof(b->properties[i].value) - 1);
+                    }
                     break;
                 }
                 case TGD_PROP_TEXTURE: {
@@ -604,29 +633,16 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     }
                     break;
                 }
-                case TGD_PROP_ENTITIES: {
-                    int current_item = -1;
-                    for (int k = 0; k < num_targets; ++k) {
-                        if (strcmp(b->properties[i].value, target_names[k]) == 0) {
-                            current_item = k;
-                            break;
-                        }
-                    }
-                    if (UI_Combo(prop->display_name, &current_item, target_names, num_targets, -1)) {
-                        if (current_item >= 0) {
-                            strncpy(b->properties[i].value, target_names[current_item], sizeof(b->properties[i].value) - 1);
-                        }
-                    }
-                    break;
-                }
                 default:
                     UI_InputText(prop->display_name, b->properties[i].value, sizeof(b->properties[i].value));
                     break;
                 }
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property"); }
+
+                if (UI_IsItemActivated()) Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+                if (UI_IsItemDeactivatedAfterEdit()) Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Property");
                 UI_PopID();
             }
+
             if (target_names) free(target_names);
             RenderIOEditor(ENTITY_BRUSH, primary->index);
         }
@@ -643,10 +659,12 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     if (b->physicsBody) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                         if (Brush_IsSolid(b) && b->numVertices > 0) {
-                            Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
-                            for (int i = 0; i < b->numVertices; ++i) { world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos); }
+                            Vec3* world_verts = new Vec3[b->numVertices];
+                            for (int i = 0; i < b->numVertices; ++i) {
+                                world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                            }
                             b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                            free(world_verts);
+                            delete[] world_verts;
                         }
                         else {
                             b->physicsBody = NULL;
@@ -1041,20 +1059,34 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (def) {
             UI_Text("Properties");
 
-            const char** target_names = NULL;
             int num_targets = 0;
-            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->objects[k].targetname; }
-            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->brushes[k].targetname; }
-            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->lights[k].targetname; }
-            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->soundEntities[k].targetname; }
-            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->particleEmitters[k].targetname; }
-            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->videoPlayers[k].targetname; }
-            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->sprites[k].targetname; }
-            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) { target_names = realloc(target_names, ++num_targets * sizeof(char*)); target_names[num_targets - 1] = scene->logicEntities[k].targetname; }
+            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
+            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
+
+            const char** target_names = nullptr;
+            if (num_targets > 0) {
+                target_names = new const char* [num_targets];
+                int idx = 0;
+                for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
+                for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
+                for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
+                for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
+                for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
+                for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
+                for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
+                for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
+            }
 
             for (int i = 0; i < ent->numProperties; ++i) {
                 const TGD_Property* prop = &def->properties[i];
                 UI_PushID(i);
+
                 switch (prop->type) {
                 case TGD_PROP_CHECKBOX: {
                     bool is_checked = (atoi(ent->properties[i].value) != 0);
@@ -1072,7 +1104,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_CHOICES: {
-                    const char** display_items = (const char**)malloc(prop->num_choices * sizeof(const char*));
+                    const char** display_items = new const char* [prop->num_choices];
                     int current_item = -1;
                     for (int j = 0; j < prop->num_choices; ++j) {
                         display_items[j] = prop->choices[j].display_name;
@@ -1080,12 +1112,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                             current_item = j;
                         }
                     }
-                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1)) {
-                        if (current_item >= 0) {
-                            strcpy(ent->properties[i].value, prop->choices[current_item].value);
-                        }
+                    if (UI_Combo(prop->display_name, &current_item, display_items, prop->num_choices, -1) && current_item >= 0) {
+                        strcpy(ent->properties[i].value, prop->choices[current_item].value);
                     }
-                    free(display_items);
+                    delete[] display_items;
                     break;
                 }
                 case TGD_PROP_TEXTURE: {
@@ -1116,11 +1146,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     UI_InputText(prop->display_name, ent->properties[i].value, sizeof(ent->properties[i].value));
                     break;
                 }
+
                 if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_LOGIC, primary->index); }
                 if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LOGIC, primary->index, "Edit Logic Property"); }
                 UI_PopID();
             }
-            if (target_names) free(target_names);
+
+            if (target_names) delete[] target_names;
             RenderIOEditor(ENTITY_LOGIC, primary->index);
         }
     }
@@ -1298,10 +1330,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Transform", "Ctrl+M", false, g_EditorState.num_selections > 0)) {
                 g_EditorState.show_transform_window = true;
                 if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
-                    g_EditorState.transform_window_values = (Vec3){ 1, 1, 1 };
+                    g_EditorState.transform_window_values = Vec3{ 1, 1, 1 };
                 }
                 else {
-                    g_EditorState.transform_window_values = (Vec3){ 0, 0, 0 };
+                    g_EditorState.transform_window_values = Vec3{ 0, 0, 0 };
                 }
             }
             bool can_merge = false;
@@ -1513,20 +1545,20 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char horizontal_text[32], vertical_text[32];
 
             if (type == VIEW_TOP_XZ) {
-                top_mid_world = (Vec3){ (b_min.x + b_max.x) / 2.0f, b_min.y, b_max.z };
-                left_mid_world = (Vec3){ b_min.x, b_min.y, (b_min.z + b_max.z) / 2.0f };
+                top_mid_world = Vec3{ (b_min.x + b_max.x) / 2.0f, b_min.y, b_max.z };
+                left_mid_world = Vec3{ b_min.x, b_min.y, (b_min.z + b_max.z) / 2.0f };
                 sprintf(horizontal_text, "%.0f", fabsf(size.x));
                 sprintf(vertical_text, "%.0f", fabsf(size.z));
             }
             else if (type == VIEW_FRONT_XY) {
-                top_mid_world = (Vec3){ (b_min.x + b_max.x) / 2.0f, b_max.y, b_min.z };
-                left_mid_world = (Vec3){ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
+                top_mid_world = Vec3{ (b_min.x + b_max.x) / 2.0f, b_max.y, b_min.z };
+                left_mid_world = Vec3{ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
                 sprintf(horizontal_text, "%.0f", fabsf(size.x));
                 sprintf(vertical_text, "%.0f", fabsf(size.y));
             }
             else {
-                top_mid_world = (Vec3){ b_min.x, b_max.y, (b_min.z + b_max.z) / 2.0f };
-                left_mid_world = (Vec3){ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
+                top_mid_world = Vec3{ b_min.x, b_max.y, (b_min.z + b_max.z) / 2.0f };
+                left_mid_world = Vec3{ b_min.x, (b_min.y + b_max.y) / 2.0f, b_min.z };
                 sprintf(horizontal_text, "%.0f", fabsf(size.z));
                 sprintf(vertical_text, "%.0f", fabsf(size.y));
             }
