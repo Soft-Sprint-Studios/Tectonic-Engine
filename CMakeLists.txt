@@ -88,7 +88,7 @@ set(ENGINE_SOURCES
     engine/editor/editor.cpp engine/editor/editor_windows.cpp engine/editor/editor_ui.cpp engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.cpp engine/editor/editor_render.cpp engine/editor/editor_undo.cpp engine/editor/editor_misc.cpp
     engine/game_data.cpp
     engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/main_menu.cpp
-    engine/map.cpp engine/map_lighting.c engine/gl_particle_system.cpp
+    engine/map.cpp engine/map_lighting.cpp engine/gl_particle_system.cpp
     engine/gl_video_player.cpp engine/weapons.cpp
     engine/sentry_wrapper.cpp engine/checksum.cpp
     engine/gl_beams.cpp
