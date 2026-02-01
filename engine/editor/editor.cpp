@@ -1616,7 +1616,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
-                    EntityState* deleted_states = new EntityState[g_EditorState.num_selections]{};
+                    EntityState* deleted_states = (EntityState*)calloc(g_EditorState.num_selections, sizeof(EntityState));
                     int num_deleted = 0;
                     for (int i = 0; i < g_EditorState.num_selections; ++i) {
                         capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);
@@ -1640,8 +1640,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         default: break;
                         }
                     }
-
-                    delete[] deleted_states;
 
                     Editor_ClearSelection();
                 }
