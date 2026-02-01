@@ -172,6 +172,7 @@ void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview)
     b->vao = 0; b->vbo = 0;
     b->mass = 0.0f;
     b->isPhysicsEnabled = true;
+    b->casts_shadows = true;
     b->physicsBody = NULL;
     Brush_UpdateMatrix(b); Brush_CreateRenderData(b);
     if (Brush_IsSolid(b) && b->numVertices > 0) {

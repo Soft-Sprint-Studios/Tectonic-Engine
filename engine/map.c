@@ -150,6 +150,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->mass = src->mass;
     dest->isPhysicsEnabled = src->isPhysicsEnabled;
     dest->isGrouped = src->isGrouped;
+    dest->casts_shadows = src->casts_shadows;
     dest->useVertexLighting = src->useVertexLighting;
     dest->bakedVertexColors = NULL;
     dest->bakedVertexDirections = NULL;
