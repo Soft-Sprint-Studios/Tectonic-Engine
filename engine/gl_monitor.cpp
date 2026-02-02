@@ -35,13 +35,10 @@
 // function based on CreateScanlineTexture from pathos engine
 static void CreateScanlineTexture(Renderer* renderer) {
     unsigned int dataSize = 64 * 64 * 4;
-    unsigned char* pscanlinetexture = (unsigned char*)malloc(dataSize * sizeof(unsigned char));
-    if (!pscanlinetexture) return;
+    unsigned char* pscanlinetexture = new unsigned char[dataSize];
 
-    for (int y = 0; y < 64; y++)
-    {
-        for (int x = 0; x < 64; x++)
-        {
+    for (int y = 0; y < 64; y++) {
+        for (int x = 0; x < 64; x++) {
             unsigned char* pdata = pscanlinetexture + (y * 64 + x) * 4;
 
             pdata[0] = 0;
@@ -65,7 +62,7 @@ static void CreateScanlineTexture(Renderer* renderer) {
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    free(pscanlinetexture);
+    delete[] pscanlinetexture;
 }
 
 void Monitor_Init(Renderer* renderer) {

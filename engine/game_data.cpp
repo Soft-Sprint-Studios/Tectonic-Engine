@@ -111,7 +111,12 @@ void GameData_Init(const char* filepath) {
                                 TGD_Choice choice;
                                 if (sscanf(trim(next_line), "%63s : \"%127[^\"]\"", choice.value, choice.display_name) == 2) {
                                     prop->num_choices++;
-                                    prop->choices = (TGD_Choice*)realloc(prop->choices, prop->num_choices * sizeof(TGD_Choice));
+                                    TGD_Choice* new_choices = new TGD_Choice[prop->num_choices];
+                                    for (int k = 0; k < prop->num_choices - 1; ++k) {
+                                        new_choices[k] = prop->choices[k];
+                                    }
+                                    delete[] prop->choices;
+                                    prop->choices = new_choices;
                                     prop->choices[prop->num_choices - 1] = choice;
                                 }
                             }
@@ -134,8 +139,8 @@ void GameData_Init(const char* filepath) {
         else if (g_entity_defs[i].base_type == ENTITY_LOGIC) g_num_logic_classnames++;
     }
 
-    g_brush_classnames = (const char**)malloc(g_num_brush_classnames * sizeof(const char*));
-    g_logic_classnames = (const char**)malloc(g_num_logic_classnames * sizeof(const char*));
+    g_brush_classnames = new const char* [g_num_brush_classnames];
+    g_logic_classnames = new const char* [g_num_logic_classnames];
 
     g_brush_classnames[0] = "(None)";
     int brush_idx = 1;
@@ -155,12 +160,15 @@ void GameData_Shutdown(void) {
     for (int i = 0; i < g_num_entity_defs; ++i) {
         for (int j = 0; j < g_entity_defs[i].num_properties; ++j) {
             if (g_entity_defs[i].properties[j].choices) {
-                free(g_entity_defs[i].properties[j].choices);
+                delete[] g_entity_defs[i].properties[j].choices;
+                g_entity_defs[i].properties[j].choices = nullptr;
             }
         }
     }
-    if (g_brush_classnames) free(g_brush_classnames);
-    if (g_logic_classnames) free(g_logic_classnames);
+    delete[] g_brush_classnames;
+    g_brush_classnames = nullptr;
+    delete[] g_logic_classnames;
+    g_logic_classnames = nullptr;
     g_num_entity_defs = 0;
     g_num_brush_classnames = 0;
     g_num_logic_classnames = 0;

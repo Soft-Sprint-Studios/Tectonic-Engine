@@ -81,18 +81,24 @@ private:
         strncpy(path, info.dli_fname, sizeof(path) - 1);
         path[sizeof(path) - 1] = '\0';
 #endif
+
         const char* last_slash = strrchr(path, '/');
         const char* last_bslash = strrchr(path, '\\');
         const char* last_separator = (last_slash > last_bslash) ? last_slash : last_bslash;
 
         if (last_separator) {
             size_t len = last_separator - path + 1;
-            char* dir = static_cast<char*>(malloc(len + 1));
+            char* dir = new char[len + 1];
             strncpy(dir, path, len);
             dir[len] = '\0';
             return dir;
         }
-        return strdup("./");
+
+        char* dir = new char[3];
+        dir[0] = '.';
+        dir[1] = '/';
+        dir[2] = '\0';
+        return dir;
     }
 
 public:

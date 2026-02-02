@@ -215,12 +215,8 @@ void Light_DestroyShadowMap(Light* light) {
 
 static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
-    if (!pixels) {
-        Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
-    }
+
+    unsigned char* pixels = new unsigned char[width * height * 4];
 
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
@@ -240,27 +236,19 @@ static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* 
         SDL_FreeSurface(surface);
     }
 
-    free(pixels);
+    delete[] pixels;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    unsigned char* pixels = (unsigned char*)malloc(engine->width * engine->height * 4);
-    if (!pixels) {
-        Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
-        return;
-    }
+
+    unsigned char* pixels = new unsigned char[engine->width * engine->height * 4];
 
     glReadPixels(0, 0, engine->width, engine->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     int row_size = engine->width * 4;
-    unsigned char* temp_row = (unsigned char*)malloc(row_size);
-    if (!temp_row) {
-        Console_Printf_Error("Failed to allocate memory for screenshot row buffer.");
-        free(pixels);
-        return;
-    }
+    unsigned char* temp_row = new unsigned char[row_size];
 
     for (int y = 0; y < engine->height / 2; ++y) {
         unsigned char* top = pixels + y * row_size;
@@ -269,9 +257,10 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
         memcpy(top, bottom, row_size);
         memcpy(bottom, temp_row, row_size);
     }
-    free(temp_row);
+    delete[] temp_row;
 
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, engine->width, engine->height, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, engine->width, engine->height, 32, row_size,
+        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
     if (!surface) {
         Console_Printf_Error("Failed to create SDL surface for screenshot.");
@@ -285,7 +274,8 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
         }
         SDL_FreeSurface(surface);
     }
-    free(pixels);
+
+    delete[] pixels;
 }
 
 void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution) {

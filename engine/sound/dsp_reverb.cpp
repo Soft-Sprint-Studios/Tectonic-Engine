@@ -132,14 +132,14 @@ typedef struct {
 
 static void AllPass_Init(AllPass* ap, int buffer_size) {
     ap->buffer_size = buffer_size;
-    ap->buffer = (float*)calloc(buffer_size, sizeof(float));
+    ap->buffer = new float[buffer_size]();
     ap->buf_idx = 0;
     ap->feedback = 0.5f;
 }
 
 static void Comb_Init(Comb* c, int buffer_size) {
     c->buffer_size = buffer_size;
-    c->buffer = (float*)calloc(buffer_size, sizeof(float));
+    c->buffer = new float[buffer_size]();
     c->buf_idx = 0;
     c->filter_store = 0.0f;
 }
@@ -186,16 +186,16 @@ static void SimpleReverb_Init(SimpleReverb* rev, int sampleRate) {
 }
 
 static void SimpleReverb_Free(SimpleReverb* rev) {
-    for (int i = 0; i < 8; ++i) free(rev->combs[i].buffer);
-    for (int i = 0; i < 4; ++i) free(rev->allpasses[i].buffer);
+    for (int i = 0; i < 8; ++i) delete[] rev->combs[i].buffer;
+    for (int i = 0; i < 4; ++i) delete[] rev->allpasses[i].buffer;
 }
 
 static void SimpleReverb_Process(SimpleReverb* rev, const float* input, float* output, int num_samples, bool wet_only) {
-    float* output_float_l = (float*)calloc(num_samples, sizeof(float));
-    float* output_float_r = (float*)calloc(num_samples, sizeof(float));
+    float* output_float_l = new float[num_samples]();
+    float* output_float_r = new float[num_samples]();
     if (!output_float_l || !output_float_r) {
-        free(output_float_l);
-        free(output_float_r);
+        delete[] output_float_l;
+        delete[] output_float_r;
         return;
     }
 
@@ -286,16 +286,11 @@ static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_sa
     ProcessedAudio result = { nullptr, 0 };
     if (!input || num_samples <= 0) return result;
 
-    int tail_samples = (int)(sample_rate * REVERB_TAIL_SECONDS);
+    int tail_samples = static_cast<int>(sample_rate * REVERB_TAIL_SECONDS);
     int total_samples = num_samples + tail_samples;
 
-    float* padded_input_float = (float*)malloc(total_samples * sizeof(float));
-    float* output_float = (float*)malloc(total_samples * sizeof(float));
-    if (!padded_input_float || !output_float) {
-        free(padded_input_float);
-        free(output_float);
-        return result;
-    }
+    float* padded_input_float = new float[total_samples];
+    float* output_float = new float[total_samples];
 
     for (int i = 0; i < num_samples; ++i) {
         padded_input_float[i] = input[i] / 32768.0f;
@@ -309,18 +304,13 @@ static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_sa
     SimpleReverb_Process(&reverb, padded_input_float, output_float, total_samples, wet_only);
     SimpleReverb_Free(&reverb);
 
-    free(padded_input_float);
+    delete[] padded_input_float;
 
-    short* output_short = (short*)malloc(total_samples * sizeof(short));
-    if (!output_short) {
-        free(output_float);
-        return result;
-    }
-
+    short* output_short = new short[total_samples];
     for (int i = 0; i < total_samples; ++i) {
-        output_short[i] = (short)(output_float[i] * 32767.0f);
+        output_short[i] = static_cast<short>(output_float[i] * 32767.0f);
     }
-    free(output_float);
+    delete[] output_float;
 
     result.data = output_short;
     result.num_samples = total_samples;

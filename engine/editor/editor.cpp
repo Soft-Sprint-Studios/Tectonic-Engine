@@ -355,13 +355,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.num_selections > 0) {
                 g_EditorState.gizmo_selection_centroid = vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
             }
-            if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
-            if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
-            if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
+            delete[] g_EditorState.gizmo_drag_start_positions;
+            delete[] g_EditorState.gizmo_drag_start_rotations;
+            delete[] g_EditorState.gizmo_drag_start_scales;
 
-            g_EditorState.gizmo_drag_start_positions = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
-            g_EditorState.gizmo_drag_start_rotations = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
-            g_EditorState.gizmo_drag_start_scales = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
+            g_EditorState.gizmo_drag_start_positions = new Vec3[g_EditorState.num_selections];
+            g_EditorState.gizmo_drag_start_rotations = new Vec3[g_EditorState.num_selections];
+            g_EditorState.gizmo_drag_start_scales = new Vec3[g_EditorState.num_selections];
 
             for (int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
@@ -727,7 +727,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             bool needs_update = false;
 
             if (SDL_GetModState() & KMOD_SHIFT) {
-                Vec3* average_positions = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
+                Vec3* average_positions = new Vec3[b->numVertices]();
                 if (average_positions) {
                     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -783,7 +783,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                             needs_update = true;
                         }
                     }
-                    free(average_positions);
+                    delete[] average_positions;
                 }
             }
             else {
@@ -1616,7 +1616,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
-                    EntityState* deleted_states = (EntityState*)calloc(g_EditorState.num_selections, sizeof(EntityState));
+                    EntityState* deleted_states = new EntityState[g_EditorState.num_selections]();
                     int num_deleted = 0;
                     for (int i = 0; i < g_EditorState.num_selections; ++i) {
                         capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);
