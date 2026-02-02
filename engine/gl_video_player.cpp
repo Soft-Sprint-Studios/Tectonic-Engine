@@ -90,7 +90,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
     glGenTextures(1, &vp->textureCb);
     glBindTexture(GL_TEXTURE_2D, vp->textureCb);
@@ -98,7 +98,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
     glGenTextures(1, &vp->textureCr);
     glBindTexture(GL_TEXTURE_2D, vp->textureCr);
@@ -106,7 +106,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width / 2, height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -121,7 +121,7 @@ void VideoPlayer_Load(VideoPlayer* vp) {
 void VideoPlayer_Free(VideoPlayer* vp) {
     if (vp->plm) {
         plm_destroy(vp->plm);
-        vp->plm = NULL;
+        vp->plm = nullptr;
     }
     if (vp->textureY) { glDeleteTextures(1, &vp->textureY); vp->textureY = 0; }
     if (vp->textureCb) { glDeleteTextures(1, &vp->textureCb); vp->textureCb = 0; }

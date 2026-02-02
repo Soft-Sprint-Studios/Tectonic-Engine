@@ -34,7 +34,7 @@ void evaluate_animation(SceneObject* obj, float time) {
     AnimationClip* clip = &obj->model->animations[obj->current_animation];
     cgltf_node* nodes = (cgltf_node*)obj->model->nodes;
     cgltf_size num_nodes = obj->model->num_nodes;
-    Skin* skin = (obj->model->num_skins > 0) ? &obj->model->skins[0] : NULL;
+    Skin* skin = (obj->model->num_skins > 0) ? &obj->model->skins[0] : nullptr;
 
     if (!skin) return;
 

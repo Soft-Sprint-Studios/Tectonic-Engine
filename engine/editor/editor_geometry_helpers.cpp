@@ -57,18 +57,18 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
     };
     for (int i = 0; i < 6; ++i) {
         b->faces[i].material = TextureManager_GetMaterial(0);
-        b->faces[i].material2 = NULL;
+        b->faces[i].material2 = nullptr;
         b->faces[i].uv_offset = Vec2{ 0,0 };
         b->faces[i].uv_scale = Vec2{ 1,1 };
         b->faces[i].uv_rotation = 0;
         b->faces[i].uv_offset2 = Vec2{ 0,0 };
         b->faces[i].uv_scale2 = Vec2{ 1,1 };
         b->faces[i].uv_rotation2 = 0;
-        b->faces[i].material3 = NULL;
+        b->faces[i].material3 = nullptr;
         b->faces[i].uv_offset3 = Vec2{ 0,0 };
         b->faces[i].uv_scale3 = Vec2{ 1,1 };
         b->faces[i].uv_rotation3 = 0;
-        b->faces[i].material4 = NULL;
+        b->faces[i].material4 = nullptr;
         b->faces[i].uv_offset4 = Vec2{ 0,0 };
         b->faces[i].uv_scale4 = Vec2{ 1,1 };
         b->faces[i].uv_rotation4 = 0;
@@ -488,12 +488,12 @@ static int compare_cap_verts(const void* a, const void* b) {
 void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     if (!b || b->numVertices == 0 || b->numFaces == 0) return;
 
-    float* dists = NULL;
-    int* side = NULL;
-    BrushVertex* temp_new_verts = NULL;
-    int* temp_face_verts_idx = NULL;
-    BrushVertex* temp_cap_verts = NULL;
-    BrushFace* new_face_list_array = NULL;
+    float* dists = nullptr;
+    int* side = nullptr;
+    BrushVertex* temp_new_verts = nullptr;
+    int* temp_face_verts_idx = nullptr;
+    BrushVertex* temp_cap_verts = nullptr;
+    BrushFace* new_face_list_array = nullptr;
     int current_new_face_count = 0;
 
     dists = (float*)malloc(b->numVertices * sizeof(float));
@@ -720,9 +720,9 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
 
         BrushFace cap_face;
         cap_face.material = TextureManager_GetMaterial(0);
-        cap_face.material2 = NULL;
-        cap_face.material3 = NULL;
-        cap_face.material4 = NULL;
+        cap_face.material2 = nullptr;
+        cap_face.material3 = nullptr;
+        cap_face.material4 = nullptr;
         cap_face.uv_offset = Vec2{ 0, 0 };
         cap_face.uv_scale = Vec2{ 1, 1 };
         cap_face.uv_rotation = 0;
@@ -798,7 +798,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d) {
     b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
     if (!b->faces) {
         Console_Printf_Error("Brush_Clip: Failed to allocate final brush faces.\n");
-        free(b->vertices); b->vertices = NULL;
+        free(b->vertices); b->vertices = nullptr;
         for (int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
         free(dists);
         free(side);

@@ -41,7 +41,7 @@
 
 static bool show_console = false;
 static command_callback_t command_handler = nullptr;
-static FILE* g_log_file = NULL;
+static FILE* g_log_file = nullptr;
 
 struct Console {
     char                  InputBuf[256];
@@ -235,7 +235,7 @@ struct Console {
         if (command_handler) {
             char* cmd_copy = _strdup(command_line); const int MAX_ARGS = 16; int argc = 0; char* argv[MAX_ARGS];
             char* p = strtok(cmd_copy, " ");
-            while (p != NULL && argc < MAX_ARGS) { argv[argc++] = p; p = strtok(NULL, " "); }
+            while (p != nullptr && argc < MAX_ARGS) { argv[argc++] = p; p = strtok(nullptr, " "); }
             if (argc > 0) command_handler(argc, argv); free(cmd_copy);
         }
     }
@@ -257,7 +257,7 @@ static Console console_instance;
             printf("[ERROR] Failed to open log file: %s\n", filename);
         }
         else {
-            time_t now = time(NULL);
+            time_t now = time(nullptr);
             fprintf(g_log_file, "Log started at %s\n", ctime(&now));
             fflush(g_log_file);
         }
@@ -265,10 +265,10 @@ static Console console_instance;
 
     void Log_Shutdown(void) {
         if (g_log_file) {
-            time_t now = time(NULL);
+            time_t now = time(nullptr);
             fprintf(g_log_file, "\nLog ended at %s\n", ctime(&now));
             fclose(g_log_file);
-            g_log_file = NULL;
+            g_log_file = nullptr;
         }
     }
 
@@ -308,7 +308,7 @@ static Console console_instance;
             *count = console_instance.Items.size();
         }
         if (console_instance.Items.empty()) {
-            return NULL;
+            return nullptr;
         }
         return console_instance.Items.data();
     }
@@ -367,7 +367,7 @@ static Console console_instance;
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
         if (show_fps || show_pos || health > 0) {
-            if (ImGui::Begin("GameHUD", NULL, window_flags)) {
+            if (ImGui::Begin("GameHUD", nullptr, window_flags)) {
                 if (show_fps) {
                     ImGui::Text("FPS: %.1f", fps);
                 }
@@ -400,7 +400,7 @@ static Console console_instance;
             ImVec2 speed_pos_pivot = ImVec2(0.5f, 0.0f);
             ImGui::SetNextWindowPos(speed_pos, ImGuiCond_Always, speed_pos_pivot);
             ImGui::SetNextWindowBgAlpha(0.35f);
-            if (ImGui::Begin("SpeedsDisplay", NULL, window_flags)) {
+            if (ImGui::Begin("SpeedsDisplay", nullptr, window_flags)) {
                 ImGui::Text("Models: %d/%d", modelsDrawn, totalModels);
                 ImGui::SameLine();
                 ImGui::Text("  |  ");
@@ -445,7 +445,7 @@ static Console console_instance;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
-            if (ImGui::Begin("Watermark", NULL, window_flags)) {
+            if (ImGui::Begin("Watermark", nullptr, window_flags)) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.6f));
 
                 ImGui::Text("Tectonic Engine");
@@ -477,7 +477,7 @@ static Console console_instance;
         while (line) {
             ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, line);
             total_text_height += text_size.y + 5.0f;
-            line = strtok(NULL, "\n");
+            line = strtok(nullptr, "\n");
         }
         free(text_copy);
 
@@ -502,7 +502,7 @@ static Console console_instance;
             }
 
             current_y += text_size.y + 5.0f;
-            line = strtok(NULL, "\n");
+            line = strtok(nullptr, "\n");
         }
         free(text_copy);
     }
@@ -519,7 +519,7 @@ static Console console_instance;
 
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
-        if (ImGui::Begin("DeveloperOverlay", NULL, window_flags)) {
+        if (ImGui::Begin("DeveloperOverlay", nullptr, window_flags)) {
             int start_index = console_instance.Items.size() - 10;
             if (start_index < 0) start_index = 0;
 

@@ -43,7 +43,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     float right_panel_width = 300.0f; float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w - right_panel_width, 22); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
-    UI_Begin("Hierarchy", NULL);
+    UI_Begin("Hierarchy", nullptr);
     if (UI_Selectable("Player Start", Editor_IsSelected(ENTITY_PLAYERSTART, 0))) { Editor_ClearSelection(); Editor_AddToSelection(ENTITY_PLAYERSTART, 0, -1, -1); }
     if (UI_CollapsingHeader("Models", 1)) {
         for (int i = 0; i < scene->numObjects; ++i) {
@@ -53,8 +53,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_MODEL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_MODEL, i, -1, -1); }  char popup_id[64];
             sprintf(popup_id, "ModelContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateModel(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { model_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateModel(scene, engine, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { model_to_delete = i; }
                 UI_EndPopup();
             }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
         }
@@ -78,8 +78,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char popup_id[64];
             sprintf(popup_id, "BrushContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { brush_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { brush_to_delete = i; }
                 UI_EndPopup();
             }
             UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
@@ -98,8 +98,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_LIGHT, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1); } char popup_id[64];
             sprintf(popup_id, "LightContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateLight(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { light_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateLight(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { light_to_delete = i; }
                 UI_EndPopup();
             }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
@@ -118,8 +118,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_DECAL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_DECAL, i, -1, -1); }  char popup_id[64];
             sprintf(popup_id, "DecalContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateDecal(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { decal_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateDecal(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { decal_to_delete = i; }
                 UI_EndPopup();
             }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
@@ -145,8 +145,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_SOUND, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_SOUND, i, -1, -1); }  char popup_id[64];
             sprintf(popup_id, "SoundContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateSoundEntity(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { sound_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateSoundEntity(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { sound_to_delete = i; }
                 UI_EndPopup();
             }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
         }
@@ -168,8 +168,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1); }   char popup_id[64];
             sprintf(popup_id, "ParticleContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { particle_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { particle_to_delete = i; }
                 UI_EndPopup();
             }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
         }
@@ -190,8 +190,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char popup_id[64];
             sprintf(popup_id, "SpriteContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateSprite(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { sprite_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateSprite(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { sprite_to_delete = i; }
                 UI_EndPopup();
             }
             UI_SameLine();
@@ -230,8 +230,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char popup_id[64];
             sprintf(popup_id, "VideoContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateVideoPlayer(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { video_player_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateVideoPlayer(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { video_player_to_delete = i; }
                 UI_EndPopup();
             }
             UI_SameLine();
@@ -268,8 +268,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char popup_id[64];
             sprintf(popup_id, "ParallaxContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateParallaxRoom(scene, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { parallax_room_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateParallaxRoom(scene, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { parallax_room_to_delete = i; }
                 UI_EndPopup();
             }
             UI_SameLine();
@@ -303,8 +303,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             char popup_id[64];
             sprintf(popup_id, "LogicContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
-                if (UI_MenuItem("Duplicate", NULL, false, true)) { Editor_DuplicateLogicEntity(scene, engine, i); }
-                if (UI_MenuItem("Delete", NULL, false, true)) { logic_entity_to_delete = i; }
+                if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateLogicEntity(scene, engine, i); }
+                if (UI_MenuItem("Delete", nullptr, false, true)) { logic_entity_to_delete = i; }
                 UI_EndPopup();
             }
             UI_SameLine();
@@ -340,7 +340,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (logic_entity_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LOGIC, logic_entity_to_delete, "Delete Logic Entity"); _raw_delete_logic_entity(scene, logic_entity_to_delete); Editor_RemoveFromSelection(ENTITY_LOGIC, logic_entity_to_delete); }
     UI_End();
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
-    UI_Begin("Inspector & Settings", NULL);
+    UI_Begin("Inspector & Settings", nullptr);
     EditorSelection* primary = Editor_GetPrimarySelection();
     UI_RadioButton_Int("Translate (1)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_TRANSLATE);
     UI_SameLine();
@@ -467,7 +467,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_IsItemDeactivatedAfterEdit()) {
             if (b->physicsBody) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                b->physicsBody = NULL;
+                b->physicsBody = nullptr;
             }
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
@@ -566,7 +566,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
             for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
 
-            const char** target_names = NULL;
+            const char** target_names = nullptr;
             if (num_targets > 0) {
                 const char** target_names = new const char* [num_targets];
                 int idx = 0;
@@ -667,7 +667,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                             delete[] world_verts;
                         }
                         else {
-                            b->physicsBody = NULL;
+                            b->physicsBody = nullptr;
                         }
                     }
                     Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Vertex");
@@ -968,7 +968,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (primary && primary->type == ENTITY_PARTICLE_EMITTER) {
         ParticleEmitter* emitter = &scene->particleEmitters[primary->index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Move Emitter"); }
-        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf_Error("Failed to reload particle system: %s", emitter->parFile); emitter->system = NULL; } }
+        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf_Error("Failed to reload particle system: %s", emitter->parFile); emitter->system = nullptr; } }
     }
     else if (primary && primary->type == ENTITY_VIDEO_PLAYER) {
         VideoPlayer* vp = &scene->videoPlayers[primary->index];
@@ -1260,7 +1260,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
     if (UI_BeginMainMenuBar()) {
         if (UI_BeginMenu("File", true)) {
-            if (UI_MenuItem("New Map", NULL, false, true)) {
+            if (UI_MenuItem("New Map", nullptr, false, true)) {
                 if (g_is_map_dirty) {
                     g_pending_action = PENDING_ACTION_NEW_MAP;
                 }
@@ -1270,7 +1270,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     Undo_Init();
                 }
             }
-            if (UI_MenuItem("Load Map...", NULL, false, true)) {
+            if (UI_MenuItem("Load Map...", nullptr, false, true)) {
                 if (g_is_map_dirty) {
                     g_pending_action = PENDING_ACTION_LOAD_MAP;
                 }
@@ -1284,18 +1284,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     g_EditorState.show_save_map_popup = true;
                 }
                 else {
-                    Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
+                    Scene_SaveMap(scene, nullptr, g_EditorState.currentMapPath);
                     Editor_SetMapDirty(false);
                     Editor_AddRecentFile(g_EditorState.currentMapPath);
                 }
             }
-            if (UI_MenuItem("Save Map As...", NULL, false, true)) {
+            if (UI_MenuItem("Save Map As...", nullptr, false, true)) {
                 g_EditorState.show_save_map_popup = true;
             }
             UI_Separator();
             if (UI_BeginMenu("Recent Files", g_EditorState.num_recent_map_files > 0)) {
                 for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
-                    if (UI_MenuItem(g_EditorState.recent_map_files[i], NULL, false, true)) {
+                    if (UI_MenuItem(g_EditorState.recent_map_files[i], nullptr, false, true)) {
                         const char* path_to_load = g_EditorState.recent_map_files[i];
 
                         Scene_Clear(scene, engine);
@@ -1346,7 +1346,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     }
                 }
             }
-            if (UI_MenuItem("Merge", NULL, false, can_merge)) {
+            if (UI_MenuItem("Merge", nullptr, false, can_merge)) {
                 Editor_MergeSelection(scene, engine);
             }
             UI_Separator();
@@ -1356,38 +1356,38 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Flip Vertical", "Ctrl+I", false, g_EditorState.num_selections > 0)) {
                 Editor_FlipSelection(scene, engine, 0);
             }
-            if (UI_MenuItem("Go to Coordinates...", NULL, false, true)) {
+            if (UI_MenuItem("Go to Coordinates...", nullptr, false, true)) {
                 g_EditorState.show_goto_coord_window = true;
                 g_EditorState.goto_coord_input[0] = '\0';
             }
             UI_Separator();
-            if (UI_MenuItem("Map Information", NULL, false, true)) {
+            if (UI_MenuItem("Map Information", nullptr, false, true)) {
                 g_EditorState.show_map_info_window = true;
             }
-            if (UI_MenuItem("Replace Textures...", NULL, false, true)) {
+            if (UI_MenuItem("Replace Textures...", nullptr, false, true)) {
                 g_EditorState.show_replace_textures_popup = true;
             }
-            if (UI_MenuItem("Sprinkle Tool...", NULL, false, true)) {
+            if (UI_MenuItem("Sprinkle Tool...", nullptr, false, true)) {
                 g_EditorState.show_sprinkle_tool_window = true;
             }
             if (UI_Checkbox("Texture Lock", &g_EditorState.texture_lock_enabled)) {
             }
-            if (UI_MenuItem("Bake Lighting...", NULL, false, true)) {
+            if (UI_MenuItem("Bake Lighting...", nullptr, false, true)) {
                 g_EditorState.show_bake_lighting_popup = true;
                 g_EditorState.bake_resolution = 3;
                 g_EditorState.bake_bounces = 1;
             }
-            if (UI_MenuItem("Build Environment probes...", NULL, false, true)) {
+            if (UI_MenuItem("Build Environment probes...", nullptr, false, true)) {
                 g_EditorState.show_build_cubemaps_popup = true;
                 g_EditorState.cubemap_resolution_index = 2;
             }
             UI_EndMenu();
         }
         if (UI_BeginMenu("Help", true)) {
-            if (UI_MenuItem("About Tectonic Editor", NULL, false, true)) {
+            if (UI_MenuItem("About Tectonic Editor", nullptr, false, true)) {
                 g_EditorState.show_about_window = true;
             }
-            if (UI_MenuItem("Documentation", NULL, false, true)) {
+            if (UI_MenuItem("Documentation", nullptr, false, true)) {
                 g_EditorState.show_help_window = true;
                 ScanDocFiles();
             }
@@ -1400,7 +1400,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Begin("Save Map As", &g_EditorState.show_save_map_popup);
         UI_InputText("Filename", g_EditorState.save_map_path, sizeof(g_EditorState.save_map_path));
         if (UI_Button("Save")) {
-            Scene_SaveMap(scene, NULL, g_EditorState.save_map_path);
+            Scene_SaveMap(scene, nullptr, g_EditorState.save_map_path);
             strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
             Editor_SetMapDirty(false);
             if (g_pending_action != PENDING_ACTION_NONE) {
@@ -1456,7 +1456,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_OpenPopup("Unsaved Changes");
     }
 
-    if (UI_BeginPopupModal("Unsaved Changes", NULL, 1 << 3)) {
+    if (UI_BeginPopupModal("Unsaved Changes", nullptr, 1 << 3)) {
         UI_Text("You have unsaved changes. Do you want to save them?");
         UI_Spacing();
 
@@ -1465,7 +1465,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 g_EditorState.show_save_map_popup = true;
             }
             else {
-                Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
+                Scene_SaveMap(scene, nullptr, g_EditorState.currentMapPath);
                 Editor_SetMapDirty(false);
                 Editor_ExecutePendingAction(engine, scene, renderer);
             }
@@ -1491,7 +1491,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_SetNextWindowPos(p[i].x, p[i].y);
         UI_SetNextWindowSize(half_w, half_h);
         UI_PushStyleVar_WindowPadding(0, 0);
-        UI_Begin_NoBringToFront(vp_names[i], NULL);
+        UI_Begin_NoBringToFront(vp_names[i], nullptr);
         g_EditorState.is_viewport_focused[type] = UI_IsWindowFocused();
         g_EditorState.is_viewport_hovered[type] = UI_IsWindowHovered();
         float vp_w, vp_h;
@@ -1506,7 +1506,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             g_EditorState.viewport_width[type] = (int)vp_w;
             g_EditorState.viewport_height[type] = (int)vp_h;
             glBindTexture(GL_TEXTURE_2D, g_EditorState.viewport_texture[type]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type], 0, GL_RGBA, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type], 0, GL_RGBA, GL_FLOAT, nullptr);
             glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.viewport_rbo[type]);
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
         }

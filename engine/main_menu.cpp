@@ -41,11 +41,11 @@ bool g_show_options_menu = false;
 bool g_show_load_game_menu = false;
 bool g_show_save_game_menu = false;
 
-static char** g_save_game_files = NULL;
+static char** g_save_game_files = nullptr;
 static int g_num_save_games = 0;
 static int g_selected_save_index = -1;
 
-static TTF_Font* g_menu_font = NULL;
+static TTF_Font* g_menu_font = nullptr;
 static GLuint g_text_texture_start = 0;
 static GLuint g_text_texture_load = 0;
 static GLuint g_text_texture_save = 0;
@@ -204,7 +204,7 @@ static void ScanSaveGames() {
             free(g_save_game_files[i]);
         }
         free(g_save_game_files);
-        g_save_game_files = NULL;
+        g_save_game_files = nullptr;
     }
     g_num_save_games = 0;
     g_selected_save_index = -1;
@@ -337,7 +337,7 @@ bool MainMenu_Init(int screen_width, int screen_height) {
     glGenBuffers(1, &g_quad_vbo);
     glBindVertexArray(g_quad_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_quad_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));

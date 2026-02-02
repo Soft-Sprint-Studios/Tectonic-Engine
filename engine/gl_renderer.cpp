@@ -77,49 +77,49 @@ static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
 
     glGenTextures(1, &renderer->gLitColor);
     glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGB, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->gLitColor, 0);
 
     glGenTextures(1, &renderer->gPosition);
     glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, renderer->gPosition, 0);
 
     glGenTextures(1, &renderer->gNormal);
     glBindTexture(GL_TEXTURE_2D, renderer->gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, renderer->gNormal, 0);
 
     glGenTextures(1, &renderer->gAlbedo);
     glBindTexture(GL_TEXTURE_2D, renderer->gAlbedo);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, renderer->gAlbedo, 0);
 
     glGenTextures(1, &renderer->gPBRParams);
     glBindTexture(GL_TEXTURE_2D, renderer->gPBRParams);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, renderer->gPBRParams, 0);
 
     glGenTextures(1, &renderer->gVelocity);
     glBindTexture(GL_TEXTURE_2D, renderer->gVelocity);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RG, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, renderer->gVelocity, 0);
 
     glGenTextures(1, &renderer->gGeometryNormal);
     glBindTexture(GL_TEXTURE_2D, renderer->gGeometryNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, renderer->gGeometryNormal, 0);
@@ -145,7 +145,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->bloomFBO);
     glGenTextures(1, &renderer->bloomBrightnessTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->bloomBrightnessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -157,7 +157,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->pingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, renderer->pingpongColorbuffers[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -174,7 +174,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);
     glGenTextures(1, &renderer->ssaoColorBuffer);
     glBindTexture(GL_TEXTURE_2D, renderer->ssaoColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->ssaoColorBuffer, 0);
@@ -183,7 +183,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoBlurFBO);
     glGenTextures(1, &renderer->ssaoBlurColorBuffer);
     glBindTexture(GL_TEXTURE_2D, renderer->ssaoBlurColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ssao_width, ssao_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->ssaoBlurColorBuffer, 0);
@@ -193,7 +193,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->volumetricFBO);
     glGenTextures(1, &renderer->volumetricTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->volumetricTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / vol_downsample, engine->height / vol_downsample, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / vol_downsample, engine->height / vol_downsample, 0, GL_RGB, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -205,7 +205,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     for (unsigned int i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, renderer->volPingpongTextures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / vol_downsample, engine->height / vol_downsample, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / vol_downsample, engine->height / vol_downsample, 0, GL_RGB, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->volPingpongTextures[i], 0);
@@ -215,21 +215,21 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->finalRenderFBO);
     glGenTextures(1, &renderer->finalRenderTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->finalRenderTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, engine->width, engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, engine->width, engine->height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->finalRenderTexture, 0);
 
     glGenTextures(1, &renderer->finalDepthTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->finalDepthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, engine->width, engine->height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, engine->width, engine->height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, renderer->finalDepthTexture, 0);
 
     glGenFramebuffers(1, &renderer->postProcessFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->postProcessFBO);
     glGenTextures(1, &renderer->postProcessTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->postProcessTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, engine->width, engine->height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, engine->width, engine->height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->postProcessTexture, 0);
@@ -245,7 +245,7 @@ static void Renderer_InitPlanarReflection(Renderer* renderer, Engine* engine) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->reflectionFBO);
     glGenTextures(1, &renderer->reflectionTexture);
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, reflection_width, reflection_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -263,7 +263,7 @@ static void Renderer_InitShadows_Sun(Renderer* renderer) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->sunShadowFBO);
     glGenTextures(1, &renderer->sunShadowMap);
     glBindTexture(GL_TEXTURE_2D, renderer->sunShadowMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -308,12 +308,12 @@ static void Renderer_InitBuffers(Renderer* renderer) {
 
     glGenBuffers(1, &renderer->histogramSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->histogramSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderer->histogramSSBO);
 
     glGenBuffers(1, &renderer->lightSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->lightSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, renderer->lightSSBO);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

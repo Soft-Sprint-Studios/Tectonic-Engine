@@ -144,11 +144,11 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             if (obj->bakedVertexColors) {
                 free(obj->bakedVertexColors);
-                obj->bakedVertexColors = NULL;
+                obj->bakedVertexColors = nullptr;
             }
             if (obj->bakedVertexDirections) {
                 free(obj->bakedVertexDirections);
-                obj->bakedVertexDirections = NULL;
+                obj->bakedVertexDirections = nullptr;
             }
         }
         for (int i = 0; i < obj->model->meshCount; ++i) {
@@ -468,7 +468,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         glUniform1i(glGetUniformLocation(renderer->mainShader, "isBrush"), 0);
         if (obj->model) {
             if (obj->mass > 0.0f && scene->num_ambient_probes > 0) {
-                AmbientProbe* nearest_probes[8] = { NULL };
+                AmbientProbe* nearest_probes[8] = { nullptr };
                 float distances[8];
                 for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
                 for (int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {

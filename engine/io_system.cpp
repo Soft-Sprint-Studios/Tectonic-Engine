@@ -62,7 +62,7 @@ void IO_Clear() {
 IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const char* output) {
     if (g_num_io_connections >= MAX_IO_CONNECTIONS) {
         Console_Printf_Error("Max IO connections reached!\n");
-        return NULL;
+        return nullptr;
     }
     IOConnection* conn = &g_io_connections[g_num_io_connections];
     conn->active = true;
@@ -171,7 +171,7 @@ LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname) {
             return &scene->logicEntities[i];
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine) {
@@ -213,8 +213,8 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     else Console_Printf_Error("math_counter '%s' tried to divide by zero.", ent->targetname);
                 }
 
-                if (max != 0 && ent->runtime_float_a >= max) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, NULL);
-                if (min != 0 && ent->runtime_float_a <= min) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0, NULL);
+                if (max != 0 && ent->runtime_float_a >= max) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, nullptr);
+                if (min != 0 && ent->runtime_float_a <= min) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMin", 0, nullptr);
             }
             else if (strcmp(ent->classname, "logic_random") == 0) {
                 if (strcmp(inputName, "Enable") == 0) {
@@ -228,7 +228,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
             }
             else if (strcmp(ent->classname, "logic_relay") == 0) {
-                if (strcmp(inputName, "Trigger") == 0 && ent->runtime_active) IO_FireOutput(ENTITY_LOGIC, i, "OnTrigger", engine->lastFrame, NULL);
+                if (strcmp(inputName, "Trigger") == 0 && ent->runtime_active) IO_FireOutput(ENTITY_LOGIC, i, "OnTrigger", engine->lastFrame, nullptr);
                 else if (strcmp(inputName, "Enable") == 0) ent->runtime_active = true;
                 else if (strcmp(inputName, "Disable") == 0) ent->runtime_active = false;
                 else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
@@ -286,9 +286,9 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         char* argv[16];
                         int argc = 0;
                         char* p = strtok(cmd_copy, " ");
-                        while (p != NULL && argc < 16) {
+                        while (p != nullptr && argc < 16) {
                             argv[argc++] = p;
-                            p = strtok(NULL, " ");
+                            p = strtok(nullptr, " ");
                         }
                         if (argc > 0) {
                             Commands_Execute(argc, argv);
@@ -372,15 +372,15 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             else if (strcmp(ent->classname, "env_beam") == 0) {
                 if (strcmp(inputName, "TurnOn") == 0) {
                     ent->runtime_active = true;
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, nullptr);
                 }
                 else if (strcmp(inputName, "TurnOff") == 0) {
                     ent->runtime_active = false;
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, nullptr);
                 }
                 else if (strcmp(inputName, "Toggle") == 0) {
                     ent->runtime_active = !ent->runtime_active;
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnUsed", engine->lastFrame, nullptr);
                 }
             }
             else if (strcmp(ent->classname, "env_glow") == 0) {
@@ -407,7 +407,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
 
                     if (engine->credits_text) {
                         free(engine->credits_text);
-                        engine->credits_text = NULL;
+                        engine->credits_text = nullptr;
                     }
 
                     FILE* f = fopen(filename, "rb");
@@ -437,7 +437,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     engine->credits_active = false;
                     if (engine->credits_text) {
                         free(engine->credits_text);
-                        engine->credits_text = NULL;
+                        engine->credits_text = nullptr;
                     }
                     engine->credits_entity_index = -1;
                 }
@@ -518,10 +518,10 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
 
                 if (test_now) {
                     if (ent->runtime_int_a == 1) {
-                        IO_FireOutput(ENTITY_LOGIC, i, "OnTrue", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, i, "OnTrue", engine->lastFrame, nullptr);
                     }
                     else {
-                        IO_FireOutput(ENTITY_LOGIC, i, "OnFalse", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, i, "OnFalse", engine->lastFrame, nullptr);
                     }
                 }
                 }
@@ -573,7 +573,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         for (int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "0");
                     }
                     else if (strcmp(inputName, "Press") == 0) {
-                        IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, nullptr);
                     }
                 }
                 else if (strcmp(b->classname, "func_clip") == 0) {
@@ -644,11 +644,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(b->classname, "func_door") == 0) {
                     if (strcmp(inputName, "Open") == 0) {
                         b->door_state = DOOR_STATE_OPENING;
-                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, nullptr);
                     }
                     else if (strcmp(inputName, "Close") == 0) {
                         b->door_state = DOOR_STATE_CLOSING;
-                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, nullptr);
                     }
                     else if (strcmp(inputName, "Toggle") == 0) {
                         if (b->door_state == DOOR_STATE_CLOSED || b->door_state == DOOR_STATE_CLOSING) {
@@ -657,7 +657,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         else if (b->door_state == DOOR_STATE_OPEN || b->door_state == DOOR_STATE_OPENING) {
                             b->door_state = DOOR_STATE_CLOSING;
                         }
-                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", engine->lastFrame, nullptr);
                     }
                 }
                 else if (strcmp(b->classname, "func_monitor") == 0) {
@@ -830,7 +830,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             if (ent->runtime_active) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0, nullptr);
 
                     const char* repeat_val = LogicEntity_GetProperty(ent, "repeat", "1");
                     int repeat = atoi(repeat_val);
@@ -849,7 +849,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             if (ent->runtime_active) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0, nullptr);
                     const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
                     const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                     ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
@@ -860,7 +860,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
             if (ent->runtime_active) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
-                    IO_FireOutput(ENTITY_LOGIC, i, "OnRepeat", 0, NULL);
+                    IO_FireOutput(ENTITY_LOGIC, i, "OnRepeat", 0, nullptr);
 
                     if (ent->runtime_int_a != -1) {
                         ent->runtime_int_a--;
@@ -944,7 +944,7 @@ static bool has_valid_extension(const char* filename, const char** extensions, i
 }
 
 char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_extensions, int* out_count) {
-    char** list = NULL;
+    char** list = nullptr;
     int count = 0;
 
 #ifdef PLATFORM_WINDOWS
@@ -969,7 +969,7 @@ char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_e
     DIR* d = opendir(dir_path);
     if (d) {
         struct dirent* dir;
-        while ((dir = readdir(d)) != NULL) {
+        while ((dir = readdir(d)) != nullptr) {
             if (dir->d_type == DT_REG || dir->d_type == DT_UNKNOWN) {
                 if (has_valid_extension(dir->d_name, extensions, num_extensions)) {
                     list = (char**)realloc(list, (count + 1) * sizeof(char*));

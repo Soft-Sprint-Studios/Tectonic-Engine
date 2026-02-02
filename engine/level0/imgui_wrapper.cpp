@@ -66,7 +66,7 @@
     bool UI_Begin_NoBringToFront(const char* name, bool* p_open) {
         return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoBringToFrontOnFocus);
     }
-    bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, NULL); }
+    bool UI_Begin_NoClose(const char* name) { return ImGui::Begin(name, nullptr); }
     bool UI_Begin_NoTitlebar_NoResize_NoMove(const char* name, bool* p_open) {
         return ImGui::Begin(name, p_open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     }
@@ -75,7 +75,7 @@
     }
     bool UI_IsWindowOpen(const char* name) {
         ImGuiWindow* window = ImGui::FindWindowByName(name);
-        return (window != NULL && window->WasActive);
+        return (window != nullptr && window->WasActive);
     }
     void UI_OpenPopup(const char* str_id) { ImGui::OpenPopup(str_id); }
     bool UI_BeginPopupModal(const char* name, bool* p_open, int flags) { return ImGui::BeginPopupModal(name, p_open, (ImGuiWindowFlags)flags); }

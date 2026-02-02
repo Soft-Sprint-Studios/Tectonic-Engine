@@ -98,7 +98,7 @@ static void InitCameraFBO(LogicEntity* cam) {
 
     glGenTextures(1, &cam->monitor_texture);
     glBindTexture(GL_TEXTURE_2D, cam->monitor_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, cam->monitor_resolution, cam->monitor_resolution, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, cam->monitor_resolution, cam->monitor_resolution, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cam->monitor_texture, 0);
@@ -188,7 +188,7 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
         if (strcmp(b->classname, "func_monitor") != 0 || !b->runtime_active) continue;
 
         const char* targetName = Brush_GetProperty(b, "target", "");
-        LogicEntity* camEnt = NULL;
+        LogicEntity* camEnt = nullptr;
 
         for (int k = 0; k < scene->numLogicEntities; ++k) {
             if (strcmp(scene->logicEntities[k].targetname, targetName) == 0 &&
