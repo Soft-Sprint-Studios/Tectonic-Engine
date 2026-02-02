@@ -83,7 +83,10 @@ static int download_thread_func_win32(void* data) {
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
         Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
@@ -100,7 +103,10 @@ static int download_thread_func_win32(void* data) {
 
     if (sock == INVALID_SOCKET) {
         Console_Printf_Error("[Network] Unable to connect to server %s", host);
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     char request[2048];
@@ -108,13 +114,19 @@ static int download_thread_func_win32(void* data) {
 
     if (send(sock, request, (int)strlen(request), 0) == SOCKET_ERROR) {
         Console_Printf_Error("[Network] send failed.");
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
         Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     char buffer[4096];
@@ -136,11 +148,6 @@ static int download_thread_func_win32(void* data) {
     fclose(fp);
     Console_Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
 
-cleanup:
-    if (sock != INVALID_SOCKET) closesocket(sock);
-    free(args->url);
-    free(args->filepath);
-    free(args);
     return 0;
 }
 
@@ -156,14 +163,18 @@ static int ping_thread_func_win32(void* data) {
 
     if (getaddrinfo(args->hostname, "80", &hints, &result) != 0) {
         Console_Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->hostname);
+        free(args);
     }
 
     sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sock == INVALID_SOCKET) {
         Console_Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
         freeaddrinfo(result);
-        goto cleanup;
+        if (sock != INVALID_SOCKET) closesocket(sock);
+        free(args->hostname);
+        free(args);
     }
 
     LARGE_INTEGER frequency, start, end;
@@ -181,10 +192,6 @@ static int ping_thread_func_win32(void* data) {
 
     freeaddrinfo(result);
 
-cleanup:
-    if (sock != INVALID_SOCKET) closesocket(sock);
-    free(args->hostname);
-    free(args);
     return 0;
 }
 #else
@@ -202,7 +209,10 @@ static int download_thread_func_posix(void* data) {
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
         Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
@@ -219,7 +229,10 @@ static int download_thread_func_posix(void* data) {
 
     if (sock == -1) {
         Console_Printf_Error("[Network] Unable to connect to server %s", host);
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     char request[2048];
@@ -227,13 +240,19 @@ static int download_thread_func_posix(void* data) {
 
     if (send(sock, request, strlen(request), 0) < 0) {
         Console_Printf_Error("[Network] send failed.");
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
         Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->url);
+        free(args->filepath);
+        free(args);
     }
 
     char buffer[4096];
@@ -255,11 +274,6 @@ static int download_thread_func_posix(void* data) {
     fclose(fp);
     Console_Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
 
-cleanup:
-    if (sock != -1) close(sock);
-    free(args->url);
-    free(args->filepath);
-    free(args);
     return 0;
 }
 
@@ -274,14 +288,18 @@ static int ping_thread_func_posix(void* data) {
 
     if (getaddrinfo(args->hostname, "80", &hints, &result) != 0) {
         Console_Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->hostname);
+        free(args);
     }
 
     sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sock < 0) {
         Console_Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
         freeaddrinfo(result);
-        goto cleanup;
+        if (sock != -1) close(sock);
+        free(args->hostname);
+        free(args);
     }
 
     struct timespec start, end;
@@ -298,10 +316,6 @@ static int ping_thread_func_posix(void* data) {
 
     freeaddrinfo(result);
 
-cleanup:
-    if (sock != -1) close(sock);
-    free(args->hostname);
-    free(args);
     return 0;
 }
 #endif
