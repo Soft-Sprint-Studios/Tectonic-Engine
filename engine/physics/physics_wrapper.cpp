@@ -119,6 +119,10 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, capsuleShape, localInertia);
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setAngularFactor(btVector3(0, 1, 0));
         if (!g_physics_deactivation_enabled) {
             body->setActivationState(DISABLE_DEACTIVATION);
@@ -127,8 +131,6 @@ struct RigidBody {
 
         world->dynamicsWorld->addRigidBody(body, COL_PLAYER, COL_STATIC | COL_DYNAMIC);
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -151,6 +153,10 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, hullShape, localInertia);
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setFriction(0.8f);
         body->setRestitution(0.2f);
         body->setDamping(0.2f, 0.5f);
@@ -159,8 +165,6 @@ struct RigidBody {
             world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
         }
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -181,14 +185,16 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, hullShape, localInertia);
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setFriction(0.7f);
         body->setRestitution(0.1f);
         body->setDamping(0.2f, 0.5f);
 
         world->dynamicsWorld->addRigidBody(body, COL_DYNAMIC, COL_ALL);
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -224,6 +230,10 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(0.0f, myMotionState, meshShape, btVector3(0, 0, 0));
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setFriction(1.0f);
         if (!g_physics_deactivation_enabled) {
             body->setActivationState(DISABLE_DEACTIVATION);
@@ -231,8 +241,6 @@ struct RigidBody {
         world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
         world->meshInterfaces[body] = meshInterface;
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -251,11 +259,13 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(0.0f, myMotionState, hullShape, btVector3(0, 0, 0));
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setFriction(1.0f);
         world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -273,13 +283,15 @@ struct RigidBody {
         btRigidBody::btRigidBodyConstructionInfo rbInfo(0.0f, myMotionState, hullShape, btVector3(0, 0, 0));
         btRigidBody* body = new btRigidBody(rbInfo);
 
+        RigidBody* rb = new RigidBody();
+        rb->body = body;
+        body->setUserPointer(rb);
+
         body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
         body->setActivationState(DISABLE_DEACTIVATION);
 
         world->dynamicsWorld->addRigidBody(body, COL_STATIC, COL_PLAYER | COL_DYNAMIC);
 
-        RigidBody* rb = new RigidBody();
-        rb->body = body;
         return rb;
     }
 
@@ -453,9 +465,7 @@ struct RigidBody {
             hitInfo->point = { point.x(), point.y(), point.z() };
             hitInfo->normal = { normal.x(), normal.y(), normal.z() };
 
-            RigidBody* rb = new RigidBody();
-            rb->body = (btRigidBody*)btRigidBody::upcast(rayCallback.m_collisionObject);
-            hitInfo->hitBody = rb;
+            hitInfo->hitBody = (RigidBodyHandle)rayCallback.m_collisionObject->getUserPointer();
 
             return true;
         }

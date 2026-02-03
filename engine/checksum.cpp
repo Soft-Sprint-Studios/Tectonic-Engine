@@ -117,7 +117,7 @@ public:
             FILE* moduleFile = fopen(modulePath, "rb");
             if (!moduleFile) {
                 Console_Printf_Error("[Checksum] Failed to open module: %s", modulePath);
-                free(moduleDir);
+                delete[] moduleDir;
                 free(full_buffer);
                 return false;
             }
@@ -130,7 +130,7 @@ public:
             if (!temp_buffer) {
                 Console_Printf_Error("[Checksum] Failed to reallocate memory for module: %s", modulePath);
                 fclose(moduleFile);
-                free(moduleDir);
+                delete[] moduleDir;
                 free(full_buffer);
                 return false;
             }
@@ -139,7 +139,7 @@ public:
             if (fread(full_buffer + totalSize, 1, moduleSize, moduleFile) != static_cast<size_t>(moduleSize)) {
                 Console_Printf_Error("[Checksum] Failed to read module: %s", modulePath);
                 fclose(moduleFile);
-                free(moduleDir);
+                delete[] moduleDir;
                 free(full_buffer);
                 return false;
             }
@@ -149,7 +149,7 @@ public:
             totalSize += moduleSize;
         }
 
-        free(moduleDir);
+        delete[] moduleDir;
         if (totalSize == 0) return false;
 
         long checksumStructFileOffset = -1;

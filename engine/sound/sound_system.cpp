@@ -156,7 +156,7 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
     ALuint wetBufferID;
     alGenBuffers(1, &wetBufferID);
     alBufferData(wetBufferID, AL_FORMAT_MONO16, wet_audio.data, wet_audio.num_samples * sizeof(short), dryBuffer->freq);
-    free(wet_audio.data);
+    delete[] wet_audio.data;
 
     if (alGetError() != AL_NO_ERROR) {
         alDeleteBuffers(1, &wetBufferID);
@@ -518,7 +518,7 @@ void SoundSystem_DeleteBuffer(unsigned int bufferID) {
 
     BufferData* buf = find_buffer_data(bufferID);
     if (buf) {
-        free(buf->pcmData);
+        delete[](char*)buf->pcmData;
         alDeleteBuffers(1, &bufferID);
 
         int index = buf - g_buffers;

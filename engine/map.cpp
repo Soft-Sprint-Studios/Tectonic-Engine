@@ -80,19 +80,22 @@ void Brush_FreeData(Brush* b) {
             glMakeTextureHandleNonResidentARB(b->directionalLightmapAtlasHandle);
             b->directionalLightmapAtlasHandle = 0;
         } glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-    if (b->vertices) { free(b->vertices); b->vertices = nullptr; }
+    if (b->vertices) { 
+        delete[] b->vertices; 
+        b->vertices = nullptr; 
+    }
     if (b->faces) {
         for (int i = 0; i < b->numFaces; i++) {
             if (b->faces[i].vertexIndices) {
-                free(b->faces[i].vertexIndices);
+                delete[] b->faces[i].vertexIndices;
                 b->faces[i].vertexIndices = nullptr;
             }
         }
-        free(b->faces);
+        delete[] b->faces;
         b->faces = nullptr;
     }
-    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = nullptr; }
-    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = nullptr; }
+    if (b->bakedVertexColors) { delete[] b->bakedVertexColors; b->bakedVertexColors = nullptr; }
+    if (b->bakedVertexDirections) { delete[] b->bakedVertexDirections; b->bakedVertexDirections = nullptr; }
     b->numVertices = 0;
     b->numFaces = 0;
 }
@@ -546,11 +549,17 @@ void Scene_Clear(Scene* scene, Engine* engine) {
             if (scene->objects[i].model) {
                 Model_Free(scene->objects[i].model);
             }
+            if (scene->objects[i].bone_matrices) {
+                delete[] scene->objects[i].bone_matrices;
+                scene->objects[i].bone_matrices = nullptr;
+            }
             if (scene->objects[i].bakedVertexColors) {
-                free(scene->objects[i].bakedVertexColors);
+                delete[] scene->objects[i].bakedVertexColors;
+                scene->objects[i].bakedVertexColors = nullptr;
             }
             if (scene->objects[i].bakedVertexDirections) {
-                free(scene->objects[i].bakedVertexDirections);
+                delete[] scene->objects[i].bakedVertexDirections;
+                scene->objects[i].bakedVertexDirections = nullptr;
             }
             if (scene->objects[i].lightmapHandle) {
                 glMakeTextureHandleNonResidentARB(scene->objects[i].lightmapHandle);
@@ -561,7 +570,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
                 glDeleteTextures(1, &scene->objects[i].dirLightmapTexture);
             }
         }
-        free(scene->objects);
+        delete[] scene->objects;
         scene->objects = nullptr;
     }
 
@@ -662,7 +671,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene->colorCorrection.lutPath, 0, sizeof(scene->colorCorrection.lutPath));
     scene->colorCorrection.lutTexture = 0;
     if (scene->ambient_probes) {
-        free(scene->ambient_probes);
+        delete[] scene->ambient_probes;
         scene->ambient_probes = nullptr;
     }
     scene->num_ambient_probes = 0;

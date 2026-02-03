@@ -929,7 +929,7 @@ void update_state() {
             IO_FireOutput(ENTITY_LOGIC, g_engine->credits_entity_index, "OnCreditsDone", g_engine->lastFrame, nullptr);
             g_engine->credits_active = false;
             if (g_engine->credits_text) {
-                free(g_engine->credits_text);
+                delete[] g_engine->credits_text;
                 g_engine->credits_text = nullptr;
             }
             g_engine->credits_entity_index = -1;
