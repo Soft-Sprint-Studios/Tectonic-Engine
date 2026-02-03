@@ -272,15 +272,18 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
 
     SceneObject* src_obj = &scene->objects[index];
 
-    SceneObject* new_objects = new SceneObject[scene->numObjects + 1];
-    for (int i = 0; i < scene->numObjects; ++i)
-        new_objects[i] = scene->objects[i];
-    delete[] scene->objects;
+    SceneObject* new_objects = (SceneObject*)realloc(scene->objects, (scene->numObjects + 1) * sizeof(SceneObject));
+    if (!new_objects) {
+        Console_Printf_Error("Failed to reallocate memory for model duplication.");
+        return;
+    }
     scene->objects = new_objects;
-
+    int new_index = scene->numObjects;
     scene->numObjects++;
-    SceneObject* new_obj = &scene->objects[scene->numObjects - 1];
+    SceneObject* new_obj = &scene->objects[new_index];
     memcpy(new_obj, src_obj, sizeof(SceneObject));
+
+    sprintf(new_obj->targetname, "Model_%d", new_index);
 
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
     new_obj->bone_matrices = nullptr;
@@ -296,8 +299,8 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
         new_obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
     }
 
-    Editor_AddToSelection(ENTITY_MODEL, scene->numObjects - 1, -1, -1);
-    Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Duplicate Model");
+    Editor_AddToSelection(ENTITY_MODEL, new_index, -1, -1);
+    Undo_PushCreateEntity(scene, ENTITY_MODEL, new_index, "Duplicate Model");
 }
 
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {

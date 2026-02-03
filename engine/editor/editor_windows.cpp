@@ -422,33 +422,41 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                     }
                     else {
                         if (scene->numObjects < MAX_MODELS) {
-                            scene->numObjects++;
-                            scene->objects = new SceneObject[scene->numObjects];
-                            SceneObject* newObj = &scene->objects[scene->numObjects - 1];
-                            memset(newObj, 0, sizeof(SceneObject));
-
-                            mat4_identity(&newObj->animated_local_transform);
-
-                            char full_model_path[256];
-                            sprintf(full_model_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
-                            strncpy(newObj->modelPath, full_model_path, sizeof(newObj->modelPath) - 1);
-
-                            Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-                            vec3_normalize(&forward);
-                            newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
-                            newObj->scale = Vec3{ 1,1,1 };
-                            newObj->casts_shadows = true;
-                            newObj->lightmapScale = 1.0f;
-                            SceneObject_UpdateMatrix(newObj);
-
-                            newObj->model = Model_Load(newObj->modelPath);
-
-                            if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1, 1, 1 });
-                                newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                            SceneObject* new_objects = (SceneObject*)realloc(scene->objects, (scene->numObjects + 1) * sizeof(SceneObject));
+                            if (!new_objects) {
+                                Console_Printf_Error("Failed to allocate memory for new model.");
+                                g_EditorState.show_add_model_popup = false;
                             }
-                            Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
-                            g_EditorState.show_add_model_popup = false;
+                            else {
+                                scene->objects = new_objects;
+                                int new_index = scene->numObjects;
+                                scene->numObjects++;
+                                SceneObject* newObj = &scene->objects[new_index];
+                                memset(newObj, 0, sizeof(SceneObject));
+
+                                mat4_identity(&newObj->animated_local_transform);
+
+                                char full_model_path[256];
+                                sprintf(full_model_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
+                                strncpy(newObj->modelPath, full_model_path, sizeof(newObj->modelPath) - 1);
+
+                                Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
+                                vec3_normalize(&forward);
+                                newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
+                                newObj->scale = Vec3{ 1,1,1 };
+                                newObj->casts_shadows = true;
+                                newObj->lightmapScale = 1.0f;
+                                SceneObject_UpdateMatrix(newObj);
+
+                                newObj->model = Model_Load(newObj->modelPath);
+
+                                if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
+                                    Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1, 1, 1 });
+                                    newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                                }
+                                Undo_PushCreateEntity(scene, ENTITY_MODEL, new_index, "Create Model");
+                                g_EditorState.show_add_model_popup = false;
+                            }
                         }
                         else {
                             Console_Printf_Error("Cannot add model, MAX_MODELS limit reached.");
