@@ -26,19 +26,19 @@
 #include <float.h>
 
 Vec3 vec3_add(Vec3 a, Vec3 b) {
-    return Vec3{ a.x + b.x, a.y + b.y, a.z + b.z };
+    return (Vec3) { a.x + b.x, a.y + b.y, a.z + b.z };
 }
 
 Vec3 vec3_sub(Vec3 a, Vec3 b) {
-    return Vec3{ a.x - b.x, a.y - b.y, a.z - b.z };
+    return (Vec3) { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
 Vec3 vec3_muls(Vec3 v, float s) {
-    return Vec3{ v.x* s, v.y* s, v.z* s };
+    return (Vec3) { v.x* s, v.y* s, v.z* s };
 }
 
 Vec3 vec3_mul(Vec3 a, Vec3 b) {
-    return Vec3{ a.x* b.x, a.y* b.y, a.z* b.z };
+    return (Vec3) { a.x* b.x, a.y* b.y, a.z* b.z };
 }
 
 float vec3_dot(Vec3 a, Vec3 b) {
@@ -63,7 +63,7 @@ void vec3_normalize(Vec3* v) {
 }
 
 Vec3 vec3_cross(Vec3 a, Vec3 b) {
-    return Vec3{
+    return (Vec3) {
         a.y* b.z - a.z * b.y,
             a.z* b.x - a.x * b.z,
             a.x* b.y - a.y * b.x
@@ -71,15 +71,15 @@ Vec3 vec3_cross(Vec3 a, Vec3 b) {
 }
 
 Vec3 vec3_lerp(Vec3 a, Vec3 b, float t) {
-    return Vec3{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t };
+    return (Vec3) { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t };
 }
 
 Vec4 vec4_add(Vec4 a, Vec4 b) {
-    return Vec4{ a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w };
+    return (Vec4) { a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w };
 }
 
 Vec4 vec4_muls(Vec4 v, float s) {
-    return Vec4{ v.x* s, v.y* s, v.z* s, v.w* s };
+    return (Vec4) { v.x* s, v.y* s, v.z* s, v.w* s };
 }
 
 Vec3 mat4_mul_vec3(const Mat4* m, Vec3 v) {
@@ -478,7 +478,7 @@ Vec4 quat_slerp(Vec4 q1, Vec4 q2, float t) {
     float s1 = cosf(theta) - dot * sin_theta / sin_theta_0;
     float s2 = sin_theta / sin_theta_0;
 
-    return Vec4{
+    return (Vec4) {
         (q1.x * s1) + (q2.x * s2),
             (q1.y * s1) + (q2.y * s2),
             (q1.z * s1) + (q2.z * s2),
@@ -649,12 +649,12 @@ Vec3 barycentric_coords(Vec2 p, Vec2 a, Vec2 b, Vec2 c) {
     float d20 = v2.x * v0.x + v2.y * v0.y;
     float d21 = v2.x * v1.x + v2.y * v1.y;
     float denom = d00 * d11 - d01 * d01;
-    if (fabsf(denom) < 1e-5) return Vec3{ -1.0f, -1.0f, -1.0f };
+    if (fabsf(denom) < 1e-5) return (Vec3) { -1.0f, -1.0f, -1.0f };
 
     float v = (d11 * d20 - d01 * d21) / denom;
     float w = (d00 * d21 - d01 * d20) / denom;
     float u = 1.0f - v - w;
-    return Vec3{ u, v, w };
+    return (Vec3) { u, v, w };
 }
 
 float rand_float_range(float min, float max) {
