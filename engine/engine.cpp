@@ -75,7 +75,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <dlfcn.h>
-#include <sys/file.h>
 #endif
 
 int g_argc_stored = 0;
@@ -1599,7 +1598,7 @@ void cleanup() {
     }
 #else
     if (g_lockFileFd != -1) {
-        ::flock(g_lockFileFd, LOCK_UN);
+        flock(g_lockFileFd, LOCK_UN);
         close(g_lockFileFd);
     }
 #endif
