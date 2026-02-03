@@ -142,7 +142,11 @@ static const char* _stristr(const char* haystack, const char* needle) {
             }
         }
     }
+#ifdef __cplusplus
+    return nullptr;
+#else
     return NULL;
+#endif
 }
 
 static char* trim(char* str) {
