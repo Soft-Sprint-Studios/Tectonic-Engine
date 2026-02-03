@@ -63,7 +63,7 @@ void Decal_UpdateMatrix(Decal* d) {
 }
 
 void ParallaxRoom_UpdateMatrix(ParallaxRoom* p) {
-    p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 1.0f });
+    p->modelMatrix = create_trs_matrix(p->pos, p->rot, (Vec3) { p->size.x, p->size.y, 1.0f });
 }
 
 void Brush_FreeData(Brush* b) {
@@ -113,29 +113,29 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     memcpy(dest->properties, src->properties, sizeof(KeyValue) * MAX_ENTITY_PROPERTIES);
     dest->numVertices = src->numVertices;
     if (src->numVertices > 0) {
-        dest->vertices = new BrushVertex[src->numVertices];
+        dest->vertices = malloc(src->numVertices * sizeof(BrushVertex));
         memcpy(dest->vertices, src->vertices, src->numVertices * sizeof(BrushVertex));
     }
     else {
-        dest->vertices = nullptr;
+        dest->vertices = NULL;
     }
 
     dest->numFaces = src->numFaces;
     if (src->numFaces > 0) {
-        dest->faces = new BrushFace[src->numFaces];
+        dest->faces = malloc(src->numFaces * sizeof(BrushFace));
         for (int i = 0; i < src->numFaces; ++i) {
             dest->faces[i] = src->faces[i];
             if (src->faces[i].numVertexIndices > 0) {
-                dest->faces[i].vertexIndices = new int[src->faces[i].numVertexIndices];
+                dest->faces[i].vertexIndices = malloc(src->faces[i].numVertexIndices * sizeof(int));
                 memcpy(dest->faces[i].vertexIndices, src->faces[i].vertexIndices, src->faces[i].numVertexIndices * sizeof(int));
             }
             else {
-                dest->faces[i].vertexIndices = nullptr;
+                dest->faces[i].vertexIndices = NULL;
             }
         }
     }
     else {
-        dest->faces = nullptr;
+        dest->faces = NULL;
     }
 
     dest->vao = 0;
@@ -144,7 +144,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->directionalLightmapAtlas = 0;
     dest->lightmapAtlasHandle = 0;
     dest->directionalLightmapAtlasHandle = 0;
-    dest->lightmap_atlas_size = Vec2{ 0.0, 0.0 };
+    dest->lightmap_atlas_size = (Vec2){ 0.0, 0.0 };
     dest->totalRenderVertexCount = 0;
     dest->physicsBody = NULL;
     dest->mass = src->mass;
@@ -205,8 +205,8 @@ bool Brush_IsSolid(const Brush* b) {
 }
 
 void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
-    *out_min = Vec3{ FLT_MAX, FLT_MAX, FLT_MAX };
-    *out_max = Vec3{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    *out_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+    *out_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
     if (b->numVertices > 0) {
         for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
@@ -219,14 +219,14 @@ void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
         }
     }
     else {
-        *out_min = Vec3{ -0.5f, -0.5f, -0.5f };
-        *out_max = Vec3{ 0.5f,  0.5f,  0.5f };
+        *out_min = (Vec3){ -0.5f, -0.5f, -0.5f };
+        *out_max = (Vec3){ 0.5f,  0.5f,  0.5f };
     }
 }
 
 void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
-    *out_min = Vec3{ FLT_MAX, FLT_MAX, FLT_MAX };
-    *out_max = Vec3{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    *out_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
+    *out_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
     if (b->numVertices == 0) {
         Vec3 local_min = { -0.5f, -0.5f, -0.5f };
@@ -351,7 +351,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    Vec3* temp_normals = new Vec3[b->numVertices]();
+    Vec3* temp_normals = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
     if (!temp_normals) return;
 
     for (int i = 0; i < b->numFaces; ++i) {
@@ -382,14 +382,14 @@ void Brush_CreateRenderData(Brush* b) {
     }
     b->totalRenderVertexCount = total_render_verts;
     if (total_render_verts == 0) {
-        delete[] temp_normals;
+        free(temp_normals);
         return;
     }
 
     const int stride_floats = 32;
-    float* final_vbo_data = new float[total_render_verts * stride_floats]();
+    float* final_vbo_data = calloc(total_render_verts * stride_floats, sizeof(float));
     if (!final_vbo_data) {
-        delete[] temp_normals;
+        free(temp_normals);
         return;
     }
 
@@ -429,7 +429,7 @@ void Brush_CreateRenderData(Brush* b) {
         int num_tris_in_face = face->numVertexIndices - 2;
         int num_verts_in_face = num_tris_in_face * 3;
 
-        int* face_tri_indices = new int[num_verts_in_face];
+        int* face_tri_indices = malloc(num_verts_in_face * sizeof(int));
         for (int j = 0; j < num_tris_in_face; ++j) {
             face_tri_indices[j * 3 + 0] = face->vertexIndices[0];
             face_tri_indices[j * 3 + 1] = face->vertexIndices[j + 1];
@@ -452,8 +452,9 @@ void Brush_CreateRenderData(Brush* b) {
             int vertex_index = face_tri_indices[j];
             BrushVertex vert = b->vertices[vertex_index];
             Vec3 norm = temp_normals[vertex_index];
-            float uv1_arr[2], uv2_arr[2], uv3_arr[2], uv4_arr[2];
-            getTexCoord(nullptr, uv1_arr, j / 3, j % 3);
+            float uv1[2], uv2[2], uv3[2], uv4[2];
+
+            getTexCoord(NULL, uv1, j / 3, j % 3);
             Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
             Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
             Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
@@ -465,11 +466,11 @@ void Brush_CreateRenderData(Brush* b) {
             else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
             else { u = vert.pos.x; v = vert.pos.y; }
             float rad2 = face->uv_rotation2 * (M_PI / 180.0f); float cos_r2 = cosf(rad2); float sin_r2 = sinf(rad2);
-            uv2_arr[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2_arr[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
+            uv2[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
             float rad3 = face->uv_rotation3 * (M_PI / 180.0f); float cos_r3 = cosf(rad3); float sin_r3 = sinf(rad3);
-            uv3_arr[0] = ((u * cos_r3 - v * sin_r3) / face->uv_scale3.x) + face->uv_offset3.x; uv3_arr[1] = ((u * sin_r3 + v * cos_r3) / face->uv_scale3.y) + face->uv_offset3.y;
+            uv3[0] = ((u * cos_r3 - v * sin_r3) / face->uv_scale3.x) + face->uv_offset3.x; uv3[1] = ((u * sin_r3 + v * cos_r3) / face->uv_scale3.y) + face->uv_offset3.y;
             float rad4 = face->uv_rotation4 * (M_PI / 180.0f); float cos_r4 = cosf(rad4); float sin_r4 = sinf(rad4);
-            uv4_arr[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4_arr[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
+            uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
             Vec2 current_tex_uv = calculate_texture_uv_for_vertex(b, i, vertex_index);
             float local_u = (current_tex_uv.x - min_uv.x) / uv_range.x;
@@ -486,7 +487,7 @@ void Brush_CreateRenderData(Brush* b) {
 
             memcpy(&final_vbo_data[vbo_idx + 0], &vert.pos, sizeof(Vec3));
             memcpy(&final_vbo_data[vbo_idx + 3], &norm, sizeof(Vec3));
-            memcpy(&final_vbo_data[vbo_idx + 6], uv1_arr, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 6], uv1, sizeof(Vec2));
 
             if (b->useVertexLighting && b->bakedVertexColors) {
                 memcpy(&final_vbo_data[vbo_idx + 12], &b->bakedVertexColors[vertex_index], sizeof(Vec4));
@@ -496,9 +497,9 @@ void Brush_CreateRenderData(Brush* b) {
                 final_vbo_data[vbo_idx + 15] = 0.0f;
             }
 
-            memcpy(&final_vbo_data[vbo_idx + 16], uv2_arr, sizeof(Vec2));
-            memcpy(&final_vbo_data[vbo_idx + 18], uv3_arr, sizeof(Vec2));
-            memcpy(&final_vbo_data[vbo_idx + 20], uv4_arr, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 16], uv2, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 18], uv3, sizeof(Vec2));
+            memcpy(&final_vbo_data[vbo_idx + 20], uv4, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 22], &vert.lightmap_uv, sizeof(Vec2));
 
             if (b->useVertexLighting && b->bakedVertexDirections) {
@@ -511,7 +512,7 @@ void Brush_CreateRenderData(Brush* b) {
 
             memcpy(&final_vbo_data[vbo_idx + 28], &vert.color, sizeof(Vec4));
         }
-        delete[] face_tri_indices;
+        free(face_tri_indices);
         vbo_vertex_offset += num_verts_in_face;
     }
 
@@ -534,8 +535,8 @@ void Brush_CreateRenderData(Brush* b) {
     glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(float), (void*)offset); glEnableVertexAttribArray(12);
 
     glBindVertexArray(0);
-    delete[] final_vbo_data;
-    delete[] temp_normals;
+    free(final_vbo_data);
+    free(temp_normals);
 }
 
 void Scene_Clear(Scene* scene, Engine* engine) {
@@ -635,7 +636,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene, 0, sizeof(Scene));
     scene->originalMapPath[0] = '\0';
     scene->static_shadows_generated = false;
-    scene->playerStart.pos = Vec3{ 0, 5, 0 };
+    scene->playerStart.pos = (Vec3){ 0, 5, 0 };
     if (engine) {
         engine->camera.health = 100.0f;
         engine->camera.radiation_level = 0.0f;
@@ -655,7 +656,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->post.sharpenAmount = 0.15f;
     scene->post.fade_active = false;
     scene->post.fade_alpha = 0.0f;
-    scene->post.fade_color = Vec3{ 0, 0, 0 };
+    scene->post.fade_color = (Vec3){ 0, 0, 0 };
     scene->post.bwEnabled = false;
     scene->post.bwStrength = 1.0f;
     scene->colorCorrection.enabled = false;
@@ -667,9 +668,9 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     }
     scene->num_ambient_probes = 0;
     scene->sun.enabled = true;
-    scene->sun.direction = Vec3{ -0.5f, -1.0f, -0.5f };
+    scene->sun.direction = (Vec3){ -0.5f, -1.0f, -0.5f };
     vec3_normalize(&scene->sun.direction);
-    scene->sun.color = Vec3{ 1.0f, 0.95f, 0.85f };
+    scene->sun.color = (Vec3){ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
     scene->lightmapResolution = 128;
 }
@@ -814,16 +815,16 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 char face_keyword[64];
                 sscanf(line, "%s", face_keyword);
                 if (sscanf(line, " num_verts %d", &b->numVertices) == 1) {
-                    b->vertices = new BrushVertex[b->numVertices];
+                    b->vertices = malloc(b->numVertices * sizeof(BrushVertex));
                     for (int i = 0; i < b->numVertices; ++i) {
                         fgets(line, sizeof(line), file);
                         if (sscanf(line, " v %*d %f %f %f %f %f %f %f", &b->vertices[i].pos.x, &b->vertices[i].pos.y, &b->vertices[i].pos.z, &b->vertices[i].color.x, &b->vertices[i].color.y, &b->vertices[i].color.z, &b->vertices[i].color.w) != 7) {
-                            b->vertices[i].color = Vec4{ 0,0,0,1 };
+                            b->vertices[i].color = (Vec4){ 0,0,0,1 };
                         }
                     }
                 }
                 else if (sscanf(line, " num_faces %d", &b->numFaces) == 1) {
-                    b->faces = new BrushFace[b->numFaces]();
+                    b->faces = calloc(b->numFaces, sizeof(BrushFace));
                     for (int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
                         char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
@@ -859,7 +860,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                         b->faces[i].material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
                         b->faces[i].material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
 
-                        b->faces[i].vertexIndices = new int[b->faces[i].numVertexIndices];
+                        b->faces[i].vertexIndices = malloc(b->faces[i].numVertexIndices * sizeof(int));
                         char* p = strchr(line, ':');
                         if (p) {
                             p++;
@@ -928,7 +929,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 if (strcmp(b->classname, "func_plat") == 0) {
                     b->start_pos = b->pos;
                     float height = atof(Brush_GetProperty(b, "height", "0"));
-                    b->end_pos = Vec3{ b->pos.x, b->pos.y + height, b->pos.z };
+                    b->end_pos = (Vec3){ b->pos.x, b->pos.y + height, b->pos.z };
                     b->move_dir = vec3_sub(b->end_pos, b->start_pos);
                     vec3_normalize(&b->move_dir);
                     b->physicsBody = Physics_CreateKinematicBrush(engine->physicsWorld, (const float*)b->vertices, b->numVertices, b->modelMatrix);
@@ -938,10 +939,10 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                     if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
                 else {
-                    Vec3* world_verts = new Vec3[b->numVertices];
+                    Vec3* world_verts = malloc(b->numVertices * sizeof(Vec3));
                     for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
-                    delete[] world_verts;;
+                    free(world_verts);
                 }
             }
             b->current_angular_velocity = 0.0f;
@@ -958,16 +959,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
         else if (strcmp(keyword, "gltf_model") == 0) {
             if (scene->numObjects >= MAX_MODELS) continue;
             scene->numObjects++;
-            SceneObject* old_objects = scene->objects;
-            size_t old_count = scene->numObjects - 1;
-            scene->objects = new SceneObject[scene->numObjects];
-
-            if (old_objects) {
-                for (size_t i = 0; i < old_count; ++i) {
-                    scene->objects[i] = old_objects[i];
-                }
-                delete[] old_objects;
-            }
+            scene->objects = realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
             memset(newObj, 0, sizeof(SceneObject));
             char* p = line + strlen(keyword);
@@ -1023,7 +1015,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             }
             if (!newObj->model) { scene->numObjects--; continue; }
             if (newObj->mass > 0.0f) { newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
-            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
+            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, (Vec3) { 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
         }
         else if (strcmp(keyword, "light") == 0) {
             if (scene->numActiveLights >= MAX_LIGHTS) continue;
@@ -1127,8 +1119,8 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 char mat_name[64];
                 memset(d, 0, sizeof(Decal));
                 d->lightmap_scale = 1.0f;
-                d->uv_scale = Vec2{ 1.0f, 1.0f };
-                d->uv_offset = Vec2{ 0.0f, 0.0f };
+                d->uv_scale = (Vec2){ 1.0f, 1.0f };
+                d->uv_offset = (Vec2){ 0.0f, 0.0f };
                 d->uv_rotation = 0.0f;
                 char* p = line + strlen(keyword);
                 while (*p && isspace(*p)) p++;
