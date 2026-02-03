@@ -48,7 +48,7 @@ MATERIALS_API bool g_is_thumbnail_mode = false;
 MATERIALS_API bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
-    if (filename == NULL || filename[0] == '\0') return NULL;
+    if (filename == nullptr || filename[0] == '\0') return nullptr;
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
         return _strdup(filename);
     }
@@ -57,7 +57,7 @@ static char* prependTexturePath(const char* filename) {
     char* fullPath = (char*)malloc(len);
     if (!fullPath) {
         Console_Printf_Error("Memory allocation failed for texture path.\n");
-        return NULL;
+        return nullptr;
     }
     strcpy(fullPath, baseFolder);
     strcat(fullPath, filename);
@@ -139,7 +139,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
             int scaled_h = (int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -163,7 +163,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -229,7 +229,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
             int scaled_h = (int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -253,7 +253,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
+                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -394,13 +394,12 @@ GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID) {
 static char* strip_numeric_suffix(const char* name) {
     const char* dot = strrchr(name, '.');
     if (dot && dot != name) {
-        bool all_digits = true;
         const char* p = dot + 1;
-        if (*p == '\0') {
-            all_digits = false;
-        }
+        if (*p == '\0') return nullptr;
+
+        bool all_digits = true;
         while (*p) {
-            if (!isdigit((unsigned char)*p)) {
+            if (!isdigit(static_cast<unsigned char>(*p))) {
                 all_digits = false;
                 break;
             }
@@ -409,15 +408,13 @@ static char* strip_numeric_suffix(const char* name) {
 
         if (all_digits) {
             size_t base_len = dot - name;
-            char* base_name = malloc(base_len + 1);
-            if (base_name) {
-                strncpy(base_name, name, base_len);
-                base_name[base_len] = '\0';
-                return base_name;
-            }
+            char* base_name = new char[base_len + 1];
+            strncpy(base_name, name, base_len);
+            base_name[base_len] = '\0';
+            return base_name;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void TextureManager_Init() {
@@ -516,7 +513,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
     }
 
     char line[256];
-    Material* current_material = NULL;
+    Material* current_material = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
         char* trimmed_line = trim(line);
@@ -543,7 +540,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
         else if (trimmed_line[0] == '}') {
             if (current_material) {
                 num_materials++;
-                current_material = NULL;
+                current_material = nullptr;
             }
         }
         else if (current_material) {

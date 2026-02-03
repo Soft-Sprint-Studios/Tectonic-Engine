@@ -132,7 +132,7 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
 
         char* line_start = g_receive_buffer;
         char* newline;
-        while ((newline = strchr(line_start, '\n')) != NULL) {
+        while ((newline = strchr(line_start, '\n')) != nullptr) {
             *newline = '\0';
             
             char* cmd_copy = _strdup(line_start);
@@ -141,9 +141,9 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
             char* argv[MAX_ARGS];
             
             char* p = strtok(cmd_copy, " ");
-            while(p != NULL && argc < MAX_ARGS) {
+            while(p != nullptr && argc < MAX_ARGS) {
                 argv[argc++] = p;
-                p = strtok(NULL, " ");
+                p = strtok(nullptr, " ");
             }
             if (argc > 0) {
                 command_handler(argc, argv);
