@@ -155,7 +155,7 @@ set(ENGINE_HEADERS
 
 # math_lib library
 add_library(math_lib SHARED
-    engine/math_lib/math_lib.c
+    engine/math_lib/math_lib.cpp
     engine/math_lib/math_lib.h
     engine/math_lib/math_api.h
 )
