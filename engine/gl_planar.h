@@ -27,8 +27,16 @@
 
 #include "map.h"
 
-void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera);
-void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
-void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera);
+	void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix);
+	void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_PLANAR_H

@@ -27,6 +27,14 @@
 
 #include "map.h"
 
-void Bloom_RenderPass(Renderer* renderer, Engine* engine);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Bloom_RenderPass(Renderer* renderer, Engine* engine);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_BLOOM_H

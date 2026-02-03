@@ -27,15 +27,23 @@
 
 #include "editor_internal.h"
 
-void Editor_SetMapDirty(bool is_dirty);
-void Editor_SaveRecentFiles();
-void Editor_LoadRecentFiles();
-void Editor_AddRecentFile(const char* path);
-void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
-void Editor_InitGizmo();
-void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);
-void Editor_InitDebugRenderer();
-void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
-void Editor_Shutdown();
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Editor_SetMapDirty(bool is_dirty);
+	void Editor_SaveRecentFiles();
+	void Editor_LoadRecentFiles();
+	void Editor_AddRecentFile(const char* path);
+	void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
+	void Editor_InitGizmo();
+	void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);
+	void Editor_InitDebugRenderer();
+	void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
+	void Editor_Shutdown();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // EDITOR_MISC_H

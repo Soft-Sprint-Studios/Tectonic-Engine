@@ -34,6 +34,10 @@
 #include <SDL_mutex.h>
 #include "sound_api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
     SOUND_API void DSP_Reverb_Thread_Init(void);
     SOUND_API void DSP_Reverb_Thread_Shutdown(void);
 
@@ -63,5 +67,9 @@
     SOUND_API ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
 
     SOUND_API ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DSP_REVERB_H

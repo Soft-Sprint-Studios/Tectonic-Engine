@@ -27,6 +27,10 @@
 
 #include "map.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_TGD_ENTITIES 256
 #define MAX_TGD_PROPERTIES 32
 #define MAX_TGD_IOS 32
@@ -84,5 +88,9 @@
     const TGD_EntityDef* GameData_FindEntityDef(const char* classname);
     const char** GameData_GetBrushEntityClassnames(int* count);
     const char** GameData_GetLogicEntityClassnames(int* count);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GAME_DATA_H

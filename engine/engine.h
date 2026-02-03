@@ -27,6 +27,10 @@
 
 #include "map.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
     typedef enum {
         MODE_GAME,
         MODE_EDITOR,
@@ -52,5 +56,9 @@
     extern bool g_restart_requested;
     extern char g_screenshot_path[256];
     extern bool g_is_editor_mode;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ENGINE_H

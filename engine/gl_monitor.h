@@ -27,9 +27,17 @@
 
 #include "map.h"
 
-void Monitor_Init(Renderer* renderer);
-void Monitor_Shutdown(Renderer* renderer);
-void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, const Mat4* sunLightSpaceMatrix);
-void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat4* view, Mat4* projection);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    void Monitor_Init(Renderer* renderer);
+    void Monitor_Shutdown(Renderer* renderer);
+    void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, const Mat4* sunLightSpaceMatrix);
+    void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat4* view, Mat4* projection);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_MONITOR_H

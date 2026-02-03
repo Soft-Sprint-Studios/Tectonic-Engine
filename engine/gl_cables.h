@@ -27,8 +27,16 @@
 
 #include "map.h"
 
-void Cable_Init(void);
-void Cable_Shutdown(void);
-void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Cable_Init(void);
+	void Cable_Shutdown(void);
+	void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
+	
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_CABLES_H

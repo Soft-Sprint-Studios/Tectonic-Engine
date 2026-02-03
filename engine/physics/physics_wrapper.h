@@ -33,6 +33,10 @@
 #include <stdbool.h>
 #include "physics_api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 	typedef enum {
 		COL_NOTHING = 0,
 		COL_STATIC = 1 << 0,
@@ -84,5 +88,9 @@
 	PHYSICS_API bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance);
 	PHYSICS_API float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle);
 	PHYSICS_API void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PHYSICS_WRAPPER_H

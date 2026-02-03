@@ -28,8 +28,16 @@
 #include "map.h"
 #include "gl_misc.h"
 
-void Decals_Init(Renderer* renderer);
-void Decals_Shutdown(Renderer* renderer);
-void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Decals_Init(Renderer* renderer);
+	void Decals_Shutdown(Renderer* renderer);
+	void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_DECALS_H

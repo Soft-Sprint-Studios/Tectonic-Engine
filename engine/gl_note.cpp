@@ -25,7 +25,9 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern bool g_player_input_disabled;
+extern "C" {
+    extern bool g_player_input_disabled;
+}
 
 void Note_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->note_active) {

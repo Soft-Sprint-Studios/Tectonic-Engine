@@ -243,6 +243,7 @@ struct Console {
 
 static Console console_instance;
 
+extern "C" {
     void Console_Toggle() { show_console = !show_console; }
     bool Console_IsVisible() { return show_console; }
     void Console_Draw() { console_instance.Draw(); }
@@ -537,3 +538,4 @@ static Console console_instance;
         }
         ImGui::End();
     }
+}

@@ -32,22 +32,30 @@
 #include "map.h"
 #include "editor_undo.h"
 
-void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
-void Editor_Shutdown();
-void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine);
-void Editor_Update(Engine* engine, Scene* scene);
-void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
-void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
-void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
-void Editor_DuplicateLight(Scene* scene, int index);
-void Editor_DuplicateDecal(Scene* scene, int index);
-void Editor_DuplicateSoundEntity(Scene* scene, int index);
-void Editor_DuplicateParticleEmitter(Scene* scene, int index);
-void Editor_DuplicateVideoPlayer(Scene* scene, int index);
-void Editor_DuplicateParallaxRoom(Scene* scene, int index);
-void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
-void Editor_DuplicateSprite(Scene* scene, int index);
+	void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
+	void Editor_Shutdown();
+	void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine);
+	void Editor_Update(Engine* engine, Scene* scene);
+	void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
+	void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
+
+	void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
+	void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
+	void Editor_DuplicateLight(Scene* scene, int index);
+	void Editor_DuplicateDecal(Scene* scene, int index);
+	void Editor_DuplicateSoundEntity(Scene* scene, int index);
+	void Editor_DuplicateParticleEmitter(Scene* scene, int index);
+	void Editor_DuplicateVideoPlayer(Scene* scene, int index);
+	void Editor_DuplicateParallaxRoom(Scene* scene, int index);
+	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
+	void Editor_DuplicateSprite(Scene* scene, int index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // EDITOR_H

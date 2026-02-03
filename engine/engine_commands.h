@@ -25,13 +25,21 @@
 #ifndef ENGINE_COMMANDS_H
 #define ENGINE_COMMANDS_H
 
-void RegisterEngineCommandsAndCvars(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// needed by main menu
-void Cmd_SaveGame(int argc, char** argv);
-void Cmd_LoadGame(int argc, char** argv);
+	void RegisterEngineCommandsAndCvars(void);
 
-// needed by engine
-void PrintSystemInfo();
+	// needed by main menu
+	void Cmd_SaveGame(int argc, char** argv);
+	void Cmd_LoadGame(int argc, char** argv);
+
+	// needed by engine
+	void PrintSystemInfo();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ENGINE_COMMANDS_H

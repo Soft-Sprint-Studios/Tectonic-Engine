@@ -27,8 +27,16 @@
 
 #include "map.h"
 
-void Skybox_Init(Renderer* renderer);
-void Skybox_Shutdown(Renderer* renderer);
-void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void Skybox_Init(Renderer* renderer);
+	void Skybox_Shutdown(Renderer* renderer);
+	void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_SKYBOX_H

@@ -27,7 +27,15 @@
 
 #include "map.h"
 
-void evaluate_animation(SceneObject* obj, float time);
-void Scene_UpdateAnimations(Scene* scene, float deltaTime);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	void evaluate_animation(SceneObject* obj, float time);
+	void Scene_UpdateAnimations(Scene* scene, float deltaTime);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ANIMATIONS_H

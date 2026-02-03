@@ -31,17 +31,25 @@
 
 #include "map.h"
 
-void VideoPlayer_UpdateAll(Scene* scene, float deltaTime);
-void VideoPlayer_InitSystem(void);
-void VideoPlayer_ShutdownSystem(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void VideoPlayer_Load(VideoPlayer* vp);
-void VideoPlayer_Free(VideoPlayer* vp);
-void VideoPlayer_Play(VideoPlayer* vp);
-void VideoPlayer_Stop(VideoPlayer* vp);
-void VideoPlayer_Restart(VideoPlayer* vp);
-void VideoPlayer_Update(VideoPlayer* vp, float deltaTime);
-void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection);
-void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH);
+	void VideoPlayer_UpdateAll(Scene* scene, float deltaTime);
+	void VideoPlayer_InitSystem(void);
+	void VideoPlayer_ShutdownSystem(void);
+
+	void VideoPlayer_Load(VideoPlayer* vp);
+	void VideoPlayer_Free(VideoPlayer* vp);
+	void VideoPlayer_Play(VideoPlayer* vp);
+	void VideoPlayer_Stop(VideoPlayer* vp);
+	void VideoPlayer_Restart(VideoPlayer* vp);
+	void VideoPlayer_Update(VideoPlayer* vp, float deltaTime);
+	void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection);
+	void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // GL_VIDEO_PLAYER_H
