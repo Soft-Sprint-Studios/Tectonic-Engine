@@ -110,8 +110,8 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
     for (int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
 
-        Vec3* pos = NULL;
-        Vec3* rot = NULL;
+        Vec3* pos = nullptr;
+        Vec3* rot = nullptr;
 
         switch (sel->type) {
         case ENTITY_MODEL: pos = &scene->objects[sel->index].pos; rot = &scene->objects[sel->index].rot; break;
@@ -244,7 +244,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     Brush_CreateRenderData(base_brush);
     if (base_brush->physicsBody) {
         Physics_RemoveRigidBody(engine->physicsWorld, base_brush->physicsBody);
-        base_brush->physicsBody = NULL;
+        base_brush->physicsBody = nullptr;
     }
     if (Brush_IsSolid(base_brush) && base_brush->numVertices > 0) {
         Vec3* world_verts = (Vec3*)malloc(base_brush->numVertices * sizeof(Vec3));
@@ -407,7 +407,7 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     VideoPlayer* new_vp = &scene->videoPlayers[scene->numVideoPlayers];
     memcpy(new_vp, src_vp, sizeof(VideoPlayer));
     sprintf(new_vp->targetname, "Video_%d", scene->numVideoPlayers);
-    new_vp->plm = NULL;
+    new_vp->plm = nullptr;
     new_vp->audioSource = 0;
     new_vp->pos.x += 1.0f;
     VideoPlayer_Load(new_vp);
