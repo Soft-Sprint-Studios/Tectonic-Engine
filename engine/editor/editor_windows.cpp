@@ -110,7 +110,7 @@ static void render_markdown_line(const char* line) {
 }
 
 void RenderIOEditor(EntityType type, int index) {
-    const TGD_EntityDef* def = nullptr;
+    const TGD_EntityDef* def = NULL;
     if (type == ENTITY_BRUSH) {
         def = GameData_FindEntityDef(g_CurrentScene->brushes[index].classname);
     }
@@ -126,7 +126,7 @@ void RenderIOEditor(EntityType type, int index) {
     UI_Text("Outputs");
 
     int total_target_names = 0;
-    char** all_target_names = nullptr;
+    char** all_target_names = NULL;
 
     for (int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->objects[i].targetname; }
     for (int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) { all_target_names = (char**)realloc(all_target_names, ++total_target_names * sizeof(char*)); all_target_names[total_target_names - 1] = g_CurrentScene->brushes[i].targetname; }
@@ -164,9 +164,9 @@ void RenderIOEditor(EntityType type, int index) {
                         EntityType target_type;
                         int target_index;
                         if (FindEntityInScene(g_CurrentScene, conn->targetName, &target_type, &target_index)) {
-                            const TGD_EntityDef* target_def = nullptr;
-                            const char* classname = nullptr;
-                            const char* base_classname = nullptr;
+                            const TGD_EntityDef* target_def = NULL;
+                            const char* classname = NULL;
+                            const char* base_classname = NULL;
 
                             switch (target_type) {
                             case ENTITY_MODEL: base_classname = "_model_base"; break;
@@ -248,7 +248,7 @@ void FreeModelBrowserEntries() {
             }
         }
         free(g_EditorState.model_browser_entries);
-        g_EditorState.model_browser_entries = nullptr;
+        g_EditorState.model_browser_entries = NULL;
         g_EditorState.num_model_files = 0;
     }
 }
@@ -278,7 +278,7 @@ void FreeDocFileList() {
             free(g_EditorState.doc_files[i]);
         }
         free(g_EditorState.doc_files);
-        g_EditorState.doc_files = nullptr;
+        g_EditorState.doc_files = NULL;
         g_EditorState.num_doc_files = 0;
     }
 }
@@ -295,7 +295,7 @@ void FreeSoundFileList() {
             free(g_EditorState.sound_file_list[i]);
         }
         free(g_EditorState.sound_file_list);
-        g_EditorState.sound_file_list = nullptr;
+        g_EditorState.sound_file_list = NULL;
         g_EditorState.num_sound_files = 0;
     }
 }
@@ -312,7 +312,7 @@ void FreeMapFileList() {
             free(g_EditorState.map_file_list[i]);
         }
         free(g_EditorState.map_file_list);
-        g_EditorState.map_file_list = nullptr;
+        g_EditorState.map_file_list = NULL;
         g_EditorState.num_map_files = 0;
     }
 }
@@ -329,7 +329,7 @@ void FreeParticleFileList() {
             free(g_EditorState.particle_file_list[i]);
         }
         free(g_EditorState.particle_file_list);
-        g_EditorState.particle_file_list = nullptr;
+        g_EditorState.particle_file_list = NULL;
         g_EditorState.num_particle_files = 0;
     }
 }
@@ -347,7 +347,7 @@ void ScanParticleFiles() {
 void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer) {
     if (!g_EditorState.show_add_model_popup) return;
 
-    if (g_EditorState.model_browser_entries == nullptr) {
+    if (g_EditorState.model_browser_entries == NULL) {
         ScanModelFiles();
     }
 
@@ -367,7 +367,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
 
             for (int i = 0; i < g_EditorState.num_model_files; ++i) {
                 ModelBrowserEntry* entry = &g_EditorState.model_browser_entries[i];
-                if (g_EditorState.model_search_filter[0] != '\0' && _stristr(entry->file_path, g_EditorState.model_search_filter) == nullptr) {
+                if (g_EditorState.model_search_filter[0] != '\0' && _stristr(entry->file_path, g_EditorState.model_search_filter) == NULL) {
                     continue;
                 }
 
@@ -379,7 +379,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
 
                     glGenTextures(1, &entry->thumbnail_texture);
                     glBindTexture(GL_TEXTURE_2D, entry->thumbnail_texture);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -402,7 +402,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         memset(&temp_obj, 0, sizeof(SceneObject));
                         temp_obj.model = temp_model;
                         mat4_identity(&temp_obj.modelMatrix);
-                        render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, nullptr);
+                        render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, NULL);
 
                         Model_Free(temp_model);
                         g_is_thumbnail_mode = false;
@@ -484,7 +484,7 @@ void Editor_RenderSoundBrowser(Scene* scene) {
             if (g_EditorState.num_sound_files > 0) {
                 for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
                     const char* sound_name = g_EditorState.sound_file_list[i];
-                    if (g_EditorState.sound_search_filter[0] == '\0' || _stristr(sound_name, g_EditorState.sound_search_filter) != nullptr) {
+                    if (g_EditorState.sound_search_filter[0] == '\0' || _stristr(sound_name, g_EditorState.sound_search_filter) != NULL) {
                         if (UI_Selectable(sound_name, g_EditorState.selected_sound_file_index == i)) {
                             g_EditorState.selected_sound_file_index = i;
                             if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
@@ -768,7 +768,7 @@ void Editor_RenderSculptNoisePopup(Scene* scene) {
         g_EditorState.show_sculpt_noise_popup = false;
     }
 
-    if (UI_BeginPopupModal("Apply Noise", nullptr, 0)) {
+    if (UI_BeginPopupModal("Apply Noise", NULL, 0)) {
         static float min_noise = -0.5f;
         static float max_noise = 0.5f;
         static float frequency = 0.2f;
@@ -872,7 +872,7 @@ void Editor_RenderTextureBrowser(Scene* scene) {
             Material* mat = TextureManager_GetMaterial(i);
 
             if (g_EditorState.texture_search_filter[0] != '\0' &&
-                _stristr(mat->name, g_EditorState.texture_search_filter) == nullptr) {
+                _stristr(mat->name, g_EditorState.texture_search_filter) == NULL) {
                 continue;
             }
 
@@ -1000,7 +1000,7 @@ void Editor_RenderReplaceTexturesUI(Scene* scene) {
     UI_SetNextWindowSize(350, 400);
     if (UI_Begin("Replace Textures", &g_EditorState.show_replace_textures_popup)) {
         UI_Text("Find Material:");
-        Material* find_mat = (g_EditorState.find_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.find_material_index) : nullptr;
+        Material* find_mat = (g_EditorState.find_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.find_material_index) : NULL;
         char find_button_label[128];
         sprintf(find_button_label, "%s##Find", find_mat ? find_mat->name : "None");
         if (UI_Button(find_button_label)) {
@@ -1014,7 +1014,7 @@ void Editor_RenderReplaceTexturesUI(Scene* scene) {
         UI_Separator();
 
         UI_Text("Replace With:");
-        Material* replace_mat = (g_EditorState.replace_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.replace_material_index) : nullptr;
+        Material* replace_mat = (g_EditorState.replace_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.replace_material_index) : NULL;
         char replace_button_label[128];
         sprintf(replace_button_label, "%s##Replace", replace_mat ? replace_mat->name : "None");
         if (UI_Button(replace_button_label)) {
@@ -1096,10 +1096,10 @@ void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                 UI_RadioButton_Int("Blend B", &selected_material_layer, 3);
                 UI_Separator();
 
-                Material* target_material = nullptr;
-                Vec2* target_scale = nullptr;
-                Vec2* target_offset = nullptr;
-                float* target_rotation = nullptr;
+                Material* target_material = NULL;
+                Vec2* target_scale = NULL;
+                Vec2* target_offset = NULL;
+                float* target_rotation = NULL;
 
                 switch (selected_material_layer) {
                 case 0:
@@ -1384,7 +1384,7 @@ void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                 UI_SameLine();
                 if (UI_Button("Copy Props")) {
                     memcpy(&g_copiedFaceProperties, primary_face, sizeof(BrushFace));
-                    g_copiedFaceProperties.vertexIndices = nullptr;
+                    g_copiedFaceProperties.vertexIndices = NULL;
                     g_copiedFaceProperties.numVertexIndices = 0;
                     g_hasCopiedFace = true;
                 }
@@ -1466,7 +1466,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
         UI_Separator();
 
         if (UI_Button("Bake")) {
-            Scene_SaveMap(scene, nullptr, g_EditorState.currentMapPath);
+            Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
 
             int resolution_values[] = { 16, 32, 64, 128, 256, 512 };
             int resolution = resolution_values[g_EditorState.bake_resolution];
@@ -1490,8 +1490,8 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
             for (int i = 0; i < scene->numBrushes; ++i) {
                 Brush* b = &scene->brushes[i];
                 if (b->useVertexLighting) {
-                    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = nullptr; }
-                    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = nullptr; }
+                    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = NULL; }
+                    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = NULL; }
                     Brush_LoadVertexLighting(b, i, scene->mapPath);
                     Brush_LoadVertexDirectionalLighting(b, i, scene->mapPath);
                 }
@@ -1512,8 +1512,8 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
             for (int i = 0; i < scene->numObjects; ++i) {
                 SceneObject* obj = &scene->objects[i];
-                if (obj->bakedVertexColors) { free(obj->bakedVertexColors); obj->bakedVertexColors = nullptr; }
-                if (obj->bakedVertexDirections) { free(obj->bakedVertexDirections); obj->bakedVertexDirections = nullptr; }
+                if (obj->bakedVertexColors) { free(obj->bakedVertexColors); obj->bakedVertexColors = NULL; }
+                if (obj->bakedVertexDirections) { free(obj->bakedVertexDirections); obj->bakedVertexDirections = NULL; }
 
                 if (obj->useLightmap) {
                     if (obj->lightmapHandle) { glMakeTextureHandleNonResidentARB(obj->lightmapHandle); obj->lightmapHandle = 0; }
@@ -1524,7 +1524,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                     if (obj->model) {
                         if (obj->physicsBody) {
                             Physics_RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
-                            obj->physicsBody = nullptr;
+                            obj->physicsBody = NULL;
                         }
 
                         Model_Free(obj->model);
@@ -1778,7 +1778,7 @@ void Editor_RenderMapInfoWindow(Scene* scene) {
             for (int j = 0; j < scene->brushes[i].numFaces; ++j) {
                 Material* mats[] = { scene->brushes[i].faces[j].material, scene->brushes[i].faces[j].material2, scene->brushes[i].faces[j].material3, scene->brushes[i].faces[j].material4 };
                 for (int k = 0; k < 4; ++k) {
-                    if (mats[k] != nullptr && mats[k] != &g_NodrawMaterial) {
+                    if (mats[k] != NULL && mats[k] != &g_NodrawMaterial) {
                         bool found = false;
                         for (int l = 0; l < unique_count; ++l) {
                             if (unique_materials[l] == mats[k]) {
@@ -1983,7 +1983,7 @@ void Editor_RenderStatusBar()
     UI_SetNextWindowPos(0, screen_h - STATUS_BAR_HEIGHT);
     UI_SetNextWindowSize(screen_w, STATUS_BAR_HEIGHT);
 
-    UI_Begin_NoTitlebar_NoResize_NoMove("Status Bar", nullptr);
+    UI_Begin_NoTitlebar_NoResize_NoMove("Status Bar", NULL);
 
     UI_Text("For Help, press F1");
     UI_SameLine();
@@ -2170,7 +2170,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
             if (g_EditorState.num_particle_files > 0) {
                 for (int i = 0; i < g_EditorState.num_particle_files; ++i) {
                     const char* fname = g_EditorState.particle_file_list[i];
-                    if (g_EditorState.particle_search_filter[0] == '\0' || _stristr(fname, g_EditorState.particle_search_filter) != nullptr) {
+                    if (g_EditorState.particle_search_filter[0] == '\0' || _stristr(fname, g_EditorState.particle_search_filter) != NULL) {
                         if (UI_Selectable(fname, g_EditorState.selected_particle_file_index == i)) {
                             g_EditorState.selected_particle_file_index = i;
                         }
@@ -2205,7 +2205,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
                     }
                     else {
                         Console_Printf_Error("Failed to load particle system: %s", emitter->parFile);
-                        emitter->system = nullptr;
+                        emitter->system = NULL;
                     }
                     scene->numParticleEmitters++;
                     Undo_PushCreateEntity(scene, ENTITY_PARTICLE_EMITTER, scene->numParticleEmitters - 1, "Create Particle Emitter");

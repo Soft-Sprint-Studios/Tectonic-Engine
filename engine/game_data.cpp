@@ -30,10 +30,10 @@
 static TGD_EntityDef g_entity_defs[MAX_TGD_ENTITIES];
 static int g_num_entity_defs = 0;
 
-static const char** g_brush_classnames = nullptr;
+static const char** g_brush_classnames = NULL;
 static int g_num_brush_classnames = 0;
 
-static const char** g_logic_classnames = nullptr;
+static const char** g_logic_classnames = NULL;
 static int g_num_logic_classnames = 0;
 
 
@@ -61,7 +61,7 @@ void GameData_Init(const char* filepath) {
     }
 
     char line[1024];
-    TGD_EntityDef* current_def = nullptr;
+    TGD_EntityDef* current_def = NULL;
 
     while (fgets(line, sizeof(line), file)) {
         char* trimmed = trim(line);
@@ -167,13 +167,13 @@ void GameData_Shutdown(void) {
 }
 
 const TGD_EntityDef* GameData_FindEntityDef(const char* classname) {
-    if (!classname || classname[0] == '\0') return nullptr;
+    if (!classname || classname[0] == '\0') return NULL;
     for (int i = 0; i < g_num_entity_defs; ++i) {
         if (_stricmp(g_entity_defs[i].classname, classname) == 0) {
             return &g_entity_defs[i];
         }
     }
-    return nullptr;
+    return NULL;
 }
 
 const char** GameData_GetBrushEntityClassnames(int* count) {

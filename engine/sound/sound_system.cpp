@@ -44,8 +44,8 @@ typedef struct {
 static BufferData g_buffers[MAX_BUFFERS];
 static int g_buffer_count = 0;
 
-static ALCdevice* g_sound_device = nullptr;
-static ALCcontext* g_sound_context = nullptr;
+static ALCdevice* g_sound_device = NULL;
+static ALCcontext* g_sound_context = NULL;
 static ReverbPreset g_current_reverb_preset = REVERB_PRESET_NONE;
 
 typedef struct {
@@ -66,10 +66,10 @@ static PlayingSourceLink g_playing_source_links[MAX_PLAYING_SOUNDS];
 static int g_playing_link_count = 0;
 
 bool SoundSystem_Init() {
-    g_sound_device = alcOpenDevice(nullptr);
+    g_sound_device = alcOpenDevice(NULL);
     if (!g_sound_device) return false;
 
-    g_sound_context = alcCreateContext(g_sound_device, nullptr);
+    g_sound_context = alcCreateContext(g_sound_device, NULL);
     if (!g_sound_context) {
         alcCloseDevice(g_sound_device);
         return false;
@@ -96,13 +96,13 @@ void SoundSystem_Shutdown() {
     g_playing_link_count = 0;
 
     if (g_sound_context) {
-        alcMakeContextCurrent(nullptr);
+        alcMakeContextCurrent(NULL);
         alcDestroyContext(g_sound_context);
-        g_sound_context = nullptr;
+        g_sound_context = NULL;
     }
     if (g_sound_device) {
         alcCloseDevice(g_sound_device);
-        g_sound_device = nullptr;
+        g_sound_device = NULL;
     }
 }
 
@@ -122,7 +122,7 @@ static BufferData* find_buffer_data(ALuint bufferID) {
     for (int i = 0; i < g_buffer_count; i++) {
         if (g_buffers[i].bufferID == bufferID) return &g_buffers[i];
     }
-    return nullptr;
+    return NULL;
 }
 
 static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPreset preset) {
@@ -196,7 +196,7 @@ static unsigned int internal_LoadMP3(const char* path) {
     mp3dec_init(&mp3d);
 
     mp3dec_frame_info_t info;
-    short* pcm_buffer = nullptr;
+    short* pcm_buffer = NULL;
     size_t pcm_size = 0;
     size_t pcm_capacity = 65536;
     pcm_buffer = (short*)malloc(pcm_capacity * sizeof(short));
@@ -210,7 +210,7 @@ static unsigned int internal_LoadMP3(const char* path) {
     unsigned char* buf_ptr = file_buffer;
     int bytes_left = file_size;
 
-    while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, nullptr, &info)) > 0) {
+    while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, NULL, &info)) > 0) {
         if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
             pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
             short* new_pcm_buffer = (short*)realloc(pcm_buffer, pcm_capacity * sizeof(short));
@@ -302,7 +302,7 @@ static unsigned int internal_LoadWAV(const char* path) {
     bool foundData = false;
     unsigned short audioFormat = 0, numChannels = 0, bitsPerSample = 0;
     unsigned int sampleRate = 0, dataSize = 0;
-    void* data = nullptr;
+    void* data = NULL;
 
     while (!feof(file)) {
         if (fread(chunkId, 1, 4, file) != 4) break;
@@ -336,7 +336,7 @@ static unsigned int internal_LoadWAV(const char* path) {
 
     fclose(file);
 
-    if (!foundFmt || !foundData || data == nullptr) {
+    if (!foundFmt || !foundData || data == NULL) {
         free(data);
         return 0;
     }

@@ -48,7 +48,7 @@ MATERIALS_API bool g_is_thumbnail_mode = false;
 MATERIALS_API bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
-    if (filename == nullptr || filename[0] == '\0') return nullptr;
+    if (filename == NULL || filename[0] == '\0') return NULL;
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
         return _strdup(filename);
     }
@@ -57,7 +57,7 @@ static char* prependTexturePath(const char* filename) {
     char* fullPath = (char*)malloc(len);
     if (!fullPath) {
         Console_Printf_Error("Memory allocation failed for texture path.\n");
-        return nullptr;
+        return NULL;
     }
     strcpy(fullPath, baseFolder);
     strcat(fullPath, filename);
@@ -139,7 +139,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
             int scaled_h = (int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -163,7 +163,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -229,7 +229,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
             int scaled_h = (int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -253,7 +253,7 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
-                SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
+                SDL_BlitScaled(surf, NULL, scaled_surf, NULL);
                 SDL_FreeSurface(surf);
                 surf = scaled_surf;
             }
@@ -513,7 +513,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
     }
 
     char line[256];
-    Material* current_material = nullptr;
+    Material* current_material = NULL;
 
     while (fgets(line, sizeof(line), file)) {
         char* trimmed_line = trim(line);
@@ -540,7 +540,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
         else if (trimmed_line[0] == '}') {
             if (current_material) {
                 num_materials++;
-                current_material = nullptr;
+                current_material = NULL;
             }
         }
         else if (current_material) {

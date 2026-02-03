@@ -301,7 +301,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_is_editor_mode = true;
     g_CurrentScene = scene;
     memset(&g_EditorState, 0, sizeof(EditorState));
-    g_EditorState.selections = nullptr;
+    g_EditorState.selections = NULL;
     g_EditorState.num_selections = 0;
     g_EditorState.preview_brush_active_handle = PREVIEW_BRUSH_HANDLE_NONE;
     g_EditorState.preview_brush_hovered_handle = PREVIEW_BRUSH_HANDLE_NONE;
@@ -329,7 +329,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
         g_EditorState.viewport_width[i] = 800; g_EditorState.viewport_height[i] = 600;
         glGenFramebuffers(1, &g_EditorState.viewport_fbo[i]); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[i]);
         glGenTextures(1, &g_EditorState.viewport_texture[i]); glBindTexture(GL_TEXTURE_2D, g_EditorState.viewport_texture[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.viewport_width[i], g_EditorState.viewport_height[i], 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.viewport_width[i], g_EditorState.viewport_height[i], 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.viewport_texture[i], 0);
         glGenRenderbuffers(1, &g_EditorState.viewport_rbo[i]); glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.viewport_rbo[i]);
@@ -339,7 +339,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.model_preview_width = 512; g_EditorState.model_preview_height = 512;
     glGenFramebuffers(1, &g_EditorState.model_preview_fbo); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_preview_fbo);
     glGenTextures(1, &g_EditorState.model_preview_texture); glBindTexture(GL_TEXTURE_2D, g_EditorState.model_preview_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.model_preview_width, g_EditorState.model_preview_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.model_preview_width, g_EditorState.model_preview_height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.model_preview_texture, 0);
     glGenRenderbuffers(1, &g_EditorState.model_preview_rbo); glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
@@ -350,7 +350,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_thumb_fbo);
     glGenTextures(1, &g_EditorState.model_thumb_texture);
     glBindTexture(GL_TEXTURE_2D, g_EditorState.model_thumb_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, thumb_size, thumb_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, thumb_size, thumb_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.model_thumb_texture, 0);
@@ -362,7 +362,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_preview_width = 200; g_EditorState.arch_preview_height = 150;
     glGenFramebuffers(1, &g_EditorState.arch_preview_fbo); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.arch_preview_fbo);
     glGenTextures(1, &g_EditorState.arch_preview_texture); glBindTexture(GL_TEXTURE_2D, g_EditorState.arch_preview_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_EditorState.arch_preview_width, g_EditorState.arch_preview_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.arch_preview_texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -389,7 +389,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.show_load_map_popup = false;
     g_EditorState.show_save_map_popup = false;
     strcpy(g_EditorState.save_map_path, "new_map.map");
-    g_EditorState.map_file_list = nullptr;
+    g_EditorState.map_file_list = NULL;
     g_EditorState.num_map_files = 0;
     g_EditorState.selected_map_file_index = -1;
     g_EditorState.is_painting = false;
@@ -404,7 +404,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.sculpt_brush_radius = 2.0f;
     g_EditorState.sculpt_brush_strength = 0.5f;
     g_EditorState.show_sound_browser_popup = false;
-    g_EditorState.sound_file_list = nullptr;
+    g_EditorState.sound_file_list = NULL;
     g_EditorState.num_sound_files = 0;
     g_EditorState.selected_sound_file_index = -1;
     memset(g_EditorState.sound_search_filter, 0, sizeof(g_EditorState.sound_search_filter));
@@ -433,11 +433,11 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.editor_camera_speed = 10.0f;
     g_EditorState.texture_lock_enabled = true;
     g_EditorState.show_help_window = false;
-    g_EditorState.doc_files = nullptr;
+    g_EditorState.doc_files = NULL;
     g_EditorState.num_doc_files = 0;
     g_EditorState.selected_doc_index = -1;
-    g_EditorState.current_doc_content = nullptr;
-    g_EditorState.recent_map_files = nullptr;
+    g_EditorState.current_doc_content = NULL;
+    g_EditorState.recent_map_files = NULL;
     g_EditorState.num_recent_map_files = 0;
     g_EditorState.next_group_id = 1;
     g_EditorState.show_arch_properties_popup = false;
@@ -455,7 +455,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.transform_window_mode = TRANSFORM_MODE_MOVE;
     g_EditorState.transform_window_values = Vec3{ 0,0,0 };
     g_EditorState.show_particle_browser_popup = false;
-    g_EditorState.particle_file_list = nullptr;
+    g_EditorState.particle_file_list = NULL;
     g_EditorState.num_particle_files = 0;
     g_EditorState.selected_particle_file_index = -1;
     memset(g_EditorState.particle_search_filter, 0, sizeof(g_EditorState.particle_search_filter));
@@ -505,7 +505,7 @@ void Editor_Shutdown() {
     FreeDocFileList();
     if (g_EditorState.current_doc_content) {
         free(g_EditorState.current_doc_content);
-        g_EditorState.current_doc_content = nullptr;
+        g_EditorState.current_doc_content = NULL;
     }
     if (g_EditorState.selections) free(g_EditorState.selections);
     if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);

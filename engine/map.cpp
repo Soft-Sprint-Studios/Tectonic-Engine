@@ -80,19 +80,19 @@ void Brush_FreeData(Brush* b) {
             glMakeTextureHandleNonResidentARB(b->directionalLightmapAtlasHandle);
             b->directionalLightmapAtlasHandle = 0;
         } glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-    if (b->vertices) { free(b->vertices); b->vertices = nullptr; }
+    if (b->vertices) { free(b->vertices); b->vertices = NULL; }
     if (b->faces) {
         for (int i = 0; i < b->numFaces; i++) {
             if (b->faces[i].vertexIndices) {
                 free(b->faces[i].vertexIndices);
-                b->faces[i].vertexIndices = nullptr;
+                b->faces[i].vertexIndices = NULL;
             }
         }
         free(b->faces);
-        b->faces = nullptr;
+        b->faces = NULL;
     }
-    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = nullptr; }
-    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = nullptr; }
+    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = NULL; }
+    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = NULL; }
     b->numVertices = 0;
     b->numFaces = 0;
 }
@@ -146,14 +146,14 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->directionalLightmapAtlasHandle = 0;
     dest->lightmap_atlas_size = Vec2{ 0.0, 0.0 };
     dest->totalRenderVertexCount = 0;
-    dest->physicsBody = nullptr;
+    dest->physicsBody = NULL;
     dest->mass = src->mass;
     dest->isPhysicsEnabled = src->isPhysicsEnabled;
     dest->isGrouped = src->isGrouped;
     dest->casts_shadows = src->casts_shadows;
     dest->useVertexLighting = src->useVertexLighting;
-    dest->bakedVertexColors = nullptr;
-    dest->bakedVertexDirections = nullptr;
+    dest->bakedVertexColors = NULL;
+    dest->bakedVertexDirections = NULL;
     strncpy(dest->groupName, src->groupName, sizeof(dest->groupName) - 1);
     dest->groupName[sizeof(dest->groupName) - 1] = '\0';
 
@@ -562,7 +562,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
             }
         }
         free(scene->objects);
-        scene->objects = nullptr;
+        scene->objects = NULL;
     }
 
     for (int i = 0; i < scene->numBrushes; ++i) {
@@ -575,7 +575,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
             }
         }
         Brush_FreeData(&scene->brushes[i]);
-        scene->brushes[i].physicsBody = nullptr;
+        scene->brushes[i].physicsBody = NULL;
     }
 
     for (int i = 0; i < scene->numActiveLights; ++i) {
@@ -623,12 +623,12 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->numLogicEntities = 0;
 
     if (engine->camera.physicsBody) {
-        engine->camera.physicsBody = nullptr;
+        engine->camera.physicsBody = NULL;
     }
 
     if (engine->physicsWorld) {
         Physics_DestroyWorld(engine->physicsWorld);
-        engine->physicsWorld = nullptr;
+        engine->physicsWorld = NULL;
     }
 
     scene->numSprites = 0;
@@ -663,7 +663,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->colorCorrection.lutTexture = 0;
     if (scene->ambient_probes) {
         free(scene->ambient_probes);
-        scene->ambient_probes = nullptr;
+        scene->ambient_probes = NULL;
     }
     scene->num_ambient_probes = 0;
     scene->sun.enabled = true;
@@ -855,9 +855,9 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                             &b->faces[i].numVertexIndices);
 
                         b->faces[i].material = TextureManager_FindMaterial(mat_name);
-                        b->faces[i].material2 = strcmp(mat2_name, "nullptr") == 0 ? nullptr : TextureManager_FindMaterial(mat2_name);
-                        b->faces[i].material3 = strcmp(mat3_name, "nullptr") == 0 ? nullptr : TextureManager_FindMaterial(mat3_name);
-                        b->faces[i].material4 = strcmp(mat4_name, "nullptr") == 0 ? nullptr : TextureManager_FindMaterial(mat4_name);
+                        b->faces[i].material2 = strcmp(mat2_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat2_name);
+                        b->faces[i].material3 = strcmp(mat3_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat3_name);
+                        b->faces[i].material4 = strcmp(mat4_name, "NULL") == 0 ? NULL : TextureManager_FindMaterial(mat4_name);
 
                         b->faces[i].vertexIndices = new int[b->faces[i].numVertexIndices];
                         char* p = strchr(line, ':');
@@ -998,7 +998,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
             newObj->animation_looping = true;
             newObj->current_animation = -1;
             newObj->animation_time = 0.0f;
-            newObj->bone_matrices = nullptr;
+            newObj->bone_matrices = NULL;
             mat4_identity(&newObj->animated_local_transform);
             long current_pos = ftell(file); char next_line[256];
             if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
@@ -1071,7 +1071,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
                 }
             }
 
-            char* style_start = (p) ? strchr(p, '"') : nullptr;
+            char* style_start = (p) ? strchr(p, '"') : NULL;
             if (style_start) {
                 p = style_start + 1;
                 char* end = strchr(p, '"');
@@ -1399,7 +1399,7 @@ bool Scene_LoadMap(Scene* scene, Renderer* renderer, const char* mapPath, Engine
 
     for (int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].classname, "logic_auto") == 0) {
-            IO_FireOutput(ENTITY_LOGIC, i, "OnMapSpawn", 0.0f, nullptr);
+            IO_FireOutput(ENTITY_LOGIC, i, "OnMapSpawn", 0.0f, NULL);
         }
     }
 
@@ -1412,7 +1412,7 @@ static void CreateMapBackup(const char* originalPath) {
         return;
     }
 
-    time_t now_for_folder = time(nullptr);
+    time_t now_for_folder = time(NULL);
     struct tm* t_folder = localtime(&now_for_folder);
     char month_folder_name[32];
     strftime(month_folder_name, sizeof(month_folder_name), "%Y_%B", t_folder);
@@ -1444,7 +1444,7 @@ static void CreateMapBackup(const char* originalPath) {
     char* dot = strrchr(base_name, '.');
     if (dot) *dot = '\0';
 
-    time_t now = time(nullptr);
+    time_t now = time(NULL);
     struct tm* t = localtime(&now);
     char timestamp[64];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H-%M-%S", t);
@@ -1539,9 +1539,9 @@ bool Scene_SaveMap(Scene* scene, Engine* engine, const char* mapPath) {
         for (int j = 0; j < b->numFaces; ++j) {
             BrushFace* face = &b->faces[j];
             const char* mat_name = face->material ? face->material->name : "___MISSING___";
-            const char* mat2_name = face->material2 ? face->material2->name : "nullptr";
-            const char* mat3_name = face->material3 ? face->material3->name : "nullptr";
-            const char* mat4_name = face->material4 ? face->material4->name : "nullptr";
+            const char* mat2_name = face->material2 ? face->material2->name : "NULL";
+            const char* mat3_name = face->material3 ? face->material3->name : "NULL";
+            const char* mat4_name = face->material4 ? face->material4->name : "NULL";
 
             fprintf(file, "  f %d %s %s %s %s %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %d :",
                 j, mat_name, mat2_name, mat3_name, mat4_name,

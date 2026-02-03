@@ -301,9 +301,9 @@ void Cmd_Exec(int argc, char** argv) {
         char* exec_argv[MAX_ARGS];
 
         char* p = strtok(cmd_copy, " ");
-        while (p != nullptr && exec_argc < MAX_ARGS) {
+        while (p != NULL && exec_argc < MAX_ARGS) {
             exec_argv[exec_argc++] = p;
-            p = strtok(nullptr, " ");
+            p = strtok(NULL, " ");
         }
 
         if (exec_argc > 0) {
@@ -358,7 +358,7 @@ void Cmd_LoadGame(int argc, char** argv) {
 
     Console_Printf("Loading game from %s...", savePath);
 
-    LoadingScreen_Show(nullptr);
+    LoadingScreen_Show(NULL);
     LoadingScreen_Render();
     SDL_GL_SwapWindow(g_engine->window);
 
@@ -394,19 +394,19 @@ void Cmd_ScreenShake(int argc, char** argv) {
 
 void Cmd_Condump(int argc, char** argv) {
     char filename[32];
-    FILE* file = nullptr;
+    FILE* file = NULL;
 
     for (int i = 0; i < 1000; ++i) {
         snprintf(filename, sizeof(filename), "condump%03d.txt", i);
         file = fopen(filename, "r");
-        if (file == nullptr) {
+        if (file == NULL) {
             break;
         }
         fclose(file);
-        file = nullptr;
+        file = NULL;
     }
 
-    if (file != nullptr) {
+    if (file != NULL) {
         fclose(file);
     }
 

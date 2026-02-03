@@ -41,7 +41,7 @@ void Glow_Init(void) {
     glGenBuffers(1, &g_glow_vbo);
     glBindVertexArray(g_glow_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_glow_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_LOGIC_ENTITIES * sizeof(GlowVertex), nullptr, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_LOGIC_ENTITIES * sizeof(GlowVertex), NULL, GL_STREAM_DRAW);
     
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GlowVertex), (void*)offsetof(GlowVertex, pos));

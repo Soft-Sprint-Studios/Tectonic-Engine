@@ -64,7 +64,7 @@ bool g_has_last_camera_state = false;
 
 void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     if (event->type == SDL_MOUSEMOTION) {
-        bool can_look = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
+        bool can_look = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
         if (can_look) {
             g_EditorState.editor_camera.yaw += event->motion.xrel * 0.005f;
             g_EditorState.editor_camera.pitch -= event->motion.yrel * 0.005f;
@@ -121,7 +121,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     delete[] world_verts;
                 }
                 else {
-                    original_brush->physicsBody = nullptr;
+                    original_brush->physicsBody = NULL;
                 }
 
                 Brush_Clip(&brush_b_storage, plane_normal_b, plane_d_b);
@@ -144,7 +144,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         delete[] world_verts;
                     }
                     else {
-                        new_b_ptr->physicsBody = nullptr;
+                        new_b_ptr->physicsBody = NULL;
                     }
                     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Clip Brush (Create B)");
                 }
@@ -699,7 +699,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         if (dist_sq < radius_sq) {
                             float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
                             float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->deltaTime * 10.0f;
-                            float* channel_to_paint = nullptr;
+                            float* channel_to_paint = NULL;
                             if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
                             else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
                             else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
@@ -815,7 +815,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         delete[] world_verts;
                     }
                     else {
-                        b->physicsBody = nullptr;
+                        b->physicsBody = NULL;
                     }
                 }
             }
@@ -913,7 +913,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         delete[] world_verts;
                     }
                     else {
-                        b->physicsBody = nullptr;
+                        b->physicsBody = NULL;
                     }
                 }
             }
@@ -974,7 +974,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     delete[] world_verts;
                 }
                 else {
-                    b->physicsBody = nullptr;
+                    b->physicsBody = NULL;
                 }
             }
 
@@ -1004,7 +1004,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     delete[] world_verts;
                 }
                 else {
-                    b->physicsBody = nullptr;
+                    b->physicsBody = NULL;
                 }
             }
             return;
@@ -1065,7 +1065,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     delete[] world_verts;
                 }
                 else {
-                    b->physicsBody = nullptr;
+                    b->physicsBody = NULL;
                 }
             }
 
@@ -1320,7 +1320,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.current_brush_shape = original_shape;
                 }
                 }
-        else if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
+        else if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
             for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     for (int j = 0; j < VIEW_COUNT; ++j) {
@@ -1394,7 +1394,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.show_save_map_popup = true;
             }
             else {
-                Scene_SaveMap(scene, nullptr, g_EditorState.currentMapPath);
+                Scene_SaveMap(scene, NULL, g_EditorState.currentMapPath);
             }
             return;
         }
@@ -1605,7 +1605,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                             delete[] world_verts;
                         }
                         else {
-                            b->physicsBody = nullptr;
+                            b->physicsBody = NULL;
                         }
                     }
                     Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Nudge Vertex");
@@ -1745,9 +1745,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     }
 }
 void Editor_Update(Engine* engine, Scene* scene) {
-    bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
+    bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
     if (can_move) {
-        const Uint8* state = SDL_GetKeyboardState(nullptr); float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
+        const Uint8* state = SDL_GetKeyboardState(NULL); float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
         Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
         vec3_normalize(&forward); Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 }); vec3_normalize(&right);
         if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
@@ -1845,7 +1845,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 if (dist_sq < radius_sq) {
                     float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
                     float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
-                    float* channel_to_paint = nullptr;
+                    float* channel_to_paint = NULL;
                     if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
                     else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
                     else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
@@ -1888,7 +1888,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                         delete[] world_verts;
                     }
                     else {
-                        b->physicsBody = nullptr;
+                        b->physicsBody = NULL;
                     }
                 }
             }
@@ -2345,7 +2345,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (strcmp(g_EditorState.currentMapPath, "untitled.map") != 0) {
             char autosave_path[256];
             sprintf(autosave_path, "autosaves/_autosave_%s", g_EditorState.currentMapPath);
-            Scene_SaveMap(scene, nullptr, autosave_path);
+            Scene_SaveMap(scene, NULL, autosave_path);
         }
         g_EditorState.autosave_timer = 0.0f;
     }

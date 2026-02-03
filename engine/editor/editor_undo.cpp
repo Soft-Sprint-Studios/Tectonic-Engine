@@ -54,7 +54,7 @@ static Action* g_redo_stack[MAX_UNDO_ACTIONS];
 static int g_undo_top = -1;
 static int g_redo_top = -1;
 
-static EntityState* g_multi_before_states = nullptr;
+static EntityState* g_multi_before_states = NULL;
 static int g_num_multi_before_states = 0;
 static bool g_is_modifying = false;
 
@@ -82,7 +82,7 @@ void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     }
     else {
         free(scene->objects);
-        scene->objects = nullptr;
+        scene->objects = NULL;
     }
 }
 
@@ -92,7 +92,7 @@ void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
     Brush_FreeData(&scene->brushes[index]);
     if (scene->brushes[index].physicsBody) {
         Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody);
-        scene->brushes[index].physicsBody = nullptr;
+        scene->brushes[index].physicsBody = NULL;
     }
 
     if (index < scene->numBrushes - 1) {
@@ -212,7 +212,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         *obj = state->data.object;
         strcpy(obj->modelPath, state->modelPath);
         obj->model = Model_Load(obj->modelPath);
-        obj->physicsBody = nullptr;
+        obj->physicsBody = NULL;
 
         if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0) {
             Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
@@ -237,7 +237,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
         Brush_DeepCopy(b, &state->data.brush);
         Brush_UpdateMatrix(b);
         Brush_CreateRenderData(b);
-        b->physicsBody = nullptr;
+        b->physicsBody = NULL;
 
         if (Brush_IsSolid(b) && b->numVertices > 0) {
             if (b->mass > 0.0f) {
@@ -351,7 +351,7 @@ void Undo_Shutdown() {
     if (g_multi_before_states) {
         for (int i = 0; i < g_num_multi_before_states; ++i) free_entity_state_data(&g_multi_before_states[i]);
         free(g_multi_before_states);
-        g_multi_before_states = nullptr;
+        g_multi_before_states = NULL;
     }
 }
 
@@ -375,7 +375,7 @@ static void deep_copy_entity_state(EntityState* dest, const EntityState* src) {
 
 static Action* deep_copy_action(const Action* src) {
     Action* dest = (Action*)calloc(1, sizeof(Action));
-    if (!dest) return nullptr;
+    if (!dest) return NULL;
 
     dest->type = src->type;
     strncpy(dest->description, src->description, sizeof(dest->description) - 1);
@@ -470,7 +470,7 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
 }
 
 static void capture_unique_states(Scene* scene, EditorSelection* selections, int num_selections, EntityState** states, int* num_states) {
-    if (num_selections == 0) { *states = nullptr; *num_states = 0; return; }
+    if (num_selections == 0) { *states = NULL; *num_states = 0; return; }
     *states = (EntityState*)calloc(num_selections, sizeof(EntityState));
     *num_states = 0;
     for (int i = 0; i < num_selections; ++i) {
@@ -494,7 +494,7 @@ void Undo_EndMultiEntityModification(Scene* scene, EditorSelection* selections, 
     action->type = ACTION_MODIFY_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     action->before_states = g_multi_before_states; action->num_before_states = g_num_multi_before_states;
     capture_unique_states(scene, selections, num_selections, &action->after_states, &action->num_after_states);
-    g_multi_before_states = nullptr; g_num_multi_before_states = 0;
+    g_multi_before_states = NULL; g_num_multi_before_states = 0;
     Undo_PushAction(action);
 }
 
@@ -502,7 +502,7 @@ void Undo_PushCreateMultipleEntities(Scene* scene, EditorSelection* selections, 
     Action* action = (Action*)calloc(1, sizeof(Action)); if (!action) return;
     action->type = ACTION_CREATE_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     capture_unique_states(scene, selections, num_selections, &action->after_states, &action->num_after_states);
-    action->before_states = nullptr; action->num_before_states = 0;
+    action->before_states = NULL; action->num_before_states = 0;
     Undo_PushAction(action);
 }
 
@@ -510,7 +510,7 @@ void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, 
     Action* action = (Action*)calloc(1, sizeof(Action)); if (!action) return;
     action->type = ACTION_DELETE_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     action->before_states = deleted_states; action->num_before_states = num_states;
-    action->after_states = nullptr; action->num_after_states = 0;
+    action->after_states = NULL; action->num_after_states = 0;
     Undo_PushAction(action);
 }
 

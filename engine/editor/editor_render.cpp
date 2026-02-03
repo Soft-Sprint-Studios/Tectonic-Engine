@@ -327,8 +327,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glEnable(GL_DEPTH_TEST);
         }
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-        for (int i = 0; i < scene->numObjects; i++) { render_object(renderer, scene, g_EditorState.debug_shader, &scene->objects[i], false, nullptr); }
-        for (int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr); }
+        for (int i = 0; i < scene->numObjects; i++) { render_object(renderer, scene, g_EditorState.debug_shader, &scene->objects[i], false, NULL); }
+        for (int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, NULL); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -339,7 +339,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         for (int i = 0; i < scene->numBrushes; i++) {
             if (Editor_IsSelected(ENTITY_BRUSH, i)) {
-                render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr);
+                render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, NULL);
             }
         }
 
@@ -510,7 +510,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
-        if (sel->type == ENTITY_MODEL) { SceneObject* obj = &scene->objects[sel->index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(renderer, scene, g_EditorState.debug_shader, obj, false, nullptr); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+        if (sel->type == ENTITY_MODEL) { SceneObject* obj = &scene->objects[sel->index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(renderer, scene, g_EditorState.debug_shader, obj, false, NULL); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     }
     for (int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -1067,7 +1067,7 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         memset(&temp_obj, 0, sizeof(SceneObject));
         temp_obj.model = g_EditorState.preview_model;
         mat4_identity(&temp_obj.modelMatrix);
-        render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, nullptr);
+        render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, NULL);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

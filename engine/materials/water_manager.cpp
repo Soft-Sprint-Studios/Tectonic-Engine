@@ -67,7 +67,7 @@ void WaterManager_ParseWaters(const char* filepath) {
     }
 
     char line[256];
-    WaterDef* current_def = nullptr;
+    WaterDef* current_def = NULL;
 
     while (fgets(line, sizeof(line), file)) {
         char* trimmed_line = trim(line);
@@ -90,7 +90,7 @@ void WaterManager_ParseWaters(const char* filepath) {
                     current_def->flowMap = 0;
                 }
                 g_num_water_defs++;
-                current_def = nullptr;
+                current_def = NULL;
             }
         } else if (current_def) {
             char key[64], value[128];

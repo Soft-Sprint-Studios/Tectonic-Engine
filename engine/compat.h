@@ -29,6 +29,7 @@
 // Brief: Compatibility header to properly support linux & some general functions
 //----------------------------------------//
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -140,11 +141,7 @@ static const char* _stristr(const char* haystack, const char* needle) {
             }
         }
     }
-#ifdef __cplusplus
-    return nullptr;
-#else
     return NULL;
-#endif
 }
 
 static char* trim(char* str) {

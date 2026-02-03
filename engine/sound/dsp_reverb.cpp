@@ -45,9 +45,9 @@ static int g_dsp_job_queue_head = 0;
 static int g_dsp_job_queue_tail = 0;
 static int g_dsp_job_count = 0;
 
-static SDL_Thread* g_dsp_thread = nullptr;
-static SDL_mutex* g_dsp_queue_mutex = nullptr;
-static SDL_sem* g_dsp_jobs_available_sem = nullptr;
+static SDL_Thread* g_dsp_thread = NULL;
+static SDL_mutex* g_dsp_queue_mutex = NULL;
+static SDL_sem* g_dsp_jobs_available_sem = NULL;
 static volatile bool g_dsp_thread_running = false;
 
 static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
@@ -83,7 +83,7 @@ void DSP_Reverb_Thread_Init(void) {
     g_dsp_jobs_available_sem = SDL_CreateSemaphore(0);
     g_dsp_thread_running = true;
 
-    g_dsp_thread = SDL_CreateThread(DSP_Thread_Worker, "DSPThread", nullptr);
+    g_dsp_thread = SDL_CreateThread(DSP_Thread_Worker, "DSPThread", NULL);
 }
 
 void DSP_Reverb_Thread_Shutdown(void) {
@@ -91,14 +91,14 @@ void DSP_Reverb_Thread_Shutdown(void) {
 
     g_dsp_thread_running = false;
     SDL_SemPost(g_dsp_jobs_available_sem);
-    SDL_WaitThread(g_dsp_thread, nullptr);
+    SDL_WaitThread(g_dsp_thread, NULL);
 
     SDL_DestroyMutex(g_dsp_queue_mutex);
     SDL_DestroySemaphore(g_dsp_jobs_available_sem);
 
-    g_dsp_thread = nullptr;
-    g_dsp_queue_mutex = nullptr;
-    g_dsp_jobs_available_sem = nullptr;
+    g_dsp_thread = NULL;
+    g_dsp_queue_mutex = NULL;
+    g_dsp_jobs_available_sem = NULL;
 }
 
 #define REVERB_TAIL_SECONDS 5.0f
@@ -283,7 +283,7 @@ ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset) {
 }
 
 static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
-    ProcessedAudio result = { nullptr, 0 };
+    ProcessedAudio result = { NULL, 0 };
     if (!input || num_samples <= 0) return result;
 
     int tail_samples = (int)(sample_rate * REVERB_TAIL_SECONDS);
@@ -334,10 +334,10 @@ ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sampl
 
     SDL_sem* completion_sem = SDL_CreateSemaphore(0);
     if (!completion_sem) {
-        return ProcessedAudio{ nullptr, 0 };
+        return ProcessedAudio{ NULL, 0 };
     }
 
-    ProcessedAudio result = { nullptr, 0 };
+    ProcessedAudio result = { NULL, 0 };
 
     SDL_LockMutex(g_dsp_queue_mutex);
     if (g_dsp_job_count >= MAX_DSP_JOBS) {

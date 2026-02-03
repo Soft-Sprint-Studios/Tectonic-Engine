@@ -461,7 +461,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         char path[512];
 
         snprintf(path, sizeof(path), "%s/face_%d_color.hdr", final_brush_dir, i);
-        face_data[i].color_data = stbi_loadf(path, &face_data[i].width, &face_data[i].height, nullptr, 3);
+        face_data[i].color_data = stbi_loadf(path, &face_data[i].width, &face_data[i].height, NULL, 3);
 
         snprintf(path, sizeof(path), "%s/face_%d_dir.png", final_brush_dir, i);
         face_data[i].dir_surface = IMG_Load(path);
@@ -496,11 +496,11 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, atlas_width, atlas_height, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, atlas_width, atlas_height, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &b->directionalLightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, atlas_width, atlas_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, atlas_width, atlas_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     int current_face = 0;
     for (int i = 0; i < b->numFaces; ++i) {

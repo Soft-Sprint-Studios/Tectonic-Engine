@@ -378,7 +378,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
     if (selected_type != ENTITY_NONE) {
-        const char* group_name = nullptr;
+        const char* group_name = NULL;
         bool is_grouped = false;
 
         if (selected_type == ENTITY_BRUSH && hit_face_index != -1) {
@@ -493,7 +493,7 @@ int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType vie
 }
 
 EditorSelection* Editor_GetPrimarySelection() {
-    if (g_EditorState.num_selections == 0) return nullptr;
+    if (g_EditorState.num_selections == 0) return NULL;
     return &g_EditorState.selections[g_EditorState.num_selections - 1];
 }
 
@@ -502,7 +502,7 @@ void Editor_ClearSelection() {
 }
 
 bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
-    if (name == nullptr || *name == '\0') return false;
+    if (name == NULL || *name == '\0') return false;
     for (int i = 0; i < scene->numObjects; ++i) if (strcmp(scene->objects[i].targetname, name) == 0) { *out_type = ENTITY_MODEL; *out_index = i; return true; }
     for (int i = 0; i < scene->numBrushes; ++i) if (strcmp(scene->brushes[i].targetname, name) == 0) { *out_type = ENTITY_BRUSH; *out_index = i; return true; }
     for (int i = 0; i < scene->numActiveLights; ++i) if (strcmp(scene->lights[i].targetname, name) == 0) { *out_type = ENTITY_LIGHT; *out_index = i; return true; }
@@ -515,7 +515,7 @@ bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int
 }
 
 bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos) {
-    if (name == nullptr || *name == '\0') return false;
+    if (name == NULL || *name == '\0') return false;
     EntityType type;
     int index;
     if (FindEntityInScene(scene, name, &type, &index)) {

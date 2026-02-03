@@ -71,7 +71,7 @@ static void parse_url(const char* url, char* host, size_t host_len, char* path, 
 static int download_thread_func_win32(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     SOCKET sock = INVALID_SOCKET;
-    struct addrinfo* result = nullptr, * ptr = nullptr, hints;
+    struct addrinfo* result = NULL, * ptr = NULL, hints;
     char host[256], path[2048];
 
     parse_url(args->url, host, sizeof(host), path, sizeof(path));
@@ -89,7 +89,7 @@ static int download_thread_func_win32(void* data) {
         free(args);
     }
 
-    for (ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
         sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (sock == INVALID_SOCKET) continue;
         if (connect(sock, ptr->ai_addr, (int)ptr->ai_addrlen) == SOCKET_ERROR) {
@@ -131,7 +131,7 @@ static int download_thread_func_win32(void* data) {
 
     char buffer[4096];
     int bytes_received;
-    char* body_start = nullptr;
+    char* body_start = NULL;
 
     while ((bytes_received = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
         if (!body_start) {
@@ -154,7 +154,7 @@ static int download_thread_func_win32(void* data) {
 static int ping_thread_func_win32(void* data) {
     PingArgs* args = (PingArgs*)data;
     SOCKET sock = INVALID_SOCKET;
-    struct addrinfo* result = nullptr, hints;
+    struct addrinfo* result = NULL, hints;
 
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -198,7 +198,7 @@ static int ping_thread_func_win32(void* data) {
 static int download_thread_func_posix(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     int sock = -1;
-    struct addrinfo* result = nullptr, * ptr = nullptr, hints;
+    struct addrinfo* result = NULL, * ptr = NULL, hints;
     char host[256], path[2048];
 
     parse_url(args->url, host, sizeof(host), path, sizeof(path));
@@ -215,7 +215,7 @@ static int download_thread_func_posix(void* data) {
         free(args);
     }
 
-    for (ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
         sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (sock == -1) continue;
         if (connect(sock, ptr->ai_addr, ptr->ai_addrlen) == -1) {
@@ -257,7 +257,7 @@ static int download_thread_func_posix(void* data) {
 
     char buffer[4096];
     int bytes_received;
-    char* body_start = nullptr;
+    char* body_start = NULL;
 
     while ((bytes_received = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
         if (!body_start) {
@@ -280,7 +280,7 @@ static int download_thread_func_posix(void* data) {
 static int ping_thread_func_posix(void* data) {
     PingArgs* args = (PingArgs*)data;
     int sock = -1;
-    struct addrinfo* result = nullptr, hints;
+    struct addrinfo* result = NULL, hints;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
