@@ -42,10 +42,13 @@ char* load_shader_source(const char* path) {
         length = ftell(f);
         fseek(f, 0, SEEK_SET);
 
-        buffer = new char[length + 1];
+        buffer = (char*)malloc(length + 1);
         if (buffer) {
             size_t read_bytes = fread(buffer, 1, length, f);
             buffer[read_bytes] = '\0';
+        }
+        else {
+            Console_Printf_Error("Failed to allocate memory for shader: %s\n", path);
         }
 
         fclose(f);
@@ -89,14 +92,14 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     char* vertSrc = load_shader_source(vertPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !fragSrc) {
-        delete[] vertSrc;
-        delete[] fragSrc;
+        free(vertSrc);
+        free(fragSrc);
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    delete[] vertSrc;
-    delete[] fragSrc;
+    free(vertSrc);
+    free(fragSrc);
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, frag);
@@ -118,17 +121,17 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
     char* geomSrc = load_shader_source(geomPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !geomSrc || !fragSrc) {
-        delete[] vertSrc;
-        delete[] geomSrc;
-        delete[] fragSrc;
+        free(vertSrc);
+        free(geomSrc);
+        free(fragSrc);
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint geom = compileShader(GL_GEOMETRY_SHADER, geomSrc, geomPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    delete[] vertSrc;
-    delete[] geomSrc;
-    delete[] fragSrc;
+    free(vertSrc);
+    free(geomSrc);
+    free(fragSrc);
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, geom);
@@ -153,20 +156,20 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     char* tesSrc = load_shader_source(tesPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !tcsSrc || !tesSrc || !fragSrc) {
-        delete[] vertSrc;
-        delete[] tcsSrc;
-        delete[] tesSrc;
-        delete[] fragSrc;
+        free(vertSrc);
+        free(tcsSrc);
+        free(tesSrc);
+        free(fragSrc);
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint tcs = compileShader(GL_TESS_CONTROL_SHADER, tcsSrc, tcsPath);
     GLuint tes = compileShader(GL_TESS_EVALUATION_SHADER, tesSrc, tesPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    delete[] vertSrc;
-    delete[] tcsSrc;
-    delete[] tesSrc;
-    delete[] fragSrc;
+    free(vertSrc);
+    free(tcsSrc);
+    free(tesSrc);
+    free(fragSrc);
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, tcs);
@@ -190,11 +193,11 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
 GLuint createShaderProgramCompute(const char* computePath) {
     char* computeSrc = load_shader_source(computePath);
     if (!computeSrc) {
-        delete[] computeSrc;
+        free(computeSrc);
         return 0;
     }
     GLuint compute = compileShader(GL_COMPUTE_SHADER, computeSrc, computePath);
-    delete[] computeSrc;
+    free(computeSrc);
     GLuint program = glCreateProgram();
     glAttachShader(program, compute);
     glLinkProgram(program);
