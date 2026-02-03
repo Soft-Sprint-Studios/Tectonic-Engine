@@ -142,6 +142,14 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 vertex_offset += mesh->vertexCount;
             }
             glBindBuffer(GL_ARRAY_BUFFER, 0);
+            if (obj->bakedVertexColors) {
+                free(obj->bakedVertexColors);
+                obj->bakedVertexColors = nullptr;
+            }
+            if (obj->bakedVertexDirections) {
+                free(obj->bakedVertexDirections);
+                obj->bakedVertexDirections = nullptr;
+            }
         }
         for (int i = 0; i < obj->model->meshCount; ++i) {
             Mesh* mesh = &obj->model->meshes[i];
