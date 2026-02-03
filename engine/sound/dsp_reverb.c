@@ -334,7 +334,7 @@ ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sampl
 
     SDL_sem* completion_sem = SDL_CreateSemaphore(0);
     if (!completion_sem) {
-        return ProcessedAudio{ NULL, 0 };
+        return (ProcessedAudio) { NULL, 0 };
     }
 
     ProcessedAudio result = { NULL, 0 };

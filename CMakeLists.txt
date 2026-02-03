@@ -173,7 +173,7 @@ target_compile_options(math_lib PRIVATE
 
 # IPC library
 add_library(ipc_lib SHARED
-    engine/ipc_lib/ipc_system.cpp
+    engine/ipc_lib/ipc_system.c
     engine/ipc_lib/ipc_system.h
     engine/ipc_lib/ipc_api.h
 )
@@ -229,7 +229,7 @@ target_compile_options(level0 PRIVATE
 # level1 library (mid-core utilities)
 add_library(level1 SHARED
     engine/level1/gameconfig.cpp
-    engine/level1/network.cpp
+    engine/level1/network.c
     engine/level1/binds.cpp
     engine/level1/gameconfig.h
     engine/level1/network.h
@@ -269,8 +269,8 @@ target_compile_options(level1 PRIVATE
 
 # materials library
 add_library(materials SHARED
-    engine/materials/texturemanager.cpp
-    engine/materials/water_manager.cpp
+    engine/materials/texturemanager.c
+    engine/materials/water_manager.c
     engine/materials/texturemanager.h
     engine/materials/water_manager.h
     engine/materials/materials_api.h
@@ -396,7 +396,7 @@ endif()
 # sound library
 add_library(sound SHARED
     engine/sound/sound_system.c
-    engine/sound/dsp_reverb.cpp
+    engine/sound/dsp_reverb.c
     engine/sound/sound_system.h
     engine/sound/dsp_reverb.h
     engine/sound/sound_api.h
