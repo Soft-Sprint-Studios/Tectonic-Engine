@@ -184,7 +184,11 @@ static unsigned int internal_LoadMP3(const char* path) {
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    unsigned char* file_buffer = new unsigned char[file_size];
+    unsigned char* file_buffer = (unsigned char*)malloc(file_size);
+    if (!file_buffer) {
+        fclose(file);
+        return 0;
+    }
     fread(file_buffer, 1, file_size, file);
     fclose(file);
 
@@ -192,36 +196,43 @@ static unsigned int internal_LoadMP3(const char* path) {
     mp3dec_init(&mp3d);
 
     mp3dec_frame_info_t info;
-    size_t pcm_capacity = 65536;
+    short* pcm_buffer = nullptr;
     size_t pcm_size = 0;
-    short* pcm_buffer = new short[pcm_capacity];
+    size_t pcm_capacity = 65536;
+    pcm_buffer = (short*)malloc(pcm_capacity * sizeof(short));
 
+    if (!pcm_buffer) {
+        free(file_buffer);
+        return 0;
+    }
+
+    int samples;
     unsigned char* buf_ptr = file_buffer;
     int bytes_left = file_size;
-    int samples;
 
     while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, nullptr, &info)) > 0) {
-        size_t required_size = pcm_size + samples * info.channels;
-        if (required_size > pcm_capacity) {
-            pcm_capacity = pcm_capacity * 2 + samples * info.channels;
-            short* new_pcm_buffer = new short[pcm_capacity];
-            for (size_t i = 0; i < pcm_size; ++i) {
-                new_pcm_buffer[i] = pcm_buffer[i];
+        if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
+            pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
+            short* new_pcm_buffer = (short*)realloc(pcm_buffer, pcm_capacity * sizeof(short));
+            if (!new_pcm_buffer) {
+                free(pcm_buffer);
+                free(file_buffer);
+                return 0;
             }
-            delete[] pcm_buffer;
             pcm_buffer = new_pcm_buffer;
         }
 
         mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, pcm_buffer + pcm_size, &info);
+
         pcm_size += samples * info.channels;
         buf_ptr += info.frame_bytes;
         bytes_left -= info.frame_bytes;
     }
 
-    delete[] file_buffer;
+    free(file_buffer);
 
     if (pcm_size == 0) {
-        delete[] pcm_buffer;
+        free(pcm_buffer);
         return 0;
     }
 
@@ -231,11 +242,15 @@ static unsigned int internal_LoadMP3(const char* path) {
 
     if (info.channels == 2) {
         size_t mono_samples = pcm_size / 2;
-        short* mono_buffer = new short[mono_samples];
-        for (size_t i = 0; i < mono_samples; i++) {
-            mono_buffer[i] = (pcm_buffer[i * 2] + pcm_buffer[i * 2 + 1]) / 2;
+        short* mono_buffer = (short*)malloc(mono_samples * sizeof(short));
+        if (!mono_buffer) {
+            free(pcm_buffer);
+            return 0;
         }
-        delete[] pcm_buffer;
+        for (size_t i = 0; i < mono_samples; i++) {
+            mono_buffer[i] = (short)(((int)pcm_buffer[i * 2] + (int)pcm_buffer[i * 2 + 1]) / 2);
+        }
+        free(pcm_buffer);
         final_pcm_buffer = mono_buffer;
         final_pcm_size_bytes = mono_samples * sizeof(short);
         format = AL_FORMAT_MONO16;
@@ -246,7 +261,7 @@ static unsigned int internal_LoadMP3(const char* path) {
     alBufferData(bufferID, format, final_pcm_buffer, final_pcm_size_bytes, info.hz);
 
     if (alGetError() != AL_NO_ERROR) {
-        delete[] final_pcm_buffer;
+        free(final_pcm_buffer);
         alDeleteBuffers(1, &bufferID);
         return 0;
     }
@@ -260,7 +275,7 @@ static unsigned int internal_LoadMP3(const char* path) {
         g_buffer_count++;
     }
     else {
-        delete[] final_pcm_buffer;
+        free(final_pcm_buffer);
         alDeleteBuffers(1, &bufferID);
         return 0;
     }
@@ -287,7 +302,7 @@ static unsigned int internal_LoadWAV(const char* path) {
     bool foundData = false;
     unsigned short audioFormat = 0, numChannels = 0, bitsPerSample = 0;
     unsigned int sampleRate = 0, dataSize = 0;
-    unsigned char* data = nullptr;
+    void* data = nullptr;
 
     while (!feof(file)) {
         if (fread(chunkId, 1, 4, file) != 4) break;
@@ -305,7 +320,11 @@ static unsigned int internal_LoadWAV(const char* path) {
         else if (strncmp(chunkId, "data", 4) == 0) {
             foundData = true;
             dataSize = chunkSize;
-            data = new unsigned char[dataSize];
+            data = malloc(dataSize);
+            if (!data) {
+                fclose(file);
+                return 0;
+            }
             fread(data, 1, dataSize, file);
         }
         else {
@@ -317,8 +336,8 @@ static unsigned int internal_LoadWAV(const char* path) {
 
     fclose(file);
 
-    if (!foundFmt || !foundData || !data) {
-        delete[] data;
+    if (!foundFmt || !foundData || data == nullptr) {
+        free(data);
         return 0;
     }
 
@@ -331,7 +350,7 @@ static unsigned int internal_LoadWAV(const char* path) {
     alBufferData(bufferID, format, data, dataSize, sampleRate);
 
     if (alGetError() != AL_NO_ERROR) {
-        delete[] data;
+        free(data);
         alDeleteBuffers(1, &bufferID);
         return 0;
     }
@@ -345,7 +364,7 @@ static unsigned int internal_LoadWAV(const char* path) {
         g_buffer_count++;
     }
     else {
-        delete[] data;
+        free(data);
         alDeleteBuffers(1, &bufferID);
         return 0;
     }

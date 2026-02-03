@@ -406,7 +406,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     engine->credits_duration = atof(LogicEntity_GetProperty(ent, "duration", "30.0"));
 
                     if (engine->credits_text) {
-                        delete[] engine->credits_text;
+                        free(engine->credits_text);
                         engine->credits_text = nullptr;
                     }
 
@@ -416,7 +416,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         long length = ftell(f);
                         fseek(f, 0, SEEK_SET);
 
-                        engine->credits_text = new char[length + 1];
+                        engine->credits_text = (char*)malloc(length + 1);
                         if (engine->credits_text) {
                             size_t read_bytes = fread(engine->credits_text, 1, length, f);
                             engine->credits_text[read_bytes] = '\0';

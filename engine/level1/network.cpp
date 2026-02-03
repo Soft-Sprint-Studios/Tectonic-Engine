@@ -338,12 +338,18 @@ void Network_Shutdown(void) {
 }
 
 bool Network_DownloadFile(const char* url, const char* output_filepath) {
-    DownloadArgs* args = new DownloadArgs;
-    args->url = new char[strlen(url) + 1];
-    args->filepath = new char[strlen(output_filepath) + 1];
+    DownloadArgs* args = (DownloadArgs*)malloc(sizeof(DownloadArgs));
+    if (!args) return false;
 
-    strcpy(args->url, url);
-    strcpy(args->filepath, output_filepath);
+    args->url = _strdup(url);
+    args->filepath = _strdup(output_filepath);
+
+    if (!args->url || !args->filepath) {
+        free(args->url);
+        free(args->filepath);
+        free(args);
+        return false;
+    }
 
 #ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(download_thread_func_win32, "DownloadThread", (void*)args);
@@ -353,20 +359,24 @@ bool Network_DownloadFile(const char* url, const char* output_filepath) {
 
     if (!thread) {
         Console_Printf_Error("[Network] Could not create download thread.");
-        delete[] args->url;
-        delete[] args->filepath;
-        delete args;
+        free(args->url);
+        free(args->filepath);
+        free(args);
         return false;
     }
-
     SDL_DetachThread(thread);
     return true;
 }
 
 bool Network_Ping(const char* hostname) {
-    PingArgs* args = new PingArgs;
-    args->hostname = new char[strlen(hostname) + 1];
-    strcpy(args->hostname, hostname);
+    PingArgs* args = (PingArgs*)malloc(sizeof(PingArgs));
+    if (!args) return false;
+
+    args->hostname = _strdup(hostname);
+    if (!args->hostname) {
+        free(args);
+        return false;
+    }
 
 #ifdef PLATFORM_WINDOWS
     SDL_Thread* thread = SDL_CreateThread(ping_thread_func_win32, "PingThread", (void*)args);
@@ -376,11 +386,10 @@ bool Network_Ping(const char* hostname) {
 
     if (!thread) {
         Console_Printf_Error("[Network] Could not create ping thread.");
-        delete[] args->hostname;
-        delete args;
+        free(args->hostname);
+        free(args);
         return false;
     }
-
     SDL_DetachThread(thread);
     return true;
 }

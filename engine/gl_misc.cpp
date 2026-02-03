@@ -29,7 +29,7 @@ void load_and_register_named_shader_string(const char* name, const char* path) {
     char* source = load_shader_source(path);
     if (source) {
         glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, -1, source);
-        delete[] source;
+        free(source);
     }
 }
 

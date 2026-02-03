@@ -37,7 +37,7 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
     FILE* file = fopen(path, "r");
     if (!file) return nullptr;
 
-    ParticleSystem* ps = new ParticleSystem{};
+    ParticleSystem* ps = (ParticleSystem*)calloc(1, sizeof(ParticleSystem));
     if (!ps) { fclose(file); return nullptr; }
 
     ps->maxParticles = 1000;

@@ -48,19 +48,17 @@ MATERIALS_API bool g_is_thumbnail_mode = false;
 MATERIALS_API bool g_is_unlit_mode = false;
 
 static char* prependTexturePath(const char* filename) {
-    if (!filename || filename[0] == '\0') return nullptr;
-
+    if (filename == nullptr || filename[0] == '\0') return nullptr;
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
-        size_t len = strlen(filename) + 1;
-        char* copy = new char[len];
-        strcpy(copy, filename);
-        return copy;
+        return _strdup(filename);
     }
-
     const char* baseFolder = "textures/";
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
-    char* fullPath = new char[len];
-
+    char* fullPath = (char*)malloc(len);
+    if (!fullPath) {
+        Console_Printf_Error("Memory allocation failed for texture path.\n");
+        return nullptr;
+    }
     strcpy(fullPath, baseFolder);
     strcat(fullPath, filename);
     return fullPath;

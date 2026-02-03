@@ -188,7 +188,7 @@ void RenderIOEditor(EntityType type, int index) {
                             }
 
                             if (target_def && target_def->num_inputs > 0) {
-                                const char** valid_inputs = new const char* [target_def->num_inputs];
+                                const char** valid_inputs = (const char**)malloc(target_def->num_inputs * sizeof(const char*));
                                 for (int j = 0; j < target_def->num_inputs; ++j) {
                                     valid_inputs[j] = target_def->inputs[j].name;
                                 }
@@ -205,7 +205,7 @@ void RenderIOEditor(EntityType type, int index) {
                                         strncpy(conn->inputName, valid_inputs[current_input_idx], sizeof(conn->inputName) - 1);
                                     }
                                 }
-                                delete[] valid_inputs;
+                                free(valid_inputs);
                             }
                             else {
                                 UI_InputText("Input", conn->inputName, sizeof(conn->inputName));
