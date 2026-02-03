@@ -74,8 +74,7 @@ void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
         fread(header, 1, 4, file);
         fread(&vertex_count, sizeof(unsigned int), 1, file);
         if (strncmp(header, "VLM1", 4) == 0 && vertex_count == b->numVertices) {
-            if (b->bakedVertexColors) delete[] b->bakedVertexColors;
-            b->bakedVertexColors = new Vec4[vertex_count];
+            b->bakedVertexColors = malloc(vertex_count * sizeof(Vec4));
             if (b->bakedVertexColors) fread(b->bakedVertexColors, sizeof(Vec4), vertex_count, file);
         }
         else {
@@ -117,8 +116,7 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPat
         fread(header, 1, 4, file);
         fread(&vertex_count, sizeof(unsigned int), 1, file);
         if (strncmp(header, "VLD1", 4) == 0 && vertex_count == b->numVertices) {
-            if (b->bakedVertexDirections) delete[] b->bakedVertexDirections;
-            b->bakedVertexDirections = new Vec4[vertex_count];
+            b->bakedVertexDirections = malloc(vertex_count * sizeof(Vec4));
             if (b->bakedVertexDirections) fread(b->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
         }
         else {
@@ -164,8 +162,7 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* map
         fread(&vertex_count, sizeof(unsigned int), 1, file);
 
         if (strncmp(header, "VLM1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
-            if (obj->bakedVertexColors) delete[] obj->bakedVertexColors;
-            obj->bakedVertexColors = new Vec4[vertex_count];
+            obj->bakedVertexColors = malloc(vertex_count * sizeof(Vec4));
             if (obj->bakedVertexColors) {
                 fread(obj->bakedVertexColors, sizeof(Vec4), vertex_count, file);
             }
@@ -213,8 +210,7 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
         fread(&vertex_count, sizeof(unsigned int), 1, file);
 
         if (strncmp(header, "VLD1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
-            if (obj->bakedVertexDirections) delete[] obj->bakedVertexDirections;
-            obj->bakedVertexDirections = new Vec4[vertex_count];
+            obj->bakedVertexDirections = malloc(vertex_count * sizeof(Vec4));
             if (obj->bakedVertexDirections) {
                 fread(obj->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
             }
@@ -354,8 +350,8 @@ void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal
 
 void Scene_LoadAmbientProbes(Scene* scene) {
     if (scene->ambient_probes) {
-        delete[] scene->ambient_probes;
-        scene->ambient_probes = nullptr;
+        free(scene->ambient_probes);
+        scene->ambient_probes = NULL;
     }
     scene->num_ambient_probes = 0;
 
@@ -368,7 +364,7 @@ void Scene_LoadAmbientProbes(Scene* scene) {
     const char* last_bslash = strrchr(scene->mapPath, '\\');
     const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
 
-    const char* dot = strrchr(map_filename_start, '.');
+    char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -387,7 +383,7 @@ void Scene_LoadAmbientProbes(Scene* scene) {
         if (fread(header, 1, 4, probe_file) == 4 && strncmp(header, "AMBI", 4) == 0) {
             fread(&scene->num_ambient_probes, sizeof(int), 1, probe_file);
             if (scene->num_ambient_probes > 0) {
-                scene->ambient_probes = new AmbientProbe[scene->num_ambient_probes];
+                scene->ambient_probes = malloc(sizeof(AmbientProbe) * scene->num_ambient_probes);
                 fread(scene->ambient_probes, sizeof(AmbientProbe), scene->num_ambient_probes, probe_file);
             }
         }
@@ -426,7 +422,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         bool is_valid;
     } FaceLightmapData;
 
-    FaceLightmapData* face_data = new FaceLightmapData[b->numFaces]();
+    FaceLightmapData* face_data = calloc(b->numFaces, sizeof(FaceLightmapData));
     int valid_faces = 0;
     int max_width = 0;
     int max_height = 0;
@@ -479,7 +475,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
             if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
             if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
         }
-        delete[] face_data;
+        free(face_data);
         b->lightmapAtlas = 0;
         b->directionalLightmapAtlas = 0;
         return;
@@ -559,5 +555,5 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
         if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
     }
-    delete[] face_data;
+    free(face_data);
 }
