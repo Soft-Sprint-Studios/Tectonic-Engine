@@ -1626,7 +1626,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
     dllPath[sizeof(dllPath) - 1] = '\0';
 #endif
     if (!Checksum_Verify(dllPath)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Tectonic Error", "Corrupted game files detected. Please attempt to reinstall.", nullptr);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Error", "Corrupted game files detected. Please attempt to reinstall.", nullptr);
         return 0;
     }
 #endif
@@ -1636,7 +1636,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
         const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
         g_hMutex = CreateMutex(nullptr, TRUE, mutexName);
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Tectonic", "An instance of Tectonic Engine is already running.", nullptr);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Error", "An instance of Tectonic Engine is already running.", nullptr);
             if (g_hMutex) CloseHandle(g_hMutex);
             return 0;
         }
@@ -1646,11 +1646,11 @@ static int Engine_Initialize(int argc, char* argv[]) {
         const char* lockFilePath = "/tmp/TectonicEngine.lock";
         g_lockFileFd = open(lockFilePath, O_CREAT | O_RDWR, 0666);
         if (g_lockFileFd == -1) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Tectonic Error", "Could not create or open the lock file.", nullptr);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Error", "Could not create or open the lock file.", nullptr);
             return 0;
         }
         if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1 && errno == EWOULDBLOCK) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Tectonic", "An instance of Tectonic Engine is already running.", nullptr);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Error", "An instance of Tectonic Engine is already running.", nullptr);
             close(g_lockFileFd);
             return 0;
         }
