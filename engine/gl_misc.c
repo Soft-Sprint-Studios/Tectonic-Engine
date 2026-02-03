@@ -34,23 +34,18 @@ void load_and_register_named_shader_string(const char* name, const char* path) {
 }
 
 char* load_shader_source(const char* path) {
-    char* buffer = nullptr;
-    long length = 0;
+    char* buffer = NULL;
+    long length;
     FILE* f = fopen(path, "rb");
     if (f) {
         fseek(f, 0, SEEK_END);
         length = ftell(f);
         fseek(f, 0, SEEK_SET);
-
-        buffer = (char*)malloc(length + 1);
+        buffer = malloc(length + 1);
         if (buffer) {
-            size_t read_bytes = fread(buffer, 1, length, f);
-            buffer[read_bytes] = '\0';
+            fread(buffer, 1, length, f);
+            buffer[length] = '\0';
         }
-        else {
-            Console_Printf_Error("Failed to allocate memory for shader: %s\n", path);
-        }
-
         fclose(f);
     }
     else {

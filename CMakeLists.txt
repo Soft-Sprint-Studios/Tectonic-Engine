@@ -86,34 +86,34 @@ endif()
 set(ENGINE_SOURCES
     engine/discord_wrapper.cpp
     engine/editor/editor.cpp engine/editor/editor_windows.cpp engine/editor/editor_ui.cpp engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.cpp engine/editor/editor_render.cpp engine/editor/editor_undo.cpp engine/editor/editor_misc.cpp
-    engine/game_data.cpp
-    engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/main_menu.cpp
-    engine/map.c engine/map_lighting.c engine/gl_particle_system.cpp
-    engine/gl_video_player.cpp engine/weapons.cpp
+    engine/game_data.c
+    engine/gl_misc.c engine/gl_renderer.c engine/io_system.c engine/engine.c engine/main_menu.c
+    engine/map.c engine/map_lighting.c engine/gl_particle_system.c
+    engine/gl_video_player.c engine/weapons.cpp
     engine/sentry_wrapper.cpp engine/checksum.cpp
-    engine/gl_beams.cpp
-    engine/gl_cables.cpp
-    engine/gl_overlay.cpp
-    engine/gl_glow.cpp
-    engine/gl_decals.cpp
-    engine/gl_sprites.cpp
-    engine/gl_zprepass.cpp
-    engine/gl_shadows.cpp
-    engine/gl_blackholes.cpp
-    engine/gl_geometry.cpp
-    engine/gl_planar.cpp
-    engine/gl_ssao.cpp
-    engine/gl_bloom.cpp
-    engine/gl_volumetrics.cpp
-    engine/gl_render_misc.cpp
-    engine/gl_postprocess.cpp
-    engine/gl_keypad.cpp
-    engine/gl_note.cpp
-    engine/gl_monitor.cpp
-    engine/gl_loading_screen.cpp
-    engine/engine_commands.cpp
-    engine/gl_skybox.cpp
-    engine/animations.cpp
+    engine/gl_beams.c
+    engine/gl_cables.c
+    engine/gl_overlay.c
+    engine/gl_glow.c
+    engine/gl_decals.c
+    engine/gl_sprites.c
+    engine/gl_zprepass.c
+    engine/gl_shadows.c
+    engine/gl_blackholes.c
+    engine/gl_geometry.c
+    engine/gl_planar.c
+    engine/gl_ssao.c
+    engine/gl_bloom.c
+    engine/gl_volumetrics.c
+    engine/gl_render_misc.c
+    engine/gl_postprocess.c
+    engine/gl_keypad.c
+    engine/gl_note.c
+    engine/gl_monitor.c
+    engine/gl_loading_screen.c
+    engine/engine_commands.c
+    engine/gl_skybox.c
+    engine/animations.c
     engine/lightmapper.cpp  engine/lightmapper_misc.cpp
     thirdparty/mikktspace/mikktspace.c
     thirdparty/xatlas/xatlas.cpp

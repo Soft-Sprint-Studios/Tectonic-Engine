@@ -174,12 +174,12 @@ void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 came
     Vec3 lightPos = vec3_sub(lightFocusPos, vec3_muls(sun->direction, far_plane * 0.5f));
 
     Mat4 lightProjection = mat4_ortho(-shadowOrthoSize, shadowOrthoSize, -shadowOrthoSize, shadowOrthoSize, near_plane, far_plane);
-    Mat4 lightView = mat4_lookAt(lightPos, lightFocusPos, Vec3{ 0.0f, 1.0f, 0.0f });
+    Mat4 lightView = mat4_lookAt(lightPos, lightFocusPos, (Vec3) { 0.0f, 1.0f, 0.0f });
 
     Mat4 initialLightSpaceMatrix;
     mat4_multiply(&initialLightSpaceMatrix, &lightProjection, &lightView);
 
-    Vec4 shadowOrigin = mat4_mul_vec4(&initialLightSpaceMatrix, Vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+    Vec4 shadowOrigin = mat4_mul_vec4(&initialLightSpaceMatrix, (Vec4) { 0.0f, 0.0f, 0.0f, 1.0f });
 
     shadowOrigin.x *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);
     shadowOrigin.y *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);

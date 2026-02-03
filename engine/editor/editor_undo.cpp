@@ -63,10 +63,10 @@ void _raw_delete_model(Scene* scene, int index, Engine* engine) {
 
     SceneObject* obj_to_delete = &scene->objects[index];
     if (obj_to_delete->model) Model_Free(obj_to_delete->model);
-    if (obj_to_delete->bone_matrices) delete[] obj_to_delete->bone_matrices;
+    if (obj_to_delete->bone_matrices) free(obj_to_delete->bone_matrices);
     if (obj_to_delete->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, obj_to_delete->physicsBody);
-    if (obj_to_delete->bakedVertexColors) delete[] obj_to_delete->bakedVertexColors;
-    if (obj_to_delete->bakedVertexDirections) delete[] obj_to_delete->bakedVertexDirections;
+    if (obj_to_delete->bakedVertexColors) free(obj_to_delete->bakedVertexColors);
+    if (obj_to_delete->bakedVertexDirections) free(obj_to_delete->bakedVertexDirections);
 
     if (index < scene->numObjects - 1) {
         scene->objects[index] = scene->objects[scene->numObjects - 1];
@@ -75,10 +75,7 @@ void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     scene->numObjects--;
 
     if (scene->numObjects > 0) {
-        SceneObject* new_array = (SceneObject*)realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
-        if (new_array || scene->numObjects == 0) {
-            scene->objects = new_array;
-        }
+        scene->objects = (SceneObject*)realloc(scene->objects, scene->numObjects * sizeof(SceneObject));
     }
     else {
         free(scene->objects);

@@ -89,7 +89,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     Vec3 f_refl = { cosf(reflection_camera.pitch) * sinf(reflection_camera.yaw), sinf(reflection_camera.pitch), -cosf(reflection_camera.pitch) * cosf(reflection_camera.yaw) };
     vec3_normalize(&f_refl);
     Vec3 t_refl = vec3_add(reflection_camera.position, f_refl);
-    Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, Vec3{ 0, 1, 0 });
+    Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, (Vec3) { 0, 1, 0 });
 
     glUseProgram(renderer->mainShader);
     glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, 1, 0, -reflection_plane_height + 0.1f);

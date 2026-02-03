@@ -41,9 +41,7 @@ IOConnection g_io_connections[MAX_IO_CONNECTIONS];
 int g_num_io_connections = 0;
 static PendingEvent g_pending_events[MAX_PENDING_EVENTS];
 static int g_num_pending_events = 0;
-extern "C" {
-    extern bool g_player_input_disabled;
-}
+extern g_player_input_disabled;
 
 void IO_Init() {
     IO_Clear();
@@ -417,17 +415,11 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         fseek(f, 0, SEEK_END);
                         long length = ftell(f);
                         fseek(f, 0, SEEK_SET);
-
-                        engine->credits_text = (char*)malloc(length + 1);
+                        engine->credits_text = malloc(length + 1);
                         if (engine->credits_text) {
-                            size_t read_bytes = fread(engine->credits_text, 1, length, f);
-                            engine->credits_text[read_bytes] = '\0';
+                            fread(engine->credits_text, 1, length, f);
+                            engine->credits_text[length] = '\0';
                         }
-                        else {
-                            Console_Printf_Error("Failed to allocate memory for credits text");
-                            engine->credits_active = false;
-                        }
-
                         fclose(f);
                     }
                     else {
@@ -887,7 +879,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
         else if (strcmp(ent->classname, "env_fade") == 0) {
             if (ent->runtime_int_a != 0) {
                 scene->post.fade_active = true;
-                scene->post.fade_color = Vec3{ 0, 0, 0 };
+                scene->post.fade_color = (Vec3){ 0, 0, 0 };
 
                 float duration = atof(LogicEntity_GetProperty(ent, "duration", "2.0"));
                 if (duration <= 0.0f) duration = 0.01f;
