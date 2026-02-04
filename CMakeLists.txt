@@ -395,7 +395,7 @@ endif()
 
 # sound library
 add_library(sound SHARED
-    engine/sound/sound_system.c
+    engine/sound/sound_system.cpp
     engine/sound/dsp_reverb.cpp
     engine/sound/sound_system.h
     engine/sound/dsp_reverb.h

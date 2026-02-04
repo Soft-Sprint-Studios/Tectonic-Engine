@@ -125,7 +125,6 @@ All other folders are third-party dependencies and fall under their respective o
 | `cgltf/`                 | GLTF Loader                                | MIT License                         |
 | `mikktspace/`            | Tangent Space Generator                    | zlib License                        |
 | `minimp3/`               | MP3 Decoder                                | Unlicense or MIT                    |
-| `minivorbis/`            | Ogg Vorbis Decoder                         | BSD-like                            |
 | `embree-4.4.0/`          | Ray Tracing Kernels (Intel Embree)         | Apache 2.0 License                  |
 | `oidn-2.3.3/`            | Intel Open Image Denoise                   | Apache 2.0 License                  |
 | `pl_mpeg/`               | MPEG1 Video Decoder                        | MIT License                         |

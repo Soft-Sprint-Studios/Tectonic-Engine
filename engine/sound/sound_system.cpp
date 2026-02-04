@@ -28,7 +28,6 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 #include "minimp3.h"
-#include "minivorbis.h"
 
 #define MAX_WET_CACHE_ENTRIES 256
 #define MAX_PLAYING_SOUNDS 512
@@ -45,8 +44,8 @@ typedef struct {
 static BufferData g_buffers[MAX_BUFFERS];
 static int g_buffer_count = 0;
 
-static ALCdevice* g_sound_device = NULL;
-static ALCcontext* g_sound_context = NULL;
+static ALCdevice* g_sound_device = nullptr;
+static ALCcontext* g_sound_context = nullptr;
 static ReverbPreset g_current_reverb_preset = REVERB_PRESET_NONE;
 
 typedef struct {
@@ -67,10 +66,10 @@ static PlayingSourceLink g_playing_source_links[MAX_PLAYING_SOUNDS];
 static int g_playing_link_count = 0;
 
 bool SoundSystem_Init() {
-    g_sound_device = alcOpenDevice(NULL);
+    g_sound_device = alcOpenDevice(nullptr);
     if (!g_sound_device) return false;
 
-    g_sound_context = alcCreateContext(g_sound_device, NULL);
+    g_sound_context = alcCreateContext(g_sound_device, nullptr);
     if (!g_sound_context) {
         alcCloseDevice(g_sound_device);
         return false;
@@ -97,13 +96,13 @@ void SoundSystem_Shutdown() {
     g_playing_link_count = 0;
 
     if (g_sound_context) {
-        alcMakeContextCurrent(NULL);
+        alcMakeContextCurrent(nullptr);
         alcDestroyContext(g_sound_context);
-        g_sound_context = NULL;
+        g_sound_context = nullptr;
     }
     if (g_sound_device) {
         alcCloseDevice(g_sound_device);
-        g_sound_device = NULL;
+        g_sound_device = nullptr;
     }
 }
 
@@ -123,7 +122,7 @@ static BufferData* find_buffer_data(ALuint bufferID) {
     for (int i = 0; i < g_buffer_count; i++) {
         if (g_buffers[i].bufferID == bufferID) return &g_buffers[i];
     }
-    return NULL;
+    return nullptr;
 }
 
 static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPreset preset) {
@@ -197,7 +196,7 @@ static unsigned int internal_LoadMP3(const char* path) {
     mp3dec_init(&mp3d);
 
     mp3dec_frame_info_t info;
-    short* pcm_buffer = NULL;
+    short* pcm_buffer = nullptr;
     size_t pcm_size = 0;
     size_t pcm_capacity = 65536;
     pcm_buffer = (short*)malloc(pcm_capacity * sizeof(short));
@@ -211,7 +210,7 @@ static unsigned int internal_LoadMP3(const char* path) {
     unsigned char* buf_ptr = file_buffer;
     int bytes_left = file_size;
 
-    while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, NULL, &info)) > 0) {
+    while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, nullptr, &info)) > 0) {
         if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
             pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
             short* new_pcm_buffer = (short*)realloc(pcm_buffer, pcm_capacity * sizeof(short));
@@ -284,92 +283,6 @@ static unsigned int internal_LoadMP3(const char* path) {
     return bufferID;
 }
 
-static unsigned int internal_LoadOGG(const char* path) {
-    FILE* file = fopen(path, "rb");
-    if (!file) {
-        Console_Printf_Error("Could not open OGG file %s", path);
-        return 0;
-    }
-
-    OggVorbis_File vorbis;
-    if (ov_open_callbacks(file, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) {
-        Console_Printf_Error("Invalid Ogg Vorbis file: %s", path);
-        fclose(file);
-        return 0;
-    }
-
-    vorbis_info* info = ov_info(&vorbis, -1);
-
-    size_t data_capacity = 4096 * 16;
-    unsigned char* pcm_data = malloc(data_capacity);
-    if (!pcm_data) {
-        ov_clear(&vorbis);
-        return 0;
-    }
-
-    long bytes_read = 0;
-    size_t total_bytes = 0;
-    int bitstream;
-
-    while ((bytes_read = ov_read(&vorbis, (char*)pcm_data + total_bytes, data_capacity - total_bytes, 0, 2, 1, &bitstream)) > 0) {
-        total_bytes += bytes_read;
-        if (data_capacity - total_bytes < 4096) {
-            data_capacity *= 2;
-            unsigned char* new_pcm_data = realloc(pcm_data, data_capacity);
-            if (!new_pcm_data) {
-                free(pcm_data);
-                ov_clear(&vorbis);
-                return 0;
-            }
-            pcm_data = new_pcm_data;
-        }
-    }
-
-    ALenum format = (info->channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
-
-    if (info->channels == 2) {
-        size_t mono_samples = total_bytes / 4;
-        short* mono_buffer = malloc(mono_samples * sizeof(short));
-        if (mono_buffer) {
-            short* stereo_buffer = (short*)pcm_data;
-            for (size_t i = 0; i < mono_samples; i++) {
-                mono_buffer[i] = (short)(((int)stereo_buffer[i * 2] + (int)stereo_buffer[i * 2 + 1]) / 2);
-            }
-            free(pcm_data);
-            pcm_data = (unsigned char*)mono_buffer;
-            total_bytes = mono_samples * sizeof(short);
-            format = AL_FORMAT_MONO16;
-        }
-    }
-
-    ALuint bufferID;
-    alGenBuffers(1, &bufferID);
-    alBufferData(bufferID, format, pcm_data, total_bytes, info->rate);
-    ov_clear(&vorbis);
-
-    if (alGetError() != AL_NO_ERROR) {
-        free(pcm_data);
-        alDeleteBuffers(1, &bufferID);
-        return 0;
-    }
-
-    if (g_buffer_count < MAX_BUFFERS) {
-        g_buffers[g_buffer_count].bufferID = bufferID;
-        g_buffers[g_buffer_count].pcmData = pcm_data;
-        g_buffers[g_buffer_count].dataSize = total_bytes;
-        g_buffers[g_buffer_count].format = format;
-        g_buffers[g_buffer_count].freq = info->rate;
-        g_buffer_count++;
-    }
-    else {
-        free(pcm_data);
-        alDeleteBuffers(1, &bufferID);
-        return 0;
-    }
-
-    return bufferID;
-}
-
 static unsigned int internal_LoadWAV(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) return 0;
@@ -389,7 +302,7 @@ static unsigned int internal_LoadWAV(const char* path) {
     bool foundData = false;
     unsigned short audioFormat = 0, numChannels = 0, bitsPerSample = 0;
     unsigned int sampleRate = 0, dataSize = 0;
-    void* data = NULL;
+    void* data = nullptr;
 
     while (!feof(file)) {
         if (fread(chunkId, 1, 4, file) != 4) break;
@@ -423,7 +336,7 @@ static unsigned int internal_LoadWAV(const char* path) {
 
     fclose(file);
 
-    if (!foundFmt || !foundData || data == NULL) {
+    if (!foundFmt || !foundData || data == nullptr) {
         free(data);
         return 0;
     }
@@ -471,9 +384,6 @@ unsigned int SoundSystem_LoadSound(const char* path) {
     }
     else if (_stricmp(ext, ".mp3") == 0) {
         return internal_LoadMP3(path);
-    }
-    else if (_stricmp(ext, ".ogg") == 0) {
-        return internal_LoadOGG(path);
     }
 
     Console_Printf_Error("Unsupported sound format for %s\n", path);
