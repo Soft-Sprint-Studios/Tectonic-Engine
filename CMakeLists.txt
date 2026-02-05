@@ -120,7 +120,7 @@ set(ENGINE_SOURCES
 )
 
 set(ENGINE_HEADERS
-    engine/compat.h engine/engine_api.h engine/discord_wrapper.h
+    engine/common/compat.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_windows.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_geometry_helpers.h engine/editor/editor_render.h engine/editor/editor_undo.h engine/editor/editor_misc.h
     engine/game_data.h
     engine/engine.h
@@ -167,8 +167,8 @@ target_compile_definitions(math_lib PRIVATE
 target_include_directories(math_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/engine")
 
 target_compile_options(math_lib PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-   $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+   $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # IPC library
@@ -184,8 +184,8 @@ target_include_directories(ipc_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"
 )
 target_compile_options(ipc_lib PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # level0 library (core utilities)
@@ -222,8 +222,8 @@ target_include_directories(level0 PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/imgui-master/backends"
 )
 target_compile_options(level0 PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # level1 library (mid-core utilities)
@@ -263,8 +263,8 @@ else()
 endif()
 
 target_compile_options(level1 PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # materials library
@@ -290,8 +290,8 @@ target_include_directories(materials PUBLIC
 )
 
 target_compile_options(materials PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # models library
@@ -319,8 +319,8 @@ target_include_directories(models PUBLIC
 )
 
 target_compile_options(models PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(WIN32)
@@ -370,8 +370,8 @@ target_include_directories(physics
 )
 
 target_compile_options(physics PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(UNIX AND NOT APPLE)
@@ -420,8 +420,8 @@ target_include_directories(sound PUBLIC
 )
 
 target_compile_options(sound PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 # engine library
@@ -467,8 +467,8 @@ target_include_directories(engine PUBLIC
 )
 
 target_compile_options(engine PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(WIN32)
@@ -623,8 +623,8 @@ endif()
 
 
 target_compile_options(launcher PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 if(WIN32)
     target_link_options(launcher PRIVATE /subsystem:windows)
@@ -640,8 +640,8 @@ target_include_directories(TConsole PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/include"
 )
 target_compile_options(TConsole PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 if(WIN32)
     set_target_properties(TConsole PROPERTIES WIN32_EXECUTABLE TRUE)
@@ -665,8 +665,8 @@ target_include_directories(TectonicParticleEditor PRIVATE
 )
 
 target_compile_options(TectonicParticleEditor PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(WIN32)
@@ -691,8 +691,8 @@ target_include_directories(SDKLauncher PRIVATE
 )
 
 target_compile_options(SDKLauncher PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(WIN32)
@@ -712,8 +712,8 @@ set_target_properties(Patcher PROPERTIES
 )
 
 target_compile_options(Patcher PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
-    $<$<CXX_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/compat.h">
+    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<CXX_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
 )
 
 if(WIN32)
