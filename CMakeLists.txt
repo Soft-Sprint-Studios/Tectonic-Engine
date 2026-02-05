@@ -428,7 +428,7 @@ target_compile_options(sound PRIVATE
 add_library(engine SHARED ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 target_compile_definitions(engine PRIVATE
-    ENGINE_DLL_EXPORTS
+    $<$<BOOL:${WIN32}>:ENGINE_DLL_EXPORTS>
     SDL_MAIN_HANDLED
     PL_MPEG_IMPLEMENTATION
     STB_IMAGE_WRITE_IMPLEMENTATION
