@@ -29,7 +29,6 @@
 // Brief: Compatibility header to properly support linux & some general functions
 //----------------------------------------//
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
