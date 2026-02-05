@@ -78,7 +78,7 @@
 #endif
 
 int g_argc_stored = 0;
-char** g_argv_stored = NULL;
+char** g_argv_stored = nullptr;
 
 bool g_screenshot_requested = false;
 char g_screenshot_path[256] = { 0 };
@@ -90,7 +90,7 @@ static int g_last_rawinput_cvar_state = -1;
 bool g_player_input_disabled = false;
 
 #ifdef PLATFORM_WINDOWS
-static HANDLE g_hMutex = NULL;
+static HANDLE g_hMutex = nullptr;
 #else
 static int g_lockFileFd = -1;
 #endif
@@ -153,7 +153,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->height = g_startup_height;
     g_engine->window = window; g_engine->context = context; g_engine->running = true; g_engine->deltaTime = 0.0f; g_engine->lastFrame = 0.0f;
     g_engine->unscaledDeltaTime = 0.0f; g_engine->scaledTime = 0.0f;
-    g_engine->cursor = NULL;
+    g_engine->cursor = nullptr;
     SDL_Surface* cursor_surface = IMG_Load("media/cursor.png");
     if (cursor_surface) {
         g_engine->cursor = SDL_CreateColorCursor(cursor_surface, 0, 0);
@@ -170,7 +170,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     }
     SDL_ShowCursor(SDL_ENABLE);
     IPC_Init();
-    g_engine->camera = (Camera){ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, NULL, 100.0f };  g_engine->flashlight_on = false;
+    g_engine->camera = Camera{ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, nullptr, 100.0f };  g_engine->flashlight_on = false;
     g_engine->flashlight_on = false;
     g_engine->camera.radiation_level = 0.0f;
     g_engine->camera.rads_per_second = 0.0f;
@@ -183,10 +183,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->active_note_entity_index = -1;
     memset(g_engine->note_title, 0, sizeof(g_engine->note_title));
     memset(g_engine->note_content, 0, sizeof(g_engine->note_content));
-    g_engine->heldObject = NULL;
+    g_engine->heldObject = nullptr;
     g_engine->holdDistance = 0.0f;
     g_engine->credits_active = false;
-    g_engine->credits_text = NULL;
+    g_engine->credits_text = nullptr;
     g_engine->credits_entity_index = -1;
     for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
         g_engine->active_messages[i].state = TEXT_STATE_IDLE;
@@ -285,7 +285,7 @@ void process_input() {
                     Physics_SetCcdEnabled(g_engine->heldObject, true, 1e-7f);
                     Physics_SetGravityEnabled(g_engine->heldObject, true);
                     Physics_ApplyCentralImpulse(g_engine->heldObject, vec3_muls(forward, 10.0f));
-                    g_engine->heldObject = NULL;
+                    g_engine->heldObject = nullptr;
                     return;
                 }
                 Weapons_TryFire(g_engine, &g_scene);
@@ -331,13 +331,13 @@ void process_input() {
                     g_player_input_disabled = false;
                     SDL_SetRelativeMouseMode(SDL_TRUE);
                     if (g_engine->active_note_entity_index != -1) {
-                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, nullptr);
                     }
                     return;
                 }
                 if (g_engine->heldObject) {
                     Physics_SetGravityEnabled(g_engine->heldObject, true);
-                    g_engine->heldObject = NULL;
+                    g_engine->heldObject = nullptr;
                     return;
                 }
                 Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -359,12 +359,12 @@ void process_input() {
                             &t) && t < 3.0f) {
                             bool is_locked = (atoi(Brush_GetProperty(brush, "locked", "0")) == 1);
                             if (is_locked) {
-                                IO_FireOutput(ENTITY_BRUSH, i, "OnUseLocked", g_engine->lastFrame, NULL);
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUseLocked", g_engine->lastFrame, nullptr);
                             }
                             else {
                                 const char* delay_str = Brush_GetProperty(brush, "delay", "0");
                                 float fire_time = g_engine->lastFrame + atof(delay_str);
-                                IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", fire_time, NULL);
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", fire_time, nullptr);
                             }
                         }
                     }
@@ -381,7 +381,7 @@ void process_input() {
                                 else if (brush->door_state == DOOR_STATE_OPEN || brush->door_state == DOOR_STATE_OPENING) {
                                     brush->door_state = DOOR_STATE_CLOSING;
                                 }
-                                IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", g_engine->lastFrame, NULL);
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUsed", g_engine->lastFrame, nullptr);
                             }
                         }
                     }
@@ -400,7 +400,7 @@ void process_input() {
                                     g_engine->camera.health = 100.0f;
                                 }
 
-                                IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, NULL);
+                                IO_FireOutput(ENTITY_BRUSH, i, "OnUse", g_engine->lastFrame, nullptr);
                             }
                         }
                     }
@@ -445,7 +445,7 @@ void process_input() {
                     g_player_input_disabled = false;
                     SDL_SetRelativeMouseMode(SDL_TRUE);
                     if (g_engine->active_note_entity_index != -1) {
-                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, g_engine->active_note_entity_index, "OnRead", g_engine->lastFrame, nullptr);
                     }
                     return;
                 }
@@ -471,7 +471,8 @@ void process_input() {
 #ifndef GAME_RELEASE
             else if (event.key.keysym.sym == SDLK_F5) {
                 if (g_current_mode != MODE_MAINMENU) {
-                    Commands_Execute(1, (char* []) { "edit" });
+                    char* args[] = { (char*)"edit" };
+                    Commands_Execute(1, args);
                 }
             }
 #endif
@@ -496,9 +497,9 @@ void process_input() {
                         char* argv[16];
                         int argc = 0;
                         char* p = strtok(cmd_copy, " ");
-                        while (p != NULL && argc < 16) {
+                        while (p != nullptr && argc < 16) {
                             argv[argc++] = p;
-                            p = strtok(NULL, " ");
+                            p = strtok(nullptr, " ");
                         }
                         if (argc > 0) {
                             Commands_Execute(argc, argv);
@@ -510,7 +511,7 @@ void process_input() {
 
         if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
             if (event.type == SDL_MOUSEMOTION) {
-                bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT));
+                bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT));
                 bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
 
                 if (can_look_in_game || can_look_in_editor) {
@@ -525,20 +526,20 @@ void process_input() {
     }
 
     if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
-        const Uint8* state = SDL_GetKeyboardState(NULL);
+        const Uint8* state = SDL_GetKeyboardState(nullptr);
 
         bool noclip = Cvar_GetInt("noclip");
         float speed = (noclip ? Cvar_GetFloat("g_noclip_speed") : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
 
         if (g_player_input_disabled) {
-            if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { 0, 0, 0 });
+            if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ 0, 0, 0 });
             return;
         }
 
         if (noclip) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
             vec3_normalize(&forward);
-            Vec3 right = vec3_cross(forward, (Vec3) { 0, 1, 0 });
+            Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 });
             vec3_normalize(&right);
 
             if (state[SDL_SCANCODE_W]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
@@ -628,17 +629,17 @@ void process_input() {
                     current_vel_flat = vec3_muls(current_vel_flat, new_speed / speed);
                 }
                 else {
-                    current_vel_flat = (Vec3){ 0,0,0 };
+                    current_vel_flat = Vec3{ 0,0,0 };
                 }
             }
 
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { current_vel_flat.x, current_vel.y, current_vel_flat.z });
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ current_vel_flat.x, current_vel.y, current_vel_flat.z });
             Physics_Activate(g_engine->camera.physicsBody);
 
             if (state[SDL_SCANCODE_SPACE]) {
                 Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
                 if (current_vel.y <= 0.1f && Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f)) {
-                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, (Vec3) { 0, Cvar_GetFloat("g_jump_force"), 0 });
+                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, Vec3{ 0, Cvar_GetFloat("g_jump_force"), 0 });
                     SoundSystem_PlaySound(g_jump_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
                 }
             }
@@ -827,7 +828,7 @@ void update_state() {
     }
     g_engine->canUse = false;
     if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
-        if (g_engine->heldObject == NULL) {
+        if (g_engine->heldObject == nullptr) {
         Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
         vec3_normalize(&forward);
         Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
@@ -913,7 +914,7 @@ void update_state() {
                 float hold_time = atof(Brush_GetProperty(cam_brush, "holdtime", "5.0"));
                 if (g_engine->camera_transition_timer >= moveto_time + hold_time) {
                     ExecuteInput(cam_brush->targetname, "Disable", "", &g_scene, g_engine);
-                    IO_FireOutput(ENTITY_BRUSH, g_engine->active_camera_brush_index, "OnEnd", g_engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, g_engine->active_camera_brush_index, "OnEnd", g_engine->lastFrame, nullptr);
                 }
             }
         }
@@ -924,11 +925,11 @@ void update_state() {
     if (g_engine->credits_active) {
         g_engine->credits_timer += g_engine->unscaledDeltaTime;
         if (g_engine->credits_timer >= g_engine->credits_duration) {
-            IO_FireOutput(ENTITY_LOGIC, g_engine->credits_entity_index, "OnCreditsDone", g_engine->lastFrame, NULL);
+            IO_FireOutput(ENTITY_LOGIC, g_engine->credits_entity_index, "OnCreditsDone", g_engine->lastFrame, nullptr);
             g_engine->credits_active = false;
             if (g_engine->credits_text) {
                 free(g_engine->credits_text);
-                g_engine->credits_text = NULL;
+                g_engine->credits_text = nullptr;
             }
             g_engine->credits_entity_index = -1;
         }
@@ -941,7 +942,7 @@ void update_state() {
             light->intensity = 0.0f;
         }
         else {
-            const char* style = NULL;
+            const char* style = nullptr;
             if (light->preset > 0 && light->preset <= 12) {
                 style = g_light_styles[light->preset];
             }
@@ -967,7 +968,7 @@ void update_state() {
         }
 
         if (light->type == LIGHT_SPOT) {
-            Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, light->rot, (Vec3) { 1, 1, 1 });
+            Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
             Vec3 forward = { 0, 0, -1 };
             light->direction = mat4_mul_vec3_dir(&rot_mat, forward);
             vec3_normalize(&light->direction);
@@ -1037,14 +1038,14 @@ void update_state() {
                 if (!b->runtime_hasFired) {
                     const char* delay_str = Brush_GetProperty(b, "delay", "0");
                     float fire_time = g_engine->lastFrame + atof(delay_str);
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, nullptr);
                     b->runtime_hasFired = true;
                 }
             }
             else if (strcmp(b->classname, "trigger_multiple") == 0) {
                 const char* delay_str = Brush_GetProperty(b, "delay", "0");
                 float fire_time = g_engine->lastFrame + atof(delay_str);
-                IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, NULL);
+                IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, nullptr);
             }
             else if (strcmp(b->classname, "trigger_teleport") == 0) {
                 const char* target_name = Brush_GetProperty(b, "target", "");
@@ -1071,7 +1072,7 @@ void update_state() {
         else if (strcmp(b->classname, "trigger_autosave") == 0) {
             if (!b->runtime_hasFired) {
                 char save_name[128];
-                time_t now = time(NULL);
+                time_t now = time(nullptr);
                 strftime(save_name, sizeof(save_name), "autosave_%Y%m%d_%H%M%S", localtime(&now));
 
                 char* argv[] = { (char*)"save", save_name };
@@ -1083,7 +1084,7 @@ void update_state() {
         else if (!is_inside && b->runtime_playerIsTouching) {
             b->runtime_playerIsTouching = false;
             if (strcmp(b->classname, "trigger_multiple") == 0 || strcmp(b->classname, "trigger_once") == 0) {
-                IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, NULL);
+                IO_FireOutput(ENTITY_BRUSH, i, "OnEndTouch", g_engine->lastFrame, nullptr);
             }
         }
         if (is_inside && strcmp(b->classname, "trigger_hurt") == 0) {
@@ -1100,7 +1101,7 @@ void update_state() {
         }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-    vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, (Vec3) { 0, 1, 0 });
+    vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, Vec3{ 0, 1, 0 });
     SoundSystem_Update();
     bool noclip = Cvar_GetInt("noclip");
     if (!noclip) {
@@ -1171,7 +1172,7 @@ void update_state() {
 
         if (b->runtime_playerIsTouching) {
             Vec3 player_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, (Vec3) { conveyor_vel.x, player_vel.y, conveyor_vel.z });
+            Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ conveyor_vel.x, player_vel.y, conveyor_vel.z });
             Physics_Activate(g_engine->camera.physicsBody);
         }
 
@@ -1188,7 +1189,7 @@ void update_state() {
                         obj_pos.z > conveyor_min.z && obj_pos.z < conveyor_max.z)
                     {
                         Vec3 obj_vel = Physics_GetLinearVelocity(obj->physicsBody);
-                        Physics_SetLinearVelocity(obj->physicsBody, (Vec3) { conveyor_vel.x, obj_vel.y, conveyor_vel.z });
+                        Physics_SetLinearVelocity(obj->physicsBody, Vec3{ conveyor_vel.x, obj_vel.y, conveyor_vel.z });
                         Physics_Activate(obj->physicsBody);
                     }
                 }
@@ -1215,14 +1216,14 @@ void update_state() {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "trigger_gravity") == 0 && b->runtime_playerIsTouching) {
             float gravity_val = atof(Brush_GetProperty(b, "gravity", "9.81"));
-            Physics_SetGravity(g_engine->physicsWorld, (Vec3) { 0, -gravity_val, 0 });
+            Physics_SetGravity(g_engine->physicsWorld, Vec3{ 0, -gravity_val, 0 });
             in_gravity_zone = true;
             break;
         }
     }
 
     if (!in_gravity_zone) {
-        Physics_SetGravity(g_engine->physicsWorld, (Vec3) { 0, -Cvar_GetFloat("gravity"), 0 });
+        Physics_SetGravity(g_engine->physicsWorld, Vec3{ 0, -Cvar_GetFloat("gravity"), 0 });
     }
     if (g_engine->camera.health <= 0.0f) {
         g_engine->camera.health = 100.0f;
@@ -1288,10 +1289,10 @@ void update_state() {
                 sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &move_angles.x, &move_angles.y, &move_angles.z);
 
                 if (move_angles.x == -90) {
-                    b->door_move_dir = (Vec3){ 0, 1, 0 };
+                    b->door_move_dir = Vec3{ 0, 1, 0 };
                 }
                 else if (move_angles.x == 90) {
-                    b->door_move_dir = (Vec3){ 0, -1, 0 };
+                    b->door_move_dir = Vec3{ 0, -1, 0 };
                 }
                 else {
                     float yaw_rad = move_angles.y * (M_PI / 180.0f);
@@ -1331,7 +1332,7 @@ void update_state() {
                 if (move_dist >= dist_to_end) {
                     b->pos = b->door_end_pos;
                     b->door_state = DOOR_STATE_OPEN;
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnOpened", g_engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnOpened", g_engine->lastFrame, nullptr);
                 }
                 else {
                     b->pos = vec3_add(b->pos, vec3_muls(b->door_move_dir, move_dist));
@@ -1347,7 +1348,7 @@ void update_state() {
                 if (move_dist >= dist_to_start) {
                     b->pos = b->door_start_pos;
                     b->door_state = DOOR_STATE_CLOSED;
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnClosed", g_engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnClosed", g_engine->lastFrame, nullptr);
                 }
                 else {
                     b->pos = vec3_add(b->pos, vec3_muls(vec3_muls(b->door_move_dir, -1.0f), move_dist));
@@ -1372,7 +1373,7 @@ void update_state() {
                 float friction = atof(Brush_GetProperty(b, "fanfriction", "0"));
                 float accel_factor = 1.0f - (friction / 100.0f);
                 float lerp_speed = 2.0f + (accel_factor * 8.0f);
-                b->current_angular_velocity = vec3_lerp((Vec3) { b->current_angular_velocity, 0, 0 }, (Vec3) { b->target_angular_velocity, 0, 0 }, g_engine->deltaTime* lerp_speed).x;
+                b->current_angular_velocity = vec3_lerp(Vec3{ b->current_angular_velocity, 0, 0 }, Vec3{ b->target_angular_velocity, 0, 0 }, g_engine->deltaTime* lerp_speed).x;
             }
             else {
                 b->current_angular_velocity = b->target_angular_velocity;
@@ -1380,8 +1381,8 @@ void update_state() {
 
             if (fabsf(b->current_angular_velocity) > 0.001f) {
                 Vec3 rotation_axis = { 0, 0, 1 };
-                if (atoi(Brush_GetProperty(b, "XAxis", "0")) != 0) rotation_axis = (Vec3){ 1, 0, 0 };
-                if (atoi(Brush_GetProperty(b, "YAxis", "0")) != 0) rotation_axis = (Vec3){ 0, 1, 0 };
+                if (atoi(Brush_GetProperty(b, "XAxis", "0")) != 0) rotation_axis = Vec3{ 1, 0, 0 };
+                if (atoi(Brush_GetProperty(b, "YAxis", "0")) != 0) rotation_axis = Vec3{ 0, 1, 0 };
 
                 float deg_per_sec = b->current_angular_velocity;
                 Vec3 delta_rot = vec3_muls(rotation_axis, deg_per_sec * g_engine->deltaTime);
@@ -1456,8 +1457,8 @@ void update_state() {
                 Vec3 swing_angles;
                 sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &swing_angles.x, &swing_angles.y, &swing_angles.z);
 
-                Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, swing_angles, (Vec3) { 1, 1, 1 });
-                b->pendulum_swing_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
+                Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, swing_angles, Vec3{ 1, 1, 1 });
+                b->pendulum_swing_dir = mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
                 vec3_normalize(&b->pendulum_swing_dir);
 
                 if (atoi(Brush_GetProperty(b, "StartON", "1")) == 1) {
@@ -1488,10 +1489,10 @@ void update_state() {
                 bool is_pressed = current_weight >= required_weight;
 
                 if (is_pressed && !b->runtime_was_pressed) {
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, nullptr);
                 }
                 else if (!is_pressed && b->runtime_was_pressed) {
-                    IO_FireOutput(ENTITY_BRUSH, i, "OnReleased", g_engine->lastFrame, NULL);
+                    IO_FireOutput(ENTITY_BRUSH, i, "OnReleased", g_engine->lastFrame, nullptr);
                 }
 
                 b->runtime_was_pressed = is_pressed;
@@ -1511,7 +1512,7 @@ void update_state() {
             g_engine->camera.position.z >= min_aabb.z && g_engine->camera.position.z <= max_aabb.z)
         {
             g_scene.post.isUnderwater = true;
-            g_scene.post.underwaterColor = (Vec3){ 0.1f, 0.3f, 0.4f };
+            g_scene.post.underwaterColor = Vec3{ 0.1f, 0.3f, 0.4f };
             break;
         }
     }
@@ -1560,7 +1561,7 @@ void cleanup() {
             if (g_scene.objects[i].model) Model_Free(g_scene.objects[i].model);
         }
         free(g_scene.objects);
-        g_scene.objects = NULL;
+        g_scene.objects = nullptr;
     }
     Renderer_Shutdown(&g_renderer);
     WaterManager_Shutdown();
@@ -1588,7 +1589,7 @@ void cleanup() {
     IPC_Shutdown();
     if (g_engine->cursor) {
         SDL_FreeCursor(g_engine->cursor);
-        g_engine->cursor = NULL;
+        g_engine->cursor = nullptr;
     }
 #ifdef PLATFORM_WINDOWS
     if (g_hMutex) {
@@ -1613,7 +1614,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
 #ifdef ENABLE_CHECKSUM
     char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
-    HMODULE hModule = NULL;
+    HMODULE hModule = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
         (LPCSTR)Engine_Main, &hModule);
     GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
@@ -1624,7 +1625,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
     dllPath[sizeof(dllPath) - 1] = '\0';
 #endif
     if (!Checksum_Verify(dllPath)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", NULL);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", nullptr);
         return 0;
     }
 #endif
@@ -1632,9 +1633,9 @@ static int Engine_Initialize(int argc, char* argv[]) {
 #ifdef PLATFORM_WINDOWS
     if (!g_allow_multiple_instances) {
         const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
-        g_hMutex = CreateMutex(NULL, TRUE, mutexName);
+        g_hMutex = CreateMutex(nullptr, TRUE, mutexName);
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
             if (g_hMutex) CloseHandle(g_hMutex);
             return 0;
         }
@@ -1644,11 +1645,11 @@ static int Engine_Initialize(int argc, char* argv[]) {
         const char* lockFilePath = "/tmp/TectonicEngine.lock";
         g_lockFileFd = open(lockFilePath, O_CREAT | O_RDWR, 0666);
         if (g_lockFileFd == -1) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", NULL);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", nullptr);
             return 0;
         }
         if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1 && errno == EWOULDBLOCK) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", NULL);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
             close(g_lockFileFd);
             return 0;
         }
@@ -1693,11 +1694,11 @@ static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
     GL_InitDebugOutput();
     if (!GLEW_ARB_bindless_texture) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
-        return NULL;
+        return nullptr;
     }
     if (!GL_ARB_shading_language_include) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support glsl includes (GL_ARB_shading_language_include), which is required by this engine.", window);
-        return NULL;
+        return nullptr;
     }
     return context;
 }
@@ -1714,12 +1715,12 @@ static void Engine_RenderGame() {
     };
     vec3_normalize(&forward);
     Vec3 target = vec3_add(g_engine->camera.position, forward);
-    Mat4 view = mat4_lookAt(g_engine->camera.position, target, (Vec3) { 0, 1, 0 });
+    Mat4 view = mat4_lookAt(g_engine->camera.position, target, Vec3{ 0, 1, 0 });
 
     if (g_engine->shake_amplitude > 0.0f) {
         float shake_offset_x = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
         float shake_offset_y = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
-        Mat4 shake_matrix = mat4_translate((Vec3) { shake_offset_x, shake_offset_y, 0.0f });
+        Mat4 shake_matrix = mat4_translate(Vec3{ shake_offset_x, shake_offset_y, 0.0f });
         mat4_multiply(&view, &shake_matrix, &view);
     }
 
@@ -1737,7 +1738,7 @@ static void Engine_RenderGame() {
         mat4_multiply(&view, &view, &bob_matrix);
     }
 
-    const Uint8* k_state = SDL_GetKeyboardState(NULL);
+    const Uint8* k_state = SDL_GetKeyboardState(nullptr);
     float target_fov_offset = 0.0f;
     float base_fov = Cvar_GetFloat("fov_vertical");
     bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
@@ -1958,7 +1959,7 @@ static void Engine_RunLoop(SDL_Window* window) {
         if (g_quit_requested) 
             UI_OpenPopup("Quit Confirmation");
 
-        if (UI_BeginPopupModal("Quit Confirmation", NULL, 1 << 3)) {
+        if (UI_BeginPopupModal("Quit Confirmation", nullptr, 1 << 3)) {
             UI_Text("Are you sure you want to quit?");
             UI_Spacing();
             if (UI_Button("Quit")) 
