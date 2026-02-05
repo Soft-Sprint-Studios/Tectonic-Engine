@@ -34,18 +34,20 @@ void load_and_register_named_shader_string(const char* name, const char* path) {
 }
 
 char* load_shader_source(const char* path) {
-    char* buffer = NULL;
-    long length;
+    char* buffer = nullptr;
+    long length = 0;
     FILE* f = fopen(path, "rb");
     if (f) {
         fseek(f, 0, SEEK_END);
         length = ftell(f);
         fseek(f, 0, SEEK_SET);
-        buffer = malloc(length + 1);
+
+        buffer = new char[length + 1];
         if (buffer) {
-            fread(buffer, 1, length, f);
-            buffer[length] = '\0';
+            size_t read_bytes = fread(buffer, 1, length, f);
+            buffer[read_bytes] = '\0';
         }
+
         fclose(f);
     }
     else {
@@ -64,13 +66,13 @@ GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
         "#include \"/pbr.h\"\n"
         "#line 1\n";
     const char* sources[2] = { header, src };
-    glShaderSource(shader, 2, sources, NULL);
+    glShaderSource(shader, 2, sources, nullptr);
     glCompileShader(shader);
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
-        glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+        glGetShaderInfoLog(shader, 1024, nullptr, infoLog);
         const char* typeStr =
             type == GL_VERTEX_SHADER ? "VERTEX" :
             type == GL_FRAGMENT_SHADER ? "FRAGMENT" :
@@ -87,14 +89,14 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     char* vertSrc = load_shader_source(vertPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !fragSrc) {
-        free(vertSrc);
-        free(fragSrc);
+        delete[] vertSrc;
+        delete[] fragSrc;
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    free(vertSrc);
-    free(fragSrc);
+    delete[] vertSrc;
+    delete[] fragSrc;
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, frag);
@@ -103,7 +105,7 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
-        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
@@ -116,17 +118,17 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
     char* geomSrc = load_shader_source(geomPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !geomSrc || !fragSrc) {
-        free(vertSrc);
-        free(geomSrc);
-        free(fragSrc);
+        delete[] vertSrc;
+        delete[] geomSrc;
+        delete[] fragSrc;
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint geom = compileShader(GL_GEOMETRY_SHADER, geomSrc, geomPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    free(vertSrc);
-    free(geomSrc);
-    free(fragSrc);
+    delete[] vertSrc;
+    delete[] geomSrc;
+    delete[] fragSrc;
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, geom);
@@ -136,7 +138,7 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
-        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + GEOMETRY + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
@@ -151,20 +153,20 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     char* tesSrc = load_shader_source(tesPath);
     char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !tcsSrc || !tesSrc || !fragSrc) {
-        free(vertSrc);
-        free(tcsSrc);
-        free(tesSrc);
-        free(fragSrc);
+        delete[] vertSrc;
+        delete[] tcsSrc;
+        delete[] tesSrc;
+        delete[] fragSrc;
         return 0;
     }
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint tcs = compileShader(GL_TESS_CONTROL_SHADER, tcsSrc, tcsPath);
     GLuint tes = compileShader(GL_TESS_EVALUATION_SHADER, tesSrc, tesPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
-    free(vertSrc);
-    free(tcsSrc);
-    free(tesSrc);
-    free(fragSrc);
+    delete[] vertSrc;
+    delete[] tcsSrc;
+    delete[] tesSrc;
+    delete[] fragSrc;
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, tcs);
@@ -175,7 +177,7 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
-        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + TESS + FRAGMENT):\n%s\n", infoLog);
     }
     glDeleteShader(vert);
@@ -188,11 +190,11 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
 GLuint createShaderProgramCompute(const char* computePath) {
     char* computeSrc = load_shader_source(computePath);
     if (!computeSrc) {
-        free(computeSrc);
+        delete[] computeSrc;
         return 0;
     }
     GLuint compute = compileShader(GL_COMPUTE_SHADER, computeSrc, computePath);
-    free(computeSrc);
+    delete[] computeSrc;
     GLuint program = glCreateProgram();
     glAttachShader(program, compute);
     glLinkProgram(program);
@@ -200,7 +202,7 @@ GLuint createShaderProgramCompute(const char* computePath) {
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         GLchar infoLog[1024];
-        glGetProgramInfoLog(program, 1024, NULL, infoLog);
+        glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (COMPUTE):\n%s\n", infoLog);
     }
     glDeleteShader(compute);
@@ -253,7 +255,7 @@ void GL_InitDebugOutput(void) {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(GL_MessageCallback, 0);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
     }
 #endif
 }

@@ -205,7 +205,7 @@ void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
 
     glUseProgram(video_shader);
 
-    vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, (Vec3) { vp->size.x, vp->size.y, 1.0f });
+    vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
 
     glUniformMatrix4fv(glGetUniformLocation(video_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(video_shader, "view"), 1, GL_FALSE, view->m);
@@ -240,13 +240,13 @@ void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, i
     mat4_identity(&view);
 
     Mat4 model = create_trs_matrix(
-        (Vec3) {
+        Vec3{
         x + w * 0.5f, y + h * 0.5f, 0.0f
     },
-        (Vec3) {
+        Vec3{
         0.0f, 0.0f, 0.0f
     },
-        (Vec3) {
+        Vec3{
         w, -h, 1.0f
     }
     );

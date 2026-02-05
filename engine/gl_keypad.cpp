@@ -25,7 +25,9 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern bool g_player_input_disabled;
+extern "C" {
+    extern bool g_player_input_disabled;
+}
 
 void Keypad_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->keypad_active) {

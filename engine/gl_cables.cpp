@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "gl_cables.h"
 #include "map.h"
 #include "gl_misc.h"
 #include "io_system.h"
@@ -92,8 +93,8 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, floa
                 control_pos.y -= depth;
 
                 if (wind_amount > 0.0f) {
-                    Mat4 rot_mat = create_trs_matrix((Vec3) { 0, 0, 0 }, wind_angles, (Vec3) { 1, 1, 1 });
-                    Vec3 wind_dir = mat4_mul_vec3_dir(&rot_mat, (Vec3) { 1, 0, 0 });
+                    Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, wind_angles, Vec3{ 1, 1, 1 });
+                    Vec3 wind_dir = mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
                     vec3_normalize(&wind_dir);
 
                     float sway1 = sin(time * wind_speed * 1.0f) * wind_amount * 0.6f;
