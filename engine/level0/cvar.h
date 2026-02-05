@@ -32,9 +32,6 @@
 #include <stdbool.h>
 #include "level0_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_CVARS 1024
 #define MAX_COMMAND_LENGTH 128
@@ -69,8 +66,5 @@ extern "C" {
     LEVEL0_API int Cvar_GetCount();
     LEVEL0_API const Cvar* Cvar_GetCvar(int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CVAR_H

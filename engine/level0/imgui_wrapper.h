@@ -30,9 +30,6 @@
 #include "math_lib.h"
 #include "level0_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     LEVEL0_API void UI_Init(SDL_Window* window, SDL_GLContext context);
     LEVEL0_API void UI_Shutdown();
@@ -150,8 +147,5 @@ extern "C" {
     LEVEL0_API void UI_DrawList_AddText(void* draw_list, float pos_x, float pos_y, unsigned int col, const char* text);
     LEVEL0_API unsigned int UI_GetColorU32(int r, int g, int b, int a);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // IMGUI_WRAPPER_H

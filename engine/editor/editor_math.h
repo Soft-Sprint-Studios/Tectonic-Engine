@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	float SnapValue(float value, float snap_interval);
 
@@ -41,8 +38,5 @@ extern "C" {
 	float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg);
 	bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, float plane_d, Vec3* intersect_point);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_MATH_H

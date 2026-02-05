@@ -31,9 +31,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void VideoPlayer_UpdateAll(Scene* scene, float deltaTime);
 	void VideoPlayer_InitSystem(void);
@@ -48,8 +45,5 @@ extern "C" {
 	void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection);
 	void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_VIDEO_PLAYER_H

@@ -32,9 +32,6 @@
 #include "map.h"
 #include "editor_undo.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
 	void Editor_Shutdown();
@@ -54,8 +51,5 @@ extern "C" {
 	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
 	void Editor_DuplicateSprite(Scene* scene, int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_H

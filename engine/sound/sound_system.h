@@ -35,9 +35,6 @@
 #include "dsp_reverb.h"
 #include "sound_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     typedef struct {
         unsigned int bufferID;
@@ -63,8 +60,5 @@ extern "C" {
     SOUND_API void SoundSystem_DeleteBuffer(unsigned int bufferID);
     SOUND_API void SoundSystem_Update(void);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SOUND_SYSTEM_H

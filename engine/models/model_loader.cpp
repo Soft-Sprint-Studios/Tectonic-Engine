@@ -31,7 +31,7 @@
 
 #define MODEL_VERTEX_STRIDE_FLOATS 24
 
-static LoadedModel* g_ErrorModel = NULL;
+static LoadedModel* g_ErrorModel = nullptr;
 
 static void EnsureErrorModelLoaded() {
     if (g_ErrorModel) return;
@@ -85,9 +85,9 @@ static void Model_CombineMeshData(LoadedModel* model) {
         free(model->combinedVertexData);
         free(model->combinedNormalData);
         free(model->combinedIndexData);
-        model->combinedVertexData = NULL;
-        model->combinedNormalData = NULL;
-        model->combinedIndexData = NULL;
+        model->combinedVertexData = nullptr;
+        model->combinedNormalData = nullptr;
+        model->combinedIndexData = nullptr;
         return;
     }
 
@@ -108,7 +108,7 @@ static void Model_CombineMeshData(LoadedModel* model) {
 }
 
 LoadedModel* Model_Load(const char* path) {
-    bool is_loading_error_asset = (path && strstr(path, "error.glb") != NULL);
+    bool is_loading_error_asset = (path && strstr(path, "error.glb") != nullptr);
 
     bool is_glb = false;
     const char* ext = strrchr(path, '.');
@@ -117,10 +117,10 @@ LoadedModel* Model_Load(const char* path) {
     }
 
     cgltf_options options{};
-    cgltf_data* data = NULL;
+    cgltf_data* data = nullptr;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
         Console_Printf_Error("Failed to load model: %s", path);
-        if (is_loading_error_asset) return NULL;
+        if (is_loading_error_asset) return nullptr;
         EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
@@ -128,7 +128,7 @@ LoadedModel* Model_Load(const char* path) {
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
         Console_Printf_Error("Failed to load buffers for model: %s", path);
         cgltf_free(data);
-        if (is_loading_error_asset) return NULL;
+        if (is_loading_error_asset) return nullptr;
         EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
@@ -136,7 +136,7 @@ LoadedModel* Model_Load(const char* path) {
     LoadedModel* loadedModel = static_cast<LoadedModel*>(malloc(sizeof(LoadedModel)));
     if (!loadedModel) {
         cgltf_free(data);
-        if (is_loading_error_asset) return NULL;
+        if (is_loading_error_asset) return nullptr;
         EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
@@ -272,9 +272,9 @@ LoadedModel* Model_Load(const char* path) {
                 newMesh->material = (primitive->material && primitive->material->name) ? TextureManager_FindMaterial(primitive->material->name) : &g_MissingMaterial;
             }
 
-            float* positions = NULL, * normals = NULL, * texcoords = NULL, * tangents = NULL;
-            cgltf_accessor* joints_accessor = NULL;
-            cgltf_accessor* weights_accessor = NULL;
+            float* positions = nullptr, * normals = nullptr, * texcoords = nullptr, * tangents = nullptr;
+            cgltf_accessor* joints_accessor = nullptr;
+            cgltf_accessor* weights_accessor = nullptr;
             cgltf_size vertexCount = 0;
 
             if (primitive->attributes_count == 0) {
@@ -329,7 +329,7 @@ LoadedModel* Model_Load(const char* path) {
             if (!texcoords) texcoords = static_cast<float*>(calloc(vertexCount * 2, sizeof(float)));
             if (!tangents) tangents = static_cast<float*>(calloc(vertexCount * 4, sizeof(float)));
 
-            SkinningVertexData* skinning_data = NULL;
+            SkinningVertexData* skinning_data = nullptr;
             if (joints_accessor && weights_accessor) {
                 skinning_data = static_cast<SkinningVertexData*>(calloc(vertexCount, sizeof(SkinningVertexData)));
                 for (cgltf_size v = 0; v < vertexCount; v++) {
@@ -452,7 +452,7 @@ LoadedModel* Model_Load(const char* path) {
 
 void Model_Free(LoadedModel* model) {
     if (!model) return;
-    if (model == g_ErrorModel && g_ErrorModel != NULL) return;
+    if (model == g_ErrorModel && g_ErrorModel != nullptr) return;
 
     if (model->animations) {
         for (int i = 0; i < model->num_animations; ++i) {
@@ -581,7 +581,7 @@ bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
 void ModelLoader_Shutdown() {
     if (g_ErrorModel) {
         LoadedModel* temp = g_ErrorModel;
-        g_ErrorModel = NULL;
+        g_ErrorModel = nullptr;
         Model_Free(temp);
     }
 }

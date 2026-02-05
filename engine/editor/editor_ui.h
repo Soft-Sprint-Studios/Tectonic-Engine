@@ -27,14 +27,8 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_UI_H

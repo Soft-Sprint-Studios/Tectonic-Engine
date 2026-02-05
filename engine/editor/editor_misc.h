@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_SetMapDirty(bool is_dirty);
 	void Editor_SaveRecentFiles();
@@ -42,8 +39,5 @@ extern "C" {
 	void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene);
 	void Editor_Shutdown();
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_MISC_H

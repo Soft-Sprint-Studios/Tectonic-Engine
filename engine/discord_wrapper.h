@@ -29,16 +29,10 @@
 // Brief: Discord RPC
 //----------------------------------------//
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Discord_Init();
 	void Discord__Shutdown();
 	void Discord_Update(const char* state, const char* details);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // DISCORD_WRAPPER_H

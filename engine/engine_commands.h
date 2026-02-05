@@ -25,9 +25,6 @@
 #ifndef ENGINE_COMMANDS_H
 #define ENGINE_COMMANDS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void RegisterEngineCommandsAndCvars(void);
 
@@ -38,8 +35,5 @@ extern "C" {
 	// needed by engine
 	void PrintSystemInfo();
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // ENGINE_COMMANDS_H

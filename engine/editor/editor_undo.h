@@ -31,9 +31,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     typedef struct {
         EntityType type;
@@ -93,8 +90,5 @@ extern "C" {
     void _raw_delete_parallax_room(Scene* scene, int index);
     void _raw_delete_logic_entity(Scene* scene, int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_UNDO_H

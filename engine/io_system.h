@@ -31,9 +31,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_IO_CONNECTIONS 1024
 #define MAX_PENDING_EVENTS 256
@@ -82,8 +79,5 @@ extern "C" {
     extern IOConnection g_io_connections[MAX_IO_CONNECTIONS];
     extern int g_num_io_connections;
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // IO_SYSTEM_H

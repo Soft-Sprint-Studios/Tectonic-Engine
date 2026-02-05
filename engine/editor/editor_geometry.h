@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs);
 	void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
@@ -41,8 +38,5 @@ extern "C" {
 	void Editor_AdjustPreviewBrush(Vec2 mouse_pos, ViewportType adjust_view);
 	void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_GEOMETRY_H

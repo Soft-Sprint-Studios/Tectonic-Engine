@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_GroupSelection();
 	void Editor_UngroupSelection();
@@ -47,8 +44,5 @@ extern "C" {
 	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
 	void Editor_DuplicateSprite(Scene* scene, int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_ACTIONS_H

@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void ScanModelFiles();
 	void ScanDocFiles();
@@ -63,8 +60,5 @@ extern "C" {
 	void Editor_RenderParticleBrowser(Scene* scene);
 	void RenderIOEditor(EntityType type, int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_WINDOWS_H

@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index);
 	void Editor_RemoveFromSelection(EntityType type, int index);
@@ -44,8 +41,5 @@ extern "C" {
 	void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport);
 	int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_SELECTION_H

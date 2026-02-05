@@ -27,16 +27,10 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Glow_Init(void);
 	void Glow_Shutdown(void);
 	void Glow_Render(Scene* scene, Mat4 view, Mat4 projection);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_GLOW_H

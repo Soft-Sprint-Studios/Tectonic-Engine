@@ -54,7 +54,7 @@ public:
         char line[256];
         while (fgets(line, sizeof(line), file)) {
             char* key = strtok(line, "=");
-            char* value = strtok(NULL, "=");
+            char* value = strtok(nullptr, "=");
 
             if (key && value) {
                 key = trim(key);

@@ -33,9 +33,6 @@
 #include <stdbool.h>
 #include "materials_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_MATERIALS 16384
 
@@ -95,8 +92,5 @@ extern "C" {
     MATERIALS_API GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrgb, TextureLoadContext context);
     MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // TEXTURE_MANAGER_H

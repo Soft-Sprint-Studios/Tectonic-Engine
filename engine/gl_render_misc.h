@@ -27,9 +27,6 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     static float parallaxRoomVertices[] = {
         -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
@@ -49,8 +46,5 @@ extern "C" {
     void MiscRender_SaveScreenshot(Engine* engine, const char* filepath);
     void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_RENDER_MISC_H

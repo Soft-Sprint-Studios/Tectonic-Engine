@@ -31,9 +31,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     typedef struct {
         uint32_t signature;
@@ -53,8 +50,5 @@ extern "C" {
 
     bool Checksum_Verify(const char* exePath);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CHECKSUM_H

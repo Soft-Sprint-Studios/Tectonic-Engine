@@ -34,7 +34,6 @@
 
 #ifdef __cplusplus
     using namespace std;
-    extern "C" {
 #endif
 
 //#define GAME_RELEASE 1
@@ -260,8 +259,5 @@ static void GetCPUName(char out[49]) {
     out[48] = '\0';
 }
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // COMPAT_H

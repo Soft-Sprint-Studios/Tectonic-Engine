@@ -27,14 +27,8 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Keypad_RenderUI(Scene* scene, Engine* engine);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_KEYPAD_H

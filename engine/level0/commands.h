@@ -31,9 +31,6 @@
 
 #include "level0_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define CMD_NONE   (0)
 #define CMD_CHEAT  (1 << 0)
@@ -54,8 +51,5 @@ extern "C" {
     LEVEL0_API int Commands_GetCount();
     LEVEL0_API const Command* Commands_GetCommand(int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // COMMANDS_H

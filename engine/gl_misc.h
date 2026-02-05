@@ -34,9 +34,6 @@
 #include <SDL_opengl.h>
 #include <stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void load_and_register_named_shader_string(const char* name, const char* path);
 	char* load_shader_source(const char* path);
@@ -47,8 +44,5 @@ extern "C" {
 	GLuint createShaderProgramCompute(const char* computePath);
 	void GL_InitDebugOutput(void);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_MISC_H

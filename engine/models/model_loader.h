@@ -35,9 +35,6 @@
 #include "math_lib.h"
 #include "models_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_BONES_PER_VERTEX 4
 #define MAX_BONES_PER_MODEL 128
@@ -117,8 +114,5 @@ extern "C" {
     MODELS_API void Model_Free(LoadedModel* model);
     MODELS_API void ModelLoader_Shutdown();
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // MODEL_LOADER_H

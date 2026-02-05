@@ -43,8 +43,6 @@ struct RigidBody {
     btRigidBody* body;
 };
 
-extern "C" {
-
     PhysicsWorldHandle Physics_CreateWorld(float gravity_y) {
         PhysicsWorld* world = new PhysicsWorld();
         world->collisionConfiguration = new btDefaultCollisionConfiguration();
@@ -95,7 +93,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle handle, float radius, float totalHeight, float mass, Vec3 startPos) {
-        if (!handle) return NULL;
+        if (!handle) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         float cylinderHeight = totalHeight - (2.0f * radius);
@@ -135,7 +133,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle handle, const float* points, int numPoints, float mass, Mat4 transform) {
-        if (!handle || !points || numPoints == 0) return NULL;
+        if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(float));
@@ -167,7 +165,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, int stride, float mass, Mat4 transform) {
-        if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return NULL;
+        if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, stride);
@@ -195,7 +193,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle handle, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale) {
-        if (!handle || !vertices || numVertices == 0 || !indices || numIndices == 0) return NULL;
+        if (!handle || !vertices || numVertices == 0 || !indices || numIndices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btIndexedMesh mesh;
@@ -239,7 +237,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle handle, const float* points, int numPoints) {
-        if (!handle || !points || numPoints == 0) return NULL;
+        if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(float));
@@ -262,7 +260,7 @@ extern "C" {
     }
 
     RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, Mat4 transform) {
-        if (!handle || !vertices || numVertices == 0) return NULL;
+        if (!handle || !vertices || numVertices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(float));
@@ -652,4 +650,3 @@ extern "C" {
             }
         }
     }
-}

@@ -50,7 +50,7 @@ void launch_tool(const char* tool_executable) {
     strncpy_s(cmdLine, tool_executable, sizeof(cmdLine) - 1);
     cmdLine[sizeof(cmdLine) - 1] = '\0';
 
-    if (!CreateProcessA(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+    if (!CreateProcessA(nullptr, cmdLine, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         string error_msg = "Failed to launch '";
         error_msg += tool_executable;
         error_msg += "'.\nEnsure it is in the same directory as the launcher.";
@@ -64,7 +64,7 @@ void launch_tool(const char* tool_executable) {
     if (pid == 0) {
         char path_buffer[512];
         snprintf(path_buffer, sizeof(path_buffer), "./%s", tool_executable);
-        execlp(path_buffer, tool_executable, (char*)NULL);
+        execlp(path_buffer, tool_executable, (char*)nullptr);
         perror("execlp");
         _exit(1);
     }

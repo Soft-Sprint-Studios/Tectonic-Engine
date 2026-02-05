@@ -40,9 +40,6 @@
 #include "dsp_reverb.h"
 #include <AL/al.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_LIGHTS 256
 #define MAX_BRUSHES 8192
@@ -634,8 +631,5 @@ extern "C" {
     void SceneObject_UpdateMatrix(SceneObject* obj);
     void Scene_LoadAmbientProbes(Scene* scene);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // MAP_H

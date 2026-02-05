@@ -25,9 +25,7 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern "C" {
-    extern bool g_player_input_disabled;
-}
+extern bool g_player_input_disabled;
 
 void Keypad_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->keypad_active) {
@@ -57,9 +55,9 @@ void Keypad_RenderUI(Scene* scene, Engine* engine) {
                     const char* correct_password = LogicEntity_GetProperty(keypad_ent, "password", "");
 
                     if (strcmp(engine->keypad_input_buffer, correct_password) == 0) {
-                        IO_FireOutput(ENTITY_LOGIC, engine->active_keypad_entity_index, "OnPasswordCorrect", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, engine->active_keypad_entity_index, "OnPasswordCorrect", engine->lastFrame, nullptr);
                     } else {
-                        IO_FireOutput(ENTITY_LOGIC, engine->active_keypad_entity_index, "OnPasswordIncorrect", engine->lastFrame, NULL);
+                        IO_FireOutput(ENTITY_LOGIC, engine->active_keypad_entity_index, "OnPasswordIncorrect", engine->lastFrame, nullptr);
                     }
                     
                     engine->keypad_active = false;

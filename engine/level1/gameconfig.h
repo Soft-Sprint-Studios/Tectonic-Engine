@@ -31,9 +31,6 @@
 
 #include "level1_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     typedef struct {
         char startmap[128];
@@ -53,8 +50,5 @@ extern "C" {
     LEVEL1_API void PreParse_GetResolution(int* width, int* height);
     LEVEL1_API void GameConfig_ParseCommandLine(int argc, char* argv[]);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GAMECONFIG_H

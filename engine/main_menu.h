@@ -31,9 +31,6 @@
 
 #include <SDL.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     extern bool g_show_options_menu;
     extern bool g_show_load_game_menu;
@@ -54,8 +51,5 @@ extern "C" {
     void MainMenu_Update(float deltaTime);
     void MainMenu_Render();
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // MAIN_MENU_H

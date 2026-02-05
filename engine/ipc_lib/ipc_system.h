@@ -28,9 +28,6 @@
 #include "ipc_api.h"
 #include "level0/commands.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	IPC_API void IPC_Init(void);
 	IPC_API void IPC_Shutdown(void);
@@ -38,8 +35,5 @@ extern "C" {
 	IPC_API void IPC_ReceiveCommands(command_func_t command_handler);
 	IPC_API bool IPC_IsTConsoleConnected(void);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // IPC_SYSTEM_H

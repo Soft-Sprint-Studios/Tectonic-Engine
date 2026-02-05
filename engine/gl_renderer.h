@@ -27,17 +27,11 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Renderer_Init(Renderer* renderer, Engine* engine);
 	void Renderer_Shutdown(Renderer* renderer);
 	void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, int viewMode);
 	void Renderer_Present(GLuint source_fbo, Engine* engine);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_RENDERER_H

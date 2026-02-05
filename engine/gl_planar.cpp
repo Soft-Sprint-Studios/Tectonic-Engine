@@ -260,7 +260,7 @@ void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engi
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_reflective_glass") != 0) continue;
 
-        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
+        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
         glBindTexture(GL_TEXTURE_2D, (normal_mat && normal_mat != &g_MissingMaterial) ? normal_mat->normalMap : defaultNormalMapID);
 

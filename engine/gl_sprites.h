@@ -27,16 +27,10 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Sprites_Init(Renderer* renderer);
 	void Sprites_Shutdown(Renderer* renderer);
 	void Sprites_Render(Renderer* renderer, Scene* scene, Mat4* view, Mat4* projection);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_SPRITES_H

@@ -99,7 +99,7 @@ void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "env_glass") != 0) continue;
 
-        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "NULL");
+        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
         if (normal_mat && normal_mat != &g_MissingMaterial) {
             glBindTexture(GL_TEXTURE_2D, normal_mat->normalMap);
@@ -131,7 +131,7 @@ void Light_InitShadowMap(Light* light) {
     if (light->type == LIGHT_POINT) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, light->shadowMapTexture);
         for (int i = 0; i < 6; ++i) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
         }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -142,7 +142,7 @@ void Light_InitShadowMap(Light* light) {
     }
     else {
         glBindTexture(GL_TEXTURE_2D, light->shadowMapTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -322,7 +322,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
     glBindFramebuffer(GL_FRAMEBUFFER, cubemap_fbo);
     glGenTextures(1, &cubemap_texture);
     glBindTexture(GL_TEXTURE_2D, cubemap_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, resolution, resolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, resolution, resolution, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cubemap_texture, 0);

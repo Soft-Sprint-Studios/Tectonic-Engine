@@ -35,10 +35,10 @@ static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
 
 ParticleSystem* ParticleSystem_Load(const char* path) {
     FILE* file = fopen(path, "r");
-    if (!file) return NULL;
+    if (!file) return nullptr;
 
     ParticleSystem* ps = (ParticleSystem*)calloc(1, sizeof(ParticleSystem));
-    if (!ps) { fclose(file); return NULL; }
+    if (!ps) { fclose(file); return nullptr; }
 
     ps->maxParticles = 1000;
     ps->gravity = Vec3{ 0.0f, -9.81f, 0.0f };
@@ -124,7 +124,7 @@ void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3
     glGenBuffers(1, &emitter->vbo);
     glBindVertexArray(emitter->vao);
     glBindBuffer(GL_ARRAY_BUFFER, emitter->vbo);
-    glBufferData(GL_ARRAY_BUFFER, emitter->system->maxParticles * sizeof(ParticleVertex), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, emitter->system->maxParticles * sizeof(ParticleVertex), nullptr, GL_STREAM_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ParticleVertex), (void*)offsetof(ParticleVertex, position));
     glEnableVertexAttribArray(1);
@@ -216,7 +216,7 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
 
     glUniform1i(glGetUniformLocation(ps->shader, "u_numAmbientProbes"), scene->num_ambient_probes);
     if (scene->num_ambient_probes > 0) {
-        AmbientProbe* nearest_probes[8] = { NULL };
+        AmbientProbe* nearest_probes[8] = { nullptr };
         float distances[8];
         for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
 

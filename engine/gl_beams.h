@@ -27,16 +27,10 @@
 
 #include "map.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 	void Beams_Init(void);
 	void Beams_Shutdown(void);
 	void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_BEAMS_H

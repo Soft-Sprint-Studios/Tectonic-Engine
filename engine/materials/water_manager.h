@@ -32,9 +32,6 @@
 #include "texturemanager.h"
 #include "materials_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_WATER_DEFS 64
 
@@ -56,8 +53,5 @@ extern "C" {
     MATERIALS_API int WaterManager_GetWaterDefCount(void);
     MATERIALS_API WaterDef* WaterManager_GetWaterDef(int index);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // WATER_MANAGER_H

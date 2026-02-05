@@ -27,9 +27,6 @@
 
 #include "editor_internal.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     void Brush_SetVerticesFromBox(Brush* b, Vec3 size);
     void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, int num_sides);
@@ -40,8 +37,5 @@ extern "C" {
     void Brush_SetVerticesFromTube(Brush* b, Vec3 size, int num_sides, float wall_thickness);
     void Brush_Clip(Brush* b, Vec3 plane_normal, float plane_d);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDITOR_GEOMETRY_HELPERS_H

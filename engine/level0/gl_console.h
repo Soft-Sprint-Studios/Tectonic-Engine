@@ -31,9 +31,6 @@
 #include "imgui_wrapper.h"
 #include "level0_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
     typedef enum {
         CONSOLE_COLOR_WHITE,
@@ -66,8 +63,5 @@ extern "C" {
     LEVEL0_API void Log_Init(const char* filename);
     LEVEL0_API void Log_Shutdown(void);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // GL_CONSOLE_H

@@ -32,9 +32,6 @@
 #include <SDL_keycode.h>
 #include "level1_api.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define MAX_BINDS 256
 #define MAX_COMMAND_LENGTH 128
@@ -53,8 +50,5 @@ extern "C" {
     LEVEL1_API void Binds_UnbindAll(void);
     LEVEL1_API const char* Binds_GetCommand(SDL_Keycode key);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // BINDS_H
