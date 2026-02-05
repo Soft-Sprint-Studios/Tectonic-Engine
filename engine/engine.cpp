@@ -74,6 +74,7 @@
 #ifdef PLATFORM_LINUX
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <dlfcn.h>
 #endif
 
@@ -1598,7 +1599,7 @@ void cleanup() {
     }
 #else
     if (g_lockFileFd != -1) {
-        flock(g_lockFileFd, LOCK_UN);
+        ::flock(g_lockFileFd, LOCK_UN);
         close(g_lockFileFd);
     }
 #endif
