@@ -24,10 +24,10 @@
 #include "cgltf.h"
 #include "model_loader.h"
 #include "gl_console.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <float.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cfloat>
 
 #define MODEL_VERTEX_STRIDE_FLOATS 24
 
@@ -77,9 +77,9 @@ static void Model_CombineMeshData(LoadedModel* model) {
         return;
     }
 
-    model->combinedVertexData = malloc(model->totalVertexCount * 3 * sizeof(float));
-    model->combinedNormalData = malloc(model->totalVertexCount * 3 * sizeof(float));
-    model->combinedIndexData = malloc(model->totalIndexCount * sizeof(unsigned int));
+    model->combinedVertexData = static_cast<float*>(malloc(model->totalVertexCount * 3 * sizeof(float)));
+    model->combinedNormalData = static_cast<float*>(malloc(model->totalVertexCount * 3 * sizeof(float)));
+    model->combinedIndexData = static_cast<unsigned int*>(malloc(model->totalIndexCount * sizeof(unsigned int)));
 
     if (!model->combinedVertexData || !model->combinedIndexData || !model->combinedNormalData) {
         free(model->combinedVertexData);
@@ -116,7 +116,7 @@ LoadedModel* Model_Load(const char* path) {
         is_glb = true;
     }
 
-    cgltf_options options = { 0 };
+    cgltf_options options{};
     cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
         Console_Printf_Error("Failed to load model: %s", path);
@@ -133,7 +133,7 @@ LoadedModel* Model_Load(const char* path) {
         return g_ErrorModel;
     }
 
-    LoadedModel* loadedModel = malloc(sizeof(LoadedModel));
+    LoadedModel* loadedModel = static_cast<LoadedModel*>(malloc(sizeof(LoadedModel)));
     if (!loadedModel) {
         cgltf_free(data);
         if (is_loading_error_asset) return NULL;
@@ -147,13 +147,13 @@ LoadedModel* Model_Load(const char* path) {
 
     if (data->skins_count > 0) {
         loadedModel->num_skins = data->skins_count;
-        loadedModel->skins = calloc(loadedModel->num_skins, sizeof(Skin));
+        loadedModel->skins = static_cast<Skin*>(calloc(loadedModel->num_skins, sizeof(Skin)));
         for (size_t s = 0; s < data->skins_count; ++s) {
             cgltf_skin* skin_data = &data->skins[s];
             Skin* skin = &loadedModel->skins[s];
             strncpy(skin->name, skin_data->name ? skin_data->name : "", sizeof(skin->name) - 1);
             skin->num_joints = skin_data->joints_count;
-            skin->joints = calloc(skin->num_joints, sizeof(SkinJoint));
+            skin->joints = static_cast<SkinJoint*>(calloc(skin->num_joints, sizeof(SkinJoint)));
 
             for (size_t j = 0; j < skin_data->joints_count; ++j) {
                 skin->joints[j].joint_index = skin_data->joints[j] - data->nodes;
@@ -164,13 +164,13 @@ LoadedModel* Model_Load(const char* path) {
 
     if (data->animations_count > 0) {
         loadedModel->num_animations = data->animations_count;
-        loadedModel->animations = calloc(loadedModel->num_animations, sizeof(AnimationClip));
+        loadedModel->animations = static_cast<AnimationClip*>(calloc(loadedModel->num_animations, sizeof(AnimationClip)));
         for (size_t a = 0; a < data->animations_count; ++a) {
             cgltf_animation* anim_data = &data->animations[a];
             AnimationClip* clip = &loadedModel->animations[a];
             strncpy(clip->name, anim_data->name ? anim_data->name : "", sizeof(clip->name) - 1);
             clip->num_channels = anim_data->channels_count;
-            clip->channels = calloc(clip->num_channels, sizeof(AnimationChannel));
+            clip->channels = static_cast<AnimationChannel*>(calloc(clip->num_channels, sizeof(AnimationChannel)));
             clip->duration = 0.0f;
 
             for (size_t c = 0; c < anim_data->channels_count; ++c) {
@@ -181,7 +181,7 @@ LoadedModel* Model_Load(const char* path) {
                 cgltf_animation_sampler* sampler_data = chan_data->sampler;
                 channel->sampler.num_keyframes = sampler_data->input->count;
 
-                channel->sampler.timestamps = malloc(channel->sampler.num_keyframes * sizeof(float));
+                channel->sampler.timestamps = static_cast<float*>(malloc(channel->sampler.num_keyframes * sizeof(float)));
                 cgltf_accessor_unpack_floats(sampler_data->input, channel->sampler.timestamps, channel->sampler.num_keyframes);
 
                 if (clip->duration < channel->sampler.timestamps[channel->sampler.num_keyframes - 1]) {
@@ -189,29 +189,29 @@ LoadedModel* Model_Load(const char* path) {
                 }
 
                 if (chan_data->target_path == cgltf_animation_path_type_translation) {
-                    channel->sampler.translations = malloc(channel->sampler.num_keyframes * sizeof(Vec3));
+                    channel->sampler.translations = static_cast<Vec3*>(malloc(channel->sampler.num_keyframes * sizeof(Vec3)));
                     cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.translations, channel->sampler.num_keyframes * 3);
                 }
                 else if (chan_data->target_path == cgltf_animation_path_type_rotation) {
-                    channel->sampler.rotations = malloc(channel->sampler.num_keyframes * sizeof(Vec4));
+                    channel->sampler.rotations = static_cast<Vec4*>(malloc(channel->sampler.num_keyframes * sizeof(Vec4)));
                     cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.rotations, channel->sampler.num_keyframes * 4);
                 }
                 else if (chan_data->target_path == cgltf_animation_path_type_scale) {
-                    channel->sampler.scales = malloc(channel->sampler.num_keyframes * sizeof(Vec3));
+                    channel->sampler.scales = static_cast<Vec3*>(malloc(channel->sampler.num_keyframes * sizeof(Vec3)));
                     cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.scales, channel->sampler.num_keyframes * 3);
                 }
             }
         }
     }
 
-    loadedModel->aabb_min = (Vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
-    loadedModel->aabb_max = (Vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    loadedModel->aabb_min = Vec3{ FLT_MAX, FLT_MAX, FLT_MAX };
+    loadedModel->aabb_max = Vec3{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
     loadedModel->meshCount = 0;
     for (size_t i = 0; i < data->meshes_count; ++i) {
         loadedModel->meshCount += data->meshes[i].primitives_count;
     }
 
-    loadedModel->meshes = calloc(loadedModel->meshCount, sizeof(Mesh));
+    loadedModel->meshes = static_cast<Mesh*>(calloc(loadedModel->meshCount, sizeof(Mesh)));
     if (!loadedModel->meshes) {
         free(loadedModel);
         cgltf_free(data);
@@ -228,7 +228,7 @@ LoadedModel* Model_Load(const char* path) {
 
             if (is_glb) {
                 if (primitive->material) {
-                    newMesh->material = (Material*)calloc(1, sizeof(Material));
+                    newMesh->material = static_cast<Material*>(calloc(1, sizeof(Material)));
                     newMesh->material->roughness = -1.0f;
                     newMesh->material->metalness = -1.0f;
                     if (primitive->material->name) {
@@ -285,7 +285,7 @@ LoadedModel* Model_Load(const char* path) {
                 cgltf_attribute* attr = &primitive->attributes[k];
                 vertexCount = attr->data->count;
                 if (attr->type == cgltf_attribute_type_position) {
-                    positions = malloc(vertexCount * 3 * sizeof(float));
+                    positions = static_cast<float*>(malloc(vertexCount * 3 * sizeof(float)));
                     cgltf_accessor_unpack_floats(attr->data, positions, vertexCount * 3);
                     for (cgltf_size v_idx = 0; v_idx < vertexCount; ++v_idx) {
                         loadedModel->aabb_min.x = fminf(loadedModel->aabb_min.x, positions[v_idx * 3 + 0]);
@@ -297,15 +297,15 @@ LoadedModel* Model_Load(const char* path) {
                     }
                 }
                 else if (attr->type == cgltf_attribute_type_normal) {
-                    normals = malloc(vertexCount * 3 * sizeof(float));
+                    normals = static_cast<float*>(malloc(vertexCount * 3 * sizeof(float)));
                     cgltf_accessor_unpack_floats(attr->data, normals, vertexCount * 3);
                 }
                 else if (attr->type == cgltf_attribute_type_texcoord) {
-                    texcoords = malloc(vertexCount * 2 * sizeof(float));
+                    texcoords = static_cast<float*>(malloc(vertexCount * 2 * sizeof(float)));
                     cgltf_accessor_unpack_floats(attr->data, texcoords, vertexCount * 2);
                 }
                 else if (attr->type == cgltf_attribute_type_tangent) {
-                    tangents = malloc(vertexCount * 4 * sizeof(float));
+                    tangents = static_cast<float*>(malloc(vertexCount * 4 * sizeof(float)));
                     cgltf_accessor_unpack_floats(attr->data, tangents, vertexCount * 4);
                 }
                 else if (attr->type == cgltf_attribute_type_joints) {
@@ -325,13 +325,13 @@ LoadedModel* Model_Load(const char* path) {
                 continue;
             }
 
-            if (!normals) normals = calloc(vertexCount * 3, sizeof(float));
-            if (!texcoords) texcoords = calloc(vertexCount * 2, sizeof(float));
-            if (!tangents) tangents = calloc(vertexCount * 4, sizeof(float));
+            if (!normals) normals = static_cast<float*>(calloc(vertexCount * 3, sizeof(float)));
+            if (!texcoords) texcoords = static_cast<float*>(calloc(vertexCount * 2, sizeof(float)));
+            if (!tangents) tangents = static_cast<float*>(calloc(vertexCount * 4, sizeof(float)));
 
             SkinningVertexData* skinning_data = NULL;
             if (joints_accessor && weights_accessor) {
-                skinning_data = calloc(vertexCount, sizeof(SkinningVertexData));
+                skinning_data = static_cast<SkinningVertexData*>(calloc(vertexCount, sizeof(SkinningVertexData)));
                 for (cgltf_size v = 0; v < vertexCount; v++) {
                     cgltf_uint joint_indices_u16[4] = { 0 };
                     cgltf_accessor_read_uint(joints_accessor, v, joint_indices_u16, 4);
@@ -344,7 +344,7 @@ LoadedModel* Model_Load(const char* path) {
             }
 
             newMesh->final_vbo_data_size = vertexCount * MODEL_VERTEX_STRIDE_FLOATS * sizeof(float);
-            newMesh->final_vbo_data = malloc(newMesh->final_vbo_data_size);
+            newMesh->final_vbo_data = static_cast<float*>(malloc(newMesh->final_vbo_data_size));
 
             for (cgltf_size v = 0; v < vertexCount; v++) {
                 int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
@@ -372,14 +372,14 @@ LoadedModel* Model_Load(const char* path) {
 
             if (primitive->indices) {
                 newMesh->indexCount = (int)primitive->indices->count;
-                newMesh->indexData = malloc(newMesh->indexCount * sizeof(unsigned int));
+                newMesh->indexData = static_cast<unsigned int*>(malloc(newMesh->indexCount * sizeof(unsigned int)));
                 cgltf_accessor_unpack_indices(primitive->indices, newMesh->indexData, sizeof(unsigned int), newMesh->indexCount);
                 newMesh->useEBO = true;
             }
             else {
                 newMesh->indexCount = (int)vertexCount;
                 newMesh->useEBO = false;
-                newMesh->indexData = malloc(vertexCount * sizeof(unsigned int));
+                newMesh->indexData = static_cast<unsigned int*>(malloc(vertexCount * sizeof(unsigned int)));
                 for (unsigned int v = 0; v < vertexCount; v++) {
                     newMesh->indexData[v] = v;
                 }
@@ -525,12 +525,12 @@ bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
         fread(&num_new_verts, sizeof(uint32_t), 1, f);
         fread(&num_new_indices, sizeof(uint32_t), 1, f);
 
-        uint32_t* new_indices = malloc(num_new_indices * sizeof(uint32_t));
+        uint32_t* new_indices = static_cast<uint32_t*>(malloc(num_new_indices * sizeof(uint32_t)));
         fread(new_indices, sizeof(uint32_t), num_new_indices, f);
 
         size_t stride_floats = 24;
         size_t stride_bytes = stride_floats * sizeof(float);
-        float* new_vbo_data = malloc(num_new_verts * stride_bytes);
+        float* new_vbo_data = static_cast<float*>(malloc(num_new_verts * stride_bytes));
 
         for (uint32_t v = 0; v < num_new_verts; ++v) {
             uint32_t original_index = 0;

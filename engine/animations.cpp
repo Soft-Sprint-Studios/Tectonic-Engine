@@ -39,7 +39,7 @@ void evaluate_animation(SceneObject* obj, float time) {
     if (!skin) return;
 
     if (!obj->bone_matrices) {
-        obj->bone_matrices = malloc(sizeof(Mat4) * skin->num_joints);
+        obj->bone_matrices = static_cast<Mat4*>(malloc(sizeof(Mat4) * skin->num_joints));
         if (!obj->bone_matrices) return;
     }
 
@@ -196,7 +196,7 @@ void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
         }
         else if (obj->model->num_skins > 0) {
             if (!obj->bone_matrices) {
-                obj->bone_matrices = malloc(sizeof(Mat4) * obj->model->skins[0].num_joints);
+                obj->bone_matrices = static_cast<Mat4*>(malloc(sizeof(Mat4) * obj->model->skins[0].num_joints));
             }
             if (obj->bone_matrices) {
                 for (int j = 0; j < obj->model->skins[0].num_joints; ++j) {
