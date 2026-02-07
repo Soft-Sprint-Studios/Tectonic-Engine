@@ -2001,15 +2001,15 @@ ENGINE_API Int Engine_Main(Int argc, Char* argv[]) {
     g_argv_stored = argv;
 
     if (!Engine_Initialize(g_argc_stored, g_argv_stored))
-        return 1;
+        return ENGINE_RETURN_ERROR;
 
     SDL_Window* window = Engine_CreateWindow();
     if (!window) 
-        return 1;
+        return ENGINE_RETURN_ERROR;
 
     SDL_GLContext context = Engine_CreateContext(window);
     if (!context) 
-        return 1;
+        return ENGINE_RETURN_ERROR;
 
     init_engine(window, context);
 
@@ -2023,5 +2023,5 @@ ENGINE_API Int Engine_Main(Int argc, Char* argv[]) {
 
     Engine_Cleanup();
 
-    return g_restart_requested ? 2 : 0;
+    return g_restart_requested ? ENGINE_RETURN_RESTART : ENGINE_RETURN_NONE;
 }

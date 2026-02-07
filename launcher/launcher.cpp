@@ -31,6 +31,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "engine_api.h"
+
 using EngineMainFunc = Int(*)(Int argc, Char* argv[]);
 
 #ifdef PLATFORM_WINDOWS
@@ -59,7 +61,7 @@ Int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         result = Engine_Main(__argc, __argv);
         FreeLibrary(engineLib);
-    } while (result == 2);
+    } while (result == ENGINE_RETURN_RESTART);
 
     return result;
 }
@@ -83,7 +85,7 @@ Int main(Int argc, Char* argv[]) {
 
         result = Engine_Main(argc, argv);
         dlclose(engineLib);
-    } while (result == 2);
+    } while (result == ENGINE_RETURN_RESTART);
 
     return result;
 }

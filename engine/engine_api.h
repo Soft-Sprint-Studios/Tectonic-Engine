@@ -39,6 +39,12 @@
 extern "C" {
 #endif
 
+    enum {
+        ENGINE_RETURN_NONE = 0,
+        ENGINE_RETURN_ERROR = 1,
+        ENGINE_RETURN_RESTART = 2
+    };
+
     ENGINE_API Int Engine_Main(Int argc, Char* argv[]);
 
 #ifdef __cplusplus

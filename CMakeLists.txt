@@ -608,6 +608,10 @@ endif()
 # launcher executable
 add_executable(launcher launcher/launcher.cpp)
 
+target_include_directories(launcher PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+)
+
 if(UNIX AND NOT APPLE)
     target_link_options(launcher PRIVATE "-Wl,-rpath,$<TARGET_FILE_DIR:engine>")
 endif()
