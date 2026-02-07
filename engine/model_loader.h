@@ -33,7 +33,6 @@
 #include <stdbool.h>
 #include "texturemanager.h" 
 #include "math_lib.h"
-#include "models_api.h"
 
 
 #define MAX_BONES_PER_VERTEX 4
@@ -109,10 +108,10 @@
         size_t num_nodes;
     } LoadedModel;
 
-    MODELS_API LoadedModel* Model_Load(const Char* path);
-    MODELS_API Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path);
-    MODELS_API void Model_Free(LoadedModel* model);
-    MODELS_API void ModelLoader_Shutdown();
+    LoadedModel* Model_Load(const Char* path);
+    Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path);
+    void Model_Free(LoadedModel* model);
+    void ModelLoader_Shutdown();
 
 
 #endif // MODEL_LOADER_H

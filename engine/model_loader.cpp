@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 #include "model_loader.h"
 #include "gl_console.h"

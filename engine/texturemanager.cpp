@@ -37,15 +37,15 @@
 static Material materials[MAX_MATERIALS];
 static Int num_materials = 0;
 
-MATERIALS_API GLuint missingTextureID;
-MATERIALS_API GLuint defaultNormalMapID;
-MATERIALS_API GLuint defaultRmaMapID;
-MATERIALS_API Material g_MissingMaterial;
-MATERIALS_API Material g_NodrawMaterial;
+GLuint missingTextureID;
+GLuint defaultNormalMapID;
+GLuint defaultRmaMapID;
+Material g_MissingMaterial;
+Material g_NodrawMaterial;
 
-MATERIALS_API Bool g_is_editor_mode = false;
-MATERIALS_API Bool g_is_thumbnail_mode = false;
-MATERIALS_API Bool g_is_unlit_mode = false;
+extern Bool g_is_editor_mode;
+Bool g_is_thumbnail_mode = false;
+Bool g_is_unlit_mode = false;
 
 static Char* prependTexturePath(const Char* filename) {
     if (filename == nullptr || filename[0] == '\0') return nullptr;

@@ -37,10 +37,10 @@ class Checksum {
 private:
 #ifdef PLATFORM_WINDOWS
     static constexpr const Char* module_names[8] = { "engine.dll", "level0.dll", "level1.dll", "math_lib.dll",
-                                                     "physics.dll", "sound.dll", "materials.dll", "models.dll" };
+                                                     "physics.dll", "sound.dll"};
 #else
     static constexpr const Char* module_names[8] = { "libengine.so", "liblevel0.so", "liblevel1.so", "libmath_lib.so",
-                                                     "libphysics.so", "libsound.so", "libmaterials.so", "libmodels.so" };
+                                                     "libphysics.so", "libsound.so"};
 #endif
     static constexpr Int num_modules = 8;
 

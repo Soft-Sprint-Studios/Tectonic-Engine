@@ -30,7 +30,6 @@
 //----------------------------------------//
 
 #include "texturemanager.h"
-#include "materials_api.h"
 
 
 #define MAX_WATER_DEFS 64
@@ -46,12 +45,12 @@
         Float flowSpeed;
     } WaterDef;
 
-    MATERIALS_API void WaterManager_Init(void);
-    MATERIALS_API void WaterManager_Shutdown(void);
-    MATERIALS_API void WaterManager_ParseWaters(const Char* filepath);
-    MATERIALS_API WaterDef* WaterManager_FindWaterDef(const Char* name);
-    MATERIALS_API Int WaterManager_GetWaterDefCount(void);
-    MATERIALS_API WaterDef* WaterManager_GetWaterDef(Int index);
+    void WaterManager_Init(void);
+    void WaterManager_Shutdown(void);
+    void WaterManager_ParseWaters(const Char* filepath);
+    WaterDef* WaterManager_FindWaterDef(const Char* name);
+    Int WaterManager_GetWaterDefCount(void);
+    WaterDef* WaterManager_GetWaterDef(Int index);
 
 
 #endif // WATER_MANAGER_H
