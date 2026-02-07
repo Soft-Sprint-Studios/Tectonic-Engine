@@ -28,8 +28,8 @@
 #include "map.h"
 
 
-	void evaluate_animation(SceneObject* obj, float time);
-	void Scene_UpdateAnimations(Scene* scene, float deltaTime);
+	void evaluate_animation(SceneObject* obj, Float time);
+	void Scene_UpdateAnimations(Scene* scene, Float deltaTime);
 
 
 #endif // ANIMATIONS_H

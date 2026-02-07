@@ -28,7 +28,7 @@
 #include "gl_sprites.h"
 #include "gl_video_player.h"
 #include "cvar.h"
-#include <float.h>
+#include <Float.h>
 #include "io_system.h"
 #include "gl_decals.h"
 #include "gl_beams.h"
@@ -36,8 +36,8 @@
 #include "gl_glow.h"
 #include "gl_monitor.h"
 
-int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
-    for (int i = 0; i < scene->numBrushes; ++i) {
+Int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "env_reflectionprobe") != 0) {
             continue;
@@ -56,11 +56,11 @@ int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
     return -1;
 }
 
-void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject* obj, bool is_baking_pass, const Frustum* frustum) {
-    bool envMapEnabled = false;
+void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject* obj, Bool is_baking_pass, const Frustum* frustum) {
+    Bool envMapEnabled = false;
 
     if (!is_baking_pass && shader == renderer->mainShader && Cvar_GetInt("r_cubemaps")) {
-        int reflection_brush_idx = FindReflectionProbeForPoint(scene, obj->pos);
+        Int reflection_brush_idx = FindReflectionProbeForPoint(scene, obj->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &scene->brushes[reflection_brush_idx];
             if (reflection_brush->cubemapTexture != 0) {
@@ -81,7 +81,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
     glUniform1i(glGetUniformLocation(shader, "useEnvironmentMap"), envMapEnabled);
 
     if (shader == renderer->mainShader) {
-        bool is_skinnable = obj->model && obj->model->num_skins > 0;
+        Bool is_skinnable = obj->model && obj->model->num_skins > 0;
         glUniform1i(glGetUniformLocation(shader, "u_hasAnimation"), is_skinnable);
         if (is_skinnable && obj->bone_matrices) {
             glUniformMatrix4fv(glGetUniformLocation(shader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
@@ -107,7 +107,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             glUniformHandleui64ARB(glGetUniformLocation(shader, "lightmap"), obj->lightmapHandle);
 
             if (obj->lightmapWidth > 0 && obj->lightmapHeight > 0) {
-                glUniform2f(glGetUniformLocation(shader, "u_lightmap_sampler_size"), (float)obj->lightmapWidth, (float)obj->lightmapHeight);
+                glUniform2f(glGetUniformLocation(shader, "u_lightmap_sampler_size"), (Float)obj->lightmapWidth, (Float)obj->lightmapHeight);
             }
 
             if (obj->dirLightmapHandle) {
@@ -125,11 +125,11 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
     }
     if (obj->model) {
         if (obj->bakedVertexColors || obj->bakedVertexDirections) {
-            unsigned int vertex_offset = 0;
-            const int stride_floats = 24;
-            for (int i = 0; i < obj->model->meshCount; ++i) {
+            Uint vertex_offset = 0;
+            const Int stride_floats = 24;
+            for (Int i = 0; i < obj->model->meshCount; ++i) {
                 Mesh* mesh = &obj->model->meshes[i];
-                for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
+                for (Uint v = 0; v < mesh->vertexCount; ++v) {
                     if (obj->bakedVertexColors) {
                         memcpy(&mesh->final_vbo_data[(v * stride_floats) + 12], &obj->bakedVertexColors[vertex_offset + v], sizeof(Vec4));
                     }
@@ -151,15 +151,15 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 obj->bakedVertexDirections = nullptr;
             }
         }
-        for (int i = 0; i < obj->model->meshCount; ++i) {
+        for (Int i = 0; i < obj->model->meshCount; ++i) {
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == renderer->mainShader) {
-                bool isTesselationEnabled = material->useTesselation;
+                Bool isTesselationEnabled = material->useTesselation;
                 glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabled);
                 glUniform1i(glGetUniformLocation(shader, "u_useAlphaTest"), material->alpha);
 
-                bool parallaxEnabledForThisMesh = !isTesselationEnabled && Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
+                Bool parallaxEnabledForThisMesh = !isTesselationEnabled && Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
                 glUniform1i(glGetUniformLocation(shader, "u_isParallaxEnabled"), parallaxEnabledForThisMesh);
                 glUniform1f(glGetUniformLocation(shader, "heightScale"), material->heightScale);
                 glUniform1f(glGetUniformLocation(shader, "u_roughness_override"), material->roughness);
@@ -184,7 +184,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
     }
 }
 
-void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, bool is_baking_pass, const Frustum* frustum) {
+void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Bool is_baking_pass, const Frustum* frustum) {
     if (strcmp(b->classname, "func_clip") == 0) return;
     if (b->totalRenderVertexCount == 0) return;
     if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) return;
@@ -200,9 +200,9 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
         glUniform1f(glGetUniformLocation(shader, "u_fadeEndDist"), 0.0f);
     }
 
-    bool envMapEnabled = false;
+    Bool envMapEnabled = false;
     if (!is_baking_pass && shader == renderer->mainShader && Cvar_GetInt("r_cubemaps")) {
-        int reflection_brush_idx = FindReflectionProbeForPoint(scene, b->pos);
+        Int reflection_brush_idx = FindReflectionProbeForPoint(scene, b->pos);
         if (reflection_brush_idx != -1) {
             Brush* reflection_brush = &scene->brushes[reflection_brush_idx];
             if (reflection_brush->cubemapTexture != 0) {
@@ -244,8 +244,8 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
     }
 
     if (shader == renderer->mainShader) {
-        int vbo_offset = 0;
-        int face_idx = 0;
+        Int vbo_offset = 0;
+        Int face_idx = 0;
         while (face_idx < b->numFaces) {
             BrushFace* first_face_in_batch = &b->faces[face_idx];
             if (first_face_in_batch->material == &g_NodrawMaterial) {
@@ -259,10 +259,10 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
             Material* batch_material3 = first_face_in_batch->material3;
             Material* batch_material4 = first_face_in_batch->material4;
 
-            int batch_start_vbo_offset = vbo_offset;
-            int batch_vertex_count = 0;
+            Int batch_start_vbo_offset = vbo_offset;
+            Int batch_vertex_count = 0;
 
-            int current_face_in_batch_idx = face_idx;
+            Int current_face_in_batch_idx = face_idx;
             while (current_face_in_batch_idx < b->numFaces &&
                 b->faces[current_face_in_batch_idx].material == batch_material &&
                 b->faces[current_face_in_batch_idx].material2 == batch_material2 &&
@@ -270,27 +270,27 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
                 b->faces[current_face_in_batch_idx].material4 == batch_material4) {
 
                 if (b->faces[current_face_in_batch_idx].numVertexIndices >= 3) {
-                    int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
+                    Int num_face_verts = (b->faces[current_face_in_batch_idx].numVertexIndices - 2) * 3;
                     batch_vertex_count += num_face_verts;
                 }
                 current_face_in_batch_idx++;
             }
 
-            bool isTesselationEnabledForBatch = (batch_material && batch_material->useTesselation) ||
+            Bool isTesselationEnabledForBatch = (batch_material && batch_material->useTesselation) ||
                 (batch_material2 && batch_material2->useTesselation) ||
                 (batch_material3 && batch_material3->useTesselation) ||
                 (batch_material4 && batch_material4->useTesselation);
 
             glUniform1i(glGetUniformLocation(shader, "u_useTesselation"), isTesselationEnabledForBatch);
 
-            bool use_alpha_test_for_batch = (batch_material && batch_material->alpha) ||
+            Bool use_alpha_test_for_batch = (batch_material && batch_material->alpha) ||
                 (batch_material2 && batch_material2->alpha) ||
                 (batch_material3 && batch_material3->alpha) ||
                 (batch_material4 && batch_material4->alpha);
             glUniform1i(glGetUniformLocation(shader, "u_useAlphaTest"), use_alpha_test_for_batch);
 
-            bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
-            bool isParallaxEnabledForBatch = !isTesselationEnabledForBatch && parallaxEnabled && (
+            Bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
+            Bool isParallaxEnabledForBatch = !isTesselationEnabledForBatch && parallaxEnabled && (
                 (batch_material && batch_material->heightScale > 0.0f) ||
                 (batch_material2 && batch_material2->heightScale > 0.0f) ||
                 (batch_material3 && batch_material3->heightScale > 0.0f) ||
@@ -343,7 +343,7 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, boo
     }
 }
 
-void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, bool unlit, bool is_reflection_pass) {
+void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, Bool unlit, Bool is_reflection_pass) {
     Frustum frustum;
     Mat4 view_proj;
     mat4_multiply(&view_proj, projection, view);
@@ -384,7 +384,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glPatchParameteri(GL_PATCH_VERTICES, 3);
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(renderer->mainShader, "viewportSize"), (float)(engine->width / Cvar_GetFloat("r_geometry_downsample")), (float)(engine->height / Cvar_GetFloat("r_geometry_downsample")));
+    glUniform2f(glGetUniformLocation(renderer->mainShader, "viewportSize"), (Float)(engine->width / Cvar_GetFloat("r_geometry_downsample")), (Float)(engine->height / Cvar_GetFloat("r_geometry_downsample")));
     glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "prevViewProjection"), 1, GL_FALSE, renderer->prevViewProjection.m);
     glUniform3fv(glGetUniformLocation(renderer->mainShader, "viewPos"), 1, &cameraPos.x);
     glUniform1f(glGetUniformLocation(renderer->mainShader, "u_time"), engine->lastFrame);
@@ -413,9 +413,9 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glUniform1i(glGetUniformLocation(renderer->mainShader, "u_relief_refine_steps"), Cvar_GetInt("r_relief_refine_steps"));
 
     ShaderLight dynamic_lights[MAX_LIGHTS];
-    int num_dynamic_lights = 0;
+    Int num_dynamic_lights = 0;
 
-    for (int i = 0; i < scene->numActiveLights; ++i) {
+    for (Int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
@@ -423,7 +423,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         shader_light->position.x = light->pos.x;
         shader_light->position.y = light->pos.y;
         shader_light->position.z = light->pos.z;
-        shader_light->position.w = (float)light->type;
+        shader_light->position.w = (Float)light->type;
         shader_light->direction.x = light->direction.x;
         shader_light->direction.y = light->direction.y;
         shader_light->direction.z = light->direction.z;
@@ -437,11 +437,11 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         shader_light->params2.x = light->shadowFarPlane;
         shader_light->params2.y = light->shadowBias;
         shader_light->params2.z = light->volumetricIntensity;
-        shader_light->shadowMapHandle[0] = (unsigned int)(light->shadowMapHandle & 0xFFFFFFFF);
-        shader_light->shadowMapHandle[1] = (unsigned int)(light->shadowMapHandle >> 32);
+        shader_light->shadowMapHandle[0] = (Uint)(light->shadowMapHandle & 0xFFFFFFFF);
+        shader_light->shadowMapHandle[1] = (Uint)(light->shadowMapHandle >> 32);
         if (light->cookieMapHandle != 0) {
-            shader_light->cookieMapHandle[0] = (unsigned int)(light->cookieMapHandle & 0xFFFFFFFF);
-            shader_light->cookieMapHandle[1] = (unsigned int)(light->cookieMapHandle >> 32);
+            shader_light->cookieMapHandle[0] = (Uint)(light->cookieMapHandle & 0xFFFFFFFF);
+            shader_light->cookieMapHandle[1] = (Uint)(light->cookieMapHandle >> 32);
         } else {
             shader_light->cookieMapHandle[0] = 0;
             shader_light->cookieMapHandle[1] = 0;
@@ -463,19 +463,19 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         glUniform3fv(glGetUniformLocation(renderer->mainShader, "flashlight.position"), 1, &engine->camera.position.x);
         glUniform3fv(glGetUniformLocation(renderer->mainShader, "flashlight.direction"), 1, &forward.x);
     }
-    for (int i = 0; i < scene->numObjects; i++) {
+    for (Int i = 0; i < scene->numObjects; i++) {
         SceneObject* obj = &scene->objects[i];
         glUniform1i(glGetUniformLocation(renderer->mainShader, "isBrush"), 0);
         if (obj->model) {
             if (obj->mass > 0.0f && scene->num_ambient_probes > 0) {
                 AmbientProbe* nearest_probes[8] = { nullptr };
-                float distances[8];
-                for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
-                for (int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
-                    float d = vec3_length_sq(vec3_sub(obj->pos, scene->ambient_probes[p_idx].position));
-                    for (int k = 0; k < 8; ++k) {
+                Float distances[8];
+                for (Int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
+                for (Int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
+                    Float d = vec3_length_sq(vec3_sub(obj->pos, scene->ambient_probes[p_idx].position));
+                    for (Int k = 0; k < 8; ++k) {
                         if (d < distances[k]) {
-                            for (int l = 7; l > k; --l) {
+                            for (Int l = 7; l > k; --l) {
                                 distances[l] = distances[l - 1];
                                 nearest_probes[l] = nearest_probes[l - 1];
                             }
@@ -485,12 +485,12 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                         }
                     }
                 }
-                for (int k = 0; k < 8; ++k) {
-                    char buf[64];
+                for (Int k = 0; k < 8; ++k) {
+                    Char buf[64];
                     if (nearest_probes[k]) {
                         sprintf(buf, "u_probes[%d].position", k);
                         glUniform3fv(glGetUniformLocation(renderer->mainShader, buf), 1, &nearest_probes[k]->position.x);
-                        for (int f = 0; f < 6; ++f) {
+                        for (Int f = 0; f < 6; ++f) {
                             sprintf(buf, "u_probes[%d].colors[%d]", k, f);
                             glUniform3fv(glGetUniformLocation(renderer->mainShader, buf), 1, &nearest_probes[k]->colors[f].x);
                         }
@@ -507,7 +507,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
             };
             Vec3 world_aabb_min = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 world_aabb_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int j = 0; j < 8; ++j) {
+            for (Int j = 0; j < 8; ++j) {
                 Vec3 transformed_corner = mat4_mul_vec3(&obj->modelMatrix, local_corners[j]);
                 world_aabb_min.x = fminf(world_aabb_min.x, transformed_corner.x);
                 world_aabb_min.y = fminf(world_aabb_min.y, transformed_corner.y);
@@ -523,7 +523,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         renderer->stats.modelsDrawn++;
         render_object(renderer, scene, renderer->mainShader, &scene->objects[i], false, &frustum);
     }
-    for (int i = 0; i < scene->numBrushes; i++) {
+    for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) continue;
         glUniform1i(glGetUniformLocation(renderer->mainShader, "isBrush"), 1);
@@ -532,7 +532,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         if (b->numVertices > 0) {
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int j = 0; j < b->numVertices; ++j) {
+            for (Int j = 0; j < b->numVertices; ++j) {
                 Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
                 min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
                 max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
@@ -547,7 +547,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     MiscRender_ParallaxRooms(renderer, scene, engine, view, projection);
     Decals_Render(scene, renderer, renderer->mainShader);
 
-    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+    for (Int i = 0; i < scene->numVideoPlayers; ++i) {
         VideoPlayer_Render(&scene->videoPlayers[i], view, projection);
     }
 
@@ -556,10 +556,10 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
 
     if (Cvar_GetInt("r_particles")) {
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        float scrW = (float)(engine->width / Cvar_GetFloat("r_geometry_downsample"));
-        float scrH = (float)(engine->height / Cvar_GetFloat("r_geometry_downsample"));
+        Float scrW = (Float)(engine->width / Cvar_GetFloat("r_geometry_downsample"));
+        Float scrH = (Float)(engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
-        for (int i = 0; i < scene->numParticleEmitters; ++i) {
+        for (Int i = 0; i < scene->numParticleEmitters; ++i) {
             ParticleEmitter_Render(&scene->particleEmitters[i], (void*)scene, (void*)engine, *view, *projection, renderer->gPosition, scrW, scrH);
         }
         glDrawBuffers(7, attachments);
@@ -589,11 +589,11 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         glUniformMatrix4fv(glGetUniformLocation(renderer->wireframeShader, "projection"), 1, GL_FALSE, projection->m);
         glUniform4f(glGetUniformLocation(renderer->wireframeShader, "wireframeColor"), 0.0f, 0.5f, 1.0f, 1.0f);
         glDisable(GL_DEPTH_TEST);
-        for (int i = 0; i < scene->numObjects; i++) {
+        for (Int i = 0; i < scene->numObjects; i++) {
             SceneObject* obj = &scene->objects[i];
             glUniformMatrix4fv(glGetUniformLocation(renderer->wireframeShader, "model"), 1, GL_FALSE, obj->modelMatrix.m);
             if (obj->model) {
-                for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+                for (Int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                     Mesh* mesh = &obj->model->meshes[meshIdx];
                     glBindVertexArray(mesh->VAO);
                     if (mesh->useEBO) {
@@ -605,7 +605,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 }
             }
         }
-        for (int i = 0; i < scene->numBrushes; i++) {
+        for (Int i = 0; i < scene->numBrushes; i++) {
             Brush* b = &scene->brushes[i];
             if (!Brush_IsSolid(b)) continue;
             glUniformMatrix4fv(glGetUniformLocation(renderer->wireframeShader, "model"), 1, GL_FALSE, b->modelMatrix.m);

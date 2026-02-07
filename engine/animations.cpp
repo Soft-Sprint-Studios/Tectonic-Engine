@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-void evaluate_animation(SceneObject* obj, float time) {
+void evaluate_animation(SceneObject* obj, Float time) {
     if (!obj->model || obj->model->num_animations == 0 || obj->current_animation < 0) return;
 
     AnimationClip* clip = &obj->model->animations[obj->current_animation];
@@ -54,10 +54,10 @@ void evaluate_animation(SceneObject* obj, float time) {
         mat4_compose(&local_transforms[i], t, r, s);
     }
 
-    for (int i = 0; i < clip->num_channels; ++i) {
+    for (Int i = 0; i < clip->num_channels; ++i) {
         AnimationChannel* channel = &clip->channels[i];
         AnimationSampler* sampler = &channel->sampler;
-        int joint_index = channel->target_joint;
+        Int joint_index = channel->target_joint;
 
         if (joint_index < 0 || joint_index >= num_nodes) continue;
 
@@ -72,9 +72,9 @@ void evaluate_animation(SceneObject* obj, float time) {
             frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
         }
 
-        float t0 = sampler->timestamps[frame_idx];
-        float t1 = sampler->timestamps[frame_idx + 1];
-        float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
+        Float t0 = sampler->timestamps[frame_idx];
+        Float t1 = sampler->timestamps[frame_idx + 1];
+        Float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
 
         cgltf_node* node = &nodes[joint_index];
         Vec3 final_t = { node->translation[0], node->translation[1], node->translation[2] };
@@ -97,7 +97,7 @@ void evaluate_animation(SceneObject* obj, float time) {
     for (size_t i = 0; i < num_nodes; ++i) {
         cgltf_node* node = &nodes[i];
         if (node->parent) {
-            int parent_idx = node->parent - nodes;
+            Int parent_idx = node->parent - nodes;
             mat4_multiply(&global_transforms[i], &global_transforms[parent_idx], &local_transforms[i]);
         }
         else {
@@ -105,8 +105,8 @@ void evaluate_animation(SceneObject* obj, float time) {
         }
     }
 
-    for (int i = 0; i < skin->num_joints; ++i) {
-        int joint_node_idx = skin->joints[i].joint_index;
+    for (Int i = 0; i < skin->num_joints; ++i) {
+        Int joint_node_idx = skin->joints[i].joint_index;
         if (joint_node_idx >= 0 && joint_node_idx < num_nodes) {
             Mat4 inv_bind = skin->joints[i].inverse_bind_matrix;
             mat4_multiply(&obj->bone_matrices[i], &global_transforms[joint_node_idx], &inv_bind);
@@ -117,8 +117,8 @@ void evaluate_animation(SceneObject* obj, float time) {
     free(global_transforms);
 }
 
-void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
-    for (int i = 0; i < scene->numObjects; ++i) {
+void Scene_UpdateAnimations(Scene* scene, Float deltaTime) {
+    for (Int i = 0; i < scene->numObjects; ++i) {
         SceneObject* obj = &scene->objects[i];
 
         if (!obj->model || obj->model->num_animations == 0) {
@@ -164,7 +164,7 @@ void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
                 Vec4 anim_r = { target_node->rotation[0], target_node->rotation[1], target_node->rotation[2], target_node->rotation[3] };
                 Vec3 anim_s = { target_node->scale[0], target_node->scale[1], target_node->scale[2] };
 
-                for (int c = 0; c < clip->num_channels; ++c) {
+                for (Int c = 0; c < clip->num_channels; ++c) {
                     AnimationChannel* channel = &clip->channels[c];
                     AnimationSampler* sampler = &channel->sampler;
 
@@ -177,9 +177,9 @@ void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
                     }
                     if (frame_idx >= sampler->num_keyframes - 1) frame_idx = sampler->num_keyframes > 1 ? sampler->num_keyframes - 2 : 0;
 
-                    float t0 = sampler->timestamps[frame_idx];
-                    float t1 = sampler->timestamps[frame_idx + 1];
-                    float factor = (t1 > t0) ? (obj->animation_time - t0) / (t1 - t0) : 0.0f;
+                    Float t0 = sampler->timestamps[frame_idx];
+                    Float t1 = sampler->timestamps[frame_idx + 1];
+                    Float factor = (t1 > t0) ? (obj->animation_time - t0) / (t1 - t0) : 0.0f;
 
                     if (sampler->translations) anim_t = vec3_lerp(sampler->translations[frame_idx], sampler->translations[frame_idx + 1], factor);
                     if (sampler->rotations) anim_r = quat_slerp(sampler->rotations[frame_idx], sampler->rotations[frame_idx + 1], factor);
@@ -199,7 +199,7 @@ void Scene_UpdateAnimations(Scene* scene, float deltaTime) {
                 obj->bone_matrices = static_cast<Mat4*>(malloc(sizeof(Mat4) * obj->model->skins[0].num_joints));
             }
             if (obj->bone_matrices) {
-                for (int j = 0; j < obj->model->skins[0].num_joints; ++j) {
+                for (Int j = 0; j < obj->model->skins[0].num_joints; ++j) {
                     mat4_identity(&obj->bone_matrices[j]);
                 }
             }

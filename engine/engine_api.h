@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-    ENGINE_API int Engine_Main(int argc, char* argv[]);
+    ENGINE_API Int Engine_Main(Int argc, Char* argv[]);
 
 #ifdef __cplusplus
 }

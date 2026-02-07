@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <float.h>
+#include <Float.h>
 #include "editor_ui.h"
 #include "editor_windows.h"
 #include "editor_math.h"
@@ -37,34 +37,34 @@
 #include "cvar.h"
 
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
-    int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
-    int sprite_to_delete = -1;
-    int logic_entity_to_delete = -1;
-    float right_panel_width = 300.0f; float screen_w, screen_h;
+    Int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;
+    Int sprite_to_delete = -1;
+    Int logic_entity_to_delete = -1;
+    Float right_panel_width = 300.0f; Float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w - right_panel_width, 22); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Hierarchy", nullptr);
     if (UI_Selectable("Player Start", Editor_IsSelected(ENTITY_PLAYERSTART, 0))) { Editor_ClearSelection(); Editor_AddToSelection(ENTITY_PLAYERSTART, 0, -1, -1); }
     if (UI_CollapsingHeader("Models", 1)) {
-        for (int i = 0; i < scene->numObjects; ++i) {
-            char label[128];
-            const char* name = (strlen(scene->objects[i].targetname) > 0) ? scene->objects[i].targetname : scene->objects[i].modelPath;
+        for (Int i = 0; i < scene->numObjects; ++i) {
+            Char label[128];
+            const Char* name = (strlen(scene->objects[i].targetname) > 0) ? scene->objects[i].targetname : scene->objects[i].modelPath;
             sprintf(label, "%s##%d", name, i);
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_MODEL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_MODEL, i, -1, -1); }  char popup_id[64];
+            if (UI_Selectable(label, Editor_IsSelected(ENTITY_MODEL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_MODEL, i, -1, -1); }  Char popup_id[64];
             sprintf(popup_id, "ModelContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateModel(scene, engine, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { model_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
+            }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##model%d", i); if (UI_Button(del_label)) { model_to_delete = i; }
         }
         if (UI_Button("Add Model")) { g_EditorState.show_add_model_popup = true; }
     }
     if (model_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_MODEL, model_to_delete, "Delete Model"); _raw_delete_model(scene, model_to_delete, engine); Editor_RemoveFromSelection(ENTITY_MODEL, model_to_delete); }
     if (UI_CollapsingHeader("Brushes", 1)) {
-        for (int i = 0; i < scene->numBrushes; ++i) {
-            char label[128];
-            const char* entity_tag = "";
+        for (Int i = 0; i < scene->numBrushes; ++i) {
+            Char label[128];
+            const Char* entity_tag = "";
             if (strlen(scene->brushes[i].classname) > 0) {
                 entity_tag = "[E]";
             }
@@ -75,53 +75,53 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 sprintf(label, "Brush %d %s##%d", i, entity_tag, i);
             }
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_BRUSH, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_BRUSH, i, 0, 0); }
-            char popup_id[64];
+            Char popup_id[64];
             sprintf(popup_id, "BrushContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateBrush(scene, engine, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { brush_to_delete = i; }
                 UI_EndPopup();
             }
-            UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
+            UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##brush%d", i); if (UI_Button(del_label)) { brush_to_delete = i; }
         }
     }
     if (brush_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_BRUSH, brush_to_delete, "Delete Brush"); _raw_delete_brush(scene, engine, brush_to_delete); Editor_RemoveFromSelection(ENTITY_BRUSH, brush_to_delete); }
     if (UI_CollapsingHeader("Lights", 1)) {
-        for (int i = 0; i < scene->numActiveLights; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numActiveLights; ++i) {
+            Char label[128];
             if (strlen(scene->lights[i].targetname) > 0) {
                 sprintf(label, "%s##%d", scene->lights[i].targetname, i);
             }
             else {
                 sprintf(label, "Light %d##%d", i, i);
             }
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_LIGHT, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1); } char popup_id[64];
+            if (UI_Selectable(label, Editor_IsSelected(ENTITY_LIGHT, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1); } Char popup_id[64];
             sprintf(popup_id, "LightContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateLight(scene, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { light_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
+            }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
         if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = Vec3{ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = Vec3{ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
     if (UI_CollapsingHeader("Decals", 1)) {
-        for (int i = 0; i < scene->numDecals; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numDecals; ++i) {
+            Char label[128];
             if (strlen(scene->decals[i].targetname) > 0) {
                 sprintf(label, "%s##decal%d", scene->decals[i].targetname, i);
             }
             else {
                 sprintf(label, "Decal %d (%s)##decal%d", i, scene->decals[i].material->name, i);
             }
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_DECAL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_DECAL, i, -1, -1); }  char popup_id[64];
+            if (UI_Selectable(label, Editor_IsSelected(ENTITY_DECAL, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_DECAL, i, -1, -1); }  Char popup_id[64];
             sprintf(popup_id, "DecalContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateDecal(scene, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { decal_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
+            }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
         if (UI_Button("Add Decal")) {
             if (scene->numDecals < MAX_DECALS) {
@@ -134,21 +134,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (decal_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_DECAL, decal_to_delete, "Delete Decal"); _raw_delete_decal(scene, decal_to_delete); Editor_RemoveFromSelection(ENTITY_DECAL, decal_to_delete); }
     if (UI_CollapsingHeader("Sounds", 1)) {
-        for (int i = 0; i < scene->numSoundEntities; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numSoundEntities; ++i) {
+            Char label[128];
             if (strlen(scene->soundEntities[i].targetname) > 0) {
                 sprintf(label, "%s##sound%d", scene->soundEntities[i].targetname, i);
             }
             else {
                 sprintf(label, "Sound %d##sound%d", i, i);
             }
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_SOUND, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_SOUND, i, -1, -1); }  char popup_id[64];
+            if (UI_Selectable(label, Editor_IsSelected(ENTITY_SOUND, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_SOUND, i, -1, -1); }  Char popup_id[64];
             sprintf(popup_id, "SoundContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateSoundEntity(scene, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { sound_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
+            }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##sound%d", i); if (UI_Button(del_label)) { sound_to_delete = i; }
         }
         if (UI_Button("Add Sound Entity")) {
             g_EditorState.show_sound_browser_popup = true;
@@ -157,21 +157,21 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (sound_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_SOUND, sound_to_delete, "Delete Sound"); _raw_delete_sound_entity(scene, sound_to_delete); Editor_RemoveFromSelection(ENTITY_SOUND, sound_to_delete); }
     if (UI_CollapsingHeader("Particle Emitters", 1)) {
-        for (int i = 0; i < scene->numParticleEmitters; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numParticleEmitters; ++i) {
+            Char label[128];
             if (strlen(scene->particleEmitters[i].targetname) > 0) {
                 sprintf(label, "%s##particle%d", scene->particleEmitters[i].targetname, i);
             }
             else {
                 sprintf(label, "%s##particle%d", scene->particleEmitters[i].parFile, i);
             }
-            if (UI_Selectable(label, Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1); }   char popup_id[64];
+            if (UI_Selectable(label, Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i))) { if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection(); Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1); }   Char popup_id[64];
             sprintf(popup_id, "ParticleContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateParticleEmitter(scene, i); }
                 if (UI_MenuItem("Delete", nullptr, false, true)) { particle_to_delete = i; }
                 UI_EndPopup();
-            }UI_SameLine(); char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
+            }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##particle%d", i);  if (UI_Button(del_label)) { particle_to_delete = i; }
         }
         if (UI_Button("Add Emitter")) {
             g_EditorState.show_particle_browser_popup = true;
@@ -180,14 +180,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (particle_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_PARTICLE_EMITTER, particle_to_delete, "Delete Emitter"); _raw_delete_particle_emitter(scene, particle_to_delete); Editor_RemoveFromSelection(ENTITY_PARTICLE_EMITTER, particle_to_delete); }
     if (UI_CollapsingHeader("Sprites", 1)) {
-        for (int i = 0; i < scene->numSprites; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numSprites; ++i) {
+            Char label[128];
             sprintf(label, "%s##sprite%d", scene->sprites[i].targetname, i);
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_SPRITE, i))) {
                 if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
                 Editor_AddToSelection(ENTITY_SPRITE, i, -1, -1);
             }
-            char popup_id[64];
+            Char popup_id[64];
             sprintf(popup_id, "SpriteContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateSprite(scene, i); }
@@ -195,7 +195,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }
             UI_SameLine();
-            char del_label[32];
+            Char del_label[32];
             sprintf(del_label, "[X]##sprite%d", i);
             if (UI_Button(del_label)) { sprite_to_delete = i; }
         }
@@ -215,8 +215,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (sprite_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_SPRITE, sprite_to_delete, "Delete Sprite"); _raw_delete_sprite(scene, sprite_to_delete); Editor_RemoveFromSelection(ENTITY_SPRITE, sprite_to_delete); }
     if (UI_CollapsingHeader("Video Players", 1)) {
-        for (int i = 0; i < scene->numVideoPlayers; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numVideoPlayers; ++i) {
+            Char label[128];
             if (strlen(scene->videoPlayers[i].targetname) > 0) {
                 sprintf(label, "%s##vidplayer%d", scene->videoPlayers[i].targetname, i);
             }
@@ -227,7 +227,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
                 Editor_AddToSelection(ENTITY_VIDEO_PLAYER, i, -1, -1);
             }
-            char popup_id[64];
+            Char popup_id[64];
             sprintf(popup_id, "VideoContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateVideoPlayer(scene, i); }
@@ -235,7 +235,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }
             UI_SameLine();
-            char del_label[32];
+            Char del_label[32];
             sprintf(del_label, "[X]##vidplayer%d", i);
             if (UI_Button(del_label)) { video_player_to_delete = i; }
         }
@@ -253,8 +253,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (video_player_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_VIDEO_PLAYER, video_player_to_delete, "Delete Video Player"); _raw_delete_video_player(scene, video_player_to_delete); Editor_RemoveFromSelection(ENTITY_VIDEO_PLAYER, video_player_to_delete); }
     if (UI_CollapsingHeader("Parallax Rooms", 1)) {
-        for (int i = 0; i < scene->numParallaxRooms; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numParallaxRooms; ++i) {
+            Char label[128];
             if (strlen(scene->parallaxRooms[i].targetname) > 0) {
                 sprintf(label, "%s##parallax%d", scene->parallaxRooms[i].targetname, i);
             }
@@ -265,7 +265,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
                 Editor_AddToSelection(ENTITY_PARALLAX_ROOM, i, -1, -1);
             }
-            char popup_id[64];
+            Char popup_id[64];
             sprintf(popup_id, "ParallaxContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateParallaxRoom(scene, i); }
@@ -273,7 +273,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }
             UI_SameLine();
-            char del_label[32];
+            Char del_label[32];
             sprintf(del_label, "[X]##parallax%d", i);
             if (UI_Button(del_label)) { parallax_room_to_delete = i; }
         }
@@ -293,14 +293,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     if (parallax_room_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_PARALLAX_ROOM, parallax_room_to_delete, "Delete Parallax Room"); _raw_delete_parallax_room(scene, parallax_room_to_delete); Editor_RemoveFromSelection(ENTITY_PARALLAX_ROOM, parallax_room_to_delete); }
     if (UI_CollapsingHeader("Logic Entities", 1)) {
-        for (int i = 0; i < scene->numLogicEntities; ++i) {
-            char label[128];
+        for (Int i = 0; i < scene->numLogicEntities; ++i) {
+            Char label[128];
             sprintf(label, "%s (%s)##logic%d", scene->logicEntities[i].targetname, scene->logicEntities[i].classname, i);
             if (UI_Selectable(label, Editor_IsSelected(ENTITY_LOGIC, i))) {
                 if (!(SDL_GetModState() & KMOD_CTRL)) Editor_ClearSelection();
                 Editor_AddToSelection(ENTITY_LOGIC, i, -1, -1);
             }
-            char popup_id[64];
+            Char popup_id[64];
             sprintf(popup_id, "LogicContext_%d", i);
             if (UI_BeginPopupContextItem(popup_id)) {
                 if (UI_MenuItem("Duplicate", nullptr, false, true)) { Editor_DuplicateLogicEntity(scene, engine, i); }
@@ -308,7 +308,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }
             UI_SameLine();
-            char del_label[32];
+            Char del_label[32];
             sprintf(del_label, "[X]##logic%d", i);
             if (UI_Button(del_label)) { logic_entity_to_delete = i; }
         }
@@ -317,14 +317,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
                 memset(ent, 0, sizeof(LogicEntity));
 
-                int num_logic_classes = 0;
-                const char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
+                Int num_logic_classes = 0;
+                const Char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
                 if (num_logic_classes > 0) {
                     strcpy(ent->classname, logic_classes[0]);
                     const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
                     if (def) {
                         ent->numProperties = def->num_properties;
-                        for (int i = 0; i < def->num_properties; ++i) {
+                        for (Int i = 0; i < def->num_properties; ++i) {
                             strcpy(ent->properties[i].key, def->properties[i].key);
                             strcpy(ent->properties[i].value, def->properties[i].default_value);
                         }
@@ -342,11 +342,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     UI_SetNextWindowPos(screen_w - right_panel_width, 22 + screen_h * 0.5f); UI_SetNextWindowSize(right_panel_width, screen_h * 0.5f);
     UI_Begin("Inspector & Settings", nullptr);
     EditorSelection* primary = Editor_GetPrimarySelection();
-    UI_RadioButton_Int("Translate (1)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_TRANSLATE);
+    UI_RadioButton_Int("Translate (1)", (Int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_TRANSLATE);
     UI_SameLine();
-    UI_RadioButton_Int("Rotate (2)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_ROTATE);
+    UI_RadioButton_Int("Rotate (2)", (Int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_ROTATE);
     UI_SameLine();
-    UI_RadioButton_Int("Scale (3)", (int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_SCALE);
+    UI_RadioButton_Int("Scale (3)", (Int*)&g_EditorState.current_gizmo_operation, GIZMO_OP_SCALE);
     UI_Separator();
     UI_Text("Inspector"); UI_Separator();
     if (primary && primary->type == ENTITY_MODEL) {
@@ -409,9 +409,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (obj->model && obj->model->num_animations > 0) {
             UI_Separator();
             if (UI_CollapsingHeader("Animation", 1)) {
-                const char** anim_names = new const char* [obj->model->num_animations];
+                const Char** anim_names = new const Char* [obj->model->num_animations];
                 if (anim_names) {
-                    for (int i = 0; i < obj->model->num_animations; ++i) {
+                    for (Int i = 0; i < obj->model->num_animations; ++i) {
                         anim_names[i] = obj->model->animations[i].name;
                     }
                     if (UI_Combo("Clip", &g_EditorState.preview_animation_index, anim_names, obj->model->num_animations, -1)) {
@@ -443,7 +443,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         Brush* b = &scene->brushes[primary->index];
         UI_Separator();
         UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Name"); }
-        UI_Separator(); bool transform_changed = false;
+        UI_Separator(); Bool transform_changed = false;
         UI_DragFloat3("Position", &b->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->pos.x = SnapValue(b->pos.x, g_EditorState.grid_size); b->pos.y = SnapValue(b->pos.y, g_EditorState.grid_size); b->pos.z = SnapValue(b->pos.z, g_EditorState.grid_size); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Move Brush"); }
         UI_DragFloat3("Rotation", &b->rot.x, 1.0f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->rot.x = SnapValue(b->rot.x, 15.0f); b->rot.y = SnapValue(b->rot.y, 15.0f); b->rot.z = SnapValue(b->rot.z, 15.0f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Rotate Brush"); }
         UI_DragFloat3("Scale", &b->scale.x, 0.01f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->scale.x = SnapValue(b->scale.x, 0.25f); b->scale.y = SnapValue(b->scale.y, 0.25f); b->scale.z = SnapValue(b->scale.z, 0.25f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Scale Brush"); }
@@ -471,14 +471,14 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
-                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
+                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
                 }
                 else {
                     Vec3* world_verts = new Vec3[b->numVertices];
-                    for (int i = 0; i < b->numVertices; i++)
+                    for (Int i = 0; i < b->numVertices; i++)
                         world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
 
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                     delete[] world_verts;
                 }
             }
@@ -507,10 +507,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         UI_Separator();
         UI_Text("Brush Entity Class");
-        int num_brush_classes = 0;
-        const char** brush_classes = GameData_GetBrushEntityClassnames(&num_brush_classes);
-        int current_class_idx = 0;
-        for (int i = 1; i < num_brush_classes; ++i) {
+        Int num_brush_classes = 0;
+        const Char** brush_classes = GameData_GetBrushEntityClassnames(&num_brush_classes);
+        Int current_class_idx = 0;
+        for (Int i = 1; i < num_brush_classes; ++i) {
             if (strcmp(b->classname, brush_classes[i]) == 0) {
                 current_class_idx = i;
                 break;
@@ -526,11 +526,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             else {
                 strcpy(b->classname, brush_classes[current_class_idx]);
                 if (strcmp(b->classname, "env_reflectionprobe") == 0) {
-                    int x = (int)roundf(b->pos.x);
-                    int y = (int)roundf(b->pos.y);
-                    int z = (int)roundf(b->pos.z);
+                    Int x = (Int)roundf(b->pos.x);
+                    Int y = (Int)roundf(b->pos.y);
+                    Int z = (Int)roundf(b->pos.z);
 
-                    char name_buf[128];
+                    Char name_buf[128];
                     snprintf(name_buf, sizeof(name_buf), "Probe_%s%d_%s%d_%s%d",
                         (x < 0 ? "n" : ""), abs(x),
                         (y < 0 ? "n" : ""), abs(y),
@@ -542,7 +542,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 const TGD_EntityDef* def = GameData_FindEntityDef(b->classname);
                 if (def) {
                     b->numProperties = def->num_properties;
-                    for (int k = 0; k < def->num_properties; ++k) {
+                    for (Int k = 0; k < def->num_properties; ++k) {
                         strcpy(b->properties[k].key, def->properties[k].key);
                         strcpy(b->properties[k].value, def->properties[k].default_value);
                     }
@@ -556,41 +556,41 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_Separator();
             UI_Text("Properties");
 
-            int num_targets = 0;
-            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
+            Int num_targets = 0;
+            for (Int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
 
-            const char** target_names = nullptr;
+            const Char** target_names = nullptr;
             if (num_targets > 0) {
-                const char** target_names = new const char* [num_targets];
-                int idx = 0;
+                const Char** target_names = new const Char* [num_targets];
+                Int idx = 0;
 
-                for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
-                for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
-                for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
-                for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
-                for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
-                for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
-                for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
-                for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
+                for (Int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
+                for (Int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
+                for (Int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
+                for (Int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
+                for (Int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
+                for (Int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
+                for (Int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
+                for (Int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
 
                 delete[] target_names;
             }
 
-            for (int i = 0; i < brush_def->num_properties; ++i) {
+            for (Int i = 0; i < brush_def->num_properties; ++i) {
                 const TGD_Property* prop = &brush_def->properties[i];
                 if (i >= b->numProperties) continue;
                 UI_PushID(i);
 
                 switch (prop->type) {
                 case TGD_PROP_CHECKBOX: {
-                    bool is_checked = (atoi(b->properties[i].value) != 0);
+                    Bool is_checked = (atoi(b->properties[i].value) != 0);
                     if (UI_Checkbox(prop->display_name, &is_checked)) {
                         strcpy(b->properties[i].value, is_checked ? "1" : "0");
                     }
@@ -599,9 +599,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 case TGD_PROP_CHOICES: {
                     if (prop->num_choices <= 0) break;
 
-                    const char** display_items = new const char* [prop->num_choices];
-                    int current_item = -1;
-                    for (int j = 0; j < prop->num_choices; ++j) {
+                    const Char** display_items = new const Char* [prop->num_choices];
+                    Int current_item = -1;
+                    for (Int j = 0; j < prop->num_choices; ++j) {
                         display_items[j] = prop->choices[j].display_name;
                         if (strcmp(b->properties[i].value, prop->choices[j].value) == 0)
                             current_item = j;
@@ -615,8 +615,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_ENTITIES: {
-                    int current_item = -1;
-                    for (int k = 0; k < num_targets; ++k) {
+                    Int current_item = -1;
+                    for (Int k = 0; k < num_targets; ++k) {
                         if (strcmp(b->properties[i].value, target_names[k]) == 0) { current_item = k; break; }
                     }
                     if (UI_Combo(prop->display_name, &current_item, target_names, num_targets, -1) && current_item >= 0) {
@@ -625,7 +625,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_TEXTURE: {
-                    char button_label[256];
+                    Char button_label[256];
                     snprintf(button_label, sizeof(button_label), "%s: %s", prop->display_name, b->properties[i].value);
                     if (UI_Button(button_label)) {
                         g_EditorState.texture_browser_target = 100 + i;
@@ -660,10 +660,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                         if (Brush_IsSolid(b) && b->numVertices > 0) {
                             Vec3* world_verts = new Vec3[b->numVertices];
-                            for (int i = 0; i < b->numVertices; ++i) {
+                            for (Int i = 0; i < b->numVertices; ++i) {
                                 world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                             }
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                             delete[] world_verts;
                         }
                         else {
@@ -701,7 +701,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SPRITE, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SPRITE, primary->index, "Scale Sprite"); }
 
-        char mat_button_label[128];
+        Char mat_button_label[128];
         sprintf(mat_button_label, "Material: %s", s->material ? s->material->name : "None");
         if (UI_Button(mat_button_label)) {
             g_EditorState.texture_browser_target = 6;
@@ -827,13 +827,13 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
         UI_Separator();
 
-        const char* light_modes[] = { "Dynamic", "Static (Fully Baked)", "Mixed (Baked Indirect)" };
+        const Char* light_modes[] = { "Dynamic", "Static (Fully Baked)", "Mixed (Baked Indirect)" };
         if (UI_Combo("Bake Mode", &light->is_static, light_modes, 3, -1)) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Bake Mode");
         }
 
-        const char* preset_names[] = {
+        const Char* preset_names[] = {
             "0: Normal", "1: Flicker 1", "2: Slow Strong Pulse", "3: Candle 1",
             "4: Fast Strobe", "5: Gentle Pulse", "6: Flicker 2", "7: Candle 2",
             "8: Candle 3", "9: Slow Strobe", "10: Fluorescent", "11: Slow Pulse 2",
@@ -850,8 +850,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Edit Custom Light Style"); }
         }
         if (light->type == LIGHT_SPOT) {
-            char cookie_button_label[128];
-            const char* cookie_name = strlen(light->cookiePath) > 0 ? light->cookiePath : "None";
+            Char cookie_button_label[128];
+            const Char* cookie_name = strlen(light->cookiePath) > 0 ? light->cookiePath : "None";
             sprintf(cookie_button_label, "Cookie: %s", cookie_name);
             if (UI_Button(cookie_button_label)) {
                 g_EditorState.texture_browser_target = 4;
@@ -886,8 +886,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Edit Decal Name"); }
         UI_Separator();
 
-        char decal_mat_button_label[128];
-        const char* mat_name = d->material ? d->material->name : "___MISSING___";
+        Char decal_mat_button_label[128];
+        const Char* mat_name = d->material ? d->material->name : "___MISSING___";
         sprintf(decal_mat_button_label, "Material: %s", mat_name);
         if (UI_Button(decal_mat_button_label)) {
             g_EditorState.texture_browser_target = 5;
@@ -895,7 +895,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
 
         UI_Separator();
-        bool transform_changed = false;
+        Bool transform_changed = false;
         if (UI_DragFloat3("Position", &d->pos.x, 0.1f, 0, 0)) { transform_changed = true; }
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_DECAL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_DECAL, primary->index, "Move Decal"); }
@@ -972,7 +972,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (primary && primary->type == ENTITY_VIDEO_PLAYER) {
         VideoPlayer* vp = &scene->videoPlayers[primary->index];
-        char oldPath[sizeof(vp->videoPath)];
+        Char oldPath[sizeof(vp->videoPath)];
         memcpy(oldPath, vp->videoPath, sizeof(vp->videoPath));
 
         UI_Text("Video Player Properties");
@@ -1004,10 +1004,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_InputText("Cubemap Path Base", p->cubemapPath, sizeof(p->cubemapPath));
         if (UI_Button("Reload Cubemap")) {
             if (p->cubemapTexture) glDeleteTextures(1, &p->cubemapTexture);
-            const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-            char face_paths[6][256];
-            const char* face_pointers[6];
-            for (int i = 0; i < 6; ++i) {
+            const Char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+            Char face_paths[6][256];
+            const Char* face_pointers[6];
+            for (Int i = 0; i < 6; ++i) {
                 sprintf(face_paths[i], "%s%s", p->cubemapPath, suffixes[i]);
                 face_pointers[i] = face_paths[i];
             }
@@ -1023,10 +1023,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     else if (primary && primary->type == ENTITY_LOGIC) {
         LogicEntity* ent = &scene->logicEntities[primary->index];
         UI_Text("Logic Entity Properties");
-        int num_logic_classes = 0;
-        const char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
-        int current_class_index = -1;
-        for (int i = 0; i < num_logic_classes; ++i) {
+        Int num_logic_classes = 0;
+        const Char** logic_classes = GameData_GetLogicEntityClassnames(&num_logic_classes);
+        Int current_class_index = -1;
+        for (Int i = 0; i < num_logic_classes; ++i) {
             if (strcmp(ent->classname, logic_classes[i]) == 0) {
                 current_class_index = i;
                 break;
@@ -1039,7 +1039,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
                 if (def) {
                     ent->numProperties = def->num_properties;
-                    for (int k = 0; k < def->num_properties; ++k) {
+                    for (Int k = 0; k < def->num_properties; ++k) {
                         strcpy(ent->properties[k].key, def->properties[k].key);
                         strcpy(ent->properties[k].value, def->properties[k].default_value);
                     }
@@ -1059,37 +1059,37 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (def) {
             UI_Text("Properties");
 
-            int num_targets = 0;
-            for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
-            for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
+            Int num_targets = 0;
+            for (Int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) num_targets++;
+            for (Int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) num_targets++;
 
-            const char** target_names = nullptr;
+            const Char** target_names = nullptr;
             if (num_targets > 0) {
-                target_names = new const char* [num_targets];
-                int idx = 0;
-                for (int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
-                for (int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
-                for (int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
-                for (int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
-                for (int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
-                for (int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
-                for (int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
-                for (int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
+                target_names = new const Char* [num_targets];
+                Int idx = 0;
+                for (Int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
+                for (Int k = 0; k < scene->numBrushes; ++k) if (strlen(scene->brushes[k].targetname) > 0) target_names[idx++] = scene->brushes[k].targetname;
+                for (Int k = 0; k < scene->numActiveLights; ++k) if (strlen(scene->lights[k].targetname) > 0) target_names[idx++] = scene->lights[k].targetname;
+                for (Int k = 0; k < scene->numSoundEntities; ++k) if (strlen(scene->soundEntities[k].targetname) > 0) target_names[idx++] = scene->soundEntities[k].targetname;
+                for (Int k = 0; k < scene->numParticleEmitters; ++k) if (strlen(scene->particleEmitters[k].targetname) > 0) target_names[idx++] = scene->particleEmitters[k].targetname;
+                for (Int k = 0; k < scene->numVideoPlayers; ++k) if (strlen(scene->videoPlayers[k].targetname) > 0) target_names[idx++] = scene->videoPlayers[k].targetname;
+                for (Int k = 0; k < scene->numSprites; ++k) if (strlen(scene->sprites[k].targetname) > 0) target_names[idx++] = scene->sprites[k].targetname;
+                for (Int k = 0; k < scene->numLogicEntities; ++k) if (strlen(scene->logicEntities[k].targetname) > 0) target_names[idx++] = scene->logicEntities[k].targetname;
             }
 
-            for (int i = 0; i < ent->numProperties; ++i) {
+            for (Int i = 0; i < ent->numProperties; ++i) {
                 const TGD_Property* prop = &def->properties[i];
                 UI_PushID(i);
 
                 switch (prop->type) {
                 case TGD_PROP_CHECKBOX: {
-                    bool is_checked = (atoi(ent->properties[i].value) != 0);
+                    Bool is_checked = (atoi(ent->properties[i].value) != 0);
                     if (UI_Checkbox(prop->display_name, &is_checked)) {
                         strcpy(ent->properties[i].value, is_checked ? "1" : "0");
                     }
@@ -1104,9 +1104,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_CHOICES: {
-                    const char** display_items = new const char* [prop->num_choices];
-                    int current_item = -1;
-                    for (int j = 0; j < prop->num_choices; ++j) {
+                    const Char** display_items = new const Char* [prop->num_choices];
+                    Int current_item = -1;
+                    for (Int j = 0; j < prop->num_choices; ++j) {
                         display_items[j] = prop->choices[j].display_name;
                         if (strcmp(ent->properties[i].value, prop->choices[j].value) == 0) {
                             current_item = j;
@@ -1119,7 +1119,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_TEXTURE: {
-                    char button_label[256];
+                    Char button_label[256];
                     snprintf(button_label, sizeof(button_label), "%s: %s", prop->display_name, ent->properties[i].value);
                     if (UI_Button(button_label)) {
                         g_EditorState.texture_browser_target = 200 + i;
@@ -1128,8 +1128,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     break;
                 }
                 case TGD_PROP_ENTITIES: {
-                    int current_item = -1;
-                    for (int k = 0; k < num_targets; ++k) {
+                    Int current_item = -1;
+                    for (Int k = 0; k < num_targets; ++k) {
                         if (strcmp(ent->properties[i].value, target_names[k]) == 0) {
                             current_item = k;
                             break;
@@ -1177,10 +1177,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 if (glIsTexture(scene->skybox_cubemap)) {
                     glDeleteTextures(1, &scene->skybox_cubemap);
                 }
-                const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-                char face_paths[6][256];
-                const char* face_pointers[6];
-                for (int i = 0; i < 6; ++i) {
+                const Char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+                Char face_paths[6][256];
+                const Char* face_pointers[6];
+                for (Int i = 0; i < 6; ++i) {
                     sprintf(face_paths[i], "skybox/%s%s", scene->skybox_path, suffixes[i]);
                     face_pointers[i] = face_paths[i];
                 }
@@ -1249,11 +1249,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_DragFloat("Wall Thickness", &g_EditorState.tube_wall_thickness, 0.05f, 0.1f, 16.0f);
     }
     UI_Separator(); UI_Text("Editor Settings"); UI_Separator(); if (UI_Button(g_EditorState.snap_to_grid ? "Snapping: ON" : "Snapping: OFF")) { g_EditorState.snap_to_grid = !g_EditorState.snap_to_grid; } UI_SameLine(); UI_DragFloat("Grid Size", &g_EditorState.grid_size, 0.015625f, 0.015625f, 64.0f);
-    bool is_unlit = Cvar_GetInt("r_fullbright");
+    Bool is_unlit = Cvar_GetInt("r_fullbright");
     if (UI_Checkbox("Unlit Mode", &is_unlit)) {
         Cvar_Set("r_fullbright", is_unlit ? "1" : "0");
     }
-    for (int i = 0; i < 5; i++) {
+    for (Int i = 0; i < 5; i++) {
         UI_Spacing();
     }
     UI_End();
@@ -1294,9 +1294,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }
             UI_Separator();
             if (UI_BeginMenu("Recent Files", g_EditorState.num_recent_map_files > 0)) {
-                for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+                for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
                     if (UI_MenuItem(g_EditorState.recent_map_files[i], nullptr, false, true)) {
-                        const char* path_to_load = g_EditorState.recent_map_files[i];
+                        const Char* path_to_load = g_EditorState.recent_map_files[i];
 
                         Scene_Clear(scene, engine);
                         if (Scene_LoadMap(scene, renderer, path_to_load, engine)) {
@@ -1317,7 +1317,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     g_pending_action = PENDING_ACTION_EXIT_EDITOR;
                 }
                 else {
-                    char* args[] = { "edit" };
+                    Char* args[] = { "edit" };
                     Commands_Execute(1, args);
                 }
             }
@@ -1336,10 +1336,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     g_EditorState.transform_window_values = Vec3{ 0, 0, 0 };
                 }
             }
-            bool can_merge = false;
+            Bool can_merge = false;
             if (g_EditorState.num_selections > 1) {
                 can_merge = true;
-                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                     if (g_EditorState.selections[i].type != ENTITY_BRUSH) {
                         can_merge = false;
                         break;
@@ -1415,9 +1415,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     if (g_EditorState.show_load_map_popup) {
         UI_Begin("Load Map", &g_EditorState.show_load_map_popup);
         if (g_EditorState.num_map_files > 0) {
-            UI_ListBox("Maps", &g_EditorState.selected_map_file_index, (const char* const*)g_EditorState.map_file_list, g_EditorState.num_map_files, 15);
+            UI_ListBox("Maps", &g_EditorState.selected_map_file_index, (const Char* const*)g_EditorState.map_file_list, g_EditorState.num_map_files, 15);
             if (g_EditorState.selected_map_file_index != -1 && UI_Button("Load Selected Map")) {
-                char path_buffer[256];
+                Char path_buffer[256];
                 sprintf(path_buffer, "%s", g_EditorState.map_file_list[g_EditorState.selected_map_file_index]);
                 Scene_LoadMap(scene, renderer, path_buffer, engine);
                 strcpy(g_EditorState.currentMapPath, path_buffer);
@@ -1484,9 +1484,9 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_EndPopup();
     }
 
-    float menu_bar_h = 22.0f; float viewports_area_w = screen_w - right_panel_width; float viewports_area_h = screen_h; float half_w = viewports_area_w / 2.0f; float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
+    Float menu_bar_h = 22.0f; Float viewports_area_w = screen_w - right_panel_width; Float viewports_area_h = screen_h; Float half_w = viewports_area_w / 2.0f; Float half_h = viewports_area_h / 2.0f; Vec3 p[4] = { {0, menu_bar_h}, {half_w, menu_bar_h}, {0, menu_bar_h + half_h}, {half_w, menu_bar_h + half_h} }; const Char* vp_names[] = { "Perspective", "Top (X/Z)","Front (X/Y)","Side (Y/Z)" };
 
-    for (int i = 0; i < 4; i++) {
+    for (Int i = 0; i < 4; i++) {
         ViewportType type = (ViewportType)i;
         UI_SetNextWindowPos(p[i].x, p[i].y);
         UI_SetNextWindowSize(half_w, half_h);
@@ -1494,17 +1494,17 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Begin_NoBringToFront(vp_names[i], nullptr);
         g_EditorState.is_viewport_focused[type] = UI_IsWindowFocused();
         g_EditorState.is_viewport_hovered[type] = UI_IsWindowHovered();
-        float vp_w, vp_h;
+        Float vp_w, vp_h;
         UI_GetContentRegionAvail(&vp_w, &vp_h);
-        float win_x, win_y, content_min_x, content_min_y, mouse_x, mouse_y;
+        Float win_x, win_y, content_min_x, content_min_y, mouse_x, mouse_y;
         UI_GetWindowPos(&win_x, &win_y);
         UI_GetWindowContentRegionMin(&content_min_x, &content_min_y);
         UI_GetMousePos(&mouse_x, &mouse_y);
         g_EditorState.mouse_pos_in_viewport[type].x = mouse_x - (win_x + content_min_x);
         g_EditorState.mouse_pos_in_viewport[type].y = mouse_y - (win_y + content_min_y);
         if (vp_w > 0 && vp_h > 0 && (fabs(vp_w - g_EditorState.viewport_width[type]) > 1 || fabs(vp_h - g_EditorState.viewport_height[type]) > 1)) {
-            g_EditorState.viewport_width[type] = (int)vp_w;
-            g_EditorState.viewport_height[type] = (int)vp_h;
+            g_EditorState.viewport_width[type] = (Int)vp_w;
+            g_EditorState.viewport_height[type] = (Int)vp_h;
             glBindTexture(GL_TEXTURE_2D, g_EditorState.viewport_texture[type]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type], 0, GL_RGBA, GL_FLOAT, nullptr);
             glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.viewport_rbo[type]);
@@ -1512,11 +1512,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         }
         UI_Image((void*)(intptr_t)g_EditorState.viewport_texture[type], vp_w, vp_h);
 
-        bool show_dims = false;
+        Bool show_dims = false;
         Vec3 b_min, b_max;
 
-        bool is_actively_creating = g_EditorState.is_dragging_for_creation || g_EditorState.is_in_brush_creation_mode;
-        bool is_single_brush_selected = (g_EditorState.num_selections == 1 && Editor_GetPrimarySelection()->type == ENTITY_BRUSH);
+        Bool is_actively_creating = g_EditorState.is_dragging_for_creation || g_EditorState.is_in_brush_creation_mode;
+        Bool is_single_brush_selected = (g_EditorState.num_selections == 1 && Editor_GetPrimarySelection()->type == ENTITY_BRUSH);
 
         if (is_actively_creating) {
             show_dims = true;
@@ -1538,11 +1538,11 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
         if (show_dims && type >= VIEW_TOP_XZ) {
             void* draw_list = UI_GetWindowDrawList();
-            unsigned int text_color = UI_GetColorU32(255, 255, 255, 255);
+            Uint text_color = UI_GetColorU32(255, 255, 255, 255);
             Vec3 size = vec3_sub(b_max, b_min);
 
             Vec3 top_mid_world, left_mid_world;
-            char horizontal_text[32], vertical_text[32];
+            Char horizontal_text[32], vertical_text[32];
 
             if (type == VIEW_TOP_XZ) {
                 top_mid_world = Vec3{ (b_min.x + b_max.x) / 2.0f, b_min.y, b_max.z };
@@ -1566,10 +1566,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Vec2 top_mid_screen = WorldToScreen(top_mid_world, type);
             Vec2 left_mid_screen = WorldToScreen(left_mid_world, type);
 
-            float h_text_offset = strlen(horizontal_text) * 4.0f;
+            Float h_text_offset = strlen(horizontal_text) * 4.0f;
             UI_DrawList_AddText(draw_list, win_x + top_mid_screen.x - h_text_offset, win_y + top_mid_screen.y - 20.0f, text_color, horizontal_text);
 
-            float v_text_offset = strlen(vertical_text) * 8.0f;
+            Float v_text_offset = strlen(vertical_text) * 8.0f;
             UI_DrawList_AddText(draw_list, win_x + left_mid_screen.x - v_text_offset - 10.0f, win_y + left_mid_screen.y - 8.0f, text_color, vertical_text);
         }
         UI_End();

@@ -31,7 +31,7 @@
 #include <SDL_image.h>
 
 void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine) {
-    bool auto_exposure_enabled = Cvar_GetInt("r_autoexposure");
+    Bool auto_exposure_enabled = Cvar_GetInt("r_autoexposure");
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->histogramSSBO);
     GLuint zero = 0;
@@ -62,7 +62,7 @@ void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, 
     glUniformMatrix4fv(glGetUniformLocation(renderer->parallaxInteriorShader, "projection"), 1, GL_FALSE, projection->m);
     glUniform3fv(glGetUniformLocation(renderer->parallaxInteriorShader, "viewPos"), 1, &engine->camera.position.x);
 
-    for (int i = 0; i < scene->numParallaxRooms; ++i) {
+    for (Int i = 0; i < scene->numParallaxRooms; ++i) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
         if (p->cubemapTexture == 0) continue;
 
@@ -95,11 +95,11 @@ void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine
     glActiveTexture(GL_TEXTURE1);
     glUniform1i(glGetUniformLocation(renderer->glassShader, "normalMap"), 1);
 
-    for (int i = 0; i < scene->numBrushes; i++) {
+    for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "env_glass") != 0) continue;
 
-        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
+        const Char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
         if (normal_mat && normal_mat != &g_MissingMaterial) {
             glBindTexture(GL_TEXTURE_2D, normal_mat->normalMap);
@@ -124,13 +124,13 @@ void Light_InitShadowMap(Light* light) {
     glGenFramebuffers(1, &light->shadowFBO);
     glGenTextures(1, &light->shadowMapTexture);
     glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
-    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
+    Int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
     if (shadow_map_size <= 0) {
         shadow_map_size = 1024;
     }
     if (light->type == LIGHT_POINT) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, light->shadowMapTexture);
-        for (int i = 0; i < 6; ++i) {
+        for (Int i = 0; i < 6; ++i) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT16, shadow_map_size, shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
         }
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -147,7 +147,7 @@ void Light_InitShadowMap(Light* light) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        Float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, light->shadowMapTexture, 0);
     }
@@ -163,12 +163,12 @@ void Light_InitShadowMap(Light* light) {
 }
 
 void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition) {
-    const float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
+    const Float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
 
-    float shadowOrthoSize = Cvar_GetFloat("r_sun_shadow_distance");
+    Float shadowOrthoSize = Cvar_GetFloat("r_sun_shadow_distance");
 
-    float near_plane = 1.0f;
-    float far_plane = shadowOrthoSize * 4.0f;
+    Float near_plane = 1.0f;
+    Float far_plane = shadowOrthoSize * 4.0f;
 
     Vec3 lightFocusPos = cameraPosition;
     Vec3 lightPos = vec3_sub(lightFocusPos, vec3_muls(sun->direction, far_plane * 0.5f));
@@ -213,9 +213,9 @@ void Light_DestroyShadowMap(Light* light) {
     }
 }
 
-static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* filepath) {
+static void SaveFramebufferToPNG(GLuint fbo, Int width, Int height, const Char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    unsigned char* pixels = (unsigned char*)malloc(width * height * 4);
+    Uchar* pixels = (Uchar*)malloc(width * height * 4);
     if (!pixels) {
         Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -244,9 +244,9 @@ static void SaveFramebufferToPNG(GLuint fbo, int width, int height, const char* 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
+void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    unsigned char* pixels = (unsigned char*)malloc(engine->width * engine->height * 4);
+    Uchar* pixels = (Uchar*)malloc(engine->width * engine->height * 4);
     if (!pixels) {
         Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         return;
@@ -254,17 +254,17 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
 
     glReadPixels(0, 0, engine->width, engine->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    int row_size = engine->width * 4;
-    unsigned char* temp_row = (unsigned char*)malloc(row_size);
+    Int row_size = engine->width * 4;
+    Uchar* temp_row = (Uchar*)malloc(row_size);
     if (!temp_row) {
         Console_Printf_Error("Failed to allocate memory for screenshot row buffer.");
         free(pixels);
         return;
     }
 
-    for (int y = 0; y < engine->height / 2; ++y) {
-        unsigned char* top = pixels + y * row_size;
-        unsigned char* bottom = pixels + (engine->height - 1 - y) * row_size;
+    for (Int y = 0; y < engine->height / 2; ++y) {
+        Uchar* top = pixels + y * row_size;
+        Uchar* bottom = pixels + (engine->height - 1 - y) * row_size;
         memcpy(temp_row, top, row_size);
         memcpy(top, bottom, row_size);
         memcpy(bottom, temp_row, row_size);
@@ -288,17 +288,17 @@ void MiscRender_SaveScreenshot(Engine* engine, const char* filepath) {
     free(pixels);
 }
 
-void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution) {
+void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, Int resolution) {
     Console_Printf("Starting cubemap build with %dx%d resolution...", resolution, resolution);
     glFinish();
 
     Camera original_camera = engine->camera;
 
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(scene->mapPath, '/');
-    const char* last_bslash = strrchr(scene->mapPath, '\\');
-    const char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
-    const char* dot_ptr = strrchr(map_filename, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(scene->mapPath, '/');
+    const Char* last_bslash = strrchr(scene->mapPath, '\\');
+    const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+    const Char* dot_ptr = strrchr(map_filename, '.');
     if (dot_ptr) {
         size_t len = dot_ptr - map_filename;
         strncpy(map_name_sanitized, map_filename, len);
@@ -308,14 +308,14 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
         strcpy(map_name_sanitized, map_filename);
     }
 
-    char cubemap_dir[512];
+    Char cubemap_dir[512];
     snprintf(cubemap_dir, sizeof(cubemap_dir), "cubemaps/%s", map_name_sanitized);
     _mkdir("cubemaps");
     _mkdir(cubemap_dir);
 
     Vec3 targets[] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
     Vec3 ups[] = { {0,-1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}, {0,-1,0}, {0,-1,0} };
-    const char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
+    const Char* suffixes[] = { "px", "nx", "py", "ny", "pz", "nz" };
 
     GLuint cubemap_fbo, cubemap_texture, cubemap_rbo;
     glGenFramebuffers(1, &cubemap_fbo);
@@ -340,7 +340,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "env_reflectionprobe") != 0) {
             continue;
@@ -352,7 +352,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
         Console_Printf("Building cubemap for probe '%s'...", b->name);
 
-        for (int face_idx = 0; face_idx < 6; ++face_idx) {
+        for (Int face_idx = 0; face_idx < 6; ++face_idx) {
             engine->camera.position = b->pos;
             Vec3 target_pos = vec3_add(engine->camera.position, targets[face_idx]);
             Mat4 view = mat4_lookAt(engine->camera.position, target_pos, ups[face_idx]);
@@ -376,8 +376,8 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
             glEnable(GL_FRAMEBUFFER_SRGB);
 
-            const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
-            const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
+            const Int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+            const Int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
 
             glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cubemap_fbo);
@@ -389,14 +389,14 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
             glDisable(GL_FRAMEBUFFER_SRGB);
 
-            char filepath[256];
+            Char filepath[256];
             sprintf(filepath, "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, suffixes[face_idx]);
             SaveFramebufferToPNG(cubemap_fbo, resolution, resolution, filepath);
         }
 
-        const char* face_paths[6];
-        char paths_storage[6][256];
-        for (int k = 0; k < 6; ++k) {
+        const Char* face_paths[6];
+        Char paths_storage[6][256];
+        for (Int k = 0; k < 6; ++k) {
             sprintf(paths_storage[k], "cubemaps/%s/%s_%s.png", map_name_sanitized, b->name, suffixes[k], map_name_sanitized);
             face_paths[k] = paths_storage[k];
         }

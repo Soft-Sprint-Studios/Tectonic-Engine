@@ -28,9 +28,9 @@
 #include "map.h"
 
 
-    void LoadingScreen_Init(int screen_width, int screen_height);
+    void LoadingScreen_Init(Int screen_width, Int screen_height);
     void LoadingScreen_Shutdown();
-    void LoadingScreen_Show(const char* map_name);
+    void LoadingScreen_Show(const Char* map_name);
     void LoadingScreen_Hide();
     void LoadingScreen_Render();
 

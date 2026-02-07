@@ -38,10 +38,10 @@
 #endif
 
 IOConnection g_io_connections[MAX_IO_CONNECTIONS];
-int g_num_io_connections = 0;
+Int g_num_io_connections = 0;
 static PendingEvent g_pending_events[MAX_PENDING_EVENTS];
-static int g_num_pending_events = 0;
-extern bool g_player_input_disabled;
+static Int g_num_pending_events = 0;
+extern Bool g_player_input_disabled;
 
 void IO_Init() {
     IO_Clear();
@@ -59,7 +59,7 @@ void IO_Clear() {
     g_num_io_connections = 0;
 }
 
-IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const char* output) {
+IOConnection* IO_AddConnection(EntityType sourceType, Int sourceIndex, const Char* output) {
     if (g_num_io_connections >= MAX_IO_CONNECTIONS) {
         Console_Printf_Error("Max IO connections reached!\n");
         return nullptr;
@@ -79,17 +79,17 @@ IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const cha
     return conn;
 }
 
-void IO_RemoveConnection(int connection_index) {
+void IO_RemoveConnection(Int connection_index) {
     if (connection_index < 0 || connection_index >= g_num_io_connections) return;
-    for (int i = connection_index; i < g_num_io_connections - 1; ++i) {
+    for (Int i = connection_index; i < g_num_io_connections - 1; ++i) {
         g_io_connections[i] = g_io_connections[i + 1];
     }
     g_num_io_connections--;
 }
 
-int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connections_out, int max_out) {
-    int count = 0;
-    for (int i = 0; i < g_num_io_connections; i++) {
+Int IO_GetConnectionsForEntity(EntityType type, Int index, IOConnection** connections_out, Int max_out) {
+    Int count = 0;
+    for (Int i = 0; i < g_num_io_connections; i++) {
         if (g_io_connections[i].active && g_io_connections[i].sourceType == type && g_io_connections[i].sourceIndex == index) {
             if (count < max_out) {
                 connections_out[count] = &g_io_connections[i];
@@ -100,10 +100,10 @@ int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connec
     return count;
 }
 
-bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out_angles) {
+Bool IO_FindNamedEntity(Scene* scene, const Char* name, Vec3* out_pos, Vec3* out_angles) {
     if (!name || *name == '\0') return false;
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].targetname, name) == 0 && strcmp(scene->logicEntities[i].classname, "info_target") == 0) {
             if (out_pos) *out_pos = scene->logicEntities[i].pos;
             if (out_angles) *out_angles = scene->logicEntities[i].rot;
@@ -113,8 +113,8 @@ bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out
     return false;
 }
 
-void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter) {
-    for (int i = 0; i < g_num_io_connections; ++i) {
+void IO_FireOutput(EntityType sourceType, Int sourceIndex, const Char* outputName, Float currentTime, const Char* parameter) {
+    for (Int i = 0; i < g_num_io_connections; ++i) {
         IOConnection* conn = &g_io_connections[i];
         if (conn->active && conn->sourceType == sourceType && conn->sourceIndex == sourceIndex && strcmp(conn->outputName, outputName) == 0) {
             if (conn->fireOnce && conn->hasFired) {
@@ -144,8 +144,8 @@ void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputNam
     }
 }
 
-void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
-    for (int i = 0; i < g_num_pending_events; ++i) {
+void IO_ProcessPendingEvents(Float currentTime, Scene* scene, Engine* engine) {
+    for (Int i = 0; i < g_num_pending_events; ++i) {
         PendingEvent* event = &g_pending_events[i];
         if (event->active && currentTime >= event->executionTime) {
             ExecuteInput(event->targetName, event->inputName, event->parameter, scene, engine);
@@ -153,8 +153,8 @@ void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
         }
     }
 
-    int write_idx = 0;
-    for (int read_idx = 0; read_idx < g_num_pending_events; ++read_idx) {
+    Int write_idx = 0;
+    for (Int read_idx = 0; read_idx < g_num_pending_events; ++read_idx) {
         if (g_pending_events[read_idx].active) {
             if (write_idx != read_idx) {
                 g_pending_events[write_idx] = g_pending_events[read_idx];
@@ -165,8 +165,8 @@ void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine) {
     g_num_pending_events = write_idx;
 }
 
-LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname) {
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+LogicEntity* FindActiveEntityByClass(Scene* scene, const Char* classname) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].classname, classname) == 0 && scene->logicEntities[i].runtime_active) {
             return &scene->logicEntities[i];
         }
@@ -174,14 +174,14 @@ LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname) {
     return nullptr;
 }
 
-void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine) {
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+void ExecuteInput(const Char* targetName, const Char* inputName, const Char* parameter, Scene* scene, Engine* engine) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].targetname, targetName) == 0) {
             LogicEntity* ent = &scene->logicEntities[i];
             if (strcmp(ent->classname, "logic_timer") == 0) {
                 if (strcmp(inputName, "StartTimer") == 0) {
                     ent->runtime_active = true;
-                    const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                    const Char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
                     ent->runtime_float_a = atof(delay_val);
                 }
                 else if (strcmp(inputName, "StopTimer") == 0) {
@@ -190,7 +190,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "ToggleTimer") == 0) {
                     ent->runtime_active = !ent->runtime_active;
                     if (ent->runtime_active && ent->runtime_float_a <= 0) {
-                        const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                        const Char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
                         ent->runtime_float_a = atof(delay_val);
                     }
                 }
@@ -201,9 +201,9 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 else if (strcmp(inputName, "Toggle") == 0) ent->runtime_active = !ent->runtime_active;
             }
             else if (strcmp(ent->classname, "math_counter") == 0) {
-                int min = atoi(LogicEntity_GetProperty(ent, "min", "0"));
-                int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));
-                int value = (parameter && strlen(parameter) > 0) ? atoi(parameter) : 1;
+                Int min = atoi(LogicEntity_GetProperty(ent, "min", "0"));
+                Int max = atoi(LogicEntity_GetProperty(ent, "max", "0"));
+                Int value = (parameter && strlen(parameter) > 0) ? atoi(parameter) : 1;
 
                 if (strcmp(inputName, "Add") == 0) ent->runtime_float_a += value;
                 else if (strcmp(inputName, "Subtract") == 0) ent->runtime_float_a -= value;
@@ -219,8 +219,8 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             else if (strcmp(ent->classname, "logic_random") == 0) {
                 if (strcmp(inputName, "Enable") == 0) {
                     if (!ent->runtime_active) {
-                        const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
-                        const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
+                        const Char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
+                        const Char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                         ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
                     }
                     ent->runtime_active = true;
@@ -254,7 +254,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
             else if (strcmp(ent->classname, "game_text") == 0) {
                 if (strcmp(inputName, "Display") == 0) {
-                    int channel = atoi(LogicEntity_GetProperty(ent, "channel", "1")) - 1;
+                    Int channel = atoi(LogicEntity_GetProperty(ent, "channel", "1")) - 1;
                     if (channel >= 0 && channel < MAX_GAME_TEXT_MESSAGES) {
                         GameTextMessage* msg = &engine->active_messages[channel];
 
@@ -279,13 +279,13 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             else if (strcmp(ent->classname, "point_servercommand") == 0) {
                 if (strcmp(inputName, "Command") == 0) {
                     if (parameter && strlen(parameter) > 0) {
-                        char cmd_copy[MAX_COMMAND_LENGTH];
+                        Char cmd_copy[MAX_COMMAND_LENGTH];
                         strncpy(cmd_copy, parameter, MAX_COMMAND_LENGTH - 1);
                         cmd_copy[MAX_COMMAND_LENGTH - 1] = '\0';
 
-                        char* argv[16];
-                        int argc = 0;
-                        char* p = strtok(cmd_copy, " ");
+                        Char* argv[16];
+                        Int argc = 0;
+                        Char* p = strtok(cmd_copy, " ");
                         while (p != nullptr && argc < 16) {
                             argv[argc++] = p;
                             p = strtok(nullptr, " ");
@@ -301,7 +301,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     ent->runtime_float_a = atof(parameter);
                 }
                 else if (strcmp(inputName, "SetCompareValue") == 0) {
-                    for (int prop_idx = 0; prop_idx < ent->numProperties; ++prop_idx) {
+                    for (Int prop_idx = 0; prop_idx < ent->numProperties; ++prop_idx) {
                         if (strcmp(ent->properties[prop_idx].key, "CompareValue") == 0) {
                             strncpy(ent->properties[prop_idx].value, parameter, sizeof(ent->properties[prop_idx].value) - 1);
                             break;
@@ -313,9 +313,9 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                         ent->runtime_float_a = atof(parameter);
                     }
 
-                    float val_a = ent->runtime_float_a;
-                    float val_b = atof(LogicEntity_GetProperty(ent, "CompareValue", "0"));
-                    char param_out[32];
+                    Float val_a = ent->runtime_float_a;
+                    Float val_b = atof(LogicEntity_GetProperty(ent, "CompareValue", "0"));
+                    Char param_out[32];
                     sprintf(param_out, "%f", val_a);
 
                     if (val_a < val_b) IO_FireOutput(ENTITY_LOGIC, i, "OnLessThan", engine->lastFrame, param_out);
@@ -347,9 +347,9 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 }
             }
             else if (strcmp(ent->classname, "env_shake") == 0) {
-                bool global_shake = atoi(LogicEntity_GetProperty(ent, "GlobalShake", "0"));
-                float radius = atof(LogicEntity_GetProperty(ent, "radius", "500.0"));
-                float dist_sq = vec3_length_sq(vec3_sub(engine->camera.position, ent->pos));
+                Bool global_shake = atoi(LogicEntity_GetProperty(ent, "GlobalShake", "0"));
+                Float radius = atof(LogicEntity_GetProperty(ent, "radius", "500.0"));
+                Float dist_sq = vec3_length_sq(vec3_sub(engine->camera.position, ent->pos));
 
                 if (strcmp(inputName, "StartShake") == 0) {
                     if (global_shake || dist_sq < (radius * radius)) {
@@ -402,7 +402,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     engine->credits_timer = 0.0f;
                     engine->credits_entity_index = i;
 
-                    const char* filename = LogicEntity_GetProperty(ent, "creditsfile", "credits.txt");
+                    const Char* filename = LogicEntity_GetProperty(ent, "creditsfile", "credits.txt");
                     engine->credits_duration = atof(LogicEntity_GetProperty(ent, "duration", "30.0"));
 
                     if (engine->credits_text) {
@@ -413,9 +413,9 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     FILE* f = fopen(filename, "rb");
                     if (f) {
                         fseek(f, 0, SEEK_END);
-                        long length = ftell(f);
+                        Long length = ftell(f);
                         fseek(f, 0, SEEK_SET);
-                        engine->credits_text = static_cast<char*>(malloc(length + 1));
+                        engine->credits_text = static_cast<Char*>(malloc(length + 1));
                         if (engine->credits_text) {
                             fread(engine->credits_text, 1, length, f);
                             engine->credits_text[length] = '\0';
@@ -438,7 +438,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
             else if (strcmp(ent->classname, "game_end") == 0) {
                 if (strcmp(inputName, "EndGame") == 0) {
-                    char* disconnect_argv[] = { (char*)"disconnect" };
+                    Char* disconnect_argv[] = { (Char*)"disconnect" };
                     Commands_Execute(1, disconnect_argv);
                 }
             }
@@ -465,7 +465,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
             else if (strcmp(ent->classname, "skybox_swapper") == 0) {
                 if (strcmp(inputName, "SwapSkybox") == 0) {
-                    const char* new_skybox_name = LogicEntity_GetProperty(ent, "skybox_name", "");
+                    const Char* new_skybox_name = LogicEntity_GetProperty(ent, "skybox_name", "");
                     if (strlen(new_skybox_name) > 0) {
                         if (scene->skybox_cubemap) {
                             glDeleteTextures(1, &scene->skybox_cubemap);
@@ -474,10 +474,10 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
 
                         strncpy(scene->skybox_path, new_skybox_name, sizeof(scene->skybox_path) - 1);
 
-                        const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-                        char face_paths[6][256];
-                        const char* face_pointers[6];
-                        for (int k = 0; k < 6; ++k) {
+                        const Char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+                        Char face_paths[6][256];
+                        const Char* face_pointers[6];
+                        for (Int k = 0; k < 6; ++k) {
                             sprintf(face_paths[k], "skybox/%s%s", scene->skybox_path, suffixes[k]);
                             face_pointers[k] = face_paths[k];
                         }
@@ -490,7 +490,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 }
                 }
             else if (strcmp(ent->classname, "logic_branch") == 0) {
-                bool test_now = false;
+                Bool test_now = false;
 
                 if (strcmp(inputName, "SetValue") == 0) {
                     ent->runtime_int_a = (parameter && atoi(parameter) != 0) ? 1 : 0;
@@ -521,7 +521,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                 }
         }
     }
-    for (int i = 0; i < scene->numObjects; ++i) {
+    for (Int i = 0; i < scene->numObjects; ++i) {
         if (strcmp(scene->objects[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "EnablePhysics") == 0) {
                 scene->objects[i].isPhysicsEnabled = true;
@@ -534,8 +534,8 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             SceneObject* obj = &scene->objects[i];
             if (strcmp(inputName, "PlayAnimation") == 0) {
                 if (obj->model && obj->model->num_animations > 0) {
-                    int anim_index = -1;
-                    for (int j = 0; j < obj->model->num_animations; ++j) {
+                    Int anim_index = -1;
+                    for (Int j = 0; j < obj->model->num_animations; ++j) {
                         if (strcmp(obj->model->animations[j].name, parameter) == 0) {
                             anim_index = j;
                             break;
@@ -555,16 +555,16 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         if (strcmp(scene->brushes[i].targetname, targetName) == 0) {
             Brush* b = &scene->brushes[i];
             if (strlen(b->classname) > 0) {
                 if (strcmp(b->classname, "func_button") == 0) {
                     if (strcmp(inputName, "Lock") == 0) {
-                        for (int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "1");
+                        for (Int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "1");
                     }
                     else if (strcmp(inputName, "Unlock") == 0) {
-                        for (int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "0");
+                        for (Int k = 0; k < b->numProperties; ++k) if (strcmp(b->properties[k].key, "locked") == 0) strcpy(b->properties[k].value, "0");
                     }
                     else if (strcmp(inputName, "Press") == 0) {
                         IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", engine->lastFrame, nullptr);
@@ -593,7 +593,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     }
                 }
                 else if (strcmp(b->classname, "func_rotating") == 0) {
-                    float speed = atof(Brush_GetProperty(b, "speed", "10"));
+                    Float speed = atof(Brush_GetProperty(b, "speed", "10"));
                     if (strcmp(inputName, "Start") == 0) {
                         b->target_angular_velocity = speed;
                     }
@@ -617,7 +617,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
                     }
                 }
                 else if (strcmp(b->classname, "func_wall_toggle") == 0) {
-                    bool should_be_visible = b->runtime_is_visible;
+                    Bool should_be_visible = b->runtime_is_visible;
                     if (strcmp(inputName, "Toggle") == 0) {
                         should_be_visible = !b->runtime_is_visible;
                     }
@@ -703,14 +703,14 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
-    for (int i = 0; i < scene->numActiveLights; ++i) {
+    for (Int i = 0; i < scene->numActiveLights; ++i) {
         if (strcmp(scene->lights[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "TurnOn") == 0) scene->lights[i].is_on = true;
             else if (strcmp(inputName, "TurnOff") == 0) scene->lights[i].is_on = false;
             else if (strcmp(inputName, "Toggle") == 0) scene->lights[i].is_on = !scene->lights[i].is_on;
             else if (strcmp(inputName, "SetLightStyle") == 0) {
                 if (parameter && strlen(parameter) > 0) {
-                    int style = atoi(parameter);
+                    Int style = atoi(parameter);
                     if (style >= 0 && style <= 12) {
                         scene->lights[i].preset = style;
                     }
@@ -728,7 +728,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
-    for (int i = 0; i < scene->numSoundEntities; ++i) {
+    for (Int i = 0; i < scene->numSoundEntities; ++i) {
         if (strcmp(scene->soundEntities[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "PlaySound") == 0) {
                 if (scene->soundEntities[i].sourceID != 0) {
@@ -763,14 +763,14 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
-    for (int i = 0; i < scene->numParticleEmitters; ++i) {
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) {
         if (strcmp(scene->particleEmitters[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "TurnOn") == 0) scene->particleEmitters[i].is_on = true;
             else if (strcmp(inputName, "TurnOff") == 0) scene->particleEmitters[i].is_on = false;
             else if (strcmp(inputName, "Toggle") == 0) scene->particleEmitters[i].is_on = !scene->particleEmitters[i].is_on;
         }
     }
-    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+    for (Int i = 0; i < scene->numVideoPlayers; ++i) {
         if (strcmp(scene->videoPlayers[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "startvideo") == 0) {
                 VideoPlayer_Play(&scene->videoPlayers[i]);
@@ -783,7 +783,7 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
             }
         }
     }
-    for (int i = 0; i < scene->numSprites; ++i) {
+    for (Int i = 0; i < scene->numSprites; ++i) {
         if (strcmp(scene->sprites[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "TurnOn") == 0) {
                 scene->sprites[i].visible = true;
@@ -799,8 +799,8 @@ void ExecuteInput(const char* targetName, const char* inputName, const char* par
     }
 }
 
-const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val) {
-    for (int i = 0; i < b->numProperties; ++i) {
+const Char* Brush_GetProperty(Brush* b, const Char* key, const Char* default_val) {
+    for (Int i = 0; i < b->numProperties; ++i) {
         if (strcmp(b->properties[i].key, key) == 0) {
             return b->properties[i].value;
         }
@@ -808,8 +808,8 @@ const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val
     return default_val;
 }
 
-const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val) {
-    for (int i = 0; i < ent->numProperties; ++i) {
+const Char* LogicEntity_GetProperty(LogicEntity* ent, const Char* key, const Char* default_val) {
+    for (Int i = 0; i < ent->numProperties; ++i) {
         if (strcmp(ent->properties[i].key, key) == 0) {
             return ent->properties[i].value;
         }
@@ -817,8 +817,8 @@ const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const cha
     return default_val;
 }
 
-void LogicSystem_Update(Scene* scene, float deltaTime) {
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+void LogicSystem_Update(Scene* scene, Float deltaTime) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "logic_timer") == 0) {
             if (ent->runtime_active) {
@@ -826,11 +826,11 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                 if (ent->runtime_float_a <= 0) {
                     IO_FireOutput(ENTITY_LOGIC, i, "OnTimer", 0, nullptr);
 
-                    const char* repeat_val = LogicEntity_GetProperty(ent, "repeat", "1");
-                    int repeat = atoi(repeat_val);
+                    const Char* repeat_val = LogicEntity_GetProperty(ent, "repeat", "1");
+                    Int repeat = atoi(repeat_val);
 
                     if (repeat == -1) {
-                        const char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
+                        const Char* delay_val = LogicEntity_GetProperty(ent, "delay", "1.0");
                         ent->runtime_float_a = atof(delay_val);
                     }
                     else {
@@ -844,8 +844,8 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                 ent->runtime_float_a -= deltaTime;
                 if (ent->runtime_float_a <= 0) {
                     IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0, nullptr);
-                    const char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
-                    const char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
+                    const Char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
+                    const Char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
                     ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
                 }
             }
@@ -871,7 +871,7 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
         }
         else if (strcmp(ent->classname, "env_blackhole") == 0) {
             if (ent->runtime_active) {
-                const char* rot_speed_str = LogicEntity_GetProperty(ent, "rotationspeed", "10.0");
+                const Char* rot_speed_str = LogicEntity_GetProperty(ent, "rotationspeed", "10.0");
                 ent->rot.y += atof(rot_speed_str) * deltaTime;
                 if (ent->rot.y > 360.0f) ent->rot.y -= 360.0f;
             }
@@ -881,11 +881,11 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
                 scene->post.fade_active = true;
                 scene->post.fade_color = Vec3{ 0, 0, 0 };
 
-                float duration = atof(LogicEntity_GetProperty(ent, "duration", "2.0"));
+                Float duration = atof(LogicEntity_GetProperty(ent, "duration", "2.0"));
                 if (duration <= 0.0f) duration = 0.01f;
-                float holdtime = atof(LogicEntity_GetProperty(ent, "holdtime", "1.0"));
-                int renderamt = atoi(LogicEntity_GetProperty(ent, "renderamt", "255"));
-                float target_alpha = (float)renderamt / 255.0f;
+                Float holdtime = atof(LogicEntity_GetProperty(ent, "holdtime", "1.0"));
+                Int renderamt = atoi(LogicEntity_GetProperty(ent, "renderamt", "255"));
+                Float target_alpha = (Float)renderamt / 255.0f;
 
                 ent->runtime_float_a += deltaTime;
 
@@ -927,22 +927,22 @@ void LogicSystem_Update(Scene* scene, float deltaTime) {
     }
 }
 
-static bool has_valid_extension(const char* filename, const char** extensions, int num_extensions) {
-    const char* dot = strrchr(filename, '.');
+static Bool has_valid_extension(const Char* filename, const Char** extensions, Int num_extensions) {
+    const Char* dot = strrchr(filename, '.');
     if (!dot) return false;
 
-    for (int i = 0; i < num_extensions; ++i) {
+    for (Int i = 0; i < num_extensions; ++i) {
         if (_stricmp(dot, extensions[i]) == 0) return true;
     }
     return false;
 }
 
-char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_extensions, int* out_count) {
-    char** list = nullptr;
-    int count = 0;
+Char** IO_ScanDirectory(const Char* dir_path, const Char** extensions, Int num_extensions, Int* out_count) {
+    Char** list = nullptr;
+    Int count = 0;
 
 #ifdef PLATFORM_WINDOWS
-    char search_path[256];
+    Char search_path[256];
     snprintf(search_path, sizeof(search_path), "%s*.*", dir_path);
     WIN32_FIND_DATAA find_data;
     HANDLE h_find = FindFirstFileA(search_path, &find_data);
@@ -951,7 +951,7 @@ char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_e
         do {
             if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                 if (has_valid_extension(find_data.cFileName, extensions, num_extensions)) {
-                    list = (char**)realloc(list, (count + 1) * sizeof(char*));
+                    list = (Char**)realloc(list, (count + 1) * sizeof(Char*));
                     list[count] = _strdup(find_data.cFileName);
                     count++;
                 }
@@ -966,7 +966,7 @@ char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_e
         while ((dir = readdir(d)) != nullptr) {
             if (dir->d_type == DT_REG || dir->d_type == DT_UNKNOWN) {
                 if (has_valid_extension(dir->d_name, extensions, num_extensions)) {
-                    list = (char**)realloc(list, (count + 1) * sizeof(char*));
+                    list = (Char**)realloc(list, (count + 1) * sizeof(Char*));
                     list[count] = strdup(dir->d_name);
                     count++;
                 }
@@ -980,9 +980,9 @@ char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_e
     return list;
 }
 
-void IO_FreeFileList(char** list, int count) {
+void IO_FreeFileList(Char** list, Int count) {
     if (!list) return;
-    for (int i = 0; i < count; ++i) {
+    for (Int i = 0; i < count; ++i) {
         free(list[i]);
     }
     free(list);

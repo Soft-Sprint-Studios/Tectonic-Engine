@@ -25,24 +25,24 @@
 #include "gl_console.h"
 #include <stdlib.h>
 
-void load_and_register_named_shader_string(const char* name, const char* path) {
-    char* source = load_shader_source(path);
+void load_and_register_named_shader_string(const Char* name, const Char* path) {
+    Char* source = load_shader_source(path);
     if (source) {
         glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, -1, source);
         free(source);
     }
 }
 
-char* load_shader_source(const char* path) {
-    char* buffer = nullptr;
-    long length = 0;
+Char* load_shader_source(const Char* path) {
+    Char* buffer = nullptr;
+    Long length = 0;
     FILE* f = fopen(path, "rb");
     if (f) {
         fseek(f, 0, SEEK_END);
         length = ftell(f);
         fseek(f, 0, SEEK_SET);
 
-        buffer = new char[length + 1];
+        buffer = new Char[length + 1];
         if (buffer) {
             size_t read_bytes = fread(buffer, 1, length, f);
             buffer[read_bytes] = '\0';
@@ -56,16 +56,16 @@ char* load_shader_source(const char* path) {
     return buffer;
 }
 
-GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
+GLuint compileShader(GLenum type, const Char* src, const Char* pathHint) {
     GLuint shader = glCreateShader(type);
-    const char* header =
+    const Char* header =
         "#version 450 core\n"
         "#extension GL_ARB_bindless_texture : require\n"
         "#extension GL_ARB_shading_language_include : require\n"
         "#include \"/common.h\"\n"
         "#include \"/pbr.h\"\n"
         "#line 1\n";
-    const char* sources[2] = { header, src };
+    const Char* sources[2] = { header, src };
     glShaderSource(shader, 2, sources, nullptr);
     glCompileShader(shader);
     GLint success;
@@ -73,7 +73,7 @@ GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
     if (!success) {
         GLchar infoLog[1024];
         glGetShaderInfoLog(shader, 1024, nullptr, infoLog);
-        const char* typeStr =
+        const Char* typeStr =
             type == GL_VERTEX_SHADER ? "VERTEX" :
             type == GL_FRAGMENT_SHADER ? "FRAGMENT" :
             type == GL_GEOMETRY_SHADER ? "GEOMETRY" :
@@ -85,9 +85,9 @@ GLuint compileShader(GLenum type, const char* src, const char* pathHint) {
     return shader;
 }
 
-GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
-    char* vertSrc = load_shader_source(vertPath);
-    char* fragSrc = load_shader_source(fragPath);
+GLuint createShaderProgram(const Char* vertPath, const Char* fragPath) {
+    Char* vertSrc = load_shader_source(vertPath);
+    Char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] fragSrc;
@@ -113,10 +113,10 @@ GLuint createShaderProgram(const char* vertPath, const char* fragPath) {
     return program;
 }
 
-GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const char* fragPath) {
-    char* vertSrc = load_shader_source(vertPath);
-    char* geomSrc = load_shader_source(geomPath);
-    char* fragSrc = load_shader_source(fragPath);
+GLuint createShaderProgramGeom(const Char* vertPath, const Char* geomPath, const Char* fragPath) {
+    Char* vertSrc = load_shader_source(vertPath);
+    Char* geomSrc = load_shader_source(geomPath);
+    Char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !geomSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] geomSrc;
@@ -147,11 +147,11 @@ GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const
     return program;
 }
 
-GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const char* tesPath, const char* fragPath) {
-    char* vertSrc = load_shader_source(vertPath);
-    char* tcsSrc = load_shader_source(tcsPath);
-    char* tesSrc = load_shader_source(tesPath);
-    char* fragSrc = load_shader_source(fragPath);
+GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath) {
+    Char* vertSrc = load_shader_source(vertPath);
+    Char* tcsSrc = load_shader_source(tcsPath);
+    Char* tesSrc = load_shader_source(tesPath);
+    Char* fragSrc = load_shader_source(fragPath);
     if (!vertSrc || !tcsSrc || !tesSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] tcsSrc;
@@ -187,8 +187,8 @@ GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const 
     return program;
 }
 
-GLuint createShaderProgramCompute(const char* computePath) {
-    char* computeSrc = load_shader_source(computePath);
+GLuint createShaderProgramCompute(const Char* computePath) {
+    Char* computeSrc = load_shader_source(computePath);
     if (!computeSrc) {
         delete[] computeSrc;
         return 0;
@@ -218,7 +218,7 @@ GL_MessageCallback(GLenum source,
     const GLchar* message,
     const void* userParam)
 {
-    const char* type_str = "Unknown";
+    const Char* type_str = "Unknown";
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:               type_str = "Error"; break;
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_str = "Deprecated Behavior"; break;

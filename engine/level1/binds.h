@@ -38,17 +38,17 @@
 
     typedef struct {
         SDL_Keycode key;
-        char command[MAX_COMMAND_LENGTH];
+        Char command[MAX_COMMAND_LENGTH];
     } KeyBind;
 
     LEVEL1_API void Binds_Init(void);
     LEVEL1_API void Binds_Shutdown(void);
-    LEVEL1_API void Binds_Load(const char* filename);
-    LEVEL1_API void Binds_Save(const char* filename);
-    LEVEL1_API void Binds_Set(const char* keyName, const char* command);
-    LEVEL1_API void Binds_Unset(const char* keyName);
+    LEVEL1_API void Binds_Load(const Char* filename);
+    LEVEL1_API void Binds_Save(const Char* filename);
+    LEVEL1_API void Binds_Set(const Char* keyName, const Char* command);
+    LEVEL1_API void Binds_Unset(const Char* keyName);
     LEVEL1_API void Binds_UnbindAll(void);
-    LEVEL1_API const char* Binds_GetCommand(SDL_Keycode key);
+    LEVEL1_API const Char* Binds_GetCommand(SDL_Keycode key);
 
 
 #endif // BINDS_H

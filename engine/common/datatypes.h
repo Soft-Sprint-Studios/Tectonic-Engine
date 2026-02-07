@@ -21,22 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+// forked and modified from https://github.com/TheOverfloater/pathos-public/blob/main/pathos/sources/codesrc/common/datatypes.h
+
 #pragma once
-#ifndef EDITOR_GEOMETRY_H
-#define EDITOR_GEOMETRY_H
+#ifndef DATATYPES_H
+#define DATATYPES_H
+typedef	char				Char;
+typedef	unsigned char		Uchar;
+typedef unsigned short		Ushort;
+typedef short				Short;
+typedef int					Int;
+typedef unsigned int		Uint;
+typedef float				Float;
+typedef double				Double;
+typedef long				Long;
+typedef long long			LongLong;
 
-#include "editor_internal.h"
+// hack so that mikktspace doesnt break compile
+#ifdef __cplusplus
+typedef bool				Bool;
+#endif
 
-
-	void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, Int face_index, Int u_divs, Int v_divs);
-	void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview);
-
-	void Editor_UpdatePreviewBrushFromWorldMinMax();
-	void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_drag, ViewportType creation_view);
-
-	void Editor_AdjustPreviewBrushByHandle(Vec2 mouse_pos_in_viewport, ViewportType current_view);
-	void Editor_AdjustPreviewBrush(Vec2 mouse_pos, ViewportType adjust_view);
-	void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse_pos, ViewportType view);
-
-
-#endif // EDITOR_GEOMETRY_H
+#endif

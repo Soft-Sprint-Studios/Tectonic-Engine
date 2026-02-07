@@ -39,7 +39,7 @@ typedef SOCKET socket_t;
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-typedef int socket_t;
+typedef Int socket_t;
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #endif
@@ -48,9 +48,9 @@ typedef int socket_t;
 #define TCONSOLE_BUFFER_SIZE 4096
 
 static socket_t g_tconsole_socket = INVALID_SOCKET;
-static bool g_tconsole_connected = false;
-static char g_receive_buffer[TCONSOLE_BUFFER_SIZE];
-static int g_receive_buffer_len = 0;
+static Bool g_tconsole_connected = false;
+static Char g_receive_buffer[TCONSOLE_BUFFER_SIZE];
+static Int g_receive_buffer_len = 0;
 
 void IPC_Init(void) {
 #ifdef PLATFORM_WINDOWS
@@ -78,8 +78,8 @@ void IPC_Init(void) {
         return;
     }
 
-    char response[8];
-    int bytes_received = recv(g_tconsole_socket, response, sizeof(response) - 1, 0);
+    Char response[8];
+    Int bytes_received = recv(g_tconsole_socket, response, sizeof(response) - 1, 0);
     if (bytes_received > 0) {
         response[bytes_received] = '\0';
         if (strcmp(response, "ok") == 0) {
@@ -111,10 +111,10 @@ void IPC_Shutdown(void) {
     g_tconsole_connected = false;
 }
 
-void IPC_SendMessage(const char* message) {
+void IPC_SendMessage(const Char* message) {
     if (!g_tconsole_connected) return;
 
-    char buffer[TCONSOLE_BUFFER_SIZE];
+    Char buffer[TCONSOLE_BUFFER_SIZE];
     snprintf(buffer, sizeof(buffer), "%s\n", message);
     if (send(g_tconsole_socket, buffer, strlen(buffer), 0) == SOCKET_ERROR) {
         g_tconsole_connected = false;
@@ -124,23 +124,23 @@ void IPC_SendMessage(const char* message) {
 void IPC_ReceiveCommands(command_func_t command_handler) {
     if (!g_tconsole_connected || !command_handler) return;
 
-    int bytes_received = recv(g_tconsole_socket, g_receive_buffer + g_receive_buffer_len, TCONSOLE_BUFFER_SIZE - g_receive_buffer_len - 1, 0);
+    Int bytes_received = recv(g_tconsole_socket, g_receive_buffer + g_receive_buffer_len, TCONSOLE_BUFFER_SIZE - g_receive_buffer_len - 1, 0);
 
     if (bytes_received > 0) {
         g_receive_buffer_len += bytes_received;
         g_receive_buffer[g_receive_buffer_len] = '\0';
 
-        char* line_start = g_receive_buffer;
-        char* newline;
+        Char* line_start = g_receive_buffer;
+        Char* newline;
         while ((newline = strchr(line_start, '\n')) != nullptr) {
             *newline = '\0';
             
-            char* cmd_copy = _strdup(line_start);
+            Char* cmd_copy = _strdup(line_start);
 #define MAX_ARGS 16
-            int argc = 0;
-            char* argv[MAX_ARGS];
+            Int argc = 0;
+            Char* argv[MAX_ARGS];
             
-            char* p = strtok(cmd_copy, " ");
+            Char* p = strtok(cmd_copy, " ");
             while(p != nullptr && argc < MAX_ARGS) {
                 argv[argc++] = p;
                 p = strtok(nullptr, " ");
@@ -170,6 +170,6 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
     }
 }
 
-bool IPC_IsTConsoleConnected(void) {
+Bool IPC_IsTConsoleConnected(void) {
     return g_tconsole_connected;
 }

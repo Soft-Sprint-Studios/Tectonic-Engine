@@ -29,8 +29,8 @@
 	void RegisterEngineCommandsAndCvars(void);
 
 	// needed by main menu
-	void Cmd_SaveGame(int argc, char** argv);
-	void Cmd_LoadGame(int argc, char** argv);
+	void Cmd_SaveGame(Int argc, Char** argv);
+	void Cmd_LoadGame(Int argc, Char** argv);
 
 	// needed by engine
 	void PrintSystemInfo();

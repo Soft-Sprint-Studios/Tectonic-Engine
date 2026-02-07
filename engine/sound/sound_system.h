@@ -37,27 +37,27 @@
 
 
     typedef struct {
-        unsigned int bufferID;
+        Uint bufferID;
     } Sound;
 
     typedef struct {
-        unsigned int drySourceID;
-        unsigned int wetSourceID;
+        Uint drySourceID;
+        Uint wetSourceID;
     } PlayingSound;
 
-    SOUND_API bool SoundSystem_Init();
+    SOUND_API Bool SoundSystem_Init();
     SOUND_API void SoundSystem_Shutdown();
     SOUND_API void SoundSystem_UpdateListener(Vec3 position, Vec3 forward, Vec3 up);
     SOUND_API void SoundSystem_SetCurrentReverb(ReverbPreset preset);
-    SOUND_API unsigned int SoundSystem_LoadSound(const char* path);
-    SOUND_API unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping);
-    SOUND_API void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position);
-    SOUND_API void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance);
-    SOUND_API void SoundSystem_SetSourceIsGlobal(unsigned int sourceID, bool is_global);
-    SOUND_API void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop);
-    SOUND_API void SoundSystem_SetMasterVolume(float volume);
-    SOUND_API void SoundSystem_DeleteSource(unsigned int sourceID);
-    SOUND_API void SoundSystem_DeleteBuffer(unsigned int bufferID);
+    SOUND_API Uint SoundSystem_LoadSound(const Char* path);
+    SOUND_API Uint SoundSystem_PlaySound(Uint bufferID, Vec3 position, Float volume, Float pitch, Float maxDistance, Bool looping);
+    SOUND_API void SoundSystem_SetSourcePosition(Uint sourceID, Vec3 position);
+    SOUND_API void SoundSystem_SetSourceProperties(Uint sourceID, Float volume, Float pitch, Float maxDistance);
+    SOUND_API void SoundSystem_SetSourceIsGlobal(Uint sourceID, Bool is_global);
+    SOUND_API void SoundSystem_SetSourceLooping(Uint sourceID, Bool loop);
+    SOUND_API void SoundSystem_SetMasterVolume(Float volume);
+    SOUND_API void SoundSystem_DeleteSource(Uint sourceID);
+    SOUND_API void SoundSystem_DeleteBuffer(Uint bufferID);
     SOUND_API void SoundSystem_Update(void);
 
 

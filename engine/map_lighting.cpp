@@ -26,10 +26,10 @@
 #include <SDL_image.h>
 #include "stb_image.h"
 
-static void sanitize_filename_map(const char* input, char* output, size_t max_len) {
+static void sanitize_filename_map(const Char* input, Char* output, size_t max_len) {
     size_t i = 0;
     while (i < max_len - 1 && input[i] != '\0') {
-        if (isalnum((unsigned char)input[i]) || input[i] == '_' || input[i] == '-') {
+        if (isalnum((Uchar)input[i]) || input[i] == '_' || input[i] == '-') {
             output[i] = input[i];
         }
         else {
@@ -40,13 +40,13 @@ static void sanitize_filename_map(const char* input, char* output, size_t max_le
     output[i] = '\0';
 }
 
-void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
+void Brush_LoadVertexLighting(Brush* b, Int index, const Char* mapPath) {
     if (!b || b->numVertices == 0) return;
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -56,7 +56,7 @@ void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
         strcpy(map_name_sanitized, map_filename_start);
     }
 
-    char brush_name_sanitized[128];
+    Char brush_name_sanitized[128];
     if (strlen(b->targetname) > 0) {
         sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
     }
@@ -64,15 +64,15 @@ void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
         sprintf(brush_name_sanitized, "Brush_%d", index);
     }
 
-    char vlm_path[512];
+    Char vlm_path[512];
     snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s/vertex_colors.vlm", map_name_sanitized, brush_name_sanitized);
 
     FILE* file = fopen(vlm_path, "rb");
     if (file) {
-        char header[4];
-        unsigned int vertex_count;
+        Char header[4];
+        Uint vertex_count;
         fread(header, 1, 4, file);
-        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        fread(&vertex_count, sizeof(Uint), 1, file);
         if (strncmp(header, "VLM1", 4) == 0 && vertex_count == b->numVertices) {
             b->bakedVertexColors = static_cast<Vec4*>(malloc(vertex_count * sizeof(Vec4)));
             if (b->bakedVertexColors) fread(b->bakedVertexColors, sizeof(Vec4), vertex_count, file);
@@ -84,13 +84,13 @@ void Brush_LoadVertexLighting(Brush* b, int index, const char* mapPath) {
     }
 }
 
-void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPath) {
+void Brush_LoadVertexDirectionalLighting(Brush* b, Int index, const Char* mapPath) {
     if (!b || b->numVertices == 0) return;
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -99,22 +99,22 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPat
     else {
         strcpy(map_name_sanitized, map_filename_start);
     }
-    char brush_name_sanitized[128];
+    Char brush_name_sanitized[128];
     if (strlen(b->targetname) > 0) {
         sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
     }
     else {
         sprintf(brush_name_sanitized, "Brush_%d", index);
     }
-    char vld_path[512];
+    Char vld_path[512];
     snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s/vertex_directions.vld", map_name_sanitized, brush_name_sanitized);
 
     FILE* file = fopen(vld_path, "rb");
     if (file) {
-        char header[4];
-        unsigned int vertex_count;
+        Char header[4];
+        Uint vertex_count;
         fread(header, 1, 4, file);
-        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        fread(&vertex_count, sizeof(Uint), 1, file);
         if (strncmp(header, "VLD1", 4) == 0 && vertex_count == b->numVertices) {
             b->bakedVertexDirections = static_cast<Vec4*>(malloc(vertex_count * sizeof(Vec4)));
             if (b->bakedVertexDirections) fread(b->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
@@ -126,14 +126,14 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, int index, const char* mapPat
     }
 }
 
-void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* mapPath) {
+void SceneObject_LoadVertexLighting(SceneObject* obj, Int index, const Char* mapPath) {
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
@@ -143,7 +143,7 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* map
         strcpy(map_name_sanitized, mapPath);
     }
 
-    char model_name_sanitized[128];
+    Char model_name_sanitized[128];
     if (strlen(obj->targetname) > 0) {
         sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
     }
@@ -151,15 +151,15 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* map
         sprintf(model_name_sanitized, "Model_%d", index);
     }
 
-    char vlm_path[512];
+    Char vlm_path[512];
     snprintf(vlm_path, sizeof(vlm_path), "lightmaps/%s/%s/vertex_colors.vlm", map_name_sanitized, model_name_sanitized);
 
     FILE* file = fopen(vlm_path, "rb");
     if (file) {
-        char header[4];
-        unsigned int vertex_count;
+        Char header[4];
+        Uint vertex_count;
         fread(header, 1, 4, file);
-        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        fread(&vertex_count, sizeof(Uint), 1, file);
 
         if (strncmp(header, "VLM1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
             obj->bakedVertexColors = static_cast<Vec4*>(malloc(vertex_count * sizeof(Vec4)));
@@ -174,14 +174,14 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, int index, const char* map
     }
 }
 
-void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, const char* mapPath) {
+void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, const Char* mapPath) {
     if (!obj->model || obj->model->totalVertexCount == 0) return;
 
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
@@ -191,7 +191,7 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
         strcpy(map_name_sanitized, mapPath);
     }
 
-    char model_name_sanitized[128];
+    Char model_name_sanitized[128];
     if (strlen(obj->targetname) > 0) {
         sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
     }
@@ -199,15 +199,15 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
         sprintf(model_name_sanitized, "Model_%d", index);
     }
 
-    char vld_path[512];
+    Char vld_path[512];
     snprintf(vld_path, sizeof(vld_path), "lightmaps/%s/%s/vertex_directions.vld", map_name_sanitized, model_name_sanitized);
 
     FILE* file = fopen(vld_path, "rb");
     if (file) {
-        char header[4];
-        unsigned int vertex_count;
+        Char header[4];
+        Uint vertex_count;
         fread(header, 1, 4, file);
-        fread(&vertex_count, sizeof(unsigned int), 1, file);
+        fread(&vertex_count, sizeof(Uint), 1, file);
 
         if (strncmp(header, "VLD1", 4) == 0 && vertex_count == obj->model->totalVertexCount) {
             obj->bakedVertexDirections = static_cast<Vec4*>(malloc(vertex_count * sizeof(Vec4)));
@@ -222,12 +222,12 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, int index, cons
     }
 }
 
-void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath) {
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+void SceneObject_LoadLightmaps(SceneObject* obj, Int index, const Char* mapPath) {
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -237,7 +237,7 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
         strcpy(map_name_sanitized, map_filename_start);
     }
 
-    char model_name_sanitized[128];
+    Char model_name_sanitized[128];
     if (strlen(obj->targetname) > 0) {
         sanitize_filename_map(obj->targetname, model_name_sanitized, sizeof(model_name_sanitized));
     }
@@ -245,14 +245,14 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
         sprintf(model_name_sanitized, "Model_%d", index);
     }
 
-    char dir_path[1024];
+    Char dir_path[1024];
     snprintf(dir_path, sizeof(dir_path), "lightmaps/%s/%s", map_name_sanitized, model_name_sanitized);
 
-    char color_path[1024];
+    Char color_path[1024];
     snprintf(color_path, sizeof(color_path), "%s/lightmap_color.hdr", dir_path);
 
-    int w, h, c;
-    float* color_data = stbi_loadf(color_path, &w, &h, &c, 3);
+    Int w, h, c;
+    Float* color_data = stbi_loadf(color_path, &w, &h, &c, 3);
     if (color_data) {
         obj->lightmapWidth = w;
         obj->lightmapHeight = h;
@@ -269,7 +269,7 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
         glMakeTextureHandleResidentARB(obj->lightmapHandle);
     }
 
-    char dir_lmap_path[1024];
+    Char dir_lmap_path[1024];
     snprintf(dir_lmap_path, sizeof(dir_lmap_path), "%s/lightmap_dir.png", dir_path);
     SDL_Surface* surf = IMG_Load(dir_lmap_path);
     if (surf) {
@@ -288,17 +288,17 @@ void SceneObject_LoadLightmaps(SceneObject* obj, int index, const char* mapPath)
         glMakeTextureHandleResidentARB(obj->dirLightmapHandle);
     }
 
-    char lmuv_path[1024];
+    Char lmuv_path[1024];
     snprintf(lmuv_path, sizeof(lmuv_path), "%s/model.lmuv", dir_path);
     if (obj->model) {
         Model_ApplyLMUV(obj->model, lmuv_path);
     }
 }
 
-void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal_index) {
+void Decal_LoadLightmaps(Decal* decal, const Char* map_name_sanitized, Int decal_index) {
     if (!decal) return;
 
-    char decal_name_sanitized[128];
+    Char decal_name_sanitized[128];
     if (strlen(decal->targetname) > 0) {
         sanitize_filename_map(decal->targetname, decal_name_sanitized, sizeof(decal_name_sanitized));
     }
@@ -306,14 +306,14 @@ void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal
         sprintf(decal_name_sanitized, "decal_%d", decal_index);
     }
 
-    char final_decal_dir[1024];
+    Char final_decal_dir[1024];
     snprintf(final_decal_dir, sizeof(final_decal_dir), "lightmaps/%s/%s", map_name_sanitized, decal_name_sanitized);
 
-    char color_path[2048];
+    Char color_path[2048];
     snprintf(color_path, sizeof(color_path), "%s/lightmap_color.hdr", final_decal_dir);
 
-    int width, height, channels;
-    float* color_data = stbi_loadf(color_path, &width, &height, &channels, 3);
+    Int width, height, channels;
+    Float* color_data = stbi_loadf(color_path, &width, &height, &channels, 3);
 
     if (color_data) {
         glGenTextures(1, &decal->lightmapAtlas);
@@ -327,7 +327,7 @@ void Decal_LoadLightmaps(Decal* decal, const char* map_name_sanitized, int decal
         decal->lightmapAtlas = 0;
     }
 
-    char dir_path[2048];
+    Char dir_path[2048];
     snprintf(dir_path, sizeof(dir_path), "%s/lightmap_dir.png", final_decal_dir);
 
     SDL_Surface* dir_surface = IMG_Load(dir_path);
@@ -359,12 +359,12 @@ void Scene_LoadAmbientProbes(Scene* scene) {
         return;
     }
 
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(scene->mapPath, '/');
-    const char* last_bslash = strrchr(scene->mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(scene->mapPath, '/');
+    const Char* last_bslash = strrchr(scene->mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
 
-    const char* dot = strrchr(map_filename_start, '.');
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -374,14 +374,14 @@ void Scene_LoadAmbientProbes(Scene* scene) {
         strcpy(map_name_sanitized, map_filename_start);
     }
 
-    char probe_path[512];
+    Char probe_path[512];
     snprintf(probe_path, sizeof(probe_path), "lightmaps/%s/ambient_probes.amp", map_name_sanitized);
 
     FILE* probe_file = fopen(probe_path, "rb");
     if (probe_file) {
-        char header[4];
+        Char header[4];
         if (fread(header, 1, 4, probe_file) == 4 && strncmp(header, "AMBI", 4) == 0) {
-            fread(&scene->num_ambient_probes, sizeof(int), 1, probe_file);
+            fread(&scene->num_ambient_probes, sizeof(Int), 1, probe_file);
             if (scene->num_ambient_probes > 0) {
                 scene->ambient_probes = static_cast<AmbientProbe*>(malloc(sizeof(AmbientProbe) * scene->num_ambient_probes));
                 fread(scene->ambient_probes, sizeof(AmbientProbe), scene->num_ambient_probes, probe_file);
@@ -394,7 +394,7 @@ void Scene_LoadAmbientProbes(Scene* scene) {
     }
 }
 
-void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index, int resolution) {
+void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index, Int resolution) {
     if (mapPath[0] == '\0') return;
     if (b->lightmapAtlasHandle) {
         glMakeTextureHandleNonResidentARB(b->lightmapAtlasHandle);
@@ -415,23 +415,23 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
     if (b->numFaces == 0) return;
 
     typedef struct {
-        float* color_data;
+        Float* color_data;
         SDL_Surface* dir_surface;
-        int width;
-        int height;
-        bool is_valid;
+        Int width;
+        Int height;
+        Bool is_valid;
     } FaceLightmapData;
 
     FaceLightmapData* face_data = static_cast<FaceLightmapData*>(calloc(b->numFaces, sizeof(FaceLightmapData)));
-    int valid_faces = 0;
-    int max_width = 0;
-    int max_height = 0;
+    Int valid_faces = 0;
+    Int max_width = 0;
+    Int max_height = 0;
 
-    char map_name_sanitized[128];
-    const char* last_slash = strrchr(mapPath, '/');
-    const char* last_bslash = strrchr(mapPath, '\\');
-    const char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
-    const char* dot = strrchr(map_filename_start, '.');
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(mapPath, '/');
+    const Char* last_bslash = strrchr(mapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         size_t len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
@@ -441,7 +441,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         strcpy(map_name_sanitized, map_filename_start);
     }
 
-    char brush_name_sanitized[128];
+    Char brush_name_sanitized[128];
     if (strlen(b->targetname) > 0) {
         sanitize_filename_map(b->targetname, brush_name_sanitized, sizeof(brush_name_sanitized));
     }
@@ -449,12 +449,12 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         sprintf(brush_name_sanitized, "Brush_%d", brush_index);
     }
 
-    char final_brush_dir[1024];
+    Char final_brush_dir[1024];
     snprintf(final_brush_dir, sizeof(final_brush_dir), "lightmaps/%s/%s", map_name_sanitized, brush_name_sanitized);
 
-    for (int i = 0; i < b->numFaces; ++i) {
+    for (Int i = 0; i < b->numFaces; ++i) {
         face_data[i].is_valid = false;
-        char path[512];
+        Char path[512];
 
         snprintf(path, sizeof(path), "%s/face_%d_color.hdr", final_brush_dir, i);
         face_data[i].color_data = stbi_loadf(path, &face_data[i].width, &face_data[i].height, nullptr, 3);
@@ -471,7 +471,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
     }
 
     if (valid_faces == 0) {
-        for (int i = 0; i < b->numFaces; ++i) {
+        for (Int i = 0; i < b->numFaces; ++i) {
             if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
             if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
         }
@@ -483,12 +483,12 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
 
     if (max_width == 0) max_width = 4;
     if (max_height == 0) max_height = 4;
-    int atlas_cols = (int)ceil(sqrt((double)valid_faces));
-    int atlas_rows = (int)ceil((double)valid_faces / atlas_cols);
-    int atlas_width = atlas_cols * max_width;
-    int atlas_height = atlas_rows * max_height;
-    b->lightmap_atlas_size.x = (float)atlas_width;
-    b->lightmap_atlas_size.y = (float)atlas_height;
+    Int atlas_cols = (Int)ceil(sqrt((Double)valid_faces));
+    Int atlas_rows = (Int)ceil((Double)valid_faces / atlas_cols);
+    Int atlas_width = atlas_cols * max_width;
+    Int atlas_height = atlas_rows * max_height;
+    b->lightmap_atlas_size.x = (Float)atlas_width;
+    b->lightmap_atlas_size.y = (Float)atlas_height;
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
@@ -498,13 +498,13 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
     glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, atlas_width, atlas_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-    int current_face = 0;
-    for (int i = 0; i < b->numFaces; ++i) {
+    Int current_face = 0;
+    for (Int i = 0; i < b->numFaces; ++i) {
         if (face_data[i].is_valid) {
-            int x_pos = (current_face % atlas_cols) * max_width;
-            int y_pos = (current_face / atlas_cols) * max_height;
-            int w = face_data[i].width;
-            int h = face_data[i].height;
+            Int x_pos = (current_face % atlas_cols) * max_width;
+            Int y_pos = (current_face / atlas_cols) * max_height;
+            Int w = face_data[i].width;
+            Int h = face_data[i].height;
 
             glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
             glTexSubImage2D(GL_TEXTURE_2D, 0, x_pos, y_pos, w, h, GL_RGB, GL_FLOAT, face_data[i].color_data);
@@ -516,13 +516,13 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
                 SDL_FreeSurface(dir_converted);
             }
 
-            b->faces[i].atlas_coords.x = (float)x_pos / atlas_width;
-            b->faces[i].atlas_coords.y = (float)y_pos / atlas_height;
-            b->faces[i].atlas_coords.z = (float)w / atlas_width;
-            b->faces[i].atlas_coords.w = (float)h / atlas_height;
+            b->faces[i].atlas_coords.x = (Float)x_pos / atlas_width;
+            b->faces[i].atlas_coords.y = (Float)y_pos / atlas_height;
+            b->faces[i].atlas_coords.z = (Float)w / atlas_width;
+            b->faces[i].atlas_coords.w = (Float)h / atlas_height;
 
-            float pad_x = (float)LIGHTMAPPADDING / atlas_width;
-            float pad_y = (float)LIGHTMAPPADDING / atlas_height;
+            Float pad_x = (Float)LIGHTMAPPADDING / atlas_width;
+            Float pad_y = (Float)LIGHTMAPPADDING / atlas_height;
             b->faces[i].atlas_coords.x += pad_x;
             b->faces[i].atlas_coords.y += pad_y;
             b->faces[i].atlas_coords.z -= pad_x * 2.0f;
@@ -551,7 +551,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const char* mapPath, int brush_index,
         glMakeTextureHandleResidentARB(b->directionalLightmapAtlasHandle);
     }
 
-    for (int i = 0; i < b->numFaces; ++i) {
+    for (Int i = 0; i < b->numFaces; ++i) {
         if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
         if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
     }

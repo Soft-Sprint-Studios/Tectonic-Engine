@@ -34,15 +34,15 @@
 
 // function based on CreateScanlineTexture from pathos engine
 static void CreateScanlineTexture(Renderer* renderer) {
-    unsigned int dataSize = 64 * 64 * 4;
-    unsigned char* pscanlinetexture = (unsigned char*)malloc(dataSize * sizeof(unsigned char));
+    Uint dataSize = 64 * 64 * 4;
+    Uchar* pscanlinetexture = (Uchar*)malloc(dataSize * sizeof(Uchar));
     if (!pscanlinetexture) return;
 
-    for (int y = 0; y < 64; y++)
+    for (Int y = 0; y < 64; y++)
     {
-        for (int x = 0; x < 64; x++)
+        for (Int x = 0; x < 64; x++)
         {
-            unsigned char* pdata = pscanlinetexture + (y * 64 + x) * 4;
+            Uchar* pdata = pscanlinetexture + (y * 64 + x) * 4;
 
             pdata[0] = 0;
             pdata[1] = 0;
@@ -81,15 +81,15 @@ void Monitor_Shutdown(Renderer* renderer) {
 static void InitCameraFBO(LogicEntity* cam) {
     if (cam->monitor_fbo != 0) return;
 
-    const char* resStr = LogicEntity_GetProperty(cam, "resolution", "512");
+    const Char* resStr = LogicEntity_GetProperty(cam, "resolution", "512");
     cam->monitor_resolution = atoi(resStr);
     if (cam->monitor_resolution <= 0) cam->monitor_resolution = 512;
 
-    const char* onceStr = LogicEntity_GetProperty(cam, "render_once", "0");
+    const Char* onceStr = LogicEntity_GetProperty(cam, "render_once", "0");
     cam->monitor_render_once = (atoi(onceStr) == 1);
     cam->monitor_has_rendered = false;
 
-    const char* fovStr = LogicEntity_GetProperty(cam, "fov", "90");
+    const Char* fovStr = LogicEntity_GetProperty(cam, "fov", "90");
     cam->monitor_fov = atof(fovStr);
     if (cam->monitor_fov <= 0.0f) cam->monitor_fov = 90.0f;
 
@@ -118,15 +118,15 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
     GLint prev_viewport[4];
     glGetIntegerv(GL_VIEWPORT, prev_viewport);
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "info_monitorcamera") != 0) continue;
 
         if (ent->monitor_fbo == 0) InitCameraFBO(ent);
         if (ent->monitor_render_once && ent->monitor_has_rendered) continue;
 
-        float pitch = ent->rot.x * (float)(M_PI / 180.0f);
-        float yaw = ent->rot.y * (float)(M_PI / 180.0f);
+        Float pitch = ent->rot.x * (Float)(M_PI / 180.0f);
+        Float yaw = ent->rot.y * (Float)(M_PI / 180.0f);
 
         Vec3 forward;
         forward.x = cosf(pitch) * sinf(yaw);
@@ -139,7 +139,7 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         if (fabs(forward.y) > 0.99f) up = Vec3{ 1.0f, 0.0f, 0.0f };
 
         Mat4 view = mat4_lookAt(ent->pos, target, up);
-        Mat4 projection = mat4_perspective(ent->monitor_fov * (float)(M_PI / 180.0f), 1.0f, 0.1f, 1000.0f);
+        Mat4 projection = mat4_perspective(ent->monitor_fov * (Float)(M_PI / 180.0f), 1.0f, 0.1f, 1000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &view, &projection, sunLightSpaceMatrix, ent->pos, false, true);
 
@@ -183,14 +183,14 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
     glBindTexture(GL_TEXTURE_2D, renderer->scanlineTexture);
     glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_scanlineTexture"), 1);
 
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_monitor") != 0 || !b->runtime_active) continue;
 
-        const char* targetName = Brush_GetProperty(b, "target", "");
+        const Char* targetName = Brush_GetProperty(b, "target", "");
         LogicEntity* camEnt = nullptr;
 
-        for (int k = 0; k < scene->numLogicEntities; ++k) {
+        for (Int k = 0; k < scene->numLogicEntities; ++k) {
             if (strcmp(scene->logicEntities[k].targetname, targetName) == 0 &&
                 strcmp(scene->logicEntities[k].classname, "info_monitorcamera") == 0) {
                 camEnt = &scene->logicEntities[k];
@@ -204,7 +204,7 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
         glBindTexture(GL_TEXTURE_2D, camEnt->monitor_texture);
         glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_renderTexture"), 0);
 
-        bool grayscale = (atoi(Brush_GetProperty(b, "grayscale", "0")) == 1);
+        Bool grayscale = (atoi(Brush_GetProperty(b, "grayscale", "0")) == 1);
         glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_grayscale"), grayscale);
 
         glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "model"), 1, GL_FALSE, b->modelMatrix.m);

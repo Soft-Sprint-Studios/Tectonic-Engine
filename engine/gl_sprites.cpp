@@ -24,7 +24,7 @@
 #include "gl_sprites.h"
 #include "gl_misc.h"
 
-static float sprite_vertices[] = {
+static Float sprite_vertices[] = {
     -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
      0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
     -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
@@ -40,9 +40,9 @@ void Sprites_Init(Renderer* renderer) {
     glBindBuffer(GL_ARRAY_BUFFER, renderer->spriteVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(sprite_vertices), sprite_vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)(3 * sizeof(Float)));
     glBindVertexArray(0);
 }
 
@@ -63,7 +63,7 @@ void Sprites_Render(Renderer* renderer, Scene* scene, Mat4* view, Mat4* projecti
 
     glBindVertexArray(renderer->spriteVAO);
 
-    for (int i = 0; i < scene->numSprites; ++i) {
+    for (Int i = 0; i < scene->numSprites; ++i) {
         Sprite* s = &scene->sprites[i];
         if (!s->visible) continue;
 

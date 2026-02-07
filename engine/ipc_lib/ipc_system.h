@@ -31,9 +31,9 @@
 
 	IPC_API void IPC_Init(void);
 	IPC_API void IPC_Shutdown(void);
-	IPC_API void IPC_SendMessage(const char* message);
+	IPC_API void IPC_SendMessage(const Char* message);
 	IPC_API void IPC_ReceiveCommands(command_func_t command_handler);
-	IPC_API bool IPC_IsTConsoleConnected(void);
+	IPC_API Bool IPC_IsTConsoleConnected(void);
 
 
 #endif // IPC_SYSTEM_H

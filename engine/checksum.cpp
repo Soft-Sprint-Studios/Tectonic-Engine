@@ -36,22 +36,22 @@
 class Checksum {
 private:
 #ifdef PLATFORM_WINDOWS
-    static constexpr const char* module_names[8] = { "engine.dll", "level0.dll", "level1.dll", "math_lib.dll",
+    static constexpr const Char* module_names[8] = { "engine.dll", "level0.dll", "level1.dll", "math_lib.dll",
                                                      "physics.dll", "sound.dll", "materials.dll", "models.dll" };
 #else
-    static constexpr const char* module_names[8] = { "libengine.so", "liblevel0.so", "liblevel1.so", "libmath_lib.so",
+    static constexpr const Char* module_names[8] = { "libengine.so", "liblevel0.so", "liblevel1.so", "libmath_lib.so",
                                                      "libphysics.so", "libsound.so", "libmaterials.so", "libmodels.so" };
 #endif
-    static constexpr int num_modules = 8;
+    static constexpr Int num_modules = 8;
 
     static uint32_t crc_table[256];
-    static bool table_initialized;
+    static Bool table_initialized;
 
     static void crc32_init_table() {
         if (table_initialized) return;
         for (uint32_t i = 0; i < 256; i++) {
             uint32_t c = i;
-            for (int j = 0; j < 8; j++) {
+            for (Int j = 0; j < 8; j++) {
                 c = (c & 1) ? (0xEDB88320L ^ (c >> 1)) : (c >> 1);
             }
             crc_table[i] = c;
@@ -68,8 +68,8 @@ private:
         return crc ^ ~0U;
     }
 
-    static char* get_module_directory() {
-        char path[1024];
+    static Char* get_module_directory() {
+        Char path[1024];
 #ifdef PLATFORM_WINDOWS
         HMODULE hModule = nullptr;
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -81,13 +81,13 @@ private:
         strncpy(path, info.dli_fname, sizeof(path) - 1);
         path[sizeof(path) - 1] = '\0';
 #endif
-        const char* last_slash = strrchr(path, '/');
-        const char* last_bslash = strrchr(path, '\\');
-        const char* last_separator = (last_slash > last_bslash) ? last_slash : last_bslash;
+        const Char* last_slash = strrchr(path, '/');
+        const Char* last_bslash = strrchr(path, '\\');
+        const Char* last_separator = (last_slash > last_bslash) ? last_slash : last_bslash;
 
         if (last_separator) {
             size_t len = last_separator - path + 1;
-            char* dir = static_cast<char*>(malloc(len + 1));
+            Char* dir = static_cast<Char*>(malloc(len + 1));
             strncpy(dir, path, len);
             dir[len] = '\0';
             return dir;
@@ -96,16 +96,16 @@ private:
     }
 
 public:
-    static bool Verify(const char* exePath) {
-        unsigned char* full_buffer = nullptr;
-        long totalSize = 0;
-        long engineModuleSize = 0;
+    static Bool Verify(const Char* exePath) {
+        Uchar* full_buffer = nullptr;
+        Long totalSize = 0;
+        Long engineModuleSize = 0;
 
-        char* moduleDir = get_module_directory();
+        Char* moduleDir = get_module_directory();
         if (!moduleDir) return false;
 
-        for (int i = 0; i < num_modules; ++i) {
-            char modulePath[512];
+        for (Int i = 0; i < num_modules; ++i) {
+            Char modulePath[512];
             snprintf(modulePath, sizeof(modulePath), "%s%s", moduleDir, module_names[i]);
 
             FILE* moduleFile = fopen(modulePath, "rb");
@@ -117,10 +117,10 @@ public:
             }
 
             fseek(moduleFile, 0, SEEK_END);
-            long moduleSize = ftell(moduleFile);
+            Long moduleSize = ftell(moduleFile);
             fseek(moduleFile, 0, SEEK_SET);
 
-            unsigned char* temp_buffer = static_cast<unsigned char*>(realloc(full_buffer, totalSize + moduleSize));
+            Uchar* temp_buffer = static_cast<Uchar*>(realloc(full_buffer, totalSize + moduleSize));
             if (!temp_buffer) {
                 Console_Printf_Error("[Checksum] Failed to reallocate memory for module: %s", modulePath);
                 fclose(moduleFile);
@@ -146,8 +146,8 @@ public:
         free(moduleDir);
         if (totalSize == 0) return false;
 
-        long checksumStructFileOffset = -1;
-        for (long i = 0; i <= engineModuleSize - static_cast<long>(sizeof(EmbeddedChecksum)); ++i) {
+        Long checksumStructFileOffset = -1;
+        for (Long i = 0; i <= engineModuleSize - static_cast<Long>(sizeof(EmbeddedChecksum)); ++i) {
             if (memcmp(full_buffer + i, &g_EmbeddedChecksum.signature, sizeof(uint32_t)) == 0) {
                 checksumStructFileOffset = i;
                 break;
@@ -174,9 +174,9 @@ public:
 };
 
 uint32_t Checksum::crc_table[256];
-bool Checksum::table_initialized = false;
+Bool Checksum::table_initialized = false;
 
-bool Checksum_Verify(const char* exePath) {
+Bool Checksum_Verify(const Char* exePath) {
     return Checksum::Verify(exePath);
 }
 

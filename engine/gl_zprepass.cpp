@@ -53,12 +53,12 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
         glDisable(GL_CULL_FACE);
     }
 
-    for (int i = 0; i < scene->numObjects; i++) {
+    for (Int i = 0; i < scene->numObjects; i++) {
         SceneObject* obj = &scene->objects[i];
         if (!obj->model) continue;
 
-        bool hasTessellatedMesh = false;
-        for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+        Bool hasTessellatedMesh = false;
+        for (Int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
             if (obj->model->meshes[meshIdx].material && obj->model->meshes[meshIdx].material->useTesselation) {
                 hasTessellatedMesh = true;
                 break;
@@ -73,7 +73,7 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
 
         if (hasTessellatedMesh) {
             glPatchParameteri(GL_PATCH_VERTICES, 3);
-            for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+            for (Int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                 Mesh* mesh = &obj->model->meshes[meshIdx];
                 Material* mat = mesh->material;
 
@@ -93,12 +93,12 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
             }
         }
         else {
-            bool is_skinnable = obj->model && obj->model->num_skins > 0;
+            Bool is_skinnable = obj->model && obj->model->num_skins > 0;
             glUniform1i(glGetUniformLocation(shader, "u_hasAnimation"), is_skinnable);
             if (is_skinnable && obj->bone_matrices) {
                 glUniformMatrix4fv(glGetUniformLocation(shader, "u_boneMatrices"), obj->model->skins[0].num_joints, GL_FALSE, (const GLfloat*)obj->bone_matrices);
             }
-            for (int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
+            for (Int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
                 Mesh* mesh = &obj->model->meshes[meshIdx];
                 glBindVertexArray(mesh->VAO);
                 if (mesh->useEBO) {
@@ -111,7 +111,7 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
         }
     }
 
-    for (int i = 0; i < scene->numBrushes; i++) {
+    for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) continue;
         if (strcmp(b->classname, "func_water") == 0) continue;
@@ -120,8 +120,8 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
         if (strcmp(b->classname, "env_glass") == 0) continue;
         if (!Brush_IsSolid(b) && strcmp(b->classname, "func_illusionary") != 0 && strcmp(b->classname, "func_lod") != 0) continue;
 
-        bool hasTessellatedFace = false;
-        for (int faceIdx = 0; faceIdx < b->numFaces; ++faceIdx) {
+        Bool hasTessellatedFace = false;
+        for (Int faceIdx = 0; faceIdx < b->numFaces; ++faceIdx) {
             Material* mat = b->faces[faceIdx].material;
             if (mat && mat->useTesselation) {
                 hasTessellatedFace = true;
@@ -137,10 +137,10 @@ void Zprepass_Render(Renderer* renderer, Scene* scene, Engine* engine, const Mat
             glUniformMatrix4fv(glGetUniformLocation(renderer->zPrepassTessShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
 
             glBindVertexArray(b->vao);
-            int vbo_offset = 0;
-            for (int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
+            Int vbo_offset = 0;
+            for (Int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
                 BrushFace* face = &b->faces[face_idx];
-                int num_face_verts = (face->numVertexIndices - 2) * 3;
+                Int num_face_verts = (face->numVertexIndices - 2) * 3;
                 if (face->material && face->material->useTesselation) {
                     glUniform1f(glGetUniformLocation(renderer->zPrepassTessShader, "heightScale"), face->material->heightScale);
                     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, face->material->heightMap); glUniform1i(glGetUniformLocation(renderer->zPrepassTessShader, "heightMap"), 0);

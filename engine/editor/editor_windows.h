@@ -58,7 +58,7 @@
 	void Editor_RenderStatusBar();
 	void Editor_RenderArchPreview();
 	void Editor_RenderParticleBrowser(Scene* scene);
-	void RenderIOEditor(EntityType type, int index);
+	void RenderIOEditor(EntityType type, Int index);
 
 
 #endif // EDITOR_WINDOWS_H

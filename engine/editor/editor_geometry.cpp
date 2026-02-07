@@ -27,9 +27,9 @@
 #include "editor_math.h"
 #include "editor_undo.h"
 #include "gl_console.h"
-#include <float.h>
+#include <Float.h>
 
-void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, int face_index, int u_divs, int v_divs) {
+void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, Int face_index, Int u_divs, Int v_divs) {
     if (brush_index < 0 || brush_index >= scene->numBrushes) return;
     Brush* b = &scene->brushes[brush_index];
     if (face_index < 0 || face_index >= b->numFaces) return;
@@ -47,13 +47,13 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     BrushVertex p11 = b->vertices[old_face->vertexIndices[2]];
     BrushVertex p01 = b->vertices[old_face->vertexIndices[3]];
 
-    int num_new_verts = (u_divs + 1) * (v_divs + 1);
+    Int num_new_verts = (u_divs + 1) * (v_divs + 1);
     BrushVertex* new_grid_verts = new BrushVertex[num_new_verts];
 
-    for (int v = 0; v <= v_divs; ++v) {
-        for (int u = 0; u <= u_divs; ++u) {
-            float u_t = float(u) / u_divs;
-            float v_t = float(v) / v_divs;
+    for (Int v = 0; v <= v_divs; ++v) {
+        for (Int u = 0; u <= u_divs; ++u) {
+            Float u_t = Float(u) / u_divs;
+            Float v_t = Float(v) / v_divs;
 
             BrushVertex p_u0{
                 vec3_add(vec3_muls(p00.pos, 1.0f - u_t), vec3_muls(p10.pos, u_t)),
@@ -74,7 +74,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
                 }
             };
 
-            int index = v * (u_divs + 1) + u;
+            Int index = v * (u_divs + 1) + u;
             new_grid_verts[index].pos = vec3_add(vec3_muls(p_u0.pos, 1.0f - v_t), vec3_muls(p_u1.pos, v_t));
             new_grid_verts[index].color = {
                 p_u0.color.x * (1.0f - v_t) + p_u1.color.x * v_t,
@@ -85,19 +85,19 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
         }
     }
 
-    int num_new_faces = u_divs * v_divs;
+    Int num_new_faces = u_divs * v_divs;
     BrushFace* new_faces = new BrushFace[num_new_faces];
 
     if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
     if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
 
-    for (int v = 0; v < v_divs; ++v) {
-        for (int u = 0; u < u_divs; ++u) {
-            int face_idx = v * u_divs + u;
+    for (Int v = 0; v < v_divs; ++v) {
+        for (Int u = 0; u < u_divs; ++u) {
+            Int face_idx = v * u_divs + u;
             new_faces[face_idx] = *old_face;
             new_faces[face_idx].atlas_coords = Vec4{ 0,0,0,0 };
             new_faces[face_idx].numVertexIndices = 4;
-            new_faces[face_idx].vertexIndices = new int[4];
+            new_faces[face_idx].vertexIndices = new Int[4];
             new_faces[face_idx].vertexIndices[0] = v * (u_divs + 1) + u;
             new_faces[face_idx].vertexIndices[1] = v * (u_divs + 1) + (u + 1);
             new_faces[face_idx].vertexIndices[2] = (v + 1) * (u_divs + 1) + (u + 1);
@@ -106,23 +106,23 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     }
 
     delete[] b->faces[face_index].vertexIndices;
-    for (int i = face_index; i < b->numFaces - 1; ++i) b->faces[i] = b->faces[i + 1];
+    for (Int i = face_index; i < b->numFaces - 1; ++i) b->faces[i] = b->faces[i + 1];
     b->numFaces--;
 
-    int old_vert_count = b->numVertices;
+    Int old_vert_count = b->numVertices;
     BrushVertex* old_verts = b->vertices;
     b->vertices = new BrushVertex[old_vert_count + num_new_verts];
-    for (int i = 0; i < old_vert_count; ++i) b->vertices[i] = old_verts[i];
+    for (Int i = 0; i < old_vert_count; ++i) b->vertices[i] = old_verts[i];
     delete[] old_verts;
 
     BrushFace* old_faces = b->faces;
     b->faces = new BrushFace[b->numFaces + num_new_faces];
-    for (int i = 0; i < b->numFaces; ++i) b->faces[i] = old_faces[i];
+    for (Int i = 0; i < b->numFaces; ++i) b->faces[i] = old_faces[i];
     delete[] old_faces;
 
-    for (int i = 0; i < num_new_verts; ++i) b->vertices[old_vert_count + i] = new_grid_verts[i];
-    for (int i = 0; i < num_new_faces; ++i) {
-        for (int j = 0; j < 4; ++j) new_faces[i].vertexIndices[j] += old_vert_count;
+    for (Int i = 0; i < num_new_verts; ++i) b->vertices[old_vert_count + i] = new_grid_verts[i];
+    for (Int i = 0; i < num_new_faces; ++i) {
+        for (Int j = 0; j < 4; ++j) new_faces[i].vertexIndices[j] += old_vert_count;
         b->faces[b->numFaces + i] = new_faces[i];
     }
 
@@ -131,9 +131,9 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
 
     delete[] new_grid_verts;
 
-    char group_name[64];
+    Char group_name[64];
     snprintf(group_name, sizeof(group_name), "subdiv_group_%d", g_EditorState.next_group_id++);
-    for (int i = b->numFaces - num_new_faces; i < b->numFaces; ++i) {
+    for (Int i = b->numFaces - num_new_faces; i < b->numFaces; ++i) {
         b->faces[i].isGrouped = true;
         strncpy(b->faces[i].groupName, group_name, sizeof(b->faces[i].groupName) - 1);
         b->faces[i].groupName[sizeof(b->faces[i].groupName) - 1] = '\0';
@@ -143,8 +143,8 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, int brush_index, in
     if (b->physicsBody) {
         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
         Vec3* world_verts = new Vec3[b->numVertices];
-        for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+        for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
         delete[] world_verts;
     }
 
@@ -159,7 +159,7 @@ void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview)
     memset(b, 0, sizeof(Brush));
     Brush_DeepCopy(b, preview);
 
-    for (int i = 0; i < b->numFaces; i++) {
+    for (Int i = 0; i < b->numFaces; i++) {
         b->faces[i].isGrouped = false;
         b->faces[i].groupName[0] = '\0';
     }
@@ -175,12 +175,12 @@ void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview)
 
     if (Brush_IsSolid(b) && b->numVertices > 0) {
         Vec3* world_verts = new Vec3[b->numVertices];
-        for (int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+        for (Int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
         delete[] world_verts;
     }
 
-    int new_brush_index = scene->numBrushes++;
+    Int new_brush_index = scene->numBrushes++;
     Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_BRUSH, new_brush_index, 0, 0);
     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Create Brush");
@@ -192,12 +192,12 @@ void Editor_UpdatePreviewBrushFromWorldMinMax() {
     Vec3 world_min = g_EditorState.preview_brush_world_min;
     Vec3 world_max = g_EditorState.preview_brush_world_max;
 
-    if (world_min.x > world_max.x) { float t = world_min.x; world_min.x = world_max.x; world_max.x = t; }
-    if (world_min.y > world_max.y) { float t = world_min.y; world_min.y = world_max.y; world_max.y = t; }
-    if (world_min.z > world_max.z) { float t = world_min.z; world_min.z = world_max.z; world_max.z = t; }
+    if (world_min.x > world_max.x) { Float t = world_min.x; world_min.x = world_max.x; world_max.x = t; }
+    if (world_min.y > world_max.y) { Float t = world_min.y; world_min.y = world_max.y; world_max.y = t; }
+    if (world_min.z > world_max.z) { Float t = world_min.z; world_min.z = world_max.z; world_max.z = t; }
 
     Vec3 size = vec3_sub(world_max, world_min);
-    const float min_dim = 0.01f;
+    const Float min_dim = 0.01f;
     if (size.x < min_dim) size.x = min_dim;
     if (size.y < min_dim) size.y = min_dim;
     if (size.z < min_dim) size.z = min_dim;
@@ -245,8 +245,8 @@ void Editor_UpdatePreviewBrushForInitialDrag(Vec3 p1_world_drag, Vec3 p2_world_d
         world_max.x = fmaxf(p1_world_drag.x, p2_world_drag.x);
         world_min.z = fminf(p1_world_drag.z, p2_world_drag.z);
         world_max.z = fmaxf(p1_world_drag.z, p2_world_drag.z);
-        float half_depth = g_EditorState.grid_size * 0.5f;
-        float center_y = g_EditorState.brush_creation_start_point_2d_drag.y;
+        Float half_depth = g_EditorState.grid_size * 0.5f;
+        Float center_y = g_EditorState.brush_creation_start_point_2d_drag.y;
         world_min.y = center_y;
         world_max.y = center_y + g_EditorState.grid_size;
         if (g_EditorState.snap_to_grid) {
@@ -346,11 +346,11 @@ void Editor_AdjustPreviewBrushByHandle(Vec2 mouse_pos_in_viewport, ViewportType 
     Vec3 temp_min = g_EditorState.preview_brush_world_min;
     Vec3 temp_max = g_EditorState.preview_brush_world_max;
 
-    if (temp_min.x > temp_max.x) { float t = temp_min.x; temp_min.x = temp_max.x; temp_max.x = t; }
-    if (temp_min.y > temp_max.y) { float t = temp_min.y; temp_min.y = temp_max.y; temp_max.y = t; }
-    if (temp_min.z > temp_max.z) { float t = temp_min.z; temp_min.z = temp_max.z; temp_max.z = t; }
+    if (temp_min.x > temp_max.x) { Float t = temp_min.x; temp_min.x = temp_max.x; temp_max.x = t; }
+    if (temp_min.y > temp_max.y) { Float t = temp_min.y; temp_min.y = temp_max.y; temp_max.y = t; }
+    if (temp_min.z > temp_max.z) { Float t = temp_min.z; temp_min.z = temp_max.z; temp_max.z = t; }
 
-    const float min_brush_dim = 0.01f;
+    const Float min_brush_dim = 0.01f;
     if (temp_max.x - temp_min.x < min_brush_dim) {
         if (g_EditorState.preview_brush_active_handle == PREVIEW_BRUSH_HANDLE_MIN_X) temp_min.x = temp_max.x - min_brush_dim;
         else if (g_EditorState.preview_brush_active_handle == PREVIEW_BRUSH_HANDLE_MAX_X) temp_max.x = temp_min.x + min_brush_dim;
@@ -377,7 +377,7 @@ void Editor_AdjustPreviewBrush(Vec2 mouse_pos, ViewportType adjust_view) {
     Brush* b = &g_EditorState.preview_brush;
     Vec3 p_current = ScreenToWorld(mouse_pos, adjust_view);
     Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX }; Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-    for (int i = 0; i < 8; ++i) {
+    for (Int i = 0; i < 8; ++i) {
         min_v.x = fminf(min_v.x, b->vertices[i].pos.x); min_v.y = fminf(min_v.y, b->vertices[i].pos.y); min_v.z = fminf(min_v.z, b->vertices[i].pos.z);
         max_v.x = fmaxf(max_v.x, b->vertices[i].pos.x); max_v.y = fmaxf(max_v.y, b->vertices[i].pos.y); max_v.z = fmaxf(max_v.z, b->vertices[i].pos.z);
     }
@@ -430,7 +430,7 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
 
     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-    for (int i = 0; i < b->numVertices; ++i) {
+    for (Int i = 0; i < b->numVertices; ++i) {
         local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
         local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
         local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
@@ -439,11 +439,11 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
     }
 
-    const float min_brush_dim = 0.1f;
+    const Float min_brush_dim = 0.1f;
     switch (g_EditorState.selected_brush_active_handle) {
     case PREVIEW_BRUSH_HANDLE_MIN_X: {
-        float clamped_x = (new_local_pos.x > local_max.x - min_brush_dim) ? (local_max.x - min_brush_dim) : new_local_pos.x;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_x = (new_local_pos.x > local_max.x - min_brush_dim) ? (local_max.x - min_brush_dim) : new_local_pos.x;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.x - local_min.x) < 0.001f) {
                 b->vertices[i].pos.x = clamped_x;
             }
@@ -451,8 +451,8 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         break;
     }
     case PREVIEW_BRUSH_HANDLE_MAX_X: {
-        float clamped_x = (new_local_pos.x < local_min.x + min_brush_dim) ? (local_min.x + min_brush_dim) : new_local_pos.x;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_x = (new_local_pos.x < local_min.x + min_brush_dim) ? (local_min.x + min_brush_dim) : new_local_pos.x;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.x - local_max.x) < 0.001f) {
                 b->vertices[i].pos.x = clamped_x;
             }
@@ -460,8 +460,8 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         break;
     }
     case PREVIEW_BRUSH_HANDLE_MIN_Y: {
-        float clamped_y = (new_local_pos.y > local_max.y - min_brush_dim) ? (local_max.y - min_brush_dim) : new_local_pos.y;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_y = (new_local_pos.y > local_max.y - min_brush_dim) ? (local_max.y - min_brush_dim) : new_local_pos.y;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.y - local_min.y) < 0.001f) {
                 b->vertices[i].pos.y = clamped_y;
             }
@@ -469,8 +469,8 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         break;
     }
     case PREVIEW_BRUSH_HANDLE_MAX_Y: {
-        float clamped_y = (new_local_pos.y < local_min.y + min_brush_dim) ? (local_min.y + min_brush_dim) : new_local_pos.y;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_y = (new_local_pos.y < local_min.y + min_brush_dim) ? (local_min.y + min_brush_dim) : new_local_pos.y;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.y - local_max.y) < 0.001f) {
                 b->vertices[i].pos.y = clamped_y;
             }
@@ -478,8 +478,8 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         break;
     }
     case PREVIEW_BRUSH_HANDLE_MIN_Z: {
-        float clamped_z = (new_local_pos.z > local_max.z - min_brush_dim) ? (local_max.z - min_brush_dim) : new_local_pos.z;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_z = (new_local_pos.z > local_max.z - min_brush_dim) ? (local_max.z - min_brush_dim) : new_local_pos.z;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.z - local_min.z) < 0.001f) {
                 b->vertices[i].pos.z = clamped_z;
             }
@@ -487,8 +487,8 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         break;
     }
     case PREVIEW_BRUSH_HANDLE_MAX_Z: {
-        float clamped_z = (new_local_pos.z < local_min.z + min_brush_dim) ? (local_min.z + min_brush_dim) : new_local_pos.z;
-        for (int i = 0; i < b->numVertices; ++i) {
+        Float clamped_z = (new_local_pos.z < local_min.z + min_brush_dim) ? (local_min.z + min_brush_dim) : new_local_pos.z;
+        for (Int i = 0; i < b->numVertices; ++i) {
             if (fabsf(b->vertices[i].pos.z - local_max.z) < 0.001f) {
                 b->vertices[i].pos.z = clamped_z;
             }
@@ -503,11 +503,11 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
 
         Vec3* world_verts = new Vec3[b->numVertices];
-        for (int i = 0; i < b->numVertices; ++i) {
+        for (Int i = 0; i < b->numVertices; ++i) {
             world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         }
 
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts),b->numVertices);
+        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts),b->numVertices);
 
         delete[] world_verts;
     }

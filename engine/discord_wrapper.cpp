@@ -45,7 +45,7 @@ public:
         Console_Printf("Discord RPC Shutdown.\n");
     }
 
-    void Update(const char* state, const char* details) {
+    void Update(const Char* state, const Char* details) {
         DiscordRichPresence presence{};
         presence.state = state;
         presence.details = details;
@@ -60,18 +60,18 @@ private:
             user->username, user->discriminator, user->userId);
     }
 
-    static void handleDiscordDisconnected(int err, const char* msg) {
+    static void handleDiscordDisconnected(Int err, const Char* msg) {
         Console_Printf("Discord: disconnected (%d: %s)\n", err, msg);
     }
 
-    static void handleDiscordError(int err, const char* msg) {
+    static void handleDiscordError(Int err, const Char* msg) {
         Console_Printf("Discord: error (%d: %s)\n", err, msg);
     }
 
 #ifdef BRANCH_NOCTURNE
-    static inline const char* APPLICATION_ID = "1455558425357324415";
+    static inline const Char* APPLICATION_ID = "1455558425357324415";
 #else
-    static inline const char* APPLICATION_ID = "1386692288914260071";
+    static inline const Char* APPLICATION_ID = "1386692288914260071";
 #endif
     static inline int64_t StartTime;
 };
@@ -88,7 +88,7 @@ void Discord__Shutdown() {
      g_manager = nullptr;
 }
 
-void Discord_Update(const char* state, const char* details) {
+void Discord_Update(const Char* state, const Char* details) {
      if (g_manager)
         g_manager->Update(state, details);
 }

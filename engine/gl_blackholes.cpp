@@ -34,8 +34,8 @@ void Blackhole_Shutdown(Renderer* renderer) {
 }
 
 void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
-    bool has_blackhole = false;
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    Bool has_blackhole = false;
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
             has_blackhole = true;
@@ -57,10 +57,10 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
     glBindTexture(GL_TEXTURE_2D, renderer->postProcessTexture);
     glUniform1i(glGetUniformLocation(renderer->blackholeShader, "screenTexture"), 0);
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
-            glUniform2f(glGetUniformLocation(renderer->blackholeShader, "screensize"), (float)engine->width, (float)engine->height);
+            glUniform2f(glGetUniformLocation(renderer->blackholeShader, "screensize"), (Float)engine->width, (Float)engine->height);
 
             Mat4 view_proj;
             mat4_multiply(&view_proj, projection, view);
@@ -70,11 +70,11 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
             screen_pos.x = (clip_pos.x / clip_pos.w) * 0.5f + 0.5f;
             screen_pos.y = (clip_pos.y / clip_pos.w) * 0.5f + 0.5f;
 
-            const char* scale_str = LogicEntity_GetProperty(ent, "scale", "1.0");
-            float scale = atof(scale_str);
+            const Char* scale_str = LogicEntity_GetProperty(ent, "scale", "1.0");
+            Float scale = atof(scale_str);
 
-            const float deg_to_rad = (float)M_PI / 180.0f;
-            float rotation_rad = ent->rot.y * deg_to_rad;
+            const Float deg_to_rad = (Float)M_PI / 180.0f;
+            Float rotation_rad = ent->rot.y * deg_to_rad;
 
             Vec3 offset_pos = vec3_add(ent->pos, Vec3{ scale, 0.0f, 0.0f });
             Vec4 clip_offset = mat4_mul_vec4(&view_proj, Vec4{ offset_pos.x, offset_pos.y, offset_pos.z, 1.0f });
@@ -83,11 +83,11 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
             offset_screen_pos.x = (clip_offset.x / clip_offset.w) * 0.5f + 0.5f;
             offset_screen_pos.y = (clip_offset.y / clip_offset.w) * 0.5f + 0.5f;
 
-            float screen_radius_x = fabsf(offset_screen_pos.x - screen_pos.x);
-            float screen_radius_y = fabsf(offset_screen_pos.y - screen_pos.y);
-            float screen_radius = fmaxf(screen_radius_x, screen_radius_y);
+            Float screen_radius_x = fabsf(offset_screen_pos.x - screen_pos.x);
+            Float screen_radius_y = fabsf(offset_screen_pos.y - screen_pos.y);
+            Float screen_radius = fmaxf(screen_radius_x, screen_radius_y);
 
-            bool visible =
+            Bool visible =
                 clip_pos.w > 0.0f &&
                 screen_pos.x + screen_radius > 0.0f &&
                 screen_pos.x - screen_radius < 1.0f &&
@@ -97,7 +97,7 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
             if (visible) {
                 glUniform2fv(glGetUniformLocation(renderer->blackholeShader, "screenpos"), 1, &screen_pos.x);
 
-                float distance_to_cam = vec3_length(vec3_sub(engine->camera.position, ent->pos));
+                Float distance_to_cam = vec3_length(vec3_sub(engine->camera.position, ent->pos));
                 glUniform1f(glGetUniformLocation(renderer->blackholeShader, "distance_uniform"), distance_to_cam);
                 glUniform1f(glGetUniformLocation(renderer->blackholeShader, "size"), scale);
                 glUniform1f(glGetUniformLocation(renderer->blackholeShader, "rotation_angle"), rotation_rad);

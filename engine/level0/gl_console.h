@@ -39,28 +39,28 @@
     } ConsoleTextColor;
 
     typedef struct {
-        char* text;
+        Char* text;
         ConsoleTextColor color;
     } ConsoleItem;
 
     LEVEL0_API void Console_Toggle();
     LEVEL0_API void Console_Draw();
-    LEVEL0_API void Console_Printf(const char* fmt, ...);
-    LEVEL0_API void Console_Printf_Error(const char* fmt, ...);
-    LEVEL0_API void Console_Printf_Warning(const char* fmt, ...);
-    LEVEL0_API bool Console_IsVisible();
+    LEVEL0_API void Console_Printf(const Char* fmt, ...);
+    LEVEL0_API void Console_Printf_Error(const Char* fmt, ...);
+    LEVEL0_API void Console_Printf_Warning(const Char* fmt, ...);
+    LEVEL0_API Bool Console_IsVisible();
     LEVEL0_API void Console_ClearLog();
-    LEVEL0_API const ConsoleItem* Console_GetLogItems(int* count);
+    LEVEL0_API const ConsoleItem* Console_GetLogItems(Int* count);
 
-    LEVEL0_API void UI_RenderGameText(int num_messages, const char* texts[4], const float positions_x[4], const float positions_y[4], const Vec4 colors[4], const float alphas[4], const int states[4], const float scales[4]);
-    LEVEL0_API void UI_RenderGameHUD(int modelsDrawn, int totalModels, int brushesDrawn, int totalBrushes, float fps, float px, float py, float pz, float health, bool canUse, float radiation, float rads_per_second, const float* fps_history, int history_size);
-    LEVEL0_API void UI_RenderCredits(bool active, const char* text, float timer, float duration);
+    LEVEL0_API void UI_RenderGameText(Int num_messages, const Char* texts[4], const Float positions_x[4], const Float positions_y[4], const Vec4 colors[4], const Float alphas[4], const Int states[4], const Float scales[4]);
+    LEVEL0_API void UI_RenderGameHUD(Int modelsDrawn, Int totalModels, Int brushesDrawn, Int totalBrushes, Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size);
+    LEVEL0_API void UI_RenderCredits(Bool active, const Char* text, Float timer, Float duration);
     LEVEL0_API void UI_RenderDeveloperOverlay(void);
 
-    typedef void (*command_callback_t)(int argc, char** argv);
+    typedef void (*command_callback_t)(Int argc, Char** argv);
     LEVEL0_API void Console_SetCommandHandler(command_callback_t handler);
 
-    LEVEL0_API void Log_Init(const char* filename);
+    LEVEL0_API void Log_Init(const Char* filename);
     LEVEL0_API void Log_Shutdown(void);
 
 

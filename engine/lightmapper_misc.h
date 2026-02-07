@@ -36,9 +36,9 @@ uint32_t generate_seed_from_pos(const Vec3& pos);
 
 string sanitize_filename(string input);
 
-void apply_gaussian_blur(vector<float>& data, int width, int height, int channels);
-void apply_gaussian_blur(vector<unsigned char>& data, int width, int height, int channels);
-void apply_guided_filter(vector<float>& out_p, const vector<float>& in_p, const vector<float>& guide, int width, int height, int radius, float epsilon);
+void apply_gaussian_blur(vector<Float>& data, Int width, Int height, Int channels);
+void apply_gaussian_blur(vector<Uchar>& data, Int width, Int height, Int channels);
+void apply_guided_filter(vector<Float>& out_p, const vector<Float>& in_p, const vector<Float>& guide, Int width, Int height, Int radius, Float epsilon);
 
 #endif // ARCH_64BIT
 #endif // LIGHTMAPPER_MISC_H

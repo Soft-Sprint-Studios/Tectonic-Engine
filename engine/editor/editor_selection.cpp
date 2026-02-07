@@ -23,12 +23,12 @@
  */
 #include "editor_selection.h"
 #include "editor_math.h"
-#include <float.h>
+#include <Float.h>
 
-void Editor_AddToSelection(EntityType type, int index, int face_index, int vertex_index) {
+void Editor_AddToSelection(EntityType type, Int index, Int face_index, Int vertex_index) {
     EditorSelection* new_selections = new EditorSelection[g_EditorState.num_selections + 1];
 
-    for (int i = 0; i < g_EditorState.num_selections; ++i)
+    for (Int i = 0; i < g_EditorState.num_selections; ++i)
         new_selections[i] = g_EditorState.selections[i];
 
     delete[] g_EditorState.selections;
@@ -38,25 +38,25 @@ void Editor_AddToSelection(EntityType type, int index, int face_index, int verte
     g_EditorState.num_selections++;
 }
 
-void Editor_RemoveFromSelection(EntityType type, int index) {
-    int found_at = -1;
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+void Editor_RemoveFromSelection(EntityType type, Int index) {
+    Int found_at = -1;
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         if (g_EditorState.selections[i].type == type && g_EditorState.selections[i].index == index) {
             found_at = i;
             break;
         }
     }
     if (found_at != -1) {
-        for (int i = found_at; i < g_EditorState.num_selections - 1; ++i) {
+        for (Int i = found_at; i < g_EditorState.num_selections - 1; ++i) {
             g_EditorState.selections[i] = g_EditorState.selections[i + 1];
         }
         g_EditorState.num_selections--;
     }
 }
 
-void Editor_RemoveFaceFromSelection(int brush_index, int face_index) {
-    int found_at = -1;
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+void Editor_RemoveFaceFromSelection(Int brush_index, Int face_index) {
+    Int found_at = -1;
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
         if (sel->type == ENTITY_BRUSH && sel->index == brush_index && sel->face_index == face_index) {
             found_at = i;
@@ -64,15 +64,15 @@ void Editor_RemoveFaceFromSelection(int brush_index, int face_index) {
         }
     }
     if (found_at != -1) {
-        for (int i = found_at; i < g_EditorState.num_selections - 1; ++i) {
+        for (Int i = found_at; i < g_EditorState.num_selections - 1; ++i) {
             g_EditorState.selections[i] = g_EditorState.selections[i + 1];
         }
         g_EditorState.num_selections--;
     }
 }
 
-bool Editor_IsSelected(EntityType type, int index) {
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+Bool Editor_IsSelected(EntityType type, Int index) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         if (g_EditorState.selections[i].type == type && g_EditorState.selections[i].index == index) {
             return true;
         }
@@ -80,8 +80,8 @@ bool Editor_IsSelected(EntityType type, int index) {
     return false;
 }
 
-bool Editor_IsFaceSelected(int brush_index, int face_index) {
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+Bool Editor_IsFaceSelected(Int brush_index, Int face_index) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
         if (sel->type == ENTITY_BRUSH && sel->index == brush_index && sel->face_index == face_index) {
             return true;
@@ -93,8 +93,8 @@ bool Editor_IsFaceSelected(int brush_index, int face_index) {
 void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     if (viewport != VIEW_PERSPECTIVE) return;
 
-    float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
-    float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
+    Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
+    Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
     Mat4 inv_proj, inv_view;
     mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
     mat4_inverse(&g_view_matrix[viewport], &inv_view);
@@ -106,16 +106,16 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     vec3_normalize(&ray_dir_world);
     Vec3 ray_origin_world = g_EditorState.editor_camera.position;
 
-    float closest_t = FLT_MAX;
+    Float closest_t = FLT_MAX;
     EntityType selected_type = ENTITY_NONE;
-    int selected_index = -1;
-    int hit_face_index = -1;
+    Int selected_index = -1;
+    Int hit_face_index = -1;
 
-    for (int i = 0; i < g_CurrentScene->numObjects; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numObjects; ++i) {
         SceneObject* obj = &g_CurrentScene->objects[i];
         if (!obj->model) continue;
 
-        float t;
+        Float t;
         if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &obj->modelMatrix,
             obj->model->aabb_min,
@@ -128,7 +128,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numBrushes; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numBrushes; ++i) {
         Brush* brush = &g_CurrentScene->brushes[i];
         if (strcmp(brush->classname, "env_reflectionprobe") == 0) {
             continue;
@@ -137,7 +137,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         Vec3 brush_local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 brush_local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
         if (brush->numVertices > 0) {
-            for (int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
+            for (Int v_idx = 0; v_idx < brush->numVertices; ++v_idx) {
                 brush_local_min.x = fminf(brush_local_min.x, brush->vertices[v_idx].pos.x);
                 brush_local_min.y = fminf(brush_local_min.y, brush->vertices[v_idx].pos.y);
                 brush_local_min.z = fminf(brush_local_min.z, brush->vertices[v_idx].pos.z);
@@ -151,7 +151,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
             brush_local_max = Vec3{ 0,0,0 };
         }
 
-        float t_obb_dummy;
+        Float t_obb_dummy;
         if (!RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &brush->modelMatrix,
             brush_local_min,
@@ -167,20 +167,20 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
         Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
 
-        for (int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
+        for (Int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
             BrushFace* face = &brush->faces[face_idx];
             if (face->numVertexIndices < 3) continue;
 
-            for (int k = 0; k < face->numVertexIndices - 2; ++k) {
+            for (Int k = 0; k < face->numVertexIndices - 2; ++k) {
                 Vec3 v0_local = brush->vertices[face->vertexIndices[0]].pos;
                 Vec3 v1_local = brush->vertices[face->vertexIndices[k + 1]].pos;
                 Vec3 v2_local = brush->vertices[face->vertexIndices[k + 2]].pos;
 
-                float t_triangle_local;
+                Float t_triangle_local;
                 if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
                     Vec3 hit_point_local = vec3_add(ray_origin_local, vec3_muls(ray_dir_local, t_triangle_local));
                     Vec3 hit_point_world = mat4_mul_vec3(&brush->modelMatrix, hit_point_local);
-                    float dist_to_hit_world = vec3_length(vec3_sub(hit_point_world, ray_origin_world));
+                    Float dist_to_hit_world = vec3_length(vec3_sub(hit_point_world, ray_origin_world));
 
                     if (t_triangle_local > 0.0f && dist_to_hit_world < closest_t) {
                         closest_t = dist_to_hit_world;
@@ -193,14 +193,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numActiveLights; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numActiveLights; ++i) {
         Light* light = &g_CurrentScene->lights[i];
-        float light_gizmo_radius = 0.5f;
+        Float light_gizmo_radius = 0.5f;
         Vec3 P = vec3_sub(light->pos, ray_origin_world);
-        float b_dot = vec3_dot(P, ray_dir_world);
-        float det = b_dot * b_dot - vec3_dot(P, P) + light_gizmo_radius * light_gizmo_radius;
+        Float b_dot = vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - vec3_dot(P, P) + light_gizmo_radius * light_gizmo_radius;
         if (det < 0) continue;
-        float t_light = b_dot - sqrtf(det);
+        Float t_light = b_dot - sqrtf(det);
         if (t_light > 0 && t_light < closest_t) {
             closest_t = t_light;
             selected_type = ENTITY_LIGHT;
@@ -209,13 +209,13 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numDecals; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numDecals; ++i) {
         Decal* decal = &g_CurrentScene->decals[i];
 
         Vec3 decal_local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 decal_local_max = { 0.5f, 0.5f, 0.5f };
 
-        float t;
+        Float t;
         if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &decal->modelMatrix,
             decal_local_min,
@@ -228,14 +228,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) {
         ParticleEmitter* emitter = &g_CurrentScene->particleEmitters[i];
-        float emitter_gizmo_radius = 0.5f;
+        Float emitter_gizmo_radius = 0.5f;
         Vec3 P = vec3_sub(emitter->pos, ray_origin_world);
-        float b_dot = vec3_dot(P, ray_dir_world);
-        float det = b_dot * b_dot - vec3_dot(P, P) + emitter_gizmo_radius * emitter_gizmo_radius;
+        Float b_dot = vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - vec3_dot(P, P) + emitter_gizmo_radius * emitter_gizmo_radius;
         if (det < 0) continue;
-        float t_emitter = b_dot - sqrtf(det);
+        Float t_emitter = b_dot - sqrtf(det);
         if (t_emitter > 0 && t_emitter < closest_t) {
             closest_t = t_emitter;
             selected_type = ENTITY_PARTICLE_EMITTER;
@@ -244,14 +244,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numSoundEntities; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numSoundEntities; ++i) {
         SoundEntity* sound = &g_CurrentScene->soundEntities[i];
-        float sound_gizmo_radius = 0.5f;
+        Float sound_gizmo_radius = 0.5f;
         Vec3 P = vec3_sub(sound->pos, ray_origin_world);
-        float b_dot = vec3_dot(P, ray_dir_world);
-        float det = b_dot * b_dot - vec3_dot(P, P) + sound_gizmo_radius * sound_gizmo_radius;
+        Float b_dot = vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - vec3_dot(P, P) + sound_gizmo_radius * sound_gizmo_radius;
         if (det < 0) continue;
-        float t_sound = b_dot - sqrtf(det);
+        Float t_sound = b_dot - sqrtf(det);
         if (t_sound > 0 && t_sound < closest_t) {
             closest_t = t_sound;
             selected_type = ENTITY_SOUND;
@@ -260,14 +260,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numLogicEntities; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numLogicEntities; ++i) {
         LogicEntity* ent = &g_CurrentScene->logicEntities[i];
-        float logic_gizmo_radius = 0.5f;
+        Float logic_gizmo_radius = 0.5f;
         Vec3 P = vec3_sub(ent->pos, ray_origin_world);
-        float b_dot = vec3_dot(P, ray_dir_world);
-        float det = b_dot * b_dot - vec3_dot(P, P) + logic_gizmo_radius * logic_gizmo_radius;
+        Float b_dot = vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - vec3_dot(P, P) + logic_gizmo_radius * logic_gizmo_radius;
         if (det < 0) continue;
-        float t_logic = b_dot - sqrtf(det);
+        Float t_logic = b_dot - sqrtf(det);
         if (t_logic > 0 && t_logic < closest_t) {
             closest_t = t_logic;
             selected_type = ENTITY_LOGIC;
@@ -276,12 +276,12 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    float player_start_radius = 1.0f;
+    Float player_start_radius = 1.0f;
     Vec3 P = vec3_sub(g_CurrentScene->playerStart.pos, ray_origin_world);
-    float b_dot = vec3_dot(P, ray_dir_world);
-    float det = b_dot * b_dot - vec3_dot(P, P) + player_start_radius * player_start_radius;
+    Float b_dot = vec3_dot(P, ray_dir_world);
+    Float det = b_dot * b_dot - vec3_dot(P, P) + player_start_radius * player_start_radius;
     if (det >= 0) {
-        float t_player = b_dot - sqrtf(det);
+        Float t_player = b_dot - sqrtf(det);
         if (t_player > 0 && t_player < closest_t) {
             closest_t = t_player;
             selected_type = ENTITY_PLAYERSTART;
@@ -290,14 +290,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) {
         VideoPlayer* vp = &g_CurrentScene->videoPlayers[i];
 
         Vec3 vp_local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 vp_local_max = { 0.5f, 0.5f, 0.5f };
         vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 0.01f });
 
-        float t;
+        Float t;
         if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &vp->modelMatrix,
             vp_local_min,
@@ -310,12 +310,12 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) {
         ParallaxRoom* p = &g_CurrentScene->parallaxRooms[i];
         p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 0.01f });
         Vec3 local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 local_max = { 0.5f, 0.5f, 0.5f };
-        float t;
+        Float t;
         if (RayIntersectsOBB(ray_origin_world, ray_dir_world, &p->modelMatrix, local_min, local_max, &t) && t < closest_t) {
             closest_t = t;
             selected_type = ENTITY_PARALLAX_ROOM;
@@ -324,14 +324,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    for (int i = 0; i < g_CurrentScene->numSprites; ++i) {
+    for (Int i = 0; i < g_CurrentScene->numSprites; ++i) {
         Sprite* s = &g_CurrentScene->sprites[i];
-        float sprite_gizmo_radius = s->scale * 0.5f;
+        Float sprite_gizmo_radius = s->scale * 0.5f;
         Vec3 P = vec3_sub(s->pos, ray_origin_world);
-        float b_dot = vec3_dot(P, ray_dir_world);
-        float det = b_dot * b_dot - vec3_dot(P, P) + sprite_gizmo_radius * sprite_gizmo_radius;
+        Float b_dot = vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - vec3_dot(P, P) + sprite_gizmo_radius * sprite_gizmo_radius;
         if (det < 0) continue;
-        float t_sprite = b_dot - sqrtf(det);
+        Float t_sprite = b_dot - sqrtf(det);
         if (t_sprite > 0 && t_sprite < closest_t) {
             closest_t = t_sprite;
             selected_type = ENTITY_SPRITE;
@@ -340,7 +340,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
 
-    bool ctrl_held = (SDL_GetModState() & KMOD_CTRL);
+    Bool ctrl_held = (SDL_GetModState() & KMOD_CTRL);
 
     if (selected_type != ENTITY_NONE) {
         if (selected_type == ENTITY_BRUSH) {
@@ -378,8 +378,8 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
     }
     if (selected_type != ENTITY_NONE) {
-        const char* group_name = nullptr;
-        bool is_grouped = false;
+        const Char* group_name = nullptr;
+        Bool is_grouped = false;
 
         if (selected_type == ENTITY_BRUSH && hit_face_index != -1) {
             is_grouped = g_CurrentScene->brushes[selected_index].faces[hit_face_index].isGrouped;
@@ -403,23 +403,23 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
 
         if (is_grouped && group_name && strlen(group_name) > 0) {
             if (selected_type == ENTITY_BRUSH && hit_face_index != -1) {
-                for (int i = 0; i < g_CurrentScene->brushes[selected_index].numFaces; ++i) {
+                for (Int i = 0; i < g_CurrentScene->brushes[selected_index].numFaces; ++i) {
                     if (g_CurrentScene->brushes[selected_index].faces[i].isGrouped && strcmp(g_CurrentScene->brushes[selected_index].faces[i].groupName, group_name) == 0) {
                         Editor_AddToSelection(ENTITY_BRUSH, selected_index, i, -1);
                     }
                 }
             }
             else {
-                for (int i = 0; i < g_CurrentScene->numObjects; ++i) if (g_CurrentScene->objects[i].isGrouped && strcmp(g_CurrentScene->objects[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_MODEL, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numBrushes; ++i) if (g_CurrentScene->brushes[i].isGrouped && strcmp(g_CurrentScene->brushes[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numActiveLights; ++i) if (g_CurrentScene->lights[i].isGrouped && strcmp(g_CurrentScene->lights[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numDecals; ++i) if (g_CurrentScene->decals[i].isGrouped && strcmp(g_CurrentScene->decals[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_DECAL, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numSoundEntities; ++i) if (g_CurrentScene->soundEntities[i].isGrouped && strcmp(g_CurrentScene->soundEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SOUND, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) if (g_CurrentScene->particleEmitters[i].isGrouped && strcmp(g_CurrentScene->particleEmitters[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numSprites; ++i) if (g_CurrentScene->sprites[i].isGrouped && strcmp(g_CurrentScene->sprites[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SPRITE, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) if (g_CurrentScene->videoPlayers[i].isGrouped && strcmp(g_CurrentScene->videoPlayers[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_VIDEO_PLAYER, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) if (g_CurrentScene->parallaxRooms[i].isGrouped && strcmp(g_CurrentScene->parallaxRooms[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARALLAX_ROOM, i, -1, -1);
-                for (int i = 0; i < g_CurrentScene->numLogicEntities; ++i) if (g_CurrentScene->logicEntities[i].isGrouped && strcmp(g_CurrentScene->logicEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LOGIC, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numObjects; ++i) if (g_CurrentScene->objects[i].isGrouped && strcmp(g_CurrentScene->objects[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_MODEL, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numBrushes; ++i) if (g_CurrentScene->brushes[i].isGrouped && strcmp(g_CurrentScene->brushes[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_BRUSH, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numActiveLights; ++i) if (g_CurrentScene->lights[i].isGrouped && strcmp(g_CurrentScene->lights[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LIGHT, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numDecals; ++i) if (g_CurrentScene->decals[i].isGrouped && strcmp(g_CurrentScene->decals[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_DECAL, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numSoundEntities; ++i) if (g_CurrentScene->soundEntities[i].isGrouped && strcmp(g_CurrentScene->soundEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SOUND, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) if (g_CurrentScene->particleEmitters[i].isGrouped && strcmp(g_CurrentScene->particleEmitters[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numSprites; ++i) if (g_CurrentScene->sprites[i].isGrouped && strcmp(g_CurrentScene->sprites[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_SPRITE, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numVideoPlayers; ++i) if (g_CurrentScene->videoPlayers[i].isGrouped && strcmp(g_CurrentScene->videoPlayers[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_VIDEO_PLAYER, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) if (g_CurrentScene->parallaxRooms[i].isGrouped && strcmp(g_CurrentScene->parallaxRooms[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_PARALLAX_ROOM, i, -1, -1);
+                for (Int i = 0; i < g_CurrentScene->numLogicEntities; ++i) if (g_CurrentScene->logicEntities[i].isGrouped && strcmp(g_CurrentScene->logicEntities[i].groupName, group_name) == 0) Editor_AddToSelection(ENTITY_LOGIC, i, -1, -1);
             }
         }
     }
@@ -449,14 +449,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     }
 }
 
-int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport) {
+Int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType viewport) {
     EditorSelection* primary = Editor_GetPrimarySelection();
     if (!primary || primary->type != ENTITY_BRUSH) {
         return -1;
     }
 
-    float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
-    float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
+    Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
+    Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
     Mat4 inv_proj, inv_view;
     mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
     mat4_inverse(&g_view_matrix[viewport], &inv_view);
@@ -469,19 +469,19 @@ int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType vie
     Vec3 ray_origin = g_EditorState.editor_camera.position;
 
     Brush* b = &scene->brushes[primary->index];
-    float closest_t = FLT_MAX;
-    int picked_vertex = -1;
-    const float pick_radius = 0.1f;
+    Float closest_t = FLT_MAX;
+    Int picked_vertex = -1;
+    const Float pick_radius = 0.1f;
 
-    for (int i = 0; i < b->numVertices; ++i) {
+    for (Int i = 0; i < b->numVertices; ++i) {
         Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
 
         Vec3 oc = vec3_sub(ray_origin, vert_world_pos);
-        float b_dot = vec3_dot(oc, ray_dir);
-        float c = vec3_dot(oc, oc) - pick_radius * pick_radius;
-        float discriminant = b_dot * b_dot - c;
+        Float b_dot = vec3_dot(oc, ray_dir);
+        Float c = vec3_dot(oc, oc) - pick_radius * pick_radius;
+        Float discriminant = b_dot * b_dot - c;
         if (discriminant > 0) {
-            float t = -b_dot - sqrtf(discriminant);
+            Float t = -b_dot - sqrtf(discriminant);
             if (t > 0 && t < closest_t) {
                 closest_t = t;
                 picked_vertex = i;
@@ -501,23 +501,23 @@ void Editor_ClearSelection() {
     g_EditorState.num_selections = 0;
 }
 
-bool FindEntityInScene(Scene* scene, const char* name, EntityType* out_type, int* out_index) {
+Bool FindEntityInScene(Scene* scene, const Char* name, EntityType* out_type, Int* out_index) {
     if (name == nullptr || *name == '\0') return false;
-    for (int i = 0; i < scene->numObjects; ++i) if (strcmp(scene->objects[i].targetname, name) == 0) { *out_type = ENTITY_MODEL; *out_index = i; return true; }
-    for (int i = 0; i < scene->numBrushes; ++i) if (strcmp(scene->brushes[i].targetname, name) == 0) { *out_type = ENTITY_BRUSH; *out_index = i; return true; }
-    for (int i = 0; i < scene->numActiveLights; ++i) if (strcmp(scene->lights[i].targetname, name) == 0) { *out_type = ENTITY_LIGHT; *out_index = i; return true; }
-    for (int i = 0; i < scene->numSoundEntities; ++i) if (strcmp(scene->soundEntities[i].targetname, name) == 0) { *out_type = ENTITY_SOUND; *out_index = i; return true; }
-    for (int i = 0; i < scene->numParticleEmitters; ++i) if (strcmp(scene->particleEmitters[i].targetname, name) == 0) { *out_type = ENTITY_PARTICLE_EMITTER; *out_index = i; return true; }
-    for (int i = 0; i < scene->numVideoPlayers; ++i) if (strcmp(scene->videoPlayers[i].targetname, name) == 0) { *out_type = ENTITY_VIDEO_PLAYER; *out_index = i; return true; }
-    for (int i = 0; i < scene->numSprites; ++i) if (strcmp(scene->sprites[i].targetname, name) == 0) { *out_type = ENTITY_SPRITE; *out_index = i; return true; }
-    for (int i = 0; i < scene->numLogicEntities; ++i) if (strcmp(scene->logicEntities[i].targetname, name) == 0) { *out_type = ENTITY_LOGIC; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numObjects; ++i) if (strcmp(scene->objects[i].targetname, name) == 0) { *out_type = ENTITY_MODEL; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numBrushes; ++i) if (strcmp(scene->brushes[i].targetname, name) == 0) { *out_type = ENTITY_BRUSH; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numActiveLights; ++i) if (strcmp(scene->lights[i].targetname, name) == 0) { *out_type = ENTITY_LIGHT; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numSoundEntities; ++i) if (strcmp(scene->soundEntities[i].targetname, name) == 0) { *out_type = ENTITY_SOUND; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) if (strcmp(scene->particleEmitters[i].targetname, name) == 0) { *out_type = ENTITY_PARTICLE_EMITTER; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numVideoPlayers; ++i) if (strcmp(scene->videoPlayers[i].targetname, name) == 0) { *out_type = ENTITY_VIDEO_PLAYER; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numSprites; ++i) if (strcmp(scene->sprites[i].targetname, name) == 0) { *out_type = ENTITY_SPRITE; *out_index = i; return true; }
+    for (Int i = 0; i < scene->numLogicEntities; ++i) if (strcmp(scene->logicEntities[i].targetname, name) == 0) { *out_type = ENTITY_LOGIC; *out_index = i; return true; }
     return false;
 }
 
-bool Editor_FindNamedEntityPosition(Scene* scene, const char* name, Vec3* out_pos) {
+Bool Editor_FindNamedEntityPosition(Scene* scene, const Char* name, Vec3* out_pos) {
     if (name == nullptr || *name == '\0') return false;
     EntityType type;
-    int index;
+    Int index;
     if (FindEntityInScene(scene, name, &type, &index)) {
         switch (type) {
         case ENTITY_MODEL: *out_pos = scene->objects[index].pos; return true;

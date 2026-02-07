@@ -32,7 +32,7 @@
 
 	void Discord_Init();
 	void Discord__Shutdown();
-	void Discord_Update(const char* state, const char* details);
+	void Discord_Update(const Char* state, const Char* details);
 
 
 #endif // DISCORD_WRAPPER_H

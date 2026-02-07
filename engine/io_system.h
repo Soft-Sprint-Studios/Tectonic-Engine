@@ -36,48 +36,48 @@
 #define MAX_PENDING_EVENTS 256
 
     typedef struct {
-        bool active;
+        Bool active;
         EntityType sourceType;
-        int sourceIndex;
-        char outputName[64];
-        char targetName[64];
-        char inputName[64];
-        char parameter[64];
-        float delay;
-        bool fireOnce;
-        bool hasFired;
+        Int sourceIndex;
+        Char outputName[64];
+        Char targetName[64];
+        Char inputName[64];
+        Char parameter[64];
+        Float delay;
+        Bool fireOnce;
+        Bool hasFired;
     } IOConnection;
 
     typedef struct {
-        bool active;
-        char targetName[64];
-        char inputName[64];
-        char parameter[64];
-        float executionTime;
+        Bool active;
+        Char targetName[64];
+        Char inputName[64];
+        Char parameter[64];
+        Float executionTime;
     } PendingEvent;
 
     void IO_Init();
     void IO_Shutdown();
     void IO_Clear();
 
-    IOConnection* IO_AddConnection(EntityType sourceType, int sourceIndex, const char* output);
-    void IO_RemoveConnection(int connection_index);
-    int IO_GetConnectionsForEntity(EntityType type, int index, IOConnection** connections_out, int max_out);
+    IOConnection* IO_AddConnection(EntityType sourceType, Int sourceIndex, const Char* output);
+    void IO_RemoveConnection(Int connection_index);
+    Int IO_GetConnectionsForEntity(EntityType type, Int index, IOConnection** connections_out, Int max_out);
 
-    bool IO_FindNamedEntity(Scene* scene, const char* name, Vec3* out_pos, Vec3* out_angles);
-    void IO_FireOutput(EntityType sourceType, int sourceIndex, const char* outputName, float currentTime, const char* parameter);
-    void IO_ProcessPendingEvents(float currentTime, Scene* scene, Engine* engine);
-    LogicEntity* FindActiveEntityByClass(Scene* scene, const char* classname);
-    void ExecuteInput(const char* targetName, const char* inputName, const char* parameter, Scene* scene, Engine* engine);
+    Bool IO_FindNamedEntity(Scene* scene, const Char* name, Vec3* out_pos, Vec3* out_angles);
+    void IO_FireOutput(EntityType sourceType, Int sourceIndex, const Char* outputName, Float currentTime, const Char* parameter);
+    void IO_ProcessPendingEvents(Float currentTime, Scene* scene, Engine* engine);
+    LogicEntity* FindActiveEntityByClass(Scene* scene, const Char* classname);
+    void ExecuteInput(const Char* targetName, const Char* inputName, const Char* parameter, Scene* scene, Engine* engine);
 
-    const char* Brush_GetProperty(Brush* b, const char* key, const char* default_val);
-    const char* LogicEntity_GetProperty(LogicEntity* ent, const char* key, const char* default_val);
+    const Char* Brush_GetProperty(Brush* b, const Char* key, const Char* default_val);
+    const Char* LogicEntity_GetProperty(LogicEntity* ent, const Char* key, const Char* default_val);
 
-    char** IO_ScanDirectory(const char* dir_path, const char** extensions, int num_extensions, int* out_count);
-    void IO_FreeFileList(char** list, int count);
+    Char** IO_ScanDirectory(const Char* dir_path, const Char** extensions, Int num_extensions, Int* out_count);
+    void IO_FreeFileList(Char** list, Int count);
 
     extern IOConnection g_io_connections[MAX_IO_CONNECTIONS];
-    extern int g_num_io_connections;
+    extern Int g_num_io_connections;
 
 
 #endif // IO_SYSTEM_H

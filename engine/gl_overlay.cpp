@@ -32,16 +32,16 @@ static GLuint g_overlay_vbo = 0;
 void Overlay_Init(void) {
     g_overlay_shader = createShaderProgram("shaders/overlay.vert", "shaders/overlay.frag");
     
-    float quadVertices[] = { -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    Float quadVertices[] = { -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f };
     glGenVertexArrays(1, &g_overlay_vao);
     glGenBuffers(1, &g_overlay_vbo);
     glBindVertexArray(g_overlay_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_overlay_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)(2 * sizeof(Float)));
     glBindVertexArray(0);
 }
 
@@ -52,10 +52,10 @@ void Overlay_Shutdown(void) {
 }
 
 void Overlay_Render(Scene* scene, Engine* engine) {
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_overlay") == 0 && ent->runtime_active) {
-            const char* material_name = LogicEntity_GetProperty(ent, "material", "");
+            const Char* material_name = LogicEntity_GetProperty(ent, "material", "");
             Material* mat = TextureManager_FindMaterial(material_name);
             if (!mat || mat == &g_MissingMaterial) {
                 continue;
@@ -63,7 +63,7 @@ void Overlay_Render(Scene* scene, Engine* engine) {
 
             glUseProgram(g_overlay_shader);
             
-            int render_mode = atoi(LogicEntity_GetProperty(ent, "rendermode", "0"));
+            Int render_mode = atoi(LogicEntity_GetProperty(ent, "rendermode", "0"));
 
             glDisable(GL_DEPTH_TEST);
             glDepthMask(GL_FALSE);

@@ -28,7 +28,7 @@
 #include <ctype.h>
 
 static WaterDef g_water_defs[MAX_WATER_DEFS];
-static int g_num_water_defs = 0;
+static Int g_num_water_defs = 0;
 static WaterDef g_default_water_def;
 
 void WaterManager_Init(void) {
@@ -48,7 +48,7 @@ void WaterManager_Init(void) {
 }
 
 void WaterManager_Shutdown(void) {
-    for (int i = 0; i < g_num_water_defs; ++i) {
+    for (Int i = 0; i < g_num_water_defs; ++i) {
         if (g_water_defs[i].normalMap) glDeleteTextures(1, &g_water_defs[i].normalMap);
         if (g_water_defs[i].dudvMap) glDeleteTextures(1, &g_water_defs[i].dudvMap);
         if (g_water_defs[i].flowMap) glDeleteTextures(1, &g_water_defs[i].flowMap);
@@ -59,18 +59,18 @@ void WaterManager_Shutdown(void) {
     Console_Printf("Water Manager Shutdown.\n");
 }
 
-void WaterManager_ParseWaters(const char* filepath) {
+void WaterManager_ParseWaters(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
         Console_Printf_Warning("Could not open water file '%s'. Using default only.\n", filepath);
         return;
     }
 
-    char line[256];
+    Char line[256];
     WaterDef* current_def = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed_line = trim(line);
+        Char* trimmed_line = trim(line);
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') continue;
 
         if (trimmed_line[0] == '"') {
@@ -93,14 +93,14 @@ void WaterManager_ParseWaters(const char* filepath) {
                 current_def = nullptr;
             }
         } else if (current_def) {
-            char key[64], value[128];
+            Char key[64], value[128];
             if (sscanf(trimmed_line, "%s = \"%127[^\"]\"", key, value) == 2) {
                 if (strcmp(key, "normal") == 0) strcpy(current_def->normalPath, value);
                 else if (strcmp(key, "dudv") == 0) strcpy(current_def->dudvPath, value);
                 else if (strcmp(key, "flowmap") == 0) strcpy(current_def->flowmapPath, value);
             }
             else {
-                float float_val;
+                Float float_val;
                 if (sscanf(trimmed_line, "%s = %f", key, &float_val) == 2) {
                     if (strcmp(key, "flowspeed") == 0) {
                         current_def->flowSpeed = float_val;
@@ -112,8 +112,8 @@ void WaterManager_ParseWaters(const char* filepath) {
     fclose(file);
 }
 
-WaterDef* WaterManager_FindWaterDef(const char* name) {
-    for (int i = 0; i < g_num_water_defs; ++i) {
+WaterDef* WaterManager_FindWaterDef(const Char* name) {
+    for (Int i = 0; i < g_num_water_defs; ++i) {
         if (strcmp(g_water_defs[i].name, name) == 0) {
             return &g_water_defs[i];
         }
@@ -121,11 +121,11 @@ WaterDef* WaterManager_FindWaterDef(const char* name) {
     return &g_default_water_def;
 }
 
-int WaterManager_GetWaterDefCount(void) {
+Int WaterManager_GetWaterDefCount(void) {
     return g_num_water_defs;
 }
 
-WaterDef* WaterManager_GetWaterDef(int index) {
+WaterDef* WaterManager_GetWaterDef(Int index) {
     if (index < 0 || index >= g_num_water_defs) return &g_default_water_def;
     return &g_water_defs[index];
 }

@@ -31,18 +31,18 @@
 #include <stdexcept>
 #include <string>
 
-using EngineMainFunc = int(*)(int argc, char* argv[]);
+using EngineMainFunc = Int(*)(Int argc, Char* argv[]);
 
 #ifdef PLATFORM_WINDOWS
 
 // Hint Windows to prefer discrete AMD/NVIDIA GPUs over integrated ones (mostly for laptops).
 extern "C" {
     __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 0x00000001;
+    __declspec(dllexport) Int AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    int result = 0;
+Int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, Int nCmdShow) {
+    Int result = 0;
     do {
         HMODULE engineLib = LoadLibraryA("engine.dll");
         if (!engineLib) {
@@ -64,8 +64,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return result;
 }
 #else
-int main(int argc, char* argv[]) {
-    int result = 0;
+Int main(Int argc, Char* argv[]) {
+    Int result = 0;
     do {
         void* engineLib = dlopen("./libengine.so", RTLD_NOW);
         if (!engineLib) {
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
         dlerror();
         auto Engine_Main = reinterpret_cast<EngineMainFunc>(dlsym(engineLib, "Engine_Main"));
-        if (const char* error = dlerror()) {
+        if (const Char* error = dlerror()) {
             cerr << "Failed to find Engine_Main: " << error << endl;
             dlclose(engineLib);
             return -1;

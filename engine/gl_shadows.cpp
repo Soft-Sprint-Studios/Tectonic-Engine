@@ -29,15 +29,15 @@
 void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine) {
     glEnable(GL_DEPTH_TEST);
     glCullFace(GL_FRONT);
-    int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
+    Int shadow_map_size = Cvar_GetInt("r_shadow_map_size");
     if (shadow_map_size <= 0) {
         shadow_map_size = 1024;
     }
-    float max_shadow_dist = Cvar_GetFloat("r_shadow_distance_max");
-    float max_shadow_dist_sq = max_shadow_dist * max_shadow_dist;
+    Float max_shadow_dist = Cvar_GetFloat("r_shadow_distance_max");
+    Float max_shadow_dist_sq = max_shadow_dist * max_shadow_dist;
     glViewport(0, 0, shadow_map_size, shadow_map_size);
 
-    for (int i = 0; i < scene->numActiveLights; ++i) {
+    for (Int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         if (light->is_static_shadow && light->has_rendered_static_shadow) {
             continue;
@@ -60,9 +60,9 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             shadowTransforms[3] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, -1, 0 }), Vec3{ 0, 0, -1 });
             shadowTransforms[4] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, 0, 1 }), Vec3{ 0, -1, 0 });
             shadowTransforms[5] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, 0, -1 }), Vec3{ 0, -1, 0 });
-            for (int j = 0; j < 6; ++j) {
+            for (Int j = 0; j < 6; ++j) {
                 mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]);
-                char uName[64];
+                Char uName[64];
                 sprintf(uName, "shadowMatrices[%d]", j);
                 glUniformMatrix4fv(glGetUniformLocation(current_shader, uName), 1, GL_FALSE, shadowTransforms[j].m);
             }
@@ -72,18 +72,18 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         else {
             current_shader = renderer->spotDepthShader;
             glUseProgram(current_shader);
-            float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
+            Float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
             Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Vec3 up_vector = Vec3{ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = Vec3{ 1, 0, 0 }; }
             Mat4 lightView = mat4_lookAt(light->pos, vec3_add(light->pos, light->direction), up_vector);
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
         }
-        for (int j = 0; j < scene->numObjects; ++j) {
+        for (Int j = 0; j < scene->numObjects; ++j) {
             if (!scene->objects[j].casts_shadows) continue;
             render_object(renderer, scene, current_shader, &scene->objects[j], false, nullptr);
         }
-        for (int j = 0; j < scene->numBrushes; ++j) {
+        for (Int j = 0; j < scene->numBrushes; ++j) {
             if (!scene->brushes[j].casts_shadows) continue;
             render_brush(renderer, scene, current_shader, &scene->brushes[j], false, nullptr);
         }
@@ -105,11 +105,11 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
     glUseProgram(renderer->spotDepthShader);
     glUniformMatrix4fv(glGetUniformLocation(renderer->spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
 
-    for (int j = 0; j < scene->numObjects; ++j) {
+    for (Int j = 0; j < scene->numObjects; ++j) {
         if (!scene->objects[j].casts_shadows) continue;
         render_object(renderer, scene, renderer->spotDepthShader, &scene->objects[j], false, nullptr);
     }
-    for (int j = 0; j < scene->numBrushes; ++j) {
+    for (Int j = 0; j < scene->numBrushes; ++j) {
         Brush* b = &scene->brushes[j];
         if (!scene->brushes[j].casts_shadows) continue;
         if (strcmp(b->classname, "func_wall_toggle") == 0 && !b->runtime_is_visible) {

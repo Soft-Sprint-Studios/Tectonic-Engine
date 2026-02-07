@@ -46,44 +46,44 @@
 	typedef struct RigidBody* RigidBodyHandle;
 
 	typedef struct {
-		bool hasHit;
+		Bool hasHit;
 		Vec3 point;
 		Vec3 normal;
 		RigidBodyHandle hitBody;
 	} RaycastHitInfo;
 
-	PHYSICS_API PhysicsWorldHandle Physics_CreateWorld(float gravity_y);
+	PHYSICS_API PhysicsWorldHandle Physics_CreateWorld(Float gravity_y);
 	PHYSICS_API void Physics_DestroyWorld(PhysicsWorldHandle world);
-	PHYSICS_API void Physics_StepSimulation(PhysicsWorldHandle world, float deltaTime);
+	PHYSICS_API void Physics_StepSimulation(PhysicsWorldHandle world, Float deltaTime);
 
-	PHYSICS_API RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle world, float radius, float height, float mass, Vec3 startPos);
-	PHYSICS_API RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle world, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale);
-	PHYSICS_API RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle world, const float* points, int numPoints, float mass, Mat4 transform);
-	PHYSICS_API RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, int stride, float mass, Mat4 transform);
-	PHYSICS_API RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle world, const float* points, int numPoints);
-	PHYSICS_API RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle world, const float* vertices, int numVertices, Mat4 transform);
+	PHYSICS_API RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle world, Float radius, Float height, Float mass, Vec3 startPos);
+	PHYSICS_API RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle world, const Float* vertices, Int numVertices, const Uint* indices, Int numIndices, Mat4 transform, Vec3 scale);
+	PHYSICS_API RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle world, const Float* points, Int numPoints, Float mass, Mat4 transform);
+	PHYSICS_API RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle world, const Float* vertices, Int numVertices, Int stride, Float mass, Mat4 transform);
+	PHYSICS_API RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle world, const Float* points, Int numPoints);
+	PHYSICS_API RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle world, const Float* vertices, Int numVertices, Mat4 transform);
 	PHYSICS_API void Physics_RemoveRigidBody(PhysicsWorldHandle world, RigidBodyHandle body);
 
-	PHYSICS_API void Physics_GetRigidBodyTransform(RigidBodyHandle body, float* transformMatrix);
+	PHYSICS_API void Physics_GetRigidBodyTransform(RigidBodyHandle body, Float* transformMatrix);
 	PHYSICS_API void Physics_GetPosition(RigidBodyHandle body, Vec3* position);
 	PHYSICS_API void Physics_SetWorldTransform(RigidBodyHandle body, Mat4 transform);
 	PHYSICS_API void Physics_SetLinearVelocity(RigidBodyHandle body, Vec3 velocity);
 	PHYSICS_API void Physics_ApplyCentralImpulse(RigidBodyHandle body, Vec3 impulse);
 	PHYSICS_API void Physics_Activate(RigidBodyHandle body);
 	PHYSICS_API Vec3 Physics_GetLinearVelocity(RigidBodyHandle body);
-	PHYSICS_API void Physics_SetGravityEnabled(RigidBodyHandle body, bool enabled);
-	PHYSICS_API void Physics_ToggleCollision(PhysicsWorldHandle world, RigidBodyHandle body, bool enabled);
+	PHYSICS_API void Physics_SetGravityEnabled(RigidBodyHandle body, Bool enabled);
+	PHYSICS_API void Physics_ToggleCollision(PhysicsWorldHandle world, RigidBodyHandle body, Bool enabled);
 	PHYSICS_API void Physics_Teleport(RigidBodyHandle body, Vec3 position);
 	PHYSICS_API void Physics_RecheckCollision(PhysicsWorldHandle world, RigidBodyHandle body);
 
-	PHYSICS_API bool Physics_Raycast(PhysicsWorldHandle world, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo);
-	PHYSICS_API float Physics_GetMass(RigidBodyHandle bodyHandle);
-	PHYSICS_API void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, bool enabled, float motion_threshold);
+	PHYSICS_API Bool Physics_Raycast(PhysicsWorldHandle world, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo);
+	PHYSICS_API Float Physics_GetMass(RigidBodyHandle bodyHandle);
+	PHYSICS_API void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, Bool enabled, Float motion_threshold);
 	PHYSICS_API void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos);
-	PHYSICS_API void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const float* vertices, int numVertices, const Mat4* transform);
-	PHYSICS_API void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, bool enabled);
-	PHYSICS_API bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance);
-	PHYSICS_API float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle);
+	PHYSICS_API void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Mat4* transform);
+	PHYSICS_API void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, Bool enabled);
+	PHYSICS_API Bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Float groundCheckDistance);
+	PHYSICS_API Float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle);
 	PHYSICS_API void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity);
 
 

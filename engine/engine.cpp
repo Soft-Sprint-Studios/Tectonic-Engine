@@ -35,7 +35,7 @@
 #include "physics_wrapper.h"
 #include "editor.h"
 #include <stdlib.h>
-#include <float.h>
+#include <Float.h>
 #include "sound_system.h"
 #include "io_system.h"
 #include "binds.h"
@@ -78,22 +78,22 @@
 #include <dlfcn.h>
 #endif
 
-int g_argc_stored = 0;
-char** g_argv_stored = nullptr;
+Int g_argc_stored = 0;
+Char** g_argv_stored = nullptr;
 
-bool g_screenshot_requested = false;
-char g_screenshot_path[256] = { 0 };
-static int g_last_deactivation_cvar_state = -1;
-static int g_last_monitor_cvar_state = -1;
-static bool g_sent_initial_ipc_data = false;
-static int g_last_rawinput_cvar_state = -1;
+Bool g_screenshot_requested = false;
+Char g_screenshot_path[256] = { 0 };
+static Int g_last_deactivation_cvar_state = -1;
+static Int g_last_monitor_cvar_state = -1;
+static Bool g_sent_initial_ipc_data = false;
+static Int g_last_rawinput_cvar_state = -1;
 
-bool g_player_input_disabled = false;
+Bool g_player_input_disabled = false;
 
 #ifdef PLATFORM_WINDOWS
 static HANDLE g_hMutex = nullptr;
 #else
-static int g_lockFileFd = -1;
+static Int g_lockFileFd = -1;
 #endif
 
 static void init_scene(void);
@@ -104,35 +104,35 @@ Renderer g_renderer;
 Scene g_scene;
 EngineMode g_current_mode = MODE_GAME;
 EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
-bool g_is_editor_mode;
-bool g_quit_requested = false;
-bool g_restart_requested = false;
-int g_last_water_cvar_state = -1;
+Bool g_is_editor_mode;
+Bool g_quit_requested = false;
+Bool g_restart_requested = false;
+Int g_last_water_cvar_state = -1;
 
 static Uint32 g_fps_last_update = 0;
-static int g_fps_frame_count = 0;
-static float g_fps_display = 0.0f;
+static Int g_fps_frame_count = 0;
+static Float g_fps_display = 0.0f;
 
-static unsigned int g_frame_counter = 0;
+static Uint g_frame_counter = 0;
 
-unsigned int g_flashlight_sound_buffer = 0;
-unsigned int g_footstep_sound_buffer = 0;
-unsigned int g_jump_sound_buffer = 0;
-unsigned int g_geiger_tick_sound_buffer = 0;
-static float g_geiger_timer = 0.0f;
+Uint g_flashlight_sound_buffer = 0;
+Uint g_footstep_sound_buffer = 0;
+Uint g_jump_sound_buffer = 0;
+Uint g_geiger_tick_sound_buffer = 0;
+static Float g_geiger_timer = 0.0f;
 #define FPS_GRAPH_SAMPLES 8000
-static float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
-static int g_fps_history_index = 0;
+static Float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
+static Int g_fps_history_index = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };
-static float g_distance_walked = 0.0f;
-float FOOTSTEP_DISTANCE = 2.0f;
-static int g_current_reverb_zone_index = -1;
-static int g_last_vsync_cvar_state = -1;
-static float g_current_friction_modifier = 1.0f;
-static bool g_player_on_ladder = false;
+static Float g_distance_walked = 0.0f;
+Float FOOTSTEP_DISTANCE = 2.0f;
+static Int g_current_reverb_zone_index = -1;
+static Int g_last_vsync_cvar_state = -1;
+static Float g_current_friction_modifier = 1.0f;
+static Bool g_player_on_ladder = false;
 static Vec3 g_ladder_normal;
 
-const char* g_light_styles[] = {
+const Char* g_light_styles[] = {
     "m",
     "mmnmmommommnonmmonqnmmo",
     "abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba",
@@ -147,7 +147,7 @@ const char* g_light_styles[] = {
     "abcdefghijklmnopqrrqponmlkjihgfedcba",
     "mmnnmmnnnmmnn"
 };
-const int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
+const Int NUM_LIGHT_STYLES = sizeof(g_light_styles) / sizeof(g_light_styles[0]);
 
 void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->width = g_startup_width;
@@ -189,7 +189,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     g_engine->credits_active = false;
     g_engine->credits_text = nullptr;
     g_engine->credits_entity_index = -1;
-    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+    for (Int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
         g_engine->active_messages[i].state = TEXT_STATE_IDLE;
     }
     g_engine->prev_health = g_engine->camera.health;
@@ -215,7 +215,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     FILE* autoexec_file = fopen("autoexec.cfg", "r");
     if (autoexec_file) {
         fclose(autoexec_file);
-        char* autoexec_argv[] = { "exec", "autoexec.cfg" };
+        Char* autoexec_argv[] = { "exec", "autoexec.cfg" };
         Commands_Execute(2, autoexec_argv);
     }
     else {
@@ -297,16 +297,16 @@ void process_input() {
             if (action == MAINMENU_ACTION_START_GAME) {
                 const GameConfig* config = GameConfig_Get();
                 if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
-                    char map_name_no_ext[128];
+                    Char map_name_no_ext[128];
                     strncpy(map_name_no_ext, config->startmap, sizeof(map_name_no_ext) - 1);
                     map_name_no_ext[sizeof(map_name_no_ext) - 1] = '\0';
 
-                    char* dot = strrchr(map_name_no_ext, '.');
+                    Char* dot = strrchr(map_name_no_ext, '.');
                     if (dot) {
                         *dot = '\0';
                     }
 
-                    char* argv[] = { (char*)"map", map_name_no_ext };
+                    Char* argv[] = { (Char*)"map", map_name_no_ext };
                     Commands_Execute(2, argv);
                 }
                 else {
@@ -346,25 +346,25 @@ void process_input() {
 
                 Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
 
-                for (int i = 0; i < g_scene.numBrushes; ++i) {
+                for (Int i = 0; i < g_scene.numBrushes; ++i) {
                     Brush* brush = &g_scene.brushes[i];
                     if (strcmp(brush->classname, "func_button") == 0) {
                         Vec3 brush_local_min, brush_local_max;
                         Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
-                        float t;
+                        Float t;
                         if (RayIntersectsOBB(g_engine->camera.position, forward,
                             &brush->modelMatrix,
                             brush_local_min,
                             brush_local_max,
                             &t) && t < 3.0f) {
-                            bool is_locked = (atoi(Brush_GetProperty(brush, "locked", "0")) == 1);
+                            Bool is_locked = (atoi(Brush_GetProperty(brush, "locked", "0")) == 1);
                             if (is_locked) {
                                 IO_FireOutput(ENTITY_BRUSH, i, "OnUseLocked", g_engine->lastFrame, nullptr);
                             }
                             else {
-                                const char* delay_str = Brush_GetProperty(brush, "delay", "0");
-                                float fire_time = g_engine->lastFrame + atof(delay_str);
+                                const Char* delay_str = Brush_GetProperty(brush, "delay", "0");
+                                Float fire_time = g_engine->lastFrame + atof(delay_str);
                                 IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", fire_time, nullptr);
                             }
                         }
@@ -374,7 +374,7 @@ void process_input() {
                             Vec3 brush_local_min, brush_local_max;
                             Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
-                            float t;
+                            Float t;
                             if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                                 if (brush->door_state == DOOR_STATE_CLOSED || brush->door_state == DOOR_STATE_CLOSING) {
                                     brush->door_state = DOOR_STATE_OPENING;
@@ -390,11 +390,11 @@ void process_input() {
                         Vec3 brush_local_min, brush_local_max;
                         Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
-                        float t;
+                        Float t;
                         if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                             if (g_engine->camera.health < 100.0f) {
-                                const char* heal_str = Brush_GetProperty(brush, "heal_amount", "25");
-                                float heal_amount = atof(heal_str);
+                                const Char* heal_str = Brush_GetProperty(brush, "heal_amount", "25");
+                                Float heal_amount = atof(heal_str);
 
                                 g_engine->camera.health += heal_amount;
                                 if (g_engine->camera.health > 100.0f) {
@@ -407,15 +407,15 @@ void process_input() {
                     }
                 }
 
-                for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+                for (Int i = 0; i < g_scene.numLogicEntities; ++i) {
                     LogicEntity* ent = &g_scene.logicEntities[i];
                     if (strcmp(ent->classname, "item_note") == 0) {
-                        float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
-                        float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                        Float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
+                        Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
 
                         Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
                         vec3_normalize(&to_ent);
-                        float dot = vec3_dot(forward, to_ent);
+                        Float dot = vec3_dot(forward, to_ent);
 
                         if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
                             ExecuteInput(ent->targetname, "Use", "", &g_scene, g_engine);
@@ -452,7 +452,7 @@ void process_input() {
                 }
                 if (g_current_mode == MODE_GAME) {
                     g_current_mode = MODE_INGAMEMENU;
-                    bool map_is_currently_loaded = (g_scene.numObjects > 0 || g_scene.numBrushes > 0);
+                    Bool map_is_currently_loaded = (g_scene.numObjects > 0 || g_scene.numBrushes > 0);
                     MainMenu_SetInGameMenuMode(true, map_is_currently_loaded);
                     SDL_SetRelativeMouseMode(SDL_FALSE);
                 }
@@ -472,7 +472,7 @@ void process_input() {
 #ifndef GAME_RELEASE
             else if (event.key.keysym.sym == SDLK_F5) {
                 if (g_current_mode != MODE_MAINMENU) {
-                    char* args[] = { (char*)"edit" };
+                    Char* args[] = { (Char*)"edit" };
                     Commands_Execute(1, args);
                 }
             }
@@ -491,13 +491,13 @@ void process_input() {
                         Weapons_Switch(WEAPON_PISTOL);
                         continue;
                     }
-                    const char* command = Binds_GetCommand(event.key.keysym.sym);
+                    const Char* command = Binds_GetCommand(event.key.keysym.sym);
                     if (command) {
-                        char cmd_copy[MAX_COMMAND_LENGTH];
+                        Char cmd_copy[MAX_COMMAND_LENGTH];
                         strcpy(cmd_copy, command);
-                        char* argv[16];
-                        int argc = 0;
-                        char* p = strtok(cmd_copy, " ");
+                        Char* argv[16];
+                        Int argc = 0;
+                        Char* p = strtok(cmd_copy, " ");
                         while (p != nullptr && argc < 16) {
                             argv[argc++] = p;
                             p = strtok(nullptr, " ");
@@ -512,11 +512,11 @@ void process_input() {
 
         if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
             if (event.type == SDL_MOUSEMOTION) {
-                bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT));
-                bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
+                Bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT));
+                Bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
 
                 if (can_look_in_game || can_look_in_editor) {
-                    float sensitivity = Cvar_GetFloat("sensitivity");
+                    Float sensitivity = Cvar_GetFloat("sensitivity");
                     g_engine->camera.yaw += event.motion.xrel * 0.005f * sensitivity;
                     g_engine->camera.pitch -= event.motion.yrel * 0.005f * sensitivity;
                     if (g_engine->camera.pitch > 1.55f) g_engine->camera.pitch = 1.55f;
@@ -529,8 +529,8 @@ void process_input() {
     if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
         const Uint8* state = SDL_GetKeyboardState(nullptr);
 
-        bool noclip = Cvar_GetInt("noclip");
-        float speed = (noclip ? Cvar_GetFloat("g_noclip_speed") : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
+        Bool noclip = Cvar_GetInt("noclip");
+        Float speed = (noclip ? Cvar_GetFloat("g_noclip_speed") : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
 
         if (g_player_input_disabled) {
             if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ 0, 0, 0 });
@@ -551,7 +551,7 @@ void process_input() {
             if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
         }
         else if (g_player_on_ladder) {
-            float ladder_speed = Cvar_GetFloat("g_speed");
+            Float ladder_speed = Cvar_GetFloat("g_speed");
             Vec3 wish_vel = { 0, 0, 0 };
 
             if (state[SDL_SCANCODE_W]) {
@@ -592,7 +592,7 @@ void process_input() {
             if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
 
             vec3_normalize(&move);
-            float max_wish_speed = Cvar_GetFloat("g_speed");
+            Float max_wish_speed = Cvar_GetFloat("g_speed");
             if (state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching) {
                 max_wish_speed = Cvar_GetFloat("g_sprint_speed");
             }
@@ -600,8 +600,8 @@ void process_input() {
                 max_wish_speed *= 0.5f;
             }
 
-            float accel = Cvar_GetFloat("g_accel");
-            float friction = Cvar_GetFloat("g_friction") * g_current_friction_modifier;
+            Float accel = Cvar_GetFloat("g_accel");
+            Float friction = Cvar_GetFloat("g_friction") * g_current_friction_modifier;
 
             Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
             Vec3 current_vel_flat = { current_vel.x, 0, current_vel.z };
@@ -611,8 +611,8 @@ void process_input() {
             Vec3 vel_delta = vec3_sub(wish_vel, current_vel_flat);
 
             if (vec3_length_sq(vel_delta) > 0.0001f) {
-                float delta_speed = vec3_length(vel_delta);
-                float add_speed = delta_speed * accel * friction * g_engine->deltaTime;
+                Float delta_speed = vec3_length(vel_delta);
+                Float add_speed = delta_speed * accel * friction * g_engine->deltaTime;
 
                 if (add_speed > delta_speed) {
                     add_speed = delta_speed;
@@ -622,10 +622,10 @@ void process_input() {
             }
 
             if (vec3_length_sq(move) < 0.01f) {
-                float speed = vec3_length(current_vel_flat);
+                Float speed = vec3_length(current_vel_flat);
                 if (speed > 0.001f) {
-                    float drop = speed * friction * g_engine->deltaTime;
-                    float new_speed = speed - drop;
+                    Float drop = speed * friction * g_engine->deltaTime;
+                    Float new_speed = speed - drop;
                     if (new_speed < 0) new_speed = 0;
                     current_vel_flat = vec3_muls(current_vel_flat, new_speed / speed);
                 }
@@ -651,18 +651,18 @@ void process_input() {
 
 void update_state() {
     if (IPC_IsTConsoleConnected() && !g_sent_initial_ipc_data) {
-        for (int i = 0; i < Cvar_GetCount(); ++i) {
+        for (Int i = 0; i < Cvar_GetCount(); ++i) {
             const Cvar* c = Cvar_GetCvar(i);
             if (c && !(c->flags & CVAR_HIDDEN)) {
-                char buffer[512];
+                Char buffer[512];
                 snprintf(buffer, sizeof(buffer), "register_cvar \"%s\" \"%s\" \"%s\"", c->name, c->stringValue, c->helpText);
                 IPC_SendMessage(buffer);
             }
         }
-        for (int i = 0; i < Commands_GetCount(); ++i) {
+        for (Int i = 0; i < Commands_GetCount(); ++i) {
             const Command* cmd = Commands_GetCommand(i);
             if (cmd) {
-                char buffer[512];
+                Char buffer[512];
                 snprintf(buffer, sizeof(buffer), "register_cmd \"%s\" \"%s\"", cmd->name, cmd->description);
                 IPC_SendMessage(buffer);
             }
@@ -672,19 +672,19 @@ void update_state() {
     if (!IPC_IsTConsoleConnected()) {
         g_sent_initial_ipc_data = false;
     }
-    int current_rawinput_cvar = Cvar_GetInt("in_rawinput");
+    Int current_rawinput_cvar = Cvar_GetInt("in_rawinput");
     if (current_rawinput_cvar != g_last_rawinput_cvar_state) {
         if (!SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, current_rawinput_cvar ? "0" : "1")) {
             Console_Printf_Warning("Failed to set raw mouse input hint.");
         }
         g_last_rawinput_cvar_state = current_rawinput_cvar;
     }
-    int current_monitor_cvar = Cvar_GetInt("r_monitor");
+    Int current_monitor_cvar = Cvar_GetInt("r_monitor");
     if (current_monitor_cvar != g_last_monitor_cvar_state) {
-        int num_displays = SDL_GetNumVideoDisplays();
+        Int num_displays = SDL_GetNumVideoDisplays();
         if (current_monitor_cvar >= 0 && current_monitor_cvar < num_displays) {
             Uint32 window_flags = SDL_GetWindowFlags(g_engine->window);
-            bool is_fullscreen = (window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) || (window_flags & SDL_WINDOW_FULLSCREEN);
+            Bool is_fullscreen = (window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) || (window_flags & SDL_WINDOW_FULLSCREEN);
 
             SDL_Rect display_bounds;
             SDL_GetDisplayBounds(current_monitor_cvar, &display_bounds);
@@ -695,7 +695,7 @@ void update_state() {
                 SDL_SetWindowFullscreen(g_engine->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
             }
             else {
-                int w, h;
+                Int w, h;
                 SDL_GetWindowSize(g_engine->window, &w, &h);
                 SDL_SetWindowPosition(g_engine->window,
                     display_bounds.x + (display_bounds.w - w) / 2,
@@ -709,7 +709,7 @@ void update_state() {
     }
 
     g_is_unlit_mode = Cvar_GetInt("r_fullbright");
-    int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
+    Int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
     if (deactivation_cvar != g_last_deactivation_cvar_state) {
         if (g_engine->physicsWorld) {
             Physics_SetDeactivationEnabled(g_engine->physicsWorld, deactivation_cvar == 0);
@@ -746,13 +746,13 @@ void update_state() {
     }
     g_engine->camera.rads_per_second = 0.0f;
     if (g_current_mode == MODE_GAME) {
-        for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+        for (Int i = 0; i < g_scene.numLogicEntities; ++i) {
             LogicEntity* ent = &g_scene.logicEntities[i];
             if (strcmp(ent->classname, "point_radiation_source") == 0 && ent->runtime_active) {
-                float radius = atof(LogicEntity_GetProperty(ent, "radius", "500"));
-                float rad_s = atof(LogicEntity_GetProperty(ent, "rad_s", "10.0"));
+                Float radius = atof(LogicEntity_GetProperty(ent, "radius", "500"));
+                Float rad_s = atof(LogicEntity_GetProperty(ent, "rad_s", "10.0"));
 
-                float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
                 if (dist_sq < radius * radius) {
                     g_engine->camera.rads_per_second += rad_s / fmaxf(1.0f, dist_sq);
                 }
@@ -763,7 +763,7 @@ void update_state() {
             g_engine->camera.radiation_level += g_engine->camera.rads_per_second * g_engine->deltaTime;
         }
         else {
-            float decay_rate = 1.5f;
+            Float decay_rate = 1.5f;
             g_engine->camera.radiation_level -= decay_rate * g_engine->deltaTime;
             if (g_engine->camera.radiation_level < 0.0f) {
                 g_engine->camera.radiation_level = 0.0f;
@@ -780,8 +780,8 @@ void update_state() {
         if (g_engine->camera.rads_per_second > 0.1f) {
             g_geiger_timer -= g_engine->deltaTime;
             if (g_geiger_timer <= 0.0f) {
-                float interval = 1.0f / (1.0f + g_engine->camera.rads_per_second * 1.5f);
-                float pitch = 1.0f + (g_engine->camera.rads_per_second / 50.0f);
+                Float interval = 1.0f / (1.0f + g_engine->camera.rads_per_second * 1.5f);
+                Float pitch = 1.0f + (g_engine->camera.rads_per_second / 50.0f);
                 pitch = fminf(pitch, 3.0f);
 
                 SoundSystem_PlaySound(g_geiger_tick_sound_buffer, g_engine->camera.position, 0.5f, pitch, 10.0f, false);
@@ -790,7 +790,7 @@ void update_state() {
             }
         }
     }
-    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+    for (Int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
         GameTextMessage* msg = &g_engine->active_messages[i];
         if (msg->state == TEXT_STATE_IDLE) continue;
 
@@ -834,9 +834,9 @@ void update_state() {
         vec3_normalize(&forward);
         Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
 
-        for (int i = 0; i < g_scene.numBrushes; ++i) {
+        for (Int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* brush = &g_scene.brushes[i];
-            bool is_usable = false;
+            Bool is_usable = false;
             if (strcmp(brush->classname, "func_button") == 0) {
                 is_usable = true;
             }
@@ -853,21 +853,21 @@ void update_state() {
                 Vec3 brush_local_min, brush_local_max;
                 Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
-                float t;
+                Float t;
                 if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                     g_engine->canUse = true;
                     break;
                 }
             }
         }
-        for (int i = 0; i < g_scene.numLogicEntities; ++i) {
+        for (Int i = 0; i < g_scene.numLogicEntities; ++i) {
             LogicEntity* ent = &g_scene.logicEntities[i];
             if (strcmp(ent->classname, "item_note") == 0) {
-                float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
-                float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                Float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
+                Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
                 Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
                 vec3_normalize(&to_ent);
-                float dot = vec3_dot(forward, to_ent);
+                Float dot = vec3_dot(forward, to_ent);
 
                 if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
                     g_engine->canUse = true;
@@ -894,15 +894,15 @@ void update_state() {
     Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
     if (g_engine->active_camera_brush_index != -1) {
         Brush* cam_brush = &g_scene.brushes[g_engine->active_camera_brush_index];
-        const char* target_name = Brush_GetProperty(cam_brush, "target", "");
+        const Char* target_name = Brush_GetProperty(cam_brush, "target", "");
         Vec3 target_pos;
         Vec3 target_angles;
 
         if (IO_FindNamedEntity(&g_scene, target_name, &target_pos, &target_angles)) {
-            float moveto_time = atof(Brush_GetProperty(cam_brush, "moveto", "2.0"));
+            Float moveto_time = atof(Brush_GetProperty(cam_brush, "moveto", "2.0"));
             g_engine->camera_transition_timer += g_engine->unscaledDeltaTime;
 
-            float t = 1.0f;
+            Float t = 1.0f;
             if (moveto_time > 0.0f) {
                 t = fminf(g_engine->camera_transition_timer / moveto_time, 1.0f);
             }
@@ -912,7 +912,7 @@ void update_state() {
             g_engine->camera.pitch = g_engine->camera_original_pitch + (target_angles.x * (M_PI / 180.0f) - g_engine->camera_original_pitch) * t;
 
             if (t >= 1.0f) {
-                float hold_time = atof(Brush_GetProperty(cam_brush, "holdtime", "5.0"));
+                Float hold_time = atof(Brush_GetProperty(cam_brush, "holdtime", "5.0"));
                 if (g_engine->camera_transition_timer >= moveto_time + hold_time) {
                     ExecuteInput(cam_brush->targetname, "Disable", "", &g_scene, g_engine);
                     IO_FireOutput(ENTITY_BRUSH, g_engine->active_camera_brush_index, "OnEnd", g_engine->lastFrame, nullptr);
@@ -936,14 +936,14 @@ void update_state() {
         }
     }
     Weapons_Update(g_engine->deltaTime);
-    for (int i = 0; i < g_scene.numActiveLights; ++i) {
+    for (Int i = 0; i < g_scene.numActiveLights; ++i) {
         Light* light = &g_scene.lights[i];
 
         if (!light->is_on) {
             light->intensity = 0.0f;
         }
         else {
-            const char* style = nullptr;
+            const Char* style = nullptr;
             if (light->preset > 0 && light->preset <= 12) {
                 style = g_light_styles[light->preset];
             }
@@ -952,15 +952,15 @@ void update_state() {
             }
 
             if (style && strlen(style) > 0) {
-                int style_len = strlen(style);
+                Int style_len = strlen(style);
                 light->preset_time += g_engine->deltaTime;
                 while (light->preset_time >= 0.1f) {
                     light->preset_time -= 0.1f;
                     light->preset_index = (light->preset_index + 1) % style_len;
                 }
 
-                char c = style[light->preset_index];
-                float brightness = (float)(c - 'a') / (float)('m' - 'a');
+                Char c = style[light->preset_index];
+                Float brightness = (Float)(c - 'a') / (Float)('m' - 'a');
                 light->intensity = light->base_intensity * brightness;
             }
             else {
@@ -981,9 +981,9 @@ void update_state() {
     }
     if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
     if (Cvar_GetInt("r_particles")) {
-        float particle_cull_dist = Cvar_GetFloat("r_particles_cull_dist");
-        float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
-        for (int i = 0; i < g_scene.numParticleEmitters; ++i) {
+        Float particle_cull_dist = Cvar_GetFloat("r_particles_cull_dist");
+        Float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
+        for (Int i = 0; i < g_scene.numParticleEmitters; ++i) {
             if (vec3_length_sq(vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
                 ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
             }
@@ -993,8 +993,8 @@ void update_state() {
     Vec3 playerPos;
     Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
 
-    int new_reverb_zone_index = -1;
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    Int new_reverb_zone_index = -1;
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "trigger_dspzone") != 0) continue;
 
@@ -1014,7 +1014,7 @@ void update_state() {
         g_current_reverb_zone_index = new_reverb_zone_index;
         if (new_reverb_zone_index != -1) {
             Brush* b = &g_scene.brushes[new_reverb_zone_index];
-            const char* preset_str = Brush_GetProperty(b, "reverb_preset", "0");
+            const Char* preset_str = Brush_GetProperty(b, "reverb_preset", "0");
             SoundSystem_SetCurrentReverb((ReverbPreset)atoi(preset_str));
         }
         else {
@@ -1022,14 +1022,14 @@ void update_state() {
         }
     }
 
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strlen(b->classname) == 0 || !b->runtime_active) continue;
 
         Vec3 min_aabb, max_aabb;
         Brush_GetWorldAABB(b, &min_aabb, &max_aabb);
 
-        bool is_inside = (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
+        Bool is_inside = (playerPos.x >= min_aabb.x && playerPos.x <= max_aabb.x &&
             playerPos.y >= min_aabb.y && playerPos.y <= max_aabb.y &&
             playerPos.z >= min_aabb.z && playerPos.z <= max_aabb.z);
 
@@ -1037,19 +1037,19 @@ void update_state() {
             b->runtime_playerIsTouching = true;
             if (strcmp(b->classname, "trigger_once") == 0) {
                 if (!b->runtime_hasFired) {
-                    const char* delay_str = Brush_GetProperty(b, "delay", "0");
-                    float fire_time = g_engine->lastFrame + atof(delay_str);
+                    const Char* delay_str = Brush_GetProperty(b, "delay", "0");
+                    Float fire_time = g_engine->lastFrame + atof(delay_str);
                     IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, nullptr);
                     b->runtime_hasFired = true;
                 }
             }
             else if (strcmp(b->classname, "trigger_multiple") == 0) {
-                const char* delay_str = Brush_GetProperty(b, "delay", "0");
-                float fire_time = g_engine->lastFrame + atof(delay_str);
+                const Char* delay_str = Brush_GetProperty(b, "delay", "0");
+                Float fire_time = g_engine->lastFrame + atof(delay_str);
                 IO_FireOutput(ENTITY_BRUSH, i, "OnStartTouch", fire_time, nullptr);
             }
             else if (strcmp(b->classname, "trigger_teleport") == 0) {
-                const char* target_name = Brush_GetProperty(b, "target", "");
+                const Char* target_name = Brush_GetProperty(b, "target", "");
                 Vec3 target_pos;
                 Vec3 target_angles;
                 if (strlen(target_name) > 0 && IO_FindNamedEntity(&g_scene, target_name, &target_pos, &target_angles)) {
@@ -1072,11 +1072,11 @@ void update_state() {
         }
         else if (strcmp(b->classname, "trigger_autosave") == 0) {
             if (!b->runtime_hasFired) {
-                char save_name[128];
+                Char save_name[128];
                 time_t now = time(nullptr);
                 strftime(save_name, sizeof(save_name), "autosave_%Y%m%d_%H%M%S", localtime(&now));
 
-                char* argv[] = { (char*)"save", save_name };
+                Char* argv[] = { (Char*)"save", save_name };
                 Cmd_SaveGame(2, argv);
 
                 b->runtime_hasFired = true;
@@ -1089,8 +1089,8 @@ void update_state() {
             }
         }
         if (is_inside && strcmp(b->classname, "trigger_hurt") == 0) {
-            const char* damage_str = Brush_GetProperty(b, "damage", "10");
-            float damage_per_second = atof(damage_str);
+            const Char* damage_str = Brush_GetProperty(b, "damage", "10");
+            Float damage_per_second = atof(damage_str);
             if (Cvar_GetInt("god") == 0) {
                 g_engine->camera.health -= damage_per_second * g_engine->deltaTime;
             }
@@ -1104,14 +1104,14 @@ void update_state() {
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
     vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, Vec3{ 0, 1, 0 });
     SoundSystem_Update();
-    bool noclip = Cvar_GetInt("noclip");
+    Bool noclip = Cvar_GetInt("noclip");
     if (!noclip) {
         Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-        bool on_ground = fabs(vel.y) < 0.1f;
+        Bool on_ground = fabs(vel.y) < 0.1f;
 
         if (on_ground) {
-            float dx = g_engine->camera.position.x - g_last_player_pos.x;
-            float dz = g_engine->camera.position.z - g_last_player_pos.z;
+            Float dx = g_engine->camera.position.x - g_last_player_pos.x;
+            Float dz = g_engine->camera.position.z - g_last_player_pos.z;
             g_distance_walked += sqrtf(dx * dx + dz * dz);
 
             if (g_distance_walked >= FOOTSTEP_DISTANCE) {
@@ -1126,39 +1126,39 @@ void update_state() {
         g_last_player_pos = g_engine->camera.position;
     }
     if (g_engine->physicsWorld) {
-        for (int i = 0; i < g_scene.numBrushes; ++i) {
+        for (Int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* b = &g_scene.brushes[i];
             // This causes some problems where the player floats in the air temporarily disable
             //if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
-            //    Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const float*)b->vertices, b->numVertices, &b->modelMatrix);
+            //    Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const Float*)b->vertices, b->numVertices, &b->modelMatrix);
             //}
         }
     }
     g_current_friction_modifier = 1.0f;
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_friction") == 0 && b->runtime_playerIsTouching) {
-            const char* modifier_str = Brush_GetProperty(b, "modifier", "100");
-            float modifier = atof(modifier_str);
+            const Char* modifier_str = Brush_GetProperty(b, "modifier", "100");
+            Float modifier = atof(modifier_str);
             g_current_friction_modifier = modifier / 100.0f;
             break;
         }
     }
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_conveyor") != 0) continue;
 
-        const char* speed_str = Brush_GetProperty(b, "speed", "0");
-        float speed = atof(speed_str);
+        const Char* speed_str = Brush_GetProperty(b, "speed", "0");
+        Float speed = atof(speed_str);
         if (speed == 0.0f) continue;
 
-        const char* dir_str = Brush_GetProperty(b, "direction", "0 0 0");
-        float pitch, yaw, roll;
+        const Char* dir_str = Brush_GetProperty(b, "direction", "0 0 0");
+        Float pitch, yaw, roll;
         sscanf(dir_str, "%f %f %f", &pitch, &yaw, &roll);
 
-        float pitch_rad = pitch * (M_PI / 180.0f);
-        float yaw_rad = yaw * (M_PI / 180.0f);
-        float roll_rad = roll * (M_PI / 180.0f);
+        Float pitch_rad = pitch * (M_PI / 180.0f);
+        Float yaw_rad = yaw * (M_PI / 180.0f);
+        Float roll_rad = roll * (M_PI / 180.0f);
 
         Mat4 rot_x_mat = mat4_rotate_x(pitch_rad);
         Mat4 rot_y_mat = mat4_rotate_y(yaw_rad);
@@ -1181,7 +1181,7 @@ void update_state() {
         if (b->numVertices > 0) {
             Brush_GetWorldAABB(b, &conveyor_min, &conveyor_max);
 
-            for (int obj_idx = 0; obj_idx < g_scene.numObjects; ++obj_idx) {
+            for (Int obj_idx = 0; obj_idx < g_scene.numObjects; ++obj_idx) {
                 SceneObject* obj = &g_scene.objects[obj_idx];
                 if (obj->mass > 0.0f) {
                     Vec3 obj_pos = obj->pos;
@@ -1198,7 +1198,7 @@ void update_state() {
         }
     }
     g_player_on_ladder = false;
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_ladder") == 0 && b->runtime_playerIsTouching) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -1212,11 +1212,11 @@ void update_state() {
             }
         }
     }
-    bool in_gravity_zone = false;
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    Bool in_gravity_zone = false;
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "trigger_gravity") == 0 && b->runtime_playerIsTouching) {
-            float gravity_val = atof(Brush_GetProperty(b, "gravity", "9.81"));
+            Float gravity_val = atof(Brush_GetProperty(b, "gravity", "9.81"));
             Physics_SetGravity(g_engine->physicsWorld, Vec3{ 0, -gravity_val, 0 });
             in_gravity_zone = true;
             break;
@@ -1248,31 +1248,31 @@ void update_state() {
         g_engine->camera.position.x = p.x;
         g_engine->camera.position.z = p.z;
 
-        float target_height = g_engine->camera.isCrouching ? Cvar_GetFloat("g_crouch_height") : PLAYER_HEIGHT_NORMAL;
-        float crouch_speed = 10.0f;
+        Float target_height = g_engine->camera.isCrouching ? Cvar_GetFloat("g_crouch_height") : PLAYER_HEIGHT_NORMAL;
+        Float crouch_speed = 10.0f;
 
         g_engine->camera.currentHeight += (target_height - g_engine->camera.currentHeight) * g_engine->deltaTime * crouch_speed;
 
-        float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
+        Float eyeHeightOffsetFromCenter = (g_engine->camera.currentHeight / 2.0f) * 0.85f;
         g_engine->camera.position.y = p.y + eyeHeightOffsetFromCenter;
     }
 
     if (!noclip) {
         Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-        bool on_ground = Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
+        Bool on_ground = Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
 
         if (on_ground && g_engine->prev_player_y_velocity < -1.0f) {
-            float fall_speed = -g_engine->prev_player_y_velocity;
+            Float fall_speed = -g_engine->prev_player_y_velocity;
 
-            const float min_fall_speed_for_damage = 10.0f;
-            const float max_fall_speed_for_damage = 30.0f;
-            const float max_damage = 100.0f;
+            const Float min_fall_speed_for_damage = 10.0f;
+            const Float max_fall_speed_for_damage = 30.0f;
+            const Float max_damage = 100.0f;
 
             if (fall_speed > min_fall_speed_for_damage) {
-                float damage_lerp_factor = (fall_speed - min_fall_speed_for_damage) / (max_fall_speed_for_damage - min_fall_speed_for_damage);
+                Float damage_lerp_factor = (fall_speed - min_fall_speed_for_damage) / (max_fall_speed_for_damage - min_fall_speed_for_damage);
                 damage_lerp_factor = fmaxf(0.0f, fminf(1.0f, damage_lerp_factor));
 
-                float damage = damage_lerp_factor * max_damage;
+                Float damage = damage_lerp_factor * max_damage;
 
                 if (Cvar_GetInt("god") == 0) {
                     g_engine->camera.health -= damage;
@@ -1281,7 +1281,7 @@ void update_state() {
         }
         g_engine->prev_player_y_velocity = current_vel.y;
     }
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_door") == 0) {
             if (vec3_length_sq(b->door_move_dir) < 0.001f) {
@@ -1296,13 +1296,13 @@ void update_state() {
                     b->door_move_dir = Vec3{ 0, -1, 0 };
                 }
                 else {
-                    float yaw_rad = move_angles.y * (M_PI / 180.0f);
+                    Float yaw_rad = move_angles.y * (M_PI / 180.0f);
                     b->door_move_dir.x = cosf(yaw_rad);
                     b->door_move_dir.y = 0.0f;
                     b->door_move_dir.z = -sinf(yaw_rad);
                 }
 
-                float move_dist = atof(Brush_GetProperty(b, "distance", "0"));
+                Float move_dist = atof(Brush_GetProperty(b, "distance", "0"));
 
                 if (move_dist <= 0) {
                     Vec3 min_aabb_local, max_aabb_local;
@@ -1324,11 +1324,11 @@ void update_state() {
                 if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
 
-            float speed = atof(Brush_GetProperty(b, "speed", "100"));
+            Float speed = atof(Brush_GetProperty(b, "speed", "100"));
             if (b->door_state == DOOR_STATE_OPENING) {
                 Vec3 to_end = vec3_sub(b->door_end_pos, b->pos);
-                float dist_to_end = vec3_length(to_end);
-                float move_dist = speed * g_engine->deltaTime;
+                Float dist_to_end = vec3_length(to_end);
+                Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_end) {
                     b->pos = b->door_end_pos;
@@ -1343,8 +1343,8 @@ void update_state() {
             }
             else if (b->door_state == DOOR_STATE_CLOSING) {
                 Vec3 to_start = vec3_sub(b->door_start_pos, b->pos);
-                float dist_to_start = vec3_length(to_start);
-                float move_dist = speed * g_engine->deltaTime;
+                Float dist_to_start = vec3_length(to_start);
+                Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_start) {
                     b->pos = b->door_start_pos;
@@ -1368,12 +1368,12 @@ void update_state() {
             }
         }
         if (strcmp(b->classname, "func_rotating") == 0 && b->runtime_active) {
-            bool use_accel = atoi(Brush_GetProperty(b, "AccDcc", "0")) != 0;
+            Bool use_accel = atoi(Brush_GetProperty(b, "AccDcc", "0")) != 0;
 
             if (use_accel) {
-                float friction = atof(Brush_GetProperty(b, "fanfriction", "0"));
-                float accel_factor = 1.0f - (friction / 100.0f);
-                float lerp_speed = 2.0f + (accel_factor * 8.0f);
+                Float friction = atof(Brush_GetProperty(b, "fanfriction", "0"));
+                Float accel_factor = 1.0f - (friction / 100.0f);
+                Float lerp_speed = 2.0f + (accel_factor * 8.0f);
                 b->current_angular_velocity = vec3_lerp(Vec3{ b->current_angular_velocity, 0, 0 }, Vec3{ b->target_angular_velocity, 0, 0 }, g_engine->deltaTime* lerp_speed).x;
             }
             else {
@@ -1385,7 +1385,7 @@ void update_state() {
                 if (atoi(Brush_GetProperty(b, "XAxis", "0")) != 0) rotation_axis = Vec3{ 1, 0, 0 };
                 if (atoi(Brush_GetProperty(b, "YAxis", "0")) != 0) rotation_axis = Vec3{ 0, 1, 0 };
 
-                float deg_per_sec = b->current_angular_velocity;
+                Float deg_per_sec = b->current_angular_velocity;
                 Vec3 delta_rot = vec3_muls(rotation_axis, deg_per_sec * g_engine->deltaTime);
                 b->rot = vec3_add(b->rot, delta_rot);
 
@@ -1400,12 +1400,12 @@ void update_state() {
             }
         }
     }
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_plat") == 0 && b->runtime_active) {
-            float speed = atof(Brush_GetProperty(b, "speed", "150"));
-            float wait = atof(Brush_GetProperty(b, "wait", "3"));
-            bool is_trigger = atoi(Brush_GetProperty(b, "is_trigger", "0")) != 0;
+            Float speed = atof(Brush_GetProperty(b, "speed", "150"));
+            Float wait = atof(Brush_GetProperty(b, "wait", "3"));
+            Bool is_trigger = atoi(Brush_GetProperty(b, "is_trigger", "0")) != 0;
 
             if (!is_trigger && b->runtime_playerIsTouching && b->plat_state == PLAT_STATE_BOTTOM) {
                 b->plat_state = PLAT_STATE_UP;
@@ -1413,8 +1413,8 @@ void update_state() {
 
             if (b->plat_state == PLAT_STATE_UP) {
                 Vec3 to_end = vec3_sub(b->end_pos, b->pos);
-                float dist_to_end = vec3_length(to_end);
-                float move_dist = speed * g_engine->deltaTime;
+                Float dist_to_end = vec3_length(to_end);
+                Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_end) {
                     b->pos = b->end_pos;
@@ -1427,8 +1427,8 @@ void update_state() {
             }
             else if (b->plat_state == PLAT_STATE_DOWN) {
                 Vec3 to_start = vec3_sub(b->start_pos, b->pos);
-                float dist_to_start = vec3_length(to_start);
-                float move_dist = speed * g_engine->deltaTime;
+                Float dist_to_start = vec3_length(to_start);
+                Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_start) {
                     b->pos = b->start_pos;
@@ -1468,10 +1468,10 @@ void update_state() {
             }
 
             if (b->runtime_active) {
-                float speed = atof(Brush_GetProperty(b, "speed", "1.0"));
-                float distance = atof(Brush_GetProperty(b, "distance", "10.0"));
+                Float speed = atof(Brush_GetProperty(b, "speed", "1.0"));
+                Float distance = atof(Brush_GetProperty(b, "distance", "10.0"));
 
-                float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * M_PI);
+                Float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * M_PI);
                 Vec3 offset = vec3_muls(b->pendulum_swing_dir, sine_wave_pos * distance);
 
                 b->pos = vec3_add(b->pendulum_start_pos, offset);
@@ -1484,10 +1484,10 @@ void update_state() {
         }
         if (strcmp(b->classname, "func_weight_button") == 0) {
             if (b->physicsBody) {
-                float required_weight = atof(Brush_GetProperty(b, "weight", "50"));
-                float current_weight = Physics_GetTotalMassOnObject(g_engine->physicsWorld, b->physicsBody);
+                Float required_weight = atof(Brush_GetProperty(b, "weight", "50"));
+                Float current_weight = Physics_GetTotalMassOnObject(g_engine->physicsWorld, b->physicsBody);
 
-                bool is_pressed = current_weight >= required_weight;
+                Bool is_pressed = current_weight >= required_weight;
 
                 if (is_pressed && !b->runtime_was_pressed) {
                     IO_FireOutput(ENTITY_BRUSH, i, "OnPressed", g_engine->lastFrame, nullptr);
@@ -1501,7 +1501,7 @@ void update_state() {
         }
     }
     g_scene.post.isUnderwater = false;
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_water") != 0) continue;
 
@@ -1518,10 +1518,10 @@ void update_state() {
         }
     }
     if (g_current_mode == MODE_GAME) {
-        for (int i = 0; i < g_scene.numObjects; ++i) {
+        for (Int i = 0; i < g_scene.numObjects; ++i) {
             SceneObject* obj = &g_scene.objects[i];
             if (obj->physicsBody && obj->mass > 0.0f) {
-                float phys_matrix_data[16];
+                Float phys_matrix_data[16];
                 Physics_GetRigidBodyTransform(obj->physicsBody, phys_matrix_data);
                 Mat4 physics_transform;
                 memcpy(&physics_transform, phys_matrix_data, sizeof(Mat4));
@@ -1530,10 +1530,10 @@ void update_state() {
                 mat4_decompose(&obj->modelMatrix, &obj->pos, &obj->rot, &obj->scale);
             }
         }
-        for (int i = 0; i < g_scene.numBrushes; ++i) {
+        for (Int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* b = &g_scene.brushes[i];
             if (b->physicsBody && b->mass > 0.0f) {
-                float phys_matrix_data[16];
+                Float phys_matrix_data[16];
                 Physics_GetRigidBodyTransform(b->physicsBody, phys_matrix_data);
                 memcpy(&b->modelMatrix, phys_matrix_data, sizeof(Mat4));
             }
@@ -1543,22 +1543,22 @@ void update_state() {
 
 void cleanup() {
     Physics_DestroyWorld(g_engine->physicsWorld);
-    for (int i = 0; i < g_scene.numParticleEmitters; i++) {
+    for (Int i = 0; i < g_scene.numParticleEmitters; i++) {
         ParticleEmitter_Free(&g_scene.particleEmitters[i]);
         ParticleSystem_Free(g_scene.particleEmitters[i].system);
     }
-    for (int i = 0; i < g_scene.numParallaxRooms; ++i) {
+    for (Int i = 0; i < g_scene.numParallaxRooms; ++i) {
         if (g_scene.parallaxRooms[i].cubemapTexture) glDeleteTextures(1, &g_scene.parallaxRooms[i].cubemapTexture);
     }
-    for (int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
-    for (int i = 0; i < g_scene.numBrushes; ++i) {
+    for (Int i = 0; i < g_scene.numActiveLights; i++) Light_DestroyShadowMap(&g_scene.lights[i]);
+    for (Int i = 0; i < g_scene.numBrushes; ++i) {
         if (strcmp(g_scene.brushes[i].classname, "env_reflectionprobe") == 0) {
             glDeleteTextures(1, &g_scene.brushes[i].cubemapTexture);
         }
         Brush_FreeData(&g_scene.brushes[i]);
     }
     if (g_scene.objects) {
-        for (int i = 0; i < g_scene.numObjects; ++i) {
+        for (Int i = 0; i < g_scene.numObjects; ++i) {
             if (g_scene.objects[i].model) Model_Free(g_scene.objects[i].model);
         }
         free(g_scene.objects);
@@ -1609,11 +1609,11 @@ void cleanup() {
     SDL_Quit();
 }
 
-static int Engine_Initialize(int argc, char* argv[]) {
+static Int Engine_Initialize(Int argc, Char* argv[]) {
     GameConfig_ParseCommandLine(argc, argv);
 
 #ifdef ENABLE_CHECKSUM
-    char dllPath[1024];
+    Char dllPath[1024];
 #ifdef PLATFORM_WINDOWS
     HMODULE hModule = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -1633,7 +1633,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
 
 #ifdef PLATFORM_WINDOWS
     if (!g_allow_multiple_instances) {
-        const char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
+        const Char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
         g_hMutex = CreateMutex(nullptr, TRUE, mutexName);
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
@@ -1643,7 +1643,7 @@ static int Engine_Initialize(int argc, char* argv[]) {
     }
 #else
     if (!g_allow_multiple_instances) {
-        const char* lockFilePath = "/tmp/TectonicEngine.lock";
+        const Char* lockFilePath = "/tmp/TectonicEngine.lock";
         g_lockFileFd = open(lockFilePath, O_CREAT | O_RDWR, 0666);
         if (g_lockFileFd == -1) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Lock File Error", "Could not create or open the lock file.", nullptr);
@@ -1676,7 +1676,7 @@ static SDL_Window* Engine_CreateWindow() {
     Uint32 window_flags = SDL_WINDOW_OPENGL;
     if (g_start_fullscreen && !g_start_windowed) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    for (int i = 1; i < g_argc_stored; ++i) {
+    for (Int i = 1; i < g_argc_stored; ++i) {
         if (_stricmp(g_argv_stored[i], "-w") == 0 && i + 1 < g_argc_stored) g_startup_width = atoi(g_argv_stored[++i]);
         if (_stricmp(g_argv_stored[i], "-h") == 0 && i + 1 < g_argc_stored) g_startup_height = atoi(g_argv_stored[++i]);
     }
@@ -1705,7 +1705,7 @@ static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
 }
 
 static void Engine_RenderGame() {
-    char details_str[128];
+    Char details_str[128];
     sprintf(details_str, "Map: %s", g_scene.mapPath);
     Discord_Update("Playing", details_str);
 
@@ -1719,17 +1719,17 @@ static void Engine_RenderGame() {
     Mat4 view = mat4_lookAt(g_engine->camera.position, target, Vec3{ 0, 1, 0 });
 
     if (g_engine->shake_amplitude > 0.0f) {
-        float shake_offset_x = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
-        float shake_offset_y = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        Float shake_offset_x = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        Float shake_offset_y = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
         Mat4 shake_matrix = mat4_translate(Vec3{ shake_offset_x, shake_offset_y, 0.0f });
         mat4_multiply(&view, &shake_matrix, &view);
     }
 
     Vec3 velocity = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-    float speed = sqrtf(velocity.x * velocity.x + velocity.z * velocity.z);
+    Float speed = sqrtf(velocity.x * velocity.x + velocity.z * velocity.z);
     if (speed > 0.1f) {
-        float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
-        float bob_amt = Cvar_GetFloat("g_bob");
+        Float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
+        Float bob_amt = Cvar_GetFloat("g_bob");
 
         Mat4 bob_matrix;
         mat4_identity(&bob_matrix);
@@ -1740,9 +1740,9 @@ static void Engine_RenderGame() {
     }
 
     const Uint8* k_state = SDL_GetKeyboardState(nullptr);
-    float target_fov_offset = 0.0f;
-    float base_fov = Cvar_GetFloat("fov_vertical");
-    bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
+    Float target_fov_offset = 0.0f;
+    Float base_fov = Cvar_GetFloat("fov_vertical");
+    Bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
 
     if (is_zoomed) {
         target_fov_offset = Cvar_GetFloat("g_zoom_fov") - base_fov;
@@ -1751,12 +1751,12 @@ static void Engine_RenderGame() {
         target_fov_offset = Cvar_GetFloat("g_sprint_fov");
     }
 
-    float zoom_speed = Cvar_GetFloat("g_zoom_speed");
+    Float zoom_speed = Cvar_GetFloat("g_zoom_speed");
     g_engine->current_fov_offset += (target_fov_offset - g_engine->current_fov_offset) * g_engine->deltaTime * zoom_speed;
 
-    float roll_max = Cvar_GetFloat("g_roll_angle");
-    float roll_speed = Cvar_GetFloat("g_roll_speed");
-    float target_roll = 0.0f;
+    Float roll_max = Cvar_GetFloat("g_roll_angle");
+    Float roll_speed = Cvar_GetFloat("g_roll_speed");
+    Float target_roll = 0.0f;
     if (k_state[SDL_SCANCODE_A]) target_roll = roll_max;
     if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
 
@@ -1764,9 +1764,9 @@ static void Engine_RenderGame() {
     Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (M_PI / 180.0f));
     mat4_multiply(&view, &roll_mat, &view);
 
-    float fov_degrees = Cvar_GetFloat("fov_vertical");
+    Float fov_degrees = Cvar_GetFloat("fov_vertical");
     Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (M_PI / 180.f),
-        (float)g_engine->width / (float)g_engine->height, 0.1f, 1000.f);
+        (Float)g_engine->width / (Float)g_engine->height, 0.1f, 1000.f);
 
     Mat4 sunLightSpaceMatrix;
     mat4_identity(&sunLightSpaceMatrix);
@@ -1801,8 +1801,8 @@ static void Engine_RenderGame() {
 
     MiscRender_AutoexposurePass(&g_renderer, g_engine);
 
-    const int LOW_RES_WIDTH = g_engine->width / Cvar_GetFloat("r_geometry_downsample");
-    const int LOW_RES_HEIGHT = g_engine->height / Cvar_GetFloat("r_geometry_downsample");
+    const Int LOW_RES_WIDTH = g_engine->width / Cvar_GetFloat("r_geometry_downsample");
+    const Int LOW_RES_HEIGHT = g_engine->height / Cvar_GetFloat("r_geometry_downsample");
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_renderer.gBufferFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_renderer.finalRenderFBO);
     glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, g_engine->width, g_engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -1826,7 +1826,7 @@ static void Engine_RenderGame() {
     GLuint source_fbo = write_fbo;
     GLuint source_tex = (source_fbo == g_renderer.finalRenderFBO) ? g_renderer.finalRenderTexture : g_renderer.postProcessTexture;
 
-    bool debug_view_active = false;
+    Bool debug_view_active = false;
     if (Cvar_GetInt("r_debug_albedo")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gAlbedo, 5); debug_view_active = true; }
     else if (Cvar_GetInt("r_debug_normals")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gNormal, 5); debug_view_active = true; }
     else if (Cvar_GetInt("r_debug_position")) { Renderer_RenderDebugBuffer(&g_renderer, g_engine, g_renderer.gPosition, 5); debug_view_active = true; }
@@ -1845,15 +1845,15 @@ static void Engine_RenderGame() {
     mat4_multiply(&currentViewProjection, &projection, &view);
     g_renderer.prevViewProjection = currentViewProjection;
 
-    const char* texts[MAX_GAME_TEXT_MESSAGES];
-    float positions_x[MAX_GAME_TEXT_MESSAGES];
-    float positions_y[MAX_GAME_TEXT_MESSAGES];
+    const Char* texts[MAX_GAME_TEXT_MESSAGES];
+    Float positions_x[MAX_GAME_TEXT_MESSAGES];
+    Float positions_y[MAX_GAME_TEXT_MESSAGES];
     Vec4 colors[MAX_GAME_TEXT_MESSAGES];
-    float alphas[MAX_GAME_TEXT_MESSAGES];
-    int states[MAX_GAME_TEXT_MESSAGES];
-    float scales[MAX_GAME_TEXT_MESSAGES];
+    Float alphas[MAX_GAME_TEXT_MESSAGES];
+    Int states[MAX_GAME_TEXT_MESSAGES];
+    Float scales[MAX_GAME_TEXT_MESSAGES];
 
-    for (int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+    for (Int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
         texts[i] = g_engine->active_messages[i].text;
         positions_x[i] = g_engine->active_messages[i].x;
         positions_y[i] = g_engine->active_messages[i].y;
@@ -1909,7 +1909,7 @@ static void Engine_RunLoop(SDL_Window* window) {
             g_pending_mode_transition = TRANSITION_NONE;
         }
 
-        float currentFrame = (float)SDL_GetTicks() / 1000.0f;
+        Float currentFrame = (Float)SDL_GetTicks() / 1000.0f;
         g_engine->unscaledDeltaTime = currentFrame - g_engine->lastFrame;
         g_engine->lastFrame = currentFrame;
 
@@ -1924,7 +1924,7 @@ static void Engine_RunLoop(SDL_Window* window) {
 
         Uint32 currentTicks = SDL_GetTicks();
         if (currentTicks - g_fps_last_update >= 1000) {
-            g_fps_display = (float)g_fps_frame_count / ((float)(currentTicks - g_fps_last_update) / 1000.0f);
+            g_fps_display = (Float)g_fps_frame_count / ((Float)(currentTicks - g_fps_last_update) / 1000.0f);
             g_fps_last_update = currentTicks;
             g_fps_frame_count = 0;
         }
@@ -1976,10 +1976,10 @@ static void Engine_RunLoop(SDL_Window* window) {
         g_frame_counter++;
         UI_EndFrame(window);
 
-        int vsync_enabled = Cvar_GetInt("r_vsync");
-        int fps_max = Cvar_GetInt("fps_max");
+        Int vsync_enabled = Cvar_GetInt("r_vsync");
+        Int fps_max = Cvar_GetInt("fps_max");
         if (vsync_enabled == 0 && fps_max > 0) {
-            float targetFrameTimeMs = 1000.0f / (float)fps_max;
+            Float targetFrameTimeMs = 1000.0f / (Float)fps_max;
             Uint32 frameTicks = SDL_GetTicks() - frameStartTicks;
             if (frameTicks < targetFrameTimeMs) 
                 SDL_Delay((Uint32)(targetFrameTimeMs - frameTicks));
@@ -1996,7 +1996,7 @@ static void Engine_Cleanup() {
 #endif
 }
 
-ENGINE_API int Engine_Main(int argc, char* argv[]) {
+ENGINE_API Int Engine_Main(Int argc, Char* argv[]) {
     g_argc_stored = argc;
     g_argv_stored = argv;
 

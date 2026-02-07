@@ -45,14 +45,14 @@
     extern Renderer g_renderer;
     extern Scene g_scene;
     extern EngineMode g_current_mode;
-    extern int g_last_water_cvar_state;
+    extern Int g_last_water_cvar_state;
     extern EngineModeTransition g_pending_mode_transition;
-    extern bool g_player_input_disabled;
-    extern bool g_screenshot_requested;
-    extern bool g_quit_requested;
-    extern bool g_restart_requested;
-    extern char g_screenshot_path[256];
-    extern bool g_is_editor_mode;
+    extern Bool g_player_input_disabled;
+    extern Bool g_screenshot_requested;
+    extern Bool g_quit_requested;
+    extern Bool g_restart_requested;
+    extern Char g_screenshot_path[256];
+    extern Bool g_is_editor_mode;
 
 
 #endif // ENGINE_H

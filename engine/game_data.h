@@ -48,43 +48,43 @@
     } TGD_PropertyType;
 
     typedef struct {
-        char value[64];
-        char display_name[128];
+        Char value[64];
+        Char display_name[128];
     } TGD_Choice;
 
     typedef struct {
-        char key[64];
-        char display_name[128];
-        char default_value[1024];
+        Char key[64];
+        Char display_name[128];
+        Char default_value[1024];
         TGD_PropertyType type;
         TGD_Choice* choices;
-        int num_choices;
+        Int num_choices;
     } TGD_Property;
 
     typedef struct {
-        char name[64];
-        char description[128];
+        Char name[64];
+        Char description[128];
     } TGD_IO;
 
     typedef struct {
-        char classname[64];
+        Char classname[64];
         EntityType base_type;
 
         TGD_Property properties[MAX_TGD_PROPERTIES];
-        int num_properties;
+        Int num_properties;
 
         TGD_IO inputs[MAX_TGD_IOS];
-        int num_inputs;
+        Int num_inputs;
 
         TGD_IO outputs[MAX_TGD_IOS];
-        int num_outputs;
+        Int num_outputs;
     } TGD_EntityDef;
 
-    void GameData_Init(const char* filepath);
+    void GameData_Init(const Char* filepath);
     void GameData_Shutdown(void);
-    const TGD_EntityDef* GameData_FindEntityDef(const char* classname);
-    const char** GameData_GetBrushEntityClassnames(int* count);
-    const char** GameData_GetLogicEntityClassnames(int* count);
+    const TGD_EntityDef* GameData_FindEntityDef(const Char* classname);
+    const Char** GameData_GetBrushEntityClassnames(Int* count);
+    const Char** GameData_GetLogicEntityClassnames(Int* count);
 
 
 #endif // GAME_DATA_H

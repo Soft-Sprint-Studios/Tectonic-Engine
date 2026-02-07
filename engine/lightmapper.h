@@ -28,7 +28,7 @@
 #include "map.h"
 
 
-	void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int bounces);
+	void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int bounces);
 
 
 #endif // LIGHTMAPPER_H

@@ -42,23 +42,23 @@ typedef enum {
 
 typedef struct {
     ActionType type;
-    char description[64];
+    Char description[64];
     EntityState* before_states;
-    int num_before_states;
+    Int num_before_states;
     EntityState* after_states;
-    int num_after_states;
+    Int num_after_states;
 } Action;
 
 static Action* g_undo_stack[MAX_UNDO_ACTIONS];
 static Action* g_redo_stack[MAX_UNDO_ACTIONS];
-static int g_undo_top = -1;
-static int g_redo_top = -1;
+static Int g_undo_top = -1;
+static Int g_redo_top = -1;
 
 static EntityState* g_multi_before_states = nullptr;
-static int g_num_multi_before_states = 0;
-static bool g_is_modifying = false;
+static Int g_num_multi_before_states = 0;
+static Bool g_is_modifying = false;
 
-void _raw_delete_model(Scene* scene, int index, Engine* engine) {
+void _raw_delete_model(Scene* scene, Int index, Engine* engine) {
     if (index < 0 || index >= scene->numObjects) return;
 
     SceneObject* obj_to_delete = &scene->objects[index];
@@ -83,7 +83,7 @@ void _raw_delete_model(Scene* scene, int index, Engine* engine) {
     }
 }
 
-void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
+void _raw_delete_brush(Scene* scene, Engine* engine, Int index) {
     if (index < 0 || index >= scene->numBrushes) return;
 
     Brush_FreeData(&scene->brushes[index]);
@@ -103,57 +103,57 @@ void _raw_delete_brush(Scene* scene, Engine* engine, int index) {
     scene->numBrushes--;
 }
 
-void _raw_delete_light(Scene* scene, int index) {
+void _raw_delete_light(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numActiveLights) return;
     Light_DestroyShadowMap(&scene->lights[index]);
-    for (int i = index; i < scene->numActiveLights - 1; ++i) scene->lights[i] = scene->lights[i + 1];
+    for (Int i = index; i < scene->numActiveLights - 1; ++i) scene->lights[i] = scene->lights[i + 1];
     scene->numActiveLights--;
 }
 
-void _raw_delete_decal(Scene* scene, int index) {
+void _raw_delete_decal(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numDecals) return;
-    for (int i = index; i < scene->numDecals - 1; ++i) scene->decals[i] = scene->decals[i + 1];
+    for (Int i = index; i < scene->numDecals - 1; ++i) scene->decals[i] = scene->decals[i + 1];
     scene->numDecals--;
 }
 
-void _raw_delete_sound_entity(Scene* scene, int index) {
+void _raw_delete_sound_entity(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numSoundEntities) return;
     if (scene->soundEntities[index].sourceID != 0) SoundSystem_DeleteSource(scene->soundEntities[index].sourceID);
-    for (int i = index; i < scene->numSoundEntities - 1; ++i) scene->soundEntities[i] = scene->soundEntities[i + 1];
+    for (Int i = index; i < scene->numSoundEntities - 1; ++i) scene->soundEntities[i] = scene->soundEntities[i + 1];
     scene->numSoundEntities--;
 }
 
-void _raw_delete_particle_emitter(Scene* scene, int index) {
+void _raw_delete_particle_emitter(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numParticleEmitters) return;
     ParticleEmitter_Free(&scene->particleEmitters[index]);
     if (scene->particleEmitters[index].system) ParticleSystem_Free(scene->particleEmitters[index].system);
-    for (int i = index; i < scene->numParticleEmitters - 1; ++i) scene->particleEmitters[i] = scene->particleEmitters[i + 1];
+    for (Int i = index; i < scene->numParticleEmitters - 1; ++i) scene->particleEmitters[i] = scene->particleEmitters[i + 1];
     scene->numParticleEmitters--;
 }
 
-void _raw_delete_sprite(Scene* scene, int index) {
+void _raw_delete_sprite(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numSprites) return;
-    for (int i = index; i < scene->numSprites - 1; ++i) scene->sprites[i] = scene->sprites[i + 1];
+    for (Int i = index; i < scene->numSprites - 1; ++i) scene->sprites[i] = scene->sprites[i + 1];
     scene->numSprites--;
 }
 
-void _raw_delete_video_player(Scene* scene, int index) {
+void _raw_delete_video_player(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numVideoPlayers) return;
     VideoPlayer_Free(&scene->videoPlayers[index]);
-    for (int i = index; i < scene->numVideoPlayers - 1; ++i) scene->videoPlayers[i] = scene->videoPlayers[i + 1];
+    for (Int i = index; i < scene->numVideoPlayers - 1; ++i) scene->videoPlayers[i] = scene->videoPlayers[i + 1];
     scene->numVideoPlayers--;
 }
 
-void _raw_delete_parallax_room(Scene* scene, int index) {
+void _raw_delete_parallax_room(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numParallaxRooms) return;
     if (scene->parallaxRooms[index].cubemapTexture) glDeleteTextures(1, &scene->parallaxRooms[index].cubemapTexture);
-    for (int i = index; i < scene->numParallaxRooms - 1; ++i) scene->parallaxRooms[i] = scene->parallaxRooms[i + 1];
+    for (Int i = index; i < scene->numParallaxRooms - 1; ++i) scene->parallaxRooms[i] = scene->parallaxRooms[i + 1];
     scene->numParallaxRooms--;
 }
 
-void _raw_delete_logic_entity(Scene* scene, int index) {
+void _raw_delete_logic_entity(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numLogicEntities) return;
-    for (int i = index; i < scene->numLogicEntities - 1; ++i) scene->logicEntities[i] = scene->logicEntities[i + 1];
+    for (Int i = index; i < scene->numLogicEntities - 1; ++i) scene->logicEntities[i] = scene->logicEntities[i + 1];
     scene->numLogicEntities--;
 }
 
@@ -165,13 +165,13 @@ static void free_entity_state_data(EntityState* state) {
 
 static void free_action_data(Action* action) {
     if (!action) return;
-    for (int i = 0; i < action->num_before_states; ++i) free_entity_state_data(&action->before_states[i]);
+    for (Int i = 0; i < action->num_before_states; ++i) free_entity_state_data(&action->before_states[i]);
     if (action->before_states) free(action->before_states);
-    for (int i = 0; i < action->num_after_states; ++i) free_entity_state_data(&action->after_states[i]);
+    for (Int i = 0; i < action->num_after_states; ++i) free_entity_state_data(&action->after_states[i]);
     if (action->after_states) free(action->after_states);
 }
 
-void capture_state(EntityState* state, Scene* scene, EntityType type, int index) {
+void capture_state(EntityState* state, Scene* scene, EntityType type, Int index) {
     state->type = type; state->index = index;
     memset(state->modelPath, 0, sizeof(state->modelPath)); memset(state->parFile, 0, sizeof(state->parFile)); memset(state->soundPath, 0, sizeof(state->soundPath));
     switch (type) {
@@ -190,7 +190,7 @@ void capture_state(EntityState* state, Scene* scene, EntityType type, int index)
     }
 }
 
-static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool is_creation) {
+static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool is_creation) {
     switch (state->type) {
     case ENTITY_MODEL: {
         if (is_creation) {
@@ -238,12 +238,12 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
 
         if (Brush_IsSolid(b) && b->numVertices > 0) {
             if (b->mass > 0.0f) {
-                b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
+                b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
             }
             else {
                 Vec3* world_verts = (Vec3*)malloc(b->numVertices * sizeof(Vec3));
-                for (int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, b->numVertices);
+                for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                 free(world_verts);
             }
         }
@@ -335,8 +335,8 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, bool i
     }
 }
 
-static void clear_stack(Action** stack, int* top) {
-    for (int i = 0; i <= *top; ++i) { free_action_data(stack[i]); free(stack[i]); }
+static void clear_stack(Action** stack, Int* top) {
+    for (Int i = 0; i <= *top; ++i) { free_action_data(stack[i]); free(stack[i]); }
     *top = -1;
 }
 
@@ -346,7 +346,7 @@ void Undo_Shutdown() {
     clear_stack(g_undo_stack, &g_undo_top);
     clear_stack(g_redo_stack, &g_redo_top);
     if (g_multi_before_states) {
-        for (int i = 0; i < g_num_multi_before_states; ++i) free_entity_state_data(&g_multi_before_states[i]);
+        for (Int i = 0; i < g_num_multi_before_states; ++i) free_entity_state_data(&g_multi_before_states[i]);
         free(g_multi_before_states);
         g_multi_before_states = nullptr;
     }
@@ -380,7 +380,7 @@ static Action* deep_copy_action(const Action* src) {
     dest->num_before_states = src->num_before_states;
     if (src->num_before_states > 0) {
         dest->before_states = (EntityState*)calloc(src->num_before_states, sizeof(EntityState));
-        for (int i = 0; i < src->num_before_states; ++i) {
+        for (Int i = 0; i < src->num_before_states; ++i) {
             deep_copy_entity_state(&dest->before_states[i], &src->before_states[i]);
         }
     }
@@ -388,7 +388,7 @@ static Action* deep_copy_action(const Action* src) {
     dest->num_after_states = src->num_after_states;
     if (src->num_after_states > 0) {
         dest->after_states = (EntityState*)calloc(src->num_after_states, sizeof(EntityState));
-        for (int i = 0; i < src->num_after_states; ++i) {
+        for (Int i = 0; i < src->num_after_states; ++i) {
             deep_copy_entity_state(&dest->after_states[i], &src->after_states[i]);
         }
     }
@@ -403,15 +403,15 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
     switch (action->type) {
     case ACTION_MODIFY_ENTITY:  if (action->num_after_states == 1 && action->num_before_states > 1) {
             _raw_delete_brush(scene, engine, action->after_states[0].index);
-            for (int i = 0; i < action->num_before_states; ++i) {
+            for (Int i = 0; i < action->num_before_states; ++i) {
                 apply_state(scene, engine, &action->before_states[i], true);
             }
         } else {
-            for (int i = 0; i < action->num_before_states; ++i) {
+            for (Int i = 0; i < action->num_before_states; ++i) {
                 apply_state(scene, engine, &action->before_states[i], false);
             }
         } break;
-    case ACTION_CREATE_ENTITY:  Editor_ClearSelection(); for (int i = action->num_after_states - 1; i >= 0; --i) {
+    case ACTION_CREATE_ENTITY:  Editor_ClearSelection(); for (Int i = action->num_after_states - 1; i >= 0; --i) {
         switch (action->after_states[i].type) {
         case ENTITY_MODEL: _raw_delete_model(scene, action->after_states[i].index, engine); break;
         case ENTITY_BRUSH: _raw_delete_brush(scene, engine, action->after_states[i].index); break;
@@ -426,7 +426,7 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
         default: break;
         }
     } break;
-    case ACTION_DELETE_ENTITY: for (int i = 0; i < action->num_before_states; ++i) apply_state(scene, engine, &action->before_states[i], true); break;
+    case ACTION_DELETE_ENTITY: for (Int i = 0; i < action->num_before_states; ++i) apply_state(scene, engine, &action->before_states[i], true); break;
     default: break;
     }
 }
@@ -437,17 +437,17 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
     g_undo_stack[++g_undo_top] = action;
     switch (action->type) {
     case ACTION_MODIFY_ENTITY:   if (action->num_after_states == 1 && action->num_before_states > 1) {
-            for (int i = action->num_before_states - 1; i >= 0; --i) {
+            for (Int i = action->num_before_states - 1; i >= 0; --i) {
                 _raw_delete_brush(scene, engine, action->before_states[i].index);
             }
             apply_state(scene, engine, &action->after_states[0], true);
         } else {
-            for (int i = 0; i < action->num_after_states; ++i) {
+            for (Int i = 0; i < action->num_after_states; ++i) {
                 apply_state(scene, engine, &action->after_states[i], false);
             }
         } break;
-    case ACTION_CREATE_ENTITY: for (int i = 0; i < action->num_after_states; ++i) apply_state(scene, engine, &action->after_states[i], true); break;
-    case ACTION_DELETE_ENTITY: for (int i = action->num_before_states - 1; i >= 0; --i) {
+    case ACTION_CREATE_ENTITY: for (Int i = 0; i < action->num_after_states; ++i) apply_state(scene, engine, &action->after_states[i], true); break;
+    case ACTION_DELETE_ENTITY: for (Int i = action->num_before_states - 1; i >= 0; --i) {
         switch (action->before_states[i].type) {
         case ENTITY_MODEL: _raw_delete_model(scene, action->before_states[i].index, engine); break;
         case ENTITY_BRUSH: _raw_delete_brush(scene, engine, action->before_states[i].index); break;
@@ -466,25 +466,25 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
     }
 }
 
-static void capture_unique_states(Scene* scene, EditorSelection* selections, int num_selections, EntityState** states, int* num_states) {
+static void capture_unique_states(Scene* scene, EditorSelection* selections, Int num_selections, EntityState** states, Int* num_states) {
     if (num_selections == 0) { *states = nullptr; *num_states = 0; return; }
     *states = (EntityState*)calloc(num_selections, sizeof(EntityState));
     *num_states = 0;
-    for (int i = 0; i < num_selections; ++i) {
-        EditorSelection* sel = &selections[i]; bool found = false;
-        for (int j = 0; j < *num_states; ++j) { if ((*states)[j].type == sel->type && (*states)[j].index == sel->index) { found = true; break; } }
+    for (Int i = 0; i < num_selections; ++i) {
+        EditorSelection* sel = &selections[i]; Bool found = false;
+        for (Int j = 0; j < *num_states; ++j) { if ((*states)[j].type == sel->type && (*states)[j].index == sel->index) { found = true; break; } }
         if (!found) { capture_state(&(*states)[*num_states], scene, sel->type, sel->index); (*num_states)++; }
     }
     if (*num_states < num_selections) *states = (EntityState*)realloc(*states, *num_states * sizeof(EntityState));
 }
 
-void Undo_BeginMultiEntityModification(Scene* scene, EditorSelection* selections, int num_selections) {
+void Undo_BeginMultiEntityModification(Scene* scene, EditorSelection* selections, Int num_selections) {
     if (g_is_modifying) return;
     capture_unique_states(scene, selections, num_selections, &g_multi_before_states, &g_num_multi_before_states);
     g_is_modifying = true;
 }
 
-void Undo_EndMultiEntityModification(Scene* scene, EditorSelection* selections, int num_selections, const char* description) {
+void Undo_EndMultiEntityModification(Scene* scene, EditorSelection* selections, Int num_selections, const Char* description) {
     if (!g_is_modifying) return;
     g_is_modifying = false;
     Action* action = (Action*)calloc(1, sizeof(Action)); if (!action) return;
@@ -495,7 +495,7 @@ void Undo_EndMultiEntityModification(Scene* scene, EditorSelection* selections, 
     Undo_PushAction(action);
 }
 
-void Undo_PushCreateMultipleEntities(Scene* scene, EditorSelection* selections, int num_selections, const char* description) {
+void Undo_PushCreateMultipleEntities(Scene* scene, EditorSelection* selections, Int num_selections, const Char* description) {
     Action* action = (Action*)calloc(1, sizeof(Action)); if (!action) return;
     action->type = ACTION_CREATE_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     capture_unique_states(scene, selections, num_selections, &action->after_states, &action->num_after_states);
@@ -503,7 +503,7 @@ void Undo_PushCreateMultipleEntities(Scene* scene, EditorSelection* selections, 
     Undo_PushAction(action);
 }
 
-void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, int num_states, const char* description) {
+void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, Int num_states, const Char* description) {
     Action* action = (Action*)calloc(1, sizeof(Action)); if (!action) return;
     action->type = ACTION_DELETE_ENTITY; strncpy(action->description, description, sizeof(action->description) - 1);
     action->before_states = deleted_states; action->num_before_states = num_states;
@@ -511,7 +511,7 @@ void Undo_PushDeleteMultipleEntities(Scene* scene, EntityState* deleted_states, 
     Undo_PushAction(action);
 }
 
-void Undo_PushMergeAction(Scene* scene, EntityState* before_states, int num_before, EntityState* after_states, int num_after, const char* description) {
+void Undo_PushMergeAction(Scene* scene, EntityState* before_states, Int num_before, EntityState* after_states, Int num_after, const Char* description) {
     Action* action = (Action*)calloc(1, sizeof(Action));
     if (!action) return;
     action->type = ACTION_MODIFY_ENTITY;
@@ -523,22 +523,22 @@ void Undo_PushMergeAction(Scene* scene, EntityState* before_states, int num_befo
     Undo_PushAction(action);
 }
 
-void Undo_BeginEntityModification(Scene* scene, EntityType type, int index) {
+void Undo_BeginEntityModification(Scene* scene, EntityType type, Int index) {
     EditorSelection sel = { type, index, -1, -1 };
     Undo_BeginMultiEntityModification(scene, &sel, 1);
 }
 
-void Undo_EndEntityModification(Scene* scene, EntityType type, int index, const char* description) {
+void Undo_EndEntityModification(Scene* scene, EntityType type, Int index, const Char* description) {
     EditorSelection sel = { type, index, -1, -1 };
     Undo_EndMultiEntityModification(scene, &sel, 1, description);
 }
 
-void Undo_PushCreateEntity(Scene* scene, EntityType type, int index, const char* description) {
+void Undo_PushCreateEntity(Scene* scene, EntityType type, Int index, const Char* description) {
     EditorSelection sel = { type, index, -1, -1 };
     Undo_PushCreateMultipleEntities(scene, &sel, 1, description);
 }
 
-void Undo_PushDeleteEntity(Scene* scene, EntityType type, int index, const char* description) {
+void Undo_PushDeleteEntity(Scene* scene, EntityType type, Int index, const Char* description) {
     EntityState* state = (EntityState*)malloc(sizeof(EntityState));
     capture_state(state, scene, type, index);
     Undo_PushDeleteMultipleEntities(scene, state, 1, description);

@@ -40,7 +40,7 @@
 
     void Weapons_Init(void);
     void Weapons_Shutdown(void);
-    void Weapons_Update(float deltaTime);
+    void Weapons_Update(Float deltaTime);
     void Weapons_Switch(WeaponType newWeapon);
     void Weapons_SwitchNext(void);
     void Weapons_SwitchPrev(void);

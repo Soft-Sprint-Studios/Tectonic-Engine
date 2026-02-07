@@ -34,11 +34,11 @@ void Bloom_RenderPass(Renderer* renderer, Engine* engine) {
     glBindVertexArray(renderer->quadVAO); 
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
-    bool horizontal = true, first_iteration = true; 
-    unsigned int amount = 10; 
+    Bool horizontal = true, first_iteration = true; 
+    Uint amount = 10; 
     glUseProgram(renderer->bloomBlurShader);
     
-    for (unsigned int i = 0; i < amount; i++) {
+    for (Uint i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->pingpongFBO[horizontal]); 
         glUniform1i(glGetUniformLocation(renderer->bloomBlurShader, "horizontal"), horizontal);
         glActiveTexture(GL_TEXTURE0); 

@@ -31,28 +31,28 @@
 #define MAX_DSP_JOBS 16
 
 typedef struct {
-    const short* input;
-    int num_samples;
-    int sample_rate;
+    const Short* input;
+    Int num_samples;
+    Int sample_rate;
     const ReverbSettings* settings;
-    bool wet_only;
+    Bool wet_only;
     ProcessedAudio* result_target;
     SDL_sem* completion_sem;
 } DSP_Job;
 
 static DSP_Job g_dsp_job_queue[MAX_DSP_JOBS];
-static int g_dsp_job_queue_head = 0;
-static int g_dsp_job_queue_tail = 0;
-static int g_dsp_job_count = 0;
+static Int g_dsp_job_queue_head = 0;
+static Int g_dsp_job_queue_tail = 0;
+static Int g_dsp_job_count = 0;
 
 static SDL_Thread* g_dsp_thread = nullptr;
 static SDL_mutex* g_dsp_queue_mutex = nullptr;
 static SDL_sem* g_dsp_jobs_available_sem = nullptr;
-static volatile bool g_dsp_thread_running = false;
+static volatile Bool g_dsp_thread_running = false;
 
-static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
+static ProcessedAudio DSP_Reverb_Process_Internal(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only);
 
-static int DSP_Thread_Worker(void* data) {
+static Int DSP_Thread_Worker(void* data) {
     (void)data;
     while (g_dsp_thread_running) {
         SDL_SemWait(g_dsp_jobs_available_sem);
@@ -103,59 +103,59 @@ void DSP_Reverb_Thread_Shutdown(void) {
 
 #define REVERB_TAIL_SECONDS 5.0f
 
-const float comb_tunings[8] = { 25.31f, 26.94f, 28.96f, 30.75f, 32.24f, 33.81f, 35.31f, 36.69f };
-const float allpass_tunings[4] = { 5.56f, 4.41f, 3.53f, 2.89f };
+const Float comb_tunings[8] = { 25.31f, 26.94f, 28.96f, 30.75f, 32.24f, 33.81f, 35.31f, 36.69f };
+const Float allpass_tunings[4] = { 5.56f, 4.41f, 3.53f, 2.89f };
 
 typedef struct {
-    float feedback;
-    float* buffer;
-    int buffer_size;
-    int buf_idx;
+    Float feedback;
+    Float* buffer;
+    Int buffer_size;
+    Int buf_idx;
 } AllPass;
 
 typedef struct {
-    float feedback;
-    float damping;
-    float filter_store;
-    float pan_l, pan_r;
-    float* buffer;
-    int buffer_size;
-    int buf_idx;
+    Float feedback;
+    Float damping;
+    Float filter_store;
+    Float pan_l, pan_r;
+    Float* buffer;
+    Int buffer_size;
+    Int buf_idx;
 } Comb;
 
 typedef struct {
     ReverbSettings settings;
-    int sampleRate;
+    Int sampleRate;
     Comb combs[8];
     AllPass allpasses[4];
 } SimpleReverb;
 
-static void AllPass_Init(AllPass* ap, int buffer_size) {
+static void AllPass_Init(AllPass* ap, Int buffer_size) {
     ap->buffer_size = buffer_size;
-    ap->buffer = (float*)calloc(buffer_size, sizeof(float));
+    ap->buffer = (Float*)calloc(buffer_size, sizeof(Float));
     ap->buf_idx = 0;
     ap->feedback = 0.5f;
 }
 
-static void Comb_Init(Comb* c, int buffer_size) {
+static void Comb_Init(Comb* c, Int buffer_size) {
     c->buffer_size = buffer_size;
-    c->buffer = (float*)calloc(buffer_size, sizeof(float));
+    c->buffer = (Float*)calloc(buffer_size, sizeof(Float));
     c->buf_idx = 0;
     c->filter_store = 0.0f;
 }
 
-static float AllPass_Process(AllPass* ap, float input) {
+static Float AllPass_Process(AllPass* ap, Float input) {
     if (!ap->buffer) return input;
-    float buf_out = ap->buffer[ap->buf_idx];
-    float new_val = input + buf_out * ap->feedback;
+    Float buf_out = ap->buffer[ap->buf_idx];
+    Float new_val = input + buf_out * ap->feedback;
     ap->buffer[ap->buf_idx] = new_val;
     if (++ap->buf_idx >= ap->buffer_size) ap->buf_idx = 0;
     return -input + buf_out;
 }
 
-static float Comb_Process(Comb* c, float input) {
+static Float Comb_Process(Comb* c, Float input) {
     if (!c->buffer) return 0.0f;
-    float output = c->buffer[c->buf_idx];
+    Float output = c->buffer[c->buf_idx];
     c->filter_store = (output * (1.0f - c->damping)) + (c->filter_store * c->damping);
     c->buffer[c->buf_idx] = input + (c->filter_store * c->feedback);
     if (++c->buf_idx >= c->buffer_size) c->buf_idx = 0;
@@ -163,11 +163,11 @@ static float Comb_Process(Comb* c, float input) {
 }
 
 static void SimpleReverb_UpdateParameters(SimpleReverb* rev) {
-    float roomSize = rev->settings.roomSize;
-    float damping = rev->settings.damping;
-    float width = rev->settings.width;
+    Float roomSize = rev->settings.roomSize;
+    Float damping = rev->settings.damping;
+    Float width = rev->settings.width;
 
-    for (int i = 0; i < 8; ++i) {
+    for (Int i = 0; i < 8; ++i) {
         rev->combs[i].feedback = roomSize;
         rev->combs[i].damping = damping;
         rev->combs[i].pan_l = 0.5f * (1.0f - width) + (i % 2 == 0 ? width : 0.0f);
@@ -175,41 +175,41 @@ static void SimpleReverb_UpdateParameters(SimpleReverb* rev) {
     }
 }
 
-static void SimpleReverb_Init(SimpleReverb* rev, int sampleRate) {
+static void SimpleReverb_Init(SimpleReverb* rev, Int sampleRate) {
     rev->sampleRate = sampleRate;
-    for (int i = 0; i < 8; ++i) {
-        Comb_Init(&rev->combs[i], (int)(comb_tunings[i] * sampleRate * 0.001f));
+    for (Int i = 0; i < 8; ++i) {
+        Comb_Init(&rev->combs[i], (Int)(comb_tunings[i] * sampleRate * 0.001f));
     }
-    for (int i = 0; i < 4; ++i) {
-        AllPass_Init(&rev->allpasses[i], (int)(allpass_tunings[i] * sampleRate * 0.001f));
+    for (Int i = 0; i < 4; ++i) {
+        AllPass_Init(&rev->allpasses[i], (Int)(allpass_tunings[i] * sampleRate * 0.001f));
     }
 }
 
 static void SimpleReverb_Free(SimpleReverb* rev) {
-    for (int i = 0; i < 8; ++i) free(rev->combs[i].buffer);
-    for (int i = 0; i < 4; ++i) free(rev->allpasses[i].buffer);
+    for (Int i = 0; i < 8; ++i) free(rev->combs[i].buffer);
+    for (Int i = 0; i < 4; ++i) free(rev->allpasses[i].buffer);
 }
 
-static void SimpleReverb_Process(SimpleReverb* rev, const float* input, float* output, int num_samples, bool wet_only) {
-    float* output_float_l = (float*)calloc(num_samples, sizeof(float));
-    float* output_float_r = (float*)calloc(num_samples, sizeof(float));
+static void SimpleReverb_Process(SimpleReverb* rev, const Float* input, Float* output, Int num_samples, Bool wet_only) {
+    Float* output_float_l = (Float*)calloc(num_samples, sizeof(Float));
+    Float* output_float_r = (Float*)calloc(num_samples, sizeof(Float));
     if (!output_float_l || !output_float_r) {
         free(output_float_l);
         free(output_float_r);
         return;
     }
 
-    for (int i = 0; i < num_samples; i++) {
-        float in_sample = input[i] * 0.15f;
-        float out_l = 0, out_r = 0;
+    for (Int i = 0; i < num_samples; i++) {
+        Float in_sample = input[i] * 0.15f;
+        Float out_l = 0, out_r = 0;
 
-        for (int j = 0; j < 8; ++j) {
-            float comb_out = Comb_Process(&rev->combs[j], in_sample);
+        for (Int j = 0; j < 8; ++j) {
+            Float comb_out = Comb_Process(&rev->combs[j], in_sample);
             out_l += comb_out * rev->combs[j].pan_l;
             out_r += comb_out * rev->combs[j].pan_r;
         }
 
-        for (int j = 0; j < 4; ++j) {
+        for (Int j = 0; j < 4; ++j) {
             out_l = AllPass_Process(&rev->allpasses[j], out_l);
             out_r = AllPass_Process(&rev->allpasses[j], out_r);
         }
@@ -217,10 +217,10 @@ static void SimpleReverb_Process(SimpleReverb* rev, const float* input, float* o
         output_float_r[i] = out_r;
     }
 
-    for (int i = 0; i < num_samples; i++) {
-        float wet_signal = (output_float_l[i] * rev->settings.width + output_float_r[i] * (1.0f - rev->settings.width));
-        float dry_signal = wet_only ? 0.0f : input[i];
-        float mixed_sample = (wet_signal * rev->settings.wetLevel + dry_signal * rev->settings.dryLevel);
+    for (Int i = 0; i < num_samples; i++) {
+        Float wet_signal = (output_float_l[i] * rev->settings.width + output_float_r[i] * (1.0f - rev->settings.width));
+        Float dry_signal = wet_only ? 0.0f : input[i];
+        Float mixed_sample = (wet_signal * rev->settings.wetLevel + dry_signal * rev->settings.dryLevel);
         output[i] = fmaxf(-1.0f, fminf(1.0f, mixed_sample));
     }
     free(output_float_l);
@@ -282,25 +282,25 @@ ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset) {
     return s;
 }
 
-static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
+static ProcessedAudio DSP_Reverb_Process_Internal(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only) {
     ProcessedAudio result = { nullptr, 0 };
     if (!input || num_samples <= 0) return result;
 
-    int tail_samples = (int)(sample_rate * REVERB_TAIL_SECONDS);
-    int total_samples = num_samples + tail_samples;
+    Int tail_samples = (Int)(sample_rate * REVERB_TAIL_SECONDS);
+    Int total_samples = num_samples + tail_samples;
 
-    float* padded_input_float = (float*)malloc(total_samples * sizeof(float));
-    float* output_float = (float*)malloc(total_samples * sizeof(float));
+    Float* padded_input_float = (Float*)malloc(total_samples * sizeof(Float));
+    Float* output_float = (Float*)malloc(total_samples * sizeof(Float));
     if (!padded_input_float || !output_float) {
         free(padded_input_float);
         free(output_float);
         return result;
     }
 
-    for (int i = 0; i < num_samples; ++i) {
+    for (Int i = 0; i < num_samples; ++i) {
         padded_input_float[i] = input[i] / 32768.0f;
     }
-    memset(padded_input_float + num_samples, 0, tail_samples * sizeof(float));
+    memset(padded_input_float + num_samples, 0, tail_samples * sizeof(Float));
 
     SimpleReverb reverb;
     SimpleReverb_Init(&reverb, sample_rate);
@@ -311,14 +311,14 @@ static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_sa
 
     free(padded_input_float);
 
-    short* output_short = (short*)malloc(total_samples * sizeof(short));
+    Short* output_short = (Short*)malloc(total_samples * sizeof(Short));
     if (!output_short) {
         free(output_float);
         return result;
     }
 
-    for (int i = 0; i < total_samples; ++i) {
-        output_short[i] = (short)(output_float[i] * 32767.0f);
+    for (Int i = 0; i < total_samples; ++i) {
+        output_short[i] = (Short)(output_float[i] * 32767.0f);
     }
     free(output_float);
 
@@ -327,7 +327,7 @@ static ProcessedAudio DSP_Reverb_Process_Internal(const short* input, int num_sa
     return result;
 }
 
-ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only) {
+ProcessedAudio DSP_Reverb_Process(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only) {
     if (!g_dsp_thread) {
         return DSP_Reverb_Process_Internal(input, num_samples, sample_rate, settings, wet_only);
     }

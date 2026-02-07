@@ -28,19 +28,19 @@
 #include "gl_console.h"
 
 static TGD_EntityDef g_entity_defs[MAX_TGD_ENTITIES];
-static int g_num_entity_defs = 0;
+static Int g_num_entity_defs = 0;
 
-static const char** g_brush_classnames = nullptr;
-static int g_num_brush_classnames = 0;
+static const Char** g_brush_classnames = nullptr;
+static Int g_num_brush_classnames = 0;
 
-static const char** g_logic_classnames = nullptr;
-static int g_num_logic_classnames = 0;
+static const Char** g_logic_classnames = nullptr;
+static Int g_num_logic_classnames = 0;
 
 
-static TGD_PropertyType string_to_prop_type(const char* type_str) {
+static TGD_PropertyType string_to_prop_type(const Char* type_str) {
     if (_stricmp(type_str, "string") == 0) return TGD_PROP_STRING;
     if (_stricmp(type_str, "integer") == 0) return TGD_PROP_INTEGER;
-    if (_stricmp(type_str, "float") == 0) return TGD_PROP_FLOAT;
+    if (_stricmp(type_str, "Float") == 0) return TGD_PROP_FLOAT;
     if (_stricmp(type_str, "color") == 0) return TGD_PROP_COLOR;
     if (_stricmp(type_str, "checkbox") == 0) return TGD_PROP_CHECKBOX;
     if (_stricmp(type_str, "model") == 0) return TGD_PROP_MODEL;
@@ -53,18 +53,18 @@ static TGD_PropertyType string_to_prop_type(const char* type_str) {
     return TGD_PROP_STRING;
 }
 
-void GameData_Init(const char* filepath) {
+void GameData_Init(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
         Console_Printf_Error("Could not open TGD file: %s", filepath);
         return;
     }
 
-    char line[1024];
+    Char line[1024];
     TGD_EntityDef* current_def = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed = trim(line);
+        Char* trimmed = trim(line);
         if (strlen(trimmed) == 0 || strncmp(trimmed, "//", 2) == 0) continue;
 
         if (strncmp(trimmed, "@SolidClass", 11) == 0 || strncmp(trimmed, "@PointClass", 11) == 0) {
@@ -97,15 +97,15 @@ void GameData_Init(const char* filepath) {
                 TGD_Property* prop = &current_def->properties[current_def->num_properties];
                 memset(prop, 0, sizeof(TGD_Property));
 
-                char type_str[32];
-                int n = sscanf(trimmed, "%63[^(](%31[^)]) : \"%127[^\"]\" = \"%1023[^\"]\"", prop->key, type_str, prop->display_name, prop->default_value);
+                Char type_str[32];
+                Int n = sscanf(trimmed, "%63[^(](%31[^)]) : \"%127[^\"]\" = \"%1023[^\"]\"", prop->key, type_str, prop->display_name, prop->default_value);
                 if (n >= 3) {
                     prop->type = string_to_prop_type(type_str);
                     current_def->num_properties++;
 
                     if (prop->type == TGD_PROP_CHOICES) {
-                        char next_line[256];
-                        long pos = ftell(file);
+                        Char next_line[256];
+                        Long pos = ftell(file);
                         if (fgets(next_line, sizeof(next_line), file) && trim(next_line)[0] == '[') {
                             while (fgets(next_line, sizeof(next_line), file) && trim(next_line)[0] != ']') {
                                 TGD_Choice choice;
@@ -128,19 +128,19 @@ void GameData_Init(const char* filepath) {
 
     g_num_brush_classnames = 1;
     g_num_logic_classnames = 0;
-    for (int i = 0; i < g_num_entity_defs; i++) {
+    for (Int i = 0; i < g_num_entity_defs; i++) {
         if (g_entity_defs[i].classname[0] == '_') continue;
         if (g_entity_defs[i].base_type == ENTITY_BRUSH) g_num_brush_classnames++;
         else if (g_entity_defs[i].base_type == ENTITY_LOGIC) g_num_logic_classnames++;
     }
 
-    g_brush_classnames = (const char**)malloc(g_num_brush_classnames * sizeof(const char*));
-    g_logic_classnames = (const char**)malloc(g_num_logic_classnames * sizeof(const char*));
+    g_brush_classnames = (const Char**)malloc(g_num_brush_classnames * sizeof(const Char*));
+    g_logic_classnames = (const Char**)malloc(g_num_logic_classnames * sizeof(const Char*));
 
     g_brush_classnames[0] = "(None)";
-    int brush_idx = 1;
-    int logic_idx = 0;
-    for (int i = 0; i < g_num_entity_defs; i++) {
+    Int brush_idx = 1;
+    Int logic_idx = 0;
+    for (Int i = 0; i < g_num_entity_defs; i++) {
         if (g_entity_defs[i].classname[0] == '_') continue;
         if (g_entity_defs[i].base_type == ENTITY_BRUSH) {
             g_brush_classnames[brush_idx++] = g_entity_defs[i].classname;
@@ -152,8 +152,8 @@ void GameData_Init(const char* filepath) {
 }
 
 void GameData_Shutdown(void) {
-    for (int i = 0; i < g_num_entity_defs; ++i) {
-        for (int j = 0; j < g_entity_defs[i].num_properties; ++j) {
+    for (Int i = 0; i < g_num_entity_defs; ++i) {
+        for (Int j = 0; j < g_entity_defs[i].num_properties; ++j) {
             if (g_entity_defs[i].properties[j].choices) {
                 free(g_entity_defs[i].properties[j].choices);
             }
@@ -166,9 +166,9 @@ void GameData_Shutdown(void) {
     g_num_logic_classnames = 0;
 }
 
-const TGD_EntityDef* GameData_FindEntityDef(const char* classname) {
+const TGD_EntityDef* GameData_FindEntityDef(const Char* classname) {
     if (!classname || classname[0] == '\0') return nullptr;
-    for (int i = 0; i < g_num_entity_defs; ++i) {
+    for (Int i = 0; i < g_num_entity_defs; ++i) {
         if (_stricmp(g_entity_defs[i].classname, classname) == 0) {
             return &g_entity_defs[i];
         }
@@ -176,12 +176,12 @@ const TGD_EntityDef* GameData_FindEntityDef(const char* classname) {
     return nullptr;
 }
 
-const char** GameData_GetBrushEntityClassnames(int* count) {
+const Char** GameData_GetBrushEntityClassnames(Int* count) {
     *count = g_num_brush_classnames;
     return g_brush_classnames;
 }
 
-const char** GameData_GetLogicEntityClassnames(int* count) {
+const Char** GameData_GetLogicEntityClassnames(Int* count) {
     *count = g_num_logic_classnames;
     return g_logic_classnames;
 }

@@ -57,62 +57,62 @@ namespace
 {
     namespace fs = filesystem;
 
-    void embree_error_function(void* userPtr, RTCError error, const char* str)
+    void embree_error_function(void* userPtr, RTCError error, const Char* str)
     {
         Console_Printf_Error("[Embree] Error %d: %s", error, str);
     }
 
-    void oidn_error_function(void* userPtr, OIDNError error, const char* message)
+    void oidn_error_function(void* userPtr, OIDNError error, const Char* message)
     {
         Console_Printf_Error("[OIDN] Error %d: %s", error, message);
     }
 
     struct BrushFaceJobData
     {
-        int brush_index;
-        int face_index;
+        Int brush_index;
+        Int face_index;
         fs::path output_dir;
     };
 
     struct DecalJobData
     {
-        int decal_index;
+        Int decal_index;
         fs::path output_dir;
     };
 
     struct BrushVertexJobData
     {
-        int brush_index;
-        unsigned int vertex_index;
+        Int brush_index;
+        Uint vertex_index;
         Vec4* output_color_buffer;
         Vec4* output_direction_buffer;
     };
 
     struct ModelVertexJobData
     {
-        int model_index;
-        unsigned int vertex_index;
+        Int model_index;
+        Uint vertex_index;
         Vec4* output_color_buffer;
         Vec4* output_direction_buffer;
     };
 
     struct ModelLightmapJobData
     {
-        int model_index;
+        Int model_index;
         fs::path output_dir;
     };
 
     struct EmissiveMaterial {
         const Material* material;
         Vec3 color;
-        float intensity;
+        Float intensity;
     };
 
     using JobPayload = variant<BrushFaceJobData, ModelVertexJobData, DecalJobData, BrushVertexJobData, ModelLightmapJobData>;
 
-    static bool IsBrushBakeable(const Brush& b)
+    static Bool IsBrushBakeable(const Brush& b)
     {
-        const char* disallowed[] = {
+        const Char* disallowed[] = {
             "func_button",
             "func_clip",
             "func_conveyor",
@@ -130,7 +130,7 @@ namespace
         };
 
         if (strlen(b.classname) > 0) {
-            for (int i = 0; i < sizeof(disallowed) / sizeof(disallowed[0]); i++) {
+            for (Int i = 0; i < sizeof(disallowed) / sizeof(disallowed[0]); i++) {
                 if (strcmp(b.classname, disallowed[i]) == 0) {
                     return false;
                 }
@@ -142,7 +142,7 @@ namespace
     class Lightmapper
     {
     public:
-        Lightmapper(Scene* scene, int resolution, int bounces);
+        Lightmapper(Scene* scene, Int resolution, Int bounces);
         ~Lightmapper();
         void generate();
 
@@ -163,16 +163,16 @@ namespace
 
         Vec3 calculate_direct_light(const Vec3& pos, const Vec3& normal, Vec3& out_dominant_dir, DirectLightMode mode) const;
         Vec3 calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const;
-        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, int num_samples);
-        Vec4 get_reflectivity_at_hit(unsigned int primID) const;
+        Vec3 calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, Int num_samples);
+        Vec4 get_reflectivity_at_hit(Uint primID) const;
 
         void precalculate_material_reflectivity();
-        bool is_in_shadow(const Vec3& start, const Vec3& end) const;
+        Bool is_in_shadow(const Vec3& start, const Vec3& end) const;
         static Vec3 cosine_weighted_direction_in_hemisphere(const Vec3& normal, mt19937& gen);
 
         Scene* m_scene;
-        int m_resolution;
-        int m_bounces;
+        Int m_resolution;
+        Int m_bounces;
         fs::path m_output_path;
 
         RTCDevice m_rtc_device;
@@ -186,7 +186,7 @@ namespace
         vector<unique_ptr<Vec4[]>> m_model_direction_buffers;
         vector<unique_ptr<Vec4[]>> m_brush_color_buffers;
         vector<unique_ptr<Vec4[]>> m_brush_direction_buffers;
-        map<const Material*, pair<Vec3, float>> m_emissive_materials;
+        map<const Material*, pair<Vec3, Float>> m_emissive_materials;
         map<const Material*, Vec4> m_material_reflectivity;
         map<const BrushFace*, Vec4> m_face_reflectivity;
         vector<const BrushFace*> m_primID_to_face_map;
@@ -194,7 +194,7 @@ namespace
         vector<const Material*> m_primID_to_material_map;
     };
 
-    Lightmapper::Lightmapper(Scene* scene, int resolution, int bounces)
+    Lightmapper::Lightmapper(Scene* scene, Int resolution, Int bounces)
         : m_scene(scene), m_resolution(resolution), m_bounces(bounces), m_rtc_device(nullptr), m_rtc_scene(nullptr)
     {
         m_rtc_device = rtcNewDevice(nullptr);
@@ -237,11 +237,11 @@ namespace
         rtcSetSceneFlags(m_rtc_scene, RTC_SCENE_FLAG_ROBUST);
 
         vector<Vec3> all_vertices;
-        vector<unsigned int> all_indices;
+        vector<Uint> all_indices;
         m_primID_to_face_map.clear();
         m_primID_to_brush_map.clear();
 
-        for (int i = 0; i < m_scene->numBrushes; ++i)
+        for (Int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
             if (strcmp(b.classname, "func_water") == 0) {
@@ -249,14 +249,14 @@ namespace
             }
             if (!IsBrushBakeable(b) || !b.casts_shadows) continue;
 
-            for (int j = 0; j < b.numFaces; ++j)
+            for (Int j = 0; j < b.numFaces; ++j)
             {
                 const BrushFace& face = b.faces[j];
                 if (face.numVertexIndices < 3) continue;
 
-                for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                for (Int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
-                    unsigned int base_index = static_cast<unsigned int>(all_vertices.size());
+                    Uint base_index = static_cast<Uint>(all_vertices.size());
                     all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos));
                     all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos));
                     all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos));
@@ -269,12 +269,12 @@ namespace
             }
         }
 
-        for (int i = 0; i < m_scene->numObjects; ++i)
+        for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
             if (obj.mass > 0.0f || !obj.casts_shadows) continue;
             if (!obj.model || !obj.model->combinedIndexData) continue;
-            for (int mesh_idx = 0; mesh_idx < obj.model->meshCount; ++mesh_idx) {
+            for (Int mesh_idx = 0; mesh_idx < obj.model->meshCount; ++mesh_idx) {
                 const Mesh& mesh = obj.model->meshes[mesh_idx];
                 size_t num_primitives = mesh.indexCount / 3;
                 for (size_t k = 0; k < num_primitives; ++k) {
@@ -282,12 +282,12 @@ namespace
                 }
             }
 
-            for (unsigned int j = 0; j < obj.model->totalIndexCount; j += 3)
+            for (Uint j = 0; j < obj.model->totalIndexCount; j += 3)
             {
-                unsigned int base_index = static_cast<unsigned int>(all_vertices.size());
-                unsigned int i0 = obj.model->combinedIndexData[j];
-                unsigned int i1 = obj.model->combinedIndexData[j + 1];
-                unsigned int i2 = obj.model->combinedIndexData[j + 2];
+                Uint base_index = static_cast<Uint>(all_vertices.size());
+                Uint i0 = obj.model->combinedIndexData[j];
+                Uint i1 = obj.model->combinedIndexData[j + 1];
+                Uint i2 = obj.model->combinedIndexData[j + 2];
                 Vec3 v0 = { obj.model->combinedVertexData[i0 * 3 + 0], obj.model->combinedVertexData[i0 * 3 + 1], obj.model->combinedVertexData[i0 * 3 + 2] };
                 Vec3 v1 = { obj.model->combinedVertexData[i1 * 3 + 0], obj.model->combinedVertexData[i1 * 3 + 1], obj.model->combinedVertexData[i1 * 3 + 2] };
                 Vec3 v2 = { obj.model->combinedVertexData[i2 * 3 + 0], obj.model->combinedVertexData[i2 * 3 + 1], obj.model->combinedVertexData[i2 * 3 + 2] };
@@ -307,8 +307,8 @@ namespace
         RTCGeometry geom = rtcNewGeometry(m_rtc_device, RTC_GEOMETRY_TYPE_TRIANGLE);
         Vec3* vertices_buf = (Vec3*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(Vec3), all_vertices.size());
         memcpy(vertices_buf, all_vertices.data(), all_vertices.size() * sizeof(Vec3));
-        unsigned int* indices_buf = (unsigned int*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned int), all_indices.size() / 3);
-        memcpy(indices_buf, all_indices.data(), all_indices.size() * sizeof(unsigned int));
+        Uint* indices_buf = (Uint*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(Uint), all_indices.size() / 3);
+        memcpy(indices_buf, all_indices.data(), all_indices.size() * sizeof(Uint));
 
         rtcCommitGeometry(geom);
         rtcAttachGeometry(m_rtc_scene, geom);
@@ -326,7 +326,7 @@ namespace
         }
 
         string line;
-        int line_num = 0;
+        Int line_num = 0;
         while (getline(file, line)) {
             line_num++;
 
@@ -336,7 +336,7 @@ namespace
 
             istringstream iss(line);
             string material_name;
-            float r, g, b, intensity;
+            Float r, g, b, intensity;
 
             if (!(iss >> material_name >> r >> g >> b >> intensity)) {
                 Console_Printf_Warning("[Lightmapper] Malformed line %d in lights.rad", line_num);
@@ -360,29 +360,29 @@ namespace
         Console_Printf("[Lightmapper] Generating ambient probes...");
 
         vector<Vec3> probe_positions;
-        const float probe_spacing = 1.0f;
+        const Float probe_spacing = 1.0f;
 
-        for (int i = 0; i < m_scene->numBrushes; ++i) {
+        for (Int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b) || b.numVertices == 0) continue;
 
             Vec3 min_aabb, max_aabb;
             Brush_GetWorldAABB(&b, &min_aabb, &max_aabb);
 
-            for (float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
-                for (float y = min_aabb.y; y <= max_aabb.y; y += probe_spacing) {
-                    for (float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
+            for (Float x = min_aabb.x; x <= max_aabb.x; x += probe_spacing) {
+                for (Float y = min_aabb.y; y <= max_aabb.y; y += probe_spacing) {
+                    for (Float z = min_aabb.z; z <= max_aabb.z; z += probe_spacing) {
 
                         Vec3 probe_pos = { x, y, z };
                         mt19937 validation_rng(generate_seed_from_pos(probe_pos));
 
-                        const int validation_rays = 16;
-                        const float validation_distance = 0.5f;
-                        int hits = 0;
+                        const Int validation_rays = 16;
+                        const Float validation_distance = 0.5f;
+                        Int hits = 0;
 
-                        for (int k = 0; k < validation_rays; ++k)
+                        for (Int k = 0; k < validation_rays; ++k)
                         {
-                            uniform_real_distribution<float> dist(-1.0f, 1.0f);
+                            uniform_real_distribution<Float> dist(-1.0f, 1.0f);
                             Vec3 ray_dir = { dist(validation_rng), dist(validation_rng), dist(validation_rng) };
                             vec3_normalize(&ray_dir);
 
@@ -409,7 +409,7 @@ namespace
                             }
                         }
 
-                        if (static_cast<float>(hits) / validation_rays > 0.25f)
+                        if (static_cast<Float>(hits) / validation_rays > 0.25f)
                         {
                             continue;
                         }
@@ -436,7 +436,7 @@ namespace
             mt19937 lighting_rng(generate_seed_from_pos(probe_positions[i]));
 
             Vec3 directions[6] = { {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
-            for (int j = 0; j < 6; ++j) {
+            for (Int j = 0; j < 6; ++j) {
                 Vec3 direct_dir, indirect_dir;
                 Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir, BAKE_ALL_FOR_BOUNCES);
                 Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], lighting_rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES);
@@ -453,10 +453,10 @@ namespace
         fs::path probe_path = m_output_path / "ambient_probes.amp";
         ofstream probe_file(probe_path, ios::binary);
         if (probe_file) {
-            const char header[] = "AMBI";
+            const Char header[] = "AMBI";
             probe_file.write(header, 4);
-            probe_file.write(reinterpret_cast<const char*>(&m_scene->num_ambient_probes), sizeof(int));
-            probe_file.write(reinterpret_cast<const char*>(m_scene->ambient_probes), sizeof(AmbientProbe) * m_scene->num_ambient_probes);
+            probe_file.write(reinterpret_cast<const Char*>(&m_scene->num_ambient_probes), sizeof(Int));
+            probe_file.write(reinterpret_cast<const Char*>(m_scene->ambient_probes), sizeof(AmbientProbe) * m_scene->num_ambient_probes);
             Console_Printf("[Lightmapper] Saved %d ambient probes.", m_scene->num_ambient_probes);
         }
         else {
@@ -467,12 +467,12 @@ namespace
         m_scene->num_ambient_probes = 0;
     }
 
-    bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
+    Bool Lightmapper::is_in_shadow(const Vec3& start, const Vec3& end) const
     {
         if (!m_rtc_scene) return false;
 
         Vec3 ray_dir = vec3_sub(end, start);
-        const float max_dist = vec3_length(ray_dir);
+        const Float max_dist = vec3_length(ray_dir);
         if (max_dist < SHADOW_BIAS) return false;
         vec3_normalize(&ray_dir);
 
@@ -493,7 +493,7 @@ namespace
         RTCIntersectArguments args;
         rtcInitIntersectArguments(&args);
 
-        float light_transmission = 1.0f;
+        Float light_transmission = 1.0f;
 
         while (rayhit.ray.tnear < rayhit.ray.tfar)
         {
@@ -522,7 +522,7 @@ namespace
         return light_transmission < 1.0f;
     }
 
-    static Vec2 calculate_texture_uv_for_vertex(const Brush* b, int face_index, int vertex_index) {
+    static Vec2 calculate_texture_uv_for_vertex(const Brush* b, Int face_index, Int vertex_index) {
         const BrushFace& face = b->faces[face_index];
         Vec3 local_pos = b->vertices[vertex_index].pos;
 
@@ -534,12 +534,12 @@ namespace
         Vec3 world_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
         vec3_normalize(&world_normal);
 
-        float absX = fabsf(world_normal.x);
-        float absY = fabsf(world_normal.y);
-        float absZ = fabsf(world_normal.z);
-        int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
+        Float absX = fabsf(world_normal.x);
+        Float absY = fabsf(world_normal.y);
+        Float absZ = fabsf(world_normal.z);
+        Int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
 
-        float u, v;
+        Float u, v;
         if (dominant_axis == 0) {
             u = world_pos.y;
             v = world_pos.z;
@@ -553,9 +553,9 @@ namespace
             v = world_pos.y;
         }
 
-        float rad = face.uv_rotation * (M_PI / 180.0f);
-        float cos_r = cosf(rad);
-        float sin_r = sinf(rad);
+        Float rad = face.uv_rotation * (M_PI / 180.0f);
+        Float cos_r = cosf(rad);
+        Float sin_r = sinf(rad);
 
         Vec2 final_uv;
         final_uv.x = ((u * cos_r - v * sin_r) / face.uv_scale.x) + face.uv_offset.x;
@@ -573,7 +573,7 @@ namespace
         Vec2 min_uv = { FLT_MAX, FLT_MAX };
         Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
         vector<Vec3> world_verts(face.numVertexIndices);
-        for (int k = 0; k < face.numVertexIndices; ++k) {
+        for (Int k = 0; k < face.numVertexIndices; ++k) {
             world_verts[k] = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
             Vec2 uv = calculate_texture_uv_for_vertex(&b, data.face_index, face.vertexIndices[k]);
             min_uv.x = min(min_uv.x, uv.x);
@@ -583,19 +583,19 @@ namespace
         }
 
         Vec2 uv_range = { max(0.001f, max_uv.x - min_uv.x), max(0.001f, max_uv.y - min_uv.y) };
-        float u_range = uv_range.x * face.uv_scale.x;
-        float v_range = uv_range.y * face.uv_scale.y;
+        Float u_range = uv_range.x * face.uv_scale.x;
+        Float v_range = uv_range.y * face.uv_scale.y;
 
-        float effective_luxels_per_unit = LUXELS_PER_UNIT / face.lightmap_scale;
-        int lightmap_width = clamp(static_cast<int>(ceilf(u_range * effective_luxels_per_unit)), 4, m_resolution);
-        int lightmap_height = clamp(static_cast<int>(ceilf(v_range * effective_luxels_per_unit)), 4, m_resolution);
+        Float effective_luxels_per_unit = LUXELS_PER_UNIT / face.lightmap_scale;
+        Int lightmap_width = clamp(static_cast<Int>(ceilf(u_range * effective_luxels_per_unit)), 4, m_resolution);
+        Int lightmap_height = clamp(static_cast<Int>(ceilf(v_range * effective_luxels_per_unit)), 4, m_resolution);
 
-        vector<float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
-        vector<float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
-        vector<float> albedo_lightmap_data(lightmap_width * lightmap_height * 3);
-        vector<float> normal_lightmap_data(lightmap_width * lightmap_height * 3);
-        vector<float> direction_float_data(lightmap_width * lightmap_height * 3);
-        vector<unsigned char> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
+        vector<Float> direct_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<Float> indirect_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<Float> albedo_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<Float> normal_lightmap_data(lightmap_width * lightmap_height * 3);
+        vector<Float> direction_float_data(lightmap_width * lightmap_height * 3);
+        vector<Uchar> dir_lightmap_data(lightmap_width * lightmap_height * 4, 0);
 
         Vec4 face_reflectivity_v4 = { 0.5f, 0.5f, 0.5f, 1.0f };
         if (face.material) {
@@ -605,29 +605,29 @@ namespace
             }
         }
 
-        for (int y = 0; y < lightmap_height; ++y)
+        for (Int y = 0; y < lightmap_height; ++y)
         {
-            for (int x = 0; x < lightmap_width; ++x)
+            for (Int x = 0; x < lightmap_width; ++x)
             {
                 Vec3 direct_light_color = { 0, 0, 0 };
                 Vec3 indirect_light_color = { 0, 0, 0 };
                 Vec3 accumulated_direction = { 0, 0, 0 };
                 Vec3 indirect_direction = { 0, 0, 0 };
 
-                float u_tex = (static_cast<float>(x) + 0.5f) / lightmap_width;
-                float v_tex = (static_cast<float>(y) + 0.5f) / lightmap_height;
-                float target_u = min_uv.x + u_tex * uv_range.x;
-                float target_v = min_uv.y + v_tex * uv_range.y;
+                Float u_tex = (static_cast<Float>(x) + 0.5f) / lightmap_width;
+                Float v_tex = (static_cast<Float>(y) + 0.5f) / lightmap_height;
+                Float target_u = min_uv.x + u_tex * uv_range.x;
+                Float target_v = min_uv.y + v_tex * uv_range.y;
 
                 Vec3 world_pos;
-                bool inside = false;
+                Bool inside = false;
                 Vec3 point_normal = { 0.0f, 0.0f, 1.0f };
 
-                for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                for (Int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
-                    int idx0 = face.vertexIndices[0];
-                    int idx1 = face.vertexIndices[k + 1];
-                    int idx2 = face.vertexIndices[k + 2];
+                    Int idx0 = face.vertexIndices[0];
+                    Int idx1 = face.vertexIndices[k + 1];
+                    Int idx2 = face.vertexIndices[k + 2];
                     Vec2 uv0 = calculate_texture_uv_for_vertex(&b, data.face_index, idx0);
                     Vec2 uv1 = calculate_texture_uv_for_vertex(&b, data.face_index, idx1);
                     Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
@@ -645,7 +645,7 @@ namespace
                     }
                 }
 
-                int hdr_idx = (y * lightmap_width + x) * 3;
+                Int hdr_idx = (y * lightmap_width + x) * 3;
 
                 if (inside)
                 {
@@ -685,16 +685,16 @@ namespace
             }
         }
 
-        vector<float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
-        constexpr float BLACK_THRESHOLD = 0.0001f;
-        float indirect_sum = 0.0f;
-        for (float val : indirect_lightmap_data) {
+        vector<Float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
+        constexpr Float BLACK_THRESHOLD = 0.0001f;
+        Float indirect_sum = 0.0f;
+        for (Float val : indirect_lightmap_data) {
             indirect_sum += val;
         }
 
         if (indirect_sum > BLACK_THRESHOLD)
         {
-            size_t pixelStride = sizeof(float) * 3;
+            size_t pixelStride = sizeof(Float) * 3;
             size_t rowStride = pixelStride * lightmap_width;
 
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
@@ -709,7 +709,7 @@ namespace
             oidnCommitFilter(filter);
             oidnExecuteFilter(filter);
 
-            const char* errorMessage;
+            const Char* errorMessage;
             if (oidnGetDeviceError(m_oidn_device, &errorMessage) != OIDN_ERROR_NONE)
                 Console_Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
 
@@ -720,26 +720,26 @@ namespace
             fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
         }
 
-        vector<float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
-        for (int y = 0; y < lightmap_height; ++y) {
-            for (int x = 0; x < lightmap_width; ++x) {
-                int idx = (y * lightmap_width + x) * 3;
+        vector<Float> final_hdr_lightmap_data(lightmap_width * lightmap_height * 3);
+        for (Int y = 0; y < lightmap_height; ++y) {
+            for (Int x = 0; x < lightmap_width; ++x) {
+                Int idx = (y * lightmap_width + x) * 3;
                 Vec3 direct_light = { direct_lightmap_data[idx], direct_lightmap_data[idx + 1], direct_lightmap_data[idx + 2] };
                 Vec3 indirect_light = { denoised_indirect_data[idx], denoised_indirect_data[idx + 1], denoised_indirect_data[idx + 2] };
 
-                float u_tex = (static_cast<float>(x) + 0.5f) / lightmap_width;
-                float v_tex = (static_cast<float>(y) + 0.5f) / lightmap_height;
-                float target_u = min_uv.x + u_tex * uv_range.x;
-                float target_v = min_uv.y + v_tex * uv_range.y;
+                Float u_tex = (static_cast<Float>(x) + 0.5f) / lightmap_width;
+                Float v_tex = (static_cast<Float>(y) + 0.5f) / lightmap_height;
+                Float target_u = min_uv.x + u_tex * uv_range.x;
+                Float target_v = min_uv.y + v_tex * uv_range.y;
                 Vec3 world_pos;
-                bool inside = false;
+                Bool inside = false;
                 Vec3 point_normal = { 0.0f, 0.0f, 1.0f };
 
-                for (int k = 0; k < face.numVertexIndices - 2; ++k)
+                for (Int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
-                    int idx0 = face.vertexIndices[0];
-                    int idx1 = face.vertexIndices[k + 1];
-                    int idx2 = face.vertexIndices[k + 2];
+                    Int idx0 = face.vertexIndices[0];
+                    Int idx1 = face.vertexIndices[k + 1];
+                    Int idx2 = face.vertexIndices[k + 2];
                     Vec2 uv0 = calculate_texture_uv_for_vertex(&b, data.face_index, idx0);
                     Vec2 uv1 = calculate_texture_uv_for_vertex(&b, data.face_index, idx1);
                     Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
@@ -768,11 +768,11 @@ namespace
             }
         }
 
-        vector<float> filtered_direction_data;
+        vector<Float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_width, lightmap_height, 4, 0.01f);
 
-        for (int i = 0; i < lightmap_width * lightmap_height; ++i) {
-            int idx3 = i * 3;
+        for (Int i = 0; i < lightmap_width * lightmap_height; ++i) {
+            Int idx3 = i * 3;
             Vec3 dir = { filtered_direction_data[idx3], filtered_direction_data[idx3 + 1], filtered_direction_data[idx3 + 2] };
             if (vec3_length_sq(dir) > 0.0001f) {
                 vec3_normalize(&dir);
@@ -781,35 +781,35 @@ namespace
                 dir = { 0,0,0 };
             }
 
-            int idx4 = i * 4;
-            dir_lightmap_data[idx4 + 0] = static_cast<unsigned char>((dir.x * 0.5f + 0.5f) * 255.0f);
-            dir_lightmap_data[idx4 + 1] = static_cast<unsigned char>((dir.y * 0.5f + 0.5f) * 255.0f);
-            dir_lightmap_data[idx4 + 2] = static_cast<unsigned char>((dir.z * 0.5f + 0.5f) * 255.0f);
+            Int idx4 = i * 4;
+            dir_lightmap_data[idx4 + 0] = static_cast<Uchar>((dir.x * 0.5f + 0.5f) * 255.0f);
+            dir_lightmap_data[idx4 + 1] = static_cast<Uchar>((dir.y * 0.5f + 0.5f) * 255.0f);
+            dir_lightmap_data[idx4 + 2] = static_cast<Uchar>((dir.z * 0.5f + 0.5f) * 255.0f);
             dir_lightmap_data[idx4 + 3] = 255;
         }
 
         apply_gaussian_blur(final_hdr_lightmap_data, lightmap_width, lightmap_height, 3);
 
-        int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
-        int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
+        Int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
+        Int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
 
-        vector<float> padded_hdr_data(padded_width * padded_height * 3);
-        for (int y = 0; y < padded_height; ++y) {
-            for (int x = 0; x < padded_width; ++x) {
-                int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
-                for (int c = 0; c < 3; ++c) {
+        vector<Float> padded_hdr_data(padded_width * padded_height * 3);
+        for (Int y = 0; y < padded_height; ++y) {
+            for (Int x = 0; x < padded_width; ++x) {
+                Int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                Int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                for (Int c = 0; c < 3; ++c) {
                     padded_hdr_data[(y * padded_width + x) * 3 + c] = final_hdr_lightmap_data[(src_y * lightmap_width + src_x) * 3 + c];
                 }
             }
         }
 
-        vector<unsigned char> padded_dir_data(padded_width * padded_height * 4);
-        for (int y = 0; y < padded_height; ++y) {
-            for (int x = 0; x < padded_width; ++x) {
-                int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
-                for (int c = 0; c < 4; ++c) {
+        vector<Uchar> padded_dir_data(padded_width * padded_height * 4);
+        for (Int y = 0; y < padded_height; ++y) {
+            for (Int x = 0; x < padded_width; ++x) {
+                Int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
+                Int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                for (Int c = 0; c < 4; ++c) {
                     padded_dir_data[(y * padded_width + x) * 4 + c] = dir_lightmap_data[(src_y * lightmap_width + src_x) * 4 + c];
                 }
             }
@@ -829,8 +829,8 @@ namespace
     void Lightmapper::process_decal(const DecalJobData& data)
     {
         const Decal& decal = m_scene->decals[data.decal_index];
-        float scale = (decal.lightmap_scale > 0.0f) ? decal.lightmap_scale : 1.0f;
-        int lightmap_res = clamp(static_cast<int>(m_resolution / scale), 4, 4096);
+        Float scale = (decal.lightmap_scale > 0.0f) ? decal.lightmap_scale : 1.0f;
+        Int lightmap_res = clamp(static_cast<Int>(m_resolution / scale), 4, 4096);
 
         Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
@@ -839,11 +839,11 @@ namespace
         Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
         vec3_normalize(&normal);
 
-        vector<float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
-        vector<float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
-        vector<float> albedo_lightmap_data(lightmap_res * lightmap_res * 3);
-        vector<float> normal_lightmap_data(lightmap_res * lightmap_res * 3);
-        vector<float> direction_float_data(lightmap_res * lightmap_res * 3);
+        vector<Float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<Float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<Float> albedo_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<Float> normal_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<Float> direction_float_data(lightmap_res * lightmap_res * 3);
 
         Vec4 decal_reflectivity = { 0.5f, 0.5f, 0.5f, 1.0f };
         if (decal.material) {
@@ -853,13 +853,13 @@ namespace
             }
         }
 
-        for (int y = 0; y < lightmap_res; ++y) {
-            for (int x = 0; x < lightmap_res; ++x) {
-                float u = (static_cast<float>(x) + 0.5f) / lightmap_res;
-                float v = (static_cast<float>(y) + 0.5f) / lightmap_res;
+        for (Int y = 0; y < lightmap_res; ++y) {
+            for (Int x = 0; x < lightmap_res; ++x) {
+                Float u = (static_cast<Float>(x) + 0.5f) / lightmap_res;
+                Float v = (static_cast<Float>(y) + 0.5f) / lightmap_res;
 
-                float local_x = u - 0.5f;
-                float local_y = 0.5f - v;
+                Float local_x = u - 0.5f;
+                Float local_y = 0.5f - v;
 
                 Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
                 local_pos_on_quad = vec3_add(local_pos_on_quad, vec3_muls(z_axis, -0.5f));
@@ -872,7 +872,7 @@ namespace
                 Vec3 direct_light = calculate_direct_light(sampling_pos, normal, dominant_dir, BAKE_STATIC_DIRECT_ONLY);
                 Vec3 indirect_light = calculate_indirect_light(sampling_pos, normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_DECALS);
 
-                int idx = (y * lightmap_res + x) * 3;
+                Int idx = (y * lightmap_res + x) * 3;
 
                 direct_lightmap_data[idx + 0] = direct_light.x;
                 direct_lightmap_data[idx + 1] = direct_light.y;
@@ -898,14 +898,14 @@ namespace
             }
         }
 
-        vector<float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
-        float indirect_sum = 0.0f; for (float val : indirect_lightmap_data) indirect_sum += val;
+        vector<Float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
+        Float indirect_sum = 0.0f; for (Float val : indirect_lightmap_data) indirect_sum += val;
         if (indirect_sum > 0.0001f) {
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
-            oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
-            oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
-            oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
-            oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(float) * 3, sizeof(float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "normal", normal_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
+            oidnSetSharedFilterImage(filter, "output", denoised_indirect_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
             oidnSetFilterBool(filter, "hdr", true);
             oidnSetFilterBool(filter, "cleanAux", true);
             oidnCommitFilter(filter);
@@ -916,7 +916,7 @@ namespace
             fill(denoised_indirect_data.begin(), denoised_indirect_data.end(), 0.0f);
         }
 
-        vector<float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
+        vector<Float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
             Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
@@ -927,16 +927,16 @@ namespace
             final_hdr_lightmap_data[i * 3 + 2] = final_light.z;
         }
 
-        vector<float> filtered_direction_data;
+        vector<Float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, direction_float_data, final_hdr_lightmap_data, lightmap_res, lightmap_res, 4, 0.01f);
 
-        vector<unsigned char> dir_data_u8(lightmap_res * lightmap_res * 4);
-        for (int i = 0; i < lightmap_res * lightmap_res; ++i) {
+        vector<Uchar> dir_data_u8(lightmap_res * lightmap_res * 4);
+        for (Int i = 0; i < lightmap_res * lightmap_res; ++i) {
             Vec3 dir = { filtered_direction_data[i * 3], filtered_direction_data[i * 3 + 1], filtered_direction_data[i * 3 + 2] };
             if (vec3_length_sq(dir) > 0.0001f) vec3_normalize(&dir); else dir = { 0,0,0 };
-            dir_data_u8[i * 4 + 0] = static_cast<unsigned char>((dir.x * 0.5f + 0.5f) * 255.0f);
-            dir_data_u8[i * 4 + 1] = static_cast<unsigned char>((dir.y * 0.5f + 0.5f) * 255.0f);
-            dir_data_u8[i * 4 + 2] = static_cast<unsigned char>((dir.z * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 0] = static_cast<Uchar>((dir.x * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 1] = static_cast<Uchar>((dir.y * 0.5f + 0.5f) * 255.0f);
+            dir_data_u8[i * 4 + 2] = static_cast<Uchar>((dir.z * 0.5f + 0.5f) * 255.0f);
             dir_data_u8[i * 4 + 3] = 255;
         }
 
@@ -952,20 +952,20 @@ namespace
     void Lightmapper::process_brush_vertex(const BrushVertexJobData& data)
     {
         const Brush& b = m_scene->brushes[data.brush_index];
-        unsigned int v_idx = data.vertex_index;
+        Uint v_idx = data.vertex_index;
 
         Vec3 local_pos = b.vertices[v_idx].pos;
         Vec3 local_normal = { 0, 1, 0 };
 
         vector<Vec3> temp_normals(b.numVertices, Vec3{ 0,0,0 });
 
-        for (int i = 0; i < b.numFaces; ++i) {
+        for (Int i = 0; i < b.numFaces; ++i) {
             BrushFace* face = &b.faces[i];
             if (face->numVertexIndices < 3) continue;
-            for (int j = 0; j < face->numVertexIndices - 2; ++j) {
-                int idx0 = face->vertexIndices[0];
-                int idx1 = face->vertexIndices[j + 1];
-                int idx2 = face->vertexIndices[j + 2];
+            for (Int j = 0; j < face->numVertexIndices - 2; ++j) {
+                Int idx0 = face->vertexIndices[0];
+                Int idx1 = face->vertexIndices[j + 1];
+                Int idx2 = face->vertexIndices[j + 2];
                 Vec3 p0 = b.vertices[idx0].pos;
                 Vec3 p1 = b.vertices[idx1].pos;
                 Vec3 p2 = b.vertices[idx2].pos;
@@ -975,7 +975,7 @@ namespace
                 temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
             }
         }
-        for (int i = 0; i < b.numVertices; ++i) {
+        for (Int i = 0; i < b.numVertices; ++i) {
             vec3_normalize(&temp_normals[i]);
         }
         local_normal = temp_normals[v_idx];
@@ -1003,7 +1003,7 @@ namespace
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
-        unsigned int v_idx = data.vertex_index;
+        Uint v_idx = data.vertex_index;
 
         Vec3 local_pos = { obj.model->combinedVertexData[v_idx * 3 + 0], obj.model->combinedVertexData[v_idx * 3 + 1], obj.model->combinedVertexData[v_idx * 3 + 2] };
         Vec3 local_normal = { obj.model->combinedNormalData[v_idx * 3 + 0], obj.model->combinedNormalData[v_idx * 3 + 1], obj.model->combinedNormalData[v_idx * 3 + 2] };
@@ -1040,22 +1040,22 @@ namespace
         }
 
         xatlas::Atlas* atlas = xatlas::Create();
-        int num_meshes = clean_model->meshCount;
+        Int num_meshes = clean_model->meshCount;
 
-        for (int m = 0; m < num_meshes; ++m) {
+        for (Int m = 0; m < num_meshes; ++m) {
             const Mesh& mesh = clean_model->meshes[m];
 
             xatlas::MeshDecl meshDecl;
             meshDecl.vertexCount = mesh.vertexCount;
 
             meshDecl.vertexPositionData = &mesh.final_vbo_data[0];
-            meshDecl.vertexPositionStride = 24 * sizeof(float);
+            meshDecl.vertexPositionStride = 24 * sizeof(Float);
 
             meshDecl.vertexNormalData = &mesh.final_vbo_data[3];
-            meshDecl.vertexNormalStride = 24 * sizeof(float);
+            meshDecl.vertexNormalStride = 24 * sizeof(Float);
 
             meshDecl.vertexUvData = &mesh.final_vbo_data[6];
-            meshDecl.vertexUvStride = 24 * sizeof(float);
+            meshDecl.vertexUvStride = 24 * sizeof(Float);
 
             meshDecl.indexCount = mesh.indexCount;
             meshDecl.indexData = mesh.indexData;
@@ -1067,9 +1067,9 @@ namespace
             }
         }
 
-        float bounds_size = vec3_length(vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
-        float world_scale = fmaxf(scene_obj.scale.x, fmaxf(scene_obj.scale.y, scene_obj.scale.z));
-        int resolution = clamp((int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
+        Float bounds_size = vec3_length(vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
+        Float world_scale = fmaxf(scene_obj.scale.x, fmaxf(scene_obj.scale.y, scene_obj.scale.z));
+        Int resolution = clamp((Int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
         resolution = pow(2, ceil(log(resolution) / log(2)));
 
         xatlas::Generate(atlas);
@@ -1077,7 +1077,7 @@ namespace
         fs::path lmuv_path = data.output_dir / "model.lmuv";
         FILE* f_lmuv = fopen(lmuv_path.string().c_str(), "wb");
         if (f_lmuv) {
-            const char magic[] = "LMUV";
+            const Char magic[] = "LMUV";
             fwrite(magic, 1, 4, f_lmuv);
             uint32_t count = atlas->meshCount;
             fwrite(&count, sizeof(uint32_t), 1, f_lmuv);
@@ -1091,39 +1091,39 @@ namespace
                 for (uint32_t v = 0; v < mesh.vertexCount; ++v) {
                     const xatlas::Vertex& vert = mesh.vertexArray[v];
                     fwrite(&vert.xref, sizeof(uint32_t), 1, f_lmuv);
-                    float u = vert.uv[0] / (float)atlas->width;
-                    float v_coord = vert.uv[1] / (float)atlas->height;
-                    fwrite(&u, sizeof(float), 1, f_lmuv);
-                    fwrite(&v_coord, sizeof(float), 1, f_lmuv);
+                    Float u = vert.uv[0] / (Float)atlas->width;
+                    Float v_coord = vert.uv[1] / (Float)atlas->height;
+                    fwrite(&u, sizeof(Float), 1, f_lmuv);
+                    fwrite(&v_coord, sizeof(Float), 1, f_lmuv);
                 }
             }
             fclose(f_lmuv);
         }
 
-        vector<float> direct_data(resolution * resolution * 3, 0.0f);
-        vector<float> indirect_data(resolution * resolution * 3, 0.0f);
-        vector<float> albedo_data(resolution * resolution * 3, 0.5f);
-        vector<float> normal_data(resolution * resolution * 3, 0.0f);
-        vector<float> dir_accum_data(resolution * resolution * 3, 0.0f);
+        vector<Float> direct_data(resolution * resolution * 3, 0.0f);
+        vector<Float> indirect_data(resolution * resolution * 3, 0.0f);
+        vector<Float> albedo_data(resolution * resolution * 3, 0.5f);
+        vector<Float> normal_data(resolution * resolution * 3, 0.0f);
+        vector<Float> dir_accum_data(resolution * resolution * 3, 0.0f);
 
         for (uint32_t m = 0; m < atlas->meshCount; ++m) {
             const xatlas::Mesh& xmesh = atlas->meshes[m];
             const Mesh& original_mesh = clean_model->meshes[m];
 
-            unsigned int num_tris = xmesh.indexCount / 3;
+            Uint num_tris = xmesh.indexCount / 3;
 
-            for (unsigned int t = 0; t < num_tris; ++t) {
-                unsigned int i0 = xmesh.indexArray[t * 3 + 0];
-                unsigned int i1 = xmesh.indexArray[t * 3 + 1];
-                unsigned int i2 = xmesh.indexArray[t * 3 + 2];
+            for (Uint t = 0; t < num_tris; ++t) {
+                Uint i0 = xmesh.indexArray[t * 3 + 0];
+                Uint i1 = xmesh.indexArray[t * 3 + 1];
+                Uint i2 = xmesh.indexArray[t * 3 + 2];
 
                 const xatlas::Vertex& xv0 = xmesh.vertexArray[i0];
                 const xatlas::Vertex& xv1 = xmesh.vertexArray[i1];
                 const xatlas::Vertex& xv2 = xmesh.vertexArray[i2];
 
-                Vec2 uv0 = { xv0.uv[0] / (float)atlas->width, xv0.uv[1] / (float)atlas->height };
-                Vec2 uv1 = { xv1.uv[0] / (float)atlas->width, xv1.uv[1] / (float)atlas->height };
-                Vec2 uv2 = { xv2.uv[0] / (float)atlas->width, xv2.uv[1] / (float)atlas->height };
+                Vec2 uv0 = { xv0.uv[0] / (Float)atlas->width, xv0.uv[1] / (Float)atlas->height };
+                Vec2 uv1 = { xv1.uv[0] / (Float)atlas->width, xv1.uv[1] / (Float)atlas->height };
+                Vec2 uv2 = { xv2.uv[0] / (Float)atlas->width, xv2.uv[1] / (Float)atlas->height };
 
                 auto get_vec3_pos = [&](uint32_t idx) -> Vec3 {
                     return *(Vec3*)&original_mesh.final_vbo_data[idx * 24 + 0];
@@ -1140,18 +1140,18 @@ namespace
                 Vec3 n1_local = get_vec3_norm(xv1.xref);
                 Vec3 n2_local = get_vec3_norm(xv2.xref);
 
-                float min_u = fminf(uv0.x, fminf(uv1.x, uv2.x));
-                float min_v = fminf(uv0.y, fminf(uv1.y, uv2.y));
-                float max_u = fmaxf(uv0.x, fmaxf(uv1.x, uv2.x));
-                float max_v = fmaxf(uv0.y, fmaxf(uv1.y, uv2.y));
+                Float min_u = fminf(uv0.x, fminf(uv1.x, uv2.x));
+                Float min_v = fminf(uv0.y, fminf(uv1.y, uv2.y));
+                Float max_u = fmaxf(uv0.x, fmaxf(uv1.x, uv2.x));
+                Float max_v = fmaxf(uv0.y, fmaxf(uv1.y, uv2.y));
 
-                int min_x = clamp((int)(min_u * resolution), 0, resolution - 1);
-                int min_y = clamp((int)(min_v * resolution), 0, resolution - 1);
-                int max_x = clamp((int)(max_u * resolution), 0, resolution - 1);
-                int max_y = clamp((int)(max_v * resolution), 0, resolution - 1);
+                Int min_x = clamp((Int)(min_u * resolution), 0, resolution - 1);
+                Int min_y = clamp((Int)(min_v * resolution), 0, resolution - 1);
+                Int max_x = clamp((Int)(max_u * resolution), 0, resolution - 1);
+                Int max_y = clamp((Int)(max_v * resolution), 0, resolution - 1);
 
-                for (int y = min_y; y <= max_y; ++y) {
-                    for (int x = min_x; x <= max_x; ++x) {
+                for (Int y = min_y; y <= max_y; ++y) {
+                    for (Int x = min_x; x <= max_x; ++x) {
                         Vec2 p = { (x + 0.5f) / resolution, (y + 0.5f) / resolution };
                         Vec3 bary = barycentric_coords(p, uv0, uv1, uv2);
 
@@ -1163,7 +1163,7 @@ namespace
                             Vec3 norm_world = mat4_mul_vec3_dir(&scene_obj.modelMatrix, norm_local);
                             vec3_normalize(&norm_world);
 
-                            int idx = (y * resolution + x) * 3;
+                            Int idx = (y * resolution + x) * 3;
 
                             mt19937 rng(generate_seed_from_pos(pos_world));
                             Vec3 dom_dir, ind_dir;
@@ -1197,7 +1197,7 @@ namespace
         xatlas::Destroy(atlas);
         Model_Free(clean_model);
 
-        vector<float> denoised_indirect(indirect_data.size());
+        vector<Float> denoised_indirect(indirect_data.size());
         {
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
             oidnSetSharedFilterImage(filter, "color", indirect_data.data(), OIDN_FORMAT_FLOAT3, resolution, resolution, 0, 0, 0);
@@ -1214,28 +1214,28 @@ namespace
         apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
         apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
 
-        vector<float> final_hdr_lightmap_data(resolution * resolution * 3);
+        vector<Float> final_hdr_lightmap_data(resolution * resolution * 3);
         for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             final_hdr_lightmap_data[i * 3 + 0] = direct_data[i * 3 + 0] + denoised_indirect[i * 3 + 0];
             final_hdr_lightmap_data[i * 3 + 1] = direct_data[i * 3 + 1] + denoised_indirect[i * 3 + 1];
             final_hdr_lightmap_data[i * 3 + 2] = direct_data[i * 3 + 2] + denoised_indirect[i * 3 + 2];
         }
 
-        vector<float> filtered_direction_data;
+        vector<Float> filtered_direction_data;
         apply_guided_filter(filtered_direction_data, dir_accum_data, final_hdr_lightmap_data, resolution, resolution, 4, 0.01f);
 
-        vector<unsigned char> dir_data(resolution * resolution * 4, 0);
+        vector<Uchar> dir_data(resolution * resolution * 4, 0);
 
-        for (int i = 0; i < resolution * resolution; ++i) {
-            int idx = i * 3;
+        for (Int i = 0; i < resolution * resolution; ++i) {
+            Int idx = i * 3;
 
             Vec3 d = { filtered_direction_data[idx], filtered_direction_data[idx + 1], filtered_direction_data[idx + 2] };
             if (vec3_length_sq(d) > 0.0001f) vec3_normalize(&d);
             else d = { 0,0,0 };
 
-            dir_data[i * 4 + 0] = (unsigned char)((d.x * 0.5f + 0.5f) * 255.0f);
-            dir_data[i * 4 + 1] = (unsigned char)((d.y * 0.5f + 0.5f) * 255.0f);
-            dir_data[i * 4 + 2] = (unsigned char)((d.z * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 0] = (Uchar)((d.x * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 1] = (Uchar)((d.y * 0.5f + 0.5f) * 255.0f);
+            dir_data[i * 4 + 2] = (Uchar)((d.z * 0.5f + 0.5f) * 255.0f);
             dir_data[i * 4 + 3] = 255;
         }
 
@@ -1282,7 +1282,7 @@ namespace
         fs::create_directories(m_output_path);
 
         size_t total_brush_faces = 0;
-        for (int i = 0; i < m_scene->numBrushes; ++i)
+        for (Int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b)) continue;
@@ -1292,7 +1292,7 @@ namespace
         }
 
         size_t total_model_vertices = 0;
-        for (int i = 0; i < m_scene->numObjects; ++i)
+        for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             if (m_scene->objects[i].model)
             {
@@ -1313,7 +1313,7 @@ namespace
         m_brush_color_buffers.resize(m_scene->numBrushes);
         m_brush_direction_buffers.resize(m_scene->numBrushes);
 
-        for (int i = 0; i < m_scene->numObjects; ++i)
+        for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
             if (obj.model && obj.mass <= 0.0f && !obj.useLightmap)
@@ -1323,7 +1323,7 @@ namespace
             }
         }
 
-        for (int i = 0; i < m_scene->numBrushes; ++i)
+        for (Int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b)) continue;
@@ -1331,7 +1331,7 @@ namespace
                 if (b.numVertices > 0) {
                     m_brush_color_buffers[i] = make_unique<Vec4[]>(b.numVertices);
                     m_brush_direction_buffers[i] = make_unique<Vec4[]>(b.numVertices);
-                    for (unsigned int v = 0; v < b.numVertices; ++v) {
+                    for (Uint v = 0; v < b.numVertices; ++v) {
                         m_jobs.emplace_back(BrushVertexJobData{ i, v, m_brush_color_buffers[i].get(), m_brush_direction_buffers[i].get() });
                     }
                 }
@@ -1340,7 +1340,7 @@ namespace
                 string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
                 fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
                 fs::create_directories(brush_dir);
-                for (int j = 0; j < b.numFaces; ++j)
+                for (Int j = 0; j < b.numFaces; ++j)
                 {
                     if (b.faces[j].material == &g_NodrawMaterial) {
                         continue;
@@ -1350,14 +1350,14 @@ namespace
             }
         }
 
-        for (int i = 0; i < m_scene->numDecals; ++i)
+        for (Int i = 0; i < m_scene->numDecals; ++i)
         {
             fs::path decal_dir = m_output_path / ("decal_" + to_string(i));
             fs::create_directories(decal_dir);
             m_jobs.emplace_back(DecalJobData{ i, decal_dir });
         }
 
-        for (int i = 0; i < m_scene->numObjects; ++i)
+        for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
             if (obj.mass > 0.0f) continue;
@@ -1370,7 +1370,7 @@ namespace
                     m_jobs.emplace_back(ModelLightmapJobData{ i, model_dir });
                 }
                 else {
-                    for (unsigned int v = 0; v < obj.model->totalVertexCount; ++v)
+                    for (Uint v = 0; v < obj.model->totalVertexCount; ++v)
                     {
                         m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
                     }
@@ -1385,9 +1385,9 @@ namespace
         Console_Printf("[Lightmapper] Pre-calculating surface reflectivity...");
 
         set<const Material*> unique_materials;
-        for (int i = 0; i < m_scene->numBrushes; ++i) {
+        for (Int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
-            for (int j = 0; j < b.numFaces; ++j) {
+            for (Int j = 0; j < b.numFaces; ++j) {
                 const BrushFace& face = b.faces[j];
                 if (face.material && face.material != &g_NodrawMaterial) unique_materials.insert(face.material);
                 if (face.material2) unique_materials.insert(face.material2);
@@ -1395,16 +1395,16 @@ namespace
                 if (face.material4) unique_materials.insert(face.material4);
             }
         }
-        for (int i = 0; i < m_scene->numDecals; ++i) {
+        for (Int i = 0; i < m_scene->numDecals; ++i) {
             const Decal& d = m_scene->decals[i];
             if (d.material) {
                 unique_materials.insert(d.material);
             }
         }
-        for (int i = 0; i < m_scene->numObjects; ++i) {
+        for (Int i = 0; i < m_scene->numObjects; ++i) {
             const SceneObject& obj = m_scene->objects[i];
             if (obj.model) {
-                for (int j = 0; j < obj.model->meshCount; ++j) {
+                for (Int j = 0; j < obj.model->meshCount; ++j) {
                     const Mesh& mesh = obj.model->meshes[j];
                     if (mesh.material) {
                         unique_materials.insert(mesh.material);
@@ -1436,10 +1436,10 @@ namespace
                 continue;
             }
 
-            long long total_r = 0, total_g = 0, total_b = 0, total_a = 0;
-            int texels = surface->w * surface->h;
+            LongLong total_r = 0, total_g = 0, total_b = 0, total_a = 0;
+            Int texels = surface->w * surface->h;
             Uint8* pixels = (Uint8*)surface->pixels;
-            for (int i = 0; i < texels; ++i) {
+            for (Int i = 0; i < texels; ++i) {
                 total_r += pixels[i * 4 + 0];
                 total_g += pixels[i * 4 + 1];
                 total_b += pixels[i * 4 + 2];
@@ -1448,24 +1448,24 @@ namespace
             SDL_FreeSurface(surface);
 
             m_material_reflectivity[mat] = {
-                static_cast<float>(total_r) / texels / 255.0f,
-                static_cast<float>(total_g) / texels / 255.0f,
-                static_cast<float>(total_b) / texels / 255.0f,
-                static_cast<float>(total_a) / texels / 255.0f
+                static_cast<Float>(total_r) / texels / 255.0f,
+                static_cast<Float>(total_g) / texels / 255.0f,
+                static_cast<Float>(total_b) / texels / 255.0f,
+                static_cast<Float>(total_a) / texels / 255.0f
             };
         }
 
-        for (int i = 0; i < m_scene->numBrushes; ++i) {
+        for (Int i = 0; i < m_scene->numBrushes; ++i) {
             const Brush& b = m_scene->brushes[i];
-            for (int j = 0; j < b.numFaces; ++j) {
+            for (Int j = 0; j < b.numFaces; ++j) {
                 const BrushFace& face = b.faces[j];
                 if (face.numVertexIndices == 0 || !face.material || face.material == &g_NodrawMaterial) {
                     continue;
                 }
 
                 Vec4 avg_color = { 0.0f, 0.0f, 0.0f, 0.0f };
-                for (int k = 0; k < face.numVertexIndices; ++k) {
-                    int vert_idx = face.vertexIndices[k];
+                for (Int k = 0; k < face.numVertexIndices; ++k) {
+                    Int vert_idx = face.vertexIndices[k];
                     avg_color = vec4_add(avg_color, b.vertices[vert_idx].color);
                 }
                 avg_color = vec4_muls(avg_color, 1.0f / face.numVertexIndices);
@@ -1475,16 +1475,16 @@ namespace
                 Vec4 mat3_refl = face.material3 && m_material_reflectivity.count(face.material3) ? m_material_reflectivity[face.material3] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
                 Vec4 mat4_refl = face.material4 && m_material_reflectivity.count(face.material4) ? m_material_reflectivity[face.material4] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
 
-                float weightR = avg_color.x;
-                float weightG = avg_color.y;
-                float weightB = avg_color.z;
-                float totalWeight = max(weightR + weightG + weightB, 0.0001f);
+                Float weightR = avg_color.x;
+                Float weightG = avg_color.y;
+                Float weightB = avg_color.z;
+                Float totalWeight = max(weightR + weightG + weightB, 0.0001f);
                 if (totalWeight > 1.0f) {
                     weightR /= totalWeight;
                     weightG /= totalWeight;
                     weightB /= totalWeight;
                 }
-                float weightBase = 1.0f - (weightR + weightG + weightB);
+                Float weightBase = 1.0f - (weightR + weightG + weightB);
 
                 Vec4 blended_refl;
                 blended_refl.x = mat1_refl.x * weightBase + mat2_refl.x * weightR + mat3_refl.x * weightG + mat4_refl.x * weightB;
@@ -1503,7 +1503,7 @@ namespace
         if (m_scene->sun.enabled) {
             Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
             Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
                 if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
                     Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
@@ -1522,23 +1522,23 @@ namespace
 
         if (m_scene->sun.enabled) {
             Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
                 if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
                     Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
                     Vec3 light_contribution = vec3_muls(light_color, NdotL);
                     direct_light = vec3_add(direct_light, light_contribution);
 
-                    float contribution_magnitude = vec3_length(light_contribution);
+                    Float contribution_magnitude = vec3_length(light_contribution);
                     out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
                 }
             }
         }
 
-        uniform_real_distribution<float> random_dist(-0.5f, 0.5f);
+        uniform_real_distribution<Float> random_dist(-0.5f, 0.5f);
         mt19937 rng(generate_seed_from_pos(pos));
 
-        for (int k = 0; k < m_scene->numActiveLights; ++k)
+        for (Int k = 0; k < m_scene->numActiveLights; ++k)
         {
             const Light& light = m_scene->lights[k];
             if (mode == BAKE_ALL_FOR_BOUNCES && light.is_static == 0) continue;
@@ -1557,32 +1557,32 @@ namespace
                 }
 
                 Vec3 accumulated_light = { 0,0,0 };
-                int samples_that_hit = 0;
+                Int samples_that_hit = 0;
 
-                int grid_size = static_cast<int>(sqrt(NUM_AREA_LIGHT_SAMPLES));
-                uniform_real_distribution<float> jitter_dist(0.0f, 1.0f);
+                Int grid_size = static_cast<Int>(sqrt(NUM_AREA_LIGHT_SAMPLES));
+                uniform_real_distribution<Float> jitter_dist(0.0f, 1.0f);
 
-                for (int y = 0; y < grid_size; ++y) {
-                    for (int x = 0; x < grid_size; ++x) {
-                        float u = ((float)x + jitter_dist(rng)) / (float)grid_size - 0.5f;
-                        float v = ((float)y + jitter_dist(rng)) / (float)grid_size - 0.5f;
+                for (Int y = 0; y < grid_size; ++y) {
+                    for (Int x = 0; x < grid_size; ++x) {
+                        Float u = ((Float)x + jitter_dist(rng)) / (Float)grid_size - 0.5f;
+                        Float v = ((Float)y + jitter_dist(rng)) / (Float)grid_size - 0.5f;
 
                         Vec3 sample_offset = vec3_add(vec3_muls(light_right, u * light.width), vec3_muls(light_up, v * light.height));
                         Vec3 sample_pos = vec3_add(light.pos, sample_offset);
 
                         Vec3 light_dir = vec3_sub(sample_pos, pos);
-                        float dist_sq = vec3_length_sq(light_dir);
+                        Float dist_sq = vec3_length_sq(light_dir);
                         if (dist_sq > light.radius * light.radius) continue;
 
                         vec3_normalize(&light_dir);
-                        float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+                        Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
                         if (NdotL <= 0.0f) continue;
 
                         if (is_in_shadow(point_to_light_check, sample_pos)) continue;
 
                         samples_that_hit++;
-                        float dist = sqrtf(dist_sq);
-                        float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
+                        Float dist = sqrtf(dist_sq);
+                        Float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
                         attenuation /= (dist * dist + 1.0f);
 
                         Vec3 light_color = vec3_muls(light.color, light.intensity);
@@ -1591,7 +1591,7 @@ namespace
                 }
 
                 if (samples_that_hit > 0) {
-                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / (float)(grid_size * grid_size));
+                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / (Float)(grid_size * grid_size));
                     direct_light = vec3_add(direct_light, light_contribution);
 
                     Vec3 avg_light_dir = vec3_muls(light_forward, -1.0f);
@@ -1602,30 +1602,30 @@ namespace
             }
 
             Vec3 light_dir = vec3_sub(light.pos, pos);
-            float dist = vec3_length(light_dir);
+            Float dist = vec3_length(light_dir);
             vec3_normalize(&light_dir);
             if (dist > light.radius) continue;
 
-            float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
 
             if (is_in_shadow(point_to_light_check, light.pos)) continue;
 
-            float spotFactor = 1.0f;
+            Float spotFactor = 1.0f;
             if (light.type == LIGHT_SPOT)
             {
                 Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                float theta = vec3_dot(light_dir, light_forward_vector);
-                float inner_cone_cos = light.cutOff;
-                float outer_cone_cos = light.outerCutOff;
+                Float theta = vec3_dot(light_dir, light_forward_vector);
+                Float inner_cone_cos = light.cutOff;
+                Float outer_cone_cos = light.outerCutOff;
 
                 if (theta < outer_cone_cos) {
                     spotFactor = 0.0f;
                 }
                 else {
-                    float delta = inner_cone_cos - outer_cone_cos;
+                    Float delta = inner_cone_cos - outer_cone_cos;
                     if (delta > 0.0001f) {
-                        float t = clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
+                        Float t = clamp((theta - outer_cone_cos) / delta, 0.0f, 1.0f);
                         spotFactor = t * t * (3.0f - 2.0f * t);
                     }
                     else {
@@ -1634,14 +1634,14 @@ namespace
                 }
             }
 
-            float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
+            Float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
             attenuation /= (dist * dist + 1.0f);
             attenuation *= spotFactor;
             Vec3 light_color = vec3_muls(light.color, light.intensity);
             Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
             direct_light = vec3_add(direct_light, light_contribution);
 
-            float contribution_magnitude = vec3_length(light_contribution);
+            Float contribution_magnitude = vec3_length(light_contribution);
             out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
         }
         return direct_light;
@@ -1649,16 +1649,16 @@ namespace
 
     Vec3 Lightmapper::cosine_weighted_direction_in_hemisphere(const Vec3& normal, mt19937& gen)
     {
-        uniform_real_distribution<float> dist(0.0f, 1.0f);
-        float u1 = dist(gen);
-        float u2 = dist(gen);
+        uniform_real_distribution<Float> dist(0.0f, 1.0f);
+        Float u1 = dist(gen);
+        Float u2 = dist(gen);
 
-        float r = sqrtf(u1);
-        float theta = 2.0f * (float)M_PI * u2;
+        Float r = sqrtf(u1);
+        Float theta = 2.0f * (Float)M_PI * u2;
 
-        float x = r * cosf(theta);
-        float y = r * sinf(theta);
-        float z = sqrtf(max(0.0f, 1.0f - u1));
+        Float x = r * cosf(theta);
+        Float y = r * sinf(theta);
+        Float z = sqrtf(max(0.0f, 1.0f - u1));
 
         Vec3 up = fabsf(normal.z) < 0.999f ? Vec3{ 0,0,1 } : Vec3{ 1,0,0 };
         Vec3 tangent = vec3_cross(up, normal);
@@ -1668,7 +1668,7 @@ namespace
         return vec3_add(vec3_muls(tangent, x), vec3_add(vec3_muls(bitangent, y), vec3_muls(normal, z)));
     }
 
-    Vec4 Lightmapper::get_reflectivity_at_hit(unsigned int primID) const
+    Vec4 Lightmapper::get_reflectivity_at_hit(Uint primID) const
     {
         if (primID < m_primID_to_face_map.size())
         {
@@ -1705,7 +1705,7 @@ namespace
         return { 0.5f, 0.5f, 0.5f, 1.0f };
     }
 
-    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, int num_samples)
+    Vec3 Lightmapper::calculate_indirect_light(const Vec3& origin, const Vec3& normal, mt19937& rng, Vec3& out_indirect_dir, Int num_samples)
     {
         Vec3 accumulated_color = { 0, 0, 0 };
         out_indirect_dir = { 0, 0, 0 };
@@ -1715,22 +1715,22 @@ namespace
             return accumulated_color;
         }
 
-        uniform_real_distribution<float> roulette_dist(0.0f, 1.0f);
-        constexpr int BATCH_SIZE = 16;
-        int num_batches = (num_samples + BATCH_SIZE - 1) / BATCH_SIZE;
+        uniform_real_distribution<Float> roulette_dist(0.0f, 1.0f);
+        constexpr Int BATCH_SIZE = 16;
+        Int num_batches = (num_samples + BATCH_SIZE - 1) / BATCH_SIZE;
 
         RTCIntersectArguments args;
         rtcInitIntersectArguments(&args);
         args.feature_mask = RTC_FEATURE_FLAG_NONE;
 
-        for (int i = 0; i < num_batches; ++i)
+        for (Int i = 0; i < num_batches; ++i)
         {
             RTCRayHit16 rayhit16;
-            int valid[BATCH_SIZE];
+            Int valid[BATCH_SIZE];
             Vec3 first_bounce_dirs[BATCH_SIZE];
-            int current_batch_size = ((i == num_batches - 1) && (num_samples % BATCH_SIZE != 0)) ? (num_samples % BATCH_SIZE) : BATCH_SIZE;
+            Int current_batch_size = ((i == num_batches - 1) && (num_samples % BATCH_SIZE != 0)) ? (num_samples % BATCH_SIZE) : BATCH_SIZE;
 
-            for (int k = 0; k < current_batch_size; ++k)
+            for (Int k = 0; k < current_batch_size; ++k)
             {
                 valid[k] = -1;
                 Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(normal, rng);
@@ -1752,7 +1752,7 @@ namespace
 
             rtcIntersect16(valid, m_rtc_scene, &rayhit16, &args);
 
-            for (int k = 0; k < current_batch_size; ++k)
+            for (Int k = 0; k < current_batch_size; ++k)
             {
                 if (rayhit16.hit.geomID[k] == RTC_INVALID_GEOMETRY_ID)
                 {
@@ -1770,13 +1770,13 @@ namespace
                 Vec3 current_normal = { rayhit16.hit.Ng_x[k], rayhit16.hit.Ng_y[k], rayhit16.hit.Ng_z[k] };
                 vec3_normalize(&current_normal);
 
-                unsigned int current_primID = rayhit16.hit.primID[k];
+                Uint current_primID = rayhit16.hit.primID[k];
 
                 if (vec3_dot(first_bounce_dirs[k], current_normal) > 0.0f) {
                     continue;
                 }
 
-                for (int bounce = 1; bounce <= m_bounces; ++bounce)
+                for (Int bounce = 1; bounce <= m_bounces; ++bounce)
                 {
                     const Material* hit_material = nullptr;
                     if (current_primID < m_primID_to_face_map.size()) {
@@ -1803,7 +1803,7 @@ namespace
                     path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
 
                     throughput = vec3_mul(throughput, albedo);
-                    float p = max({ throughput.x, throughput.y, throughput.z });
+                    Float p = max({ throughput.x, throughput.y, throughput.z });
                     if (bounce == m_bounces || p < 0.001f || roulette_dist(rng) > p) {
                         break;
                     }
@@ -1845,7 +1845,7 @@ namespace
             vec3_normalize(&out_indirect_dir);
         }
 
-        return vec3_muls(accumulated_color, 1.0f / (float)num_samples);
+        return vec3_muls(accumulated_color, 1.0f / (Float)num_samples);
     }
 
     void Lightmapper::generate()
@@ -1858,11 +1858,11 @@ namespace
         prepare_jobs();
         if (m_jobs.empty()) return;
 
-        unsigned int num_threads = thread::hardware_concurrency();
+        Uint num_threads = thread::hardware_concurrency();
         vector<thread> threads;
         Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
 
-        for (unsigned int i = 0; i < num_threads; ++i)
+        for (Uint i = 0; i < num_threads; ++i)
         {
             threads.emplace_back(&Lightmapper::worker_main, this);
         }
@@ -1871,7 +1871,7 @@ namespace
             t.join();
         }
 
-        for (int i = 0; i < m_scene->numBrushes; ++i)
+        for (Int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
             if (!b.useVertexLighting || !m_brush_color_buffers[i] || !m_brush_direction_buffers[i]) continue;
@@ -1885,28 +1885,28 @@ namespace
             ofstream vlm_file(vlm_path, ios::binary);
             if (vlm_file)
             {
-                const char header[] = "VLM1";
-                unsigned int count = b.numVertices;
+                const Char header[] = "VLM1";
+                Uint count = b.numVertices;
                 vlm_file.write(header, 4);
-                vlm_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
-                vlm_file.write(reinterpret_cast<const char*>(m_brush_color_buffers[i].get()), sizeof(Vec4) * count);
+                vlm_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+                vlm_file.write(reinterpret_cast<const Char*>(m_brush_color_buffers[i].get()), sizeof(Vec4) * count);
             }
 
             fs::path vld_path = brush_dir / "vertex_directions.vld";
             ofstream vld_file(vld_path, ios::binary);
             if (vld_file)
             {
-                const char header[] = "VLD1";
-                unsigned int count = b.numVertices;
+                const Char header[] = "VLD1";
+                Uint count = b.numVertices;
                 vld_file.write(header, 4);
-                vld_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
-                vld_file.write(reinterpret_cast<const char*>(m_brush_direction_buffers[i].get()), sizeof(Vec4) * count);
+                vld_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+                vld_file.write(reinterpret_cast<const Char*>(m_brush_direction_buffers[i].get()), sizeof(Vec4) * count);
             }
         }
 
         generate_ambient_probes();
 
-        for (int i = 0; i < m_scene->numObjects; ++i)
+        for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             const SceneObject& obj = m_scene->objects[i];
             if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i]) continue;
@@ -1920,11 +1920,11 @@ namespace
             ofstream vlm_file(vlm_path, ios::binary);
             if (vlm_file)
             {
-                const char header[] = "VLM1";
-                unsigned int count = obj.model->totalVertexCount;
+                const Char header[] = "VLM1";
+                Uint count = obj.model->totalVertexCount;
                 vlm_file.write(header, 4);
-                vlm_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
-                vlm_file.write(reinterpret_cast<const char*>(m_model_color_buffers[i].get()), sizeof(Vec4) * count);
+                vlm_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+                vlm_file.write(reinterpret_cast<const Char*>(m_model_color_buffers[i].get()), sizeof(Vec4) * count);
             }
             else
             {
@@ -1935,11 +1935,11 @@ namespace
             ofstream vld_file(vld_path, ios::binary);
             if (vld_file)
             {
-                const char header[] = "VLD1";
-                unsigned int count = obj.model->totalVertexCount;
+                const Char header[] = "VLD1";
+                Uint count = obj.model->totalVertexCount;
                 vld_file.write(header, 4);
-                vld_file.write(reinterpret_cast<const char*>(&count), sizeof(unsigned int));
-                vld_file.write(reinterpret_cast<const char*>(m_model_direction_buffers[i].get()), sizeof(Vec4) * count);
+                vld_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+                vld_file.write(reinterpret_cast<const Char*>(m_model_direction_buffers[i].get()), sizeof(Vec4) * count);
             }
             else
             {
@@ -1948,12 +1948,12 @@ namespace
         }
 
         auto end_time = chrono::high_resolution_clock::now();
-        chrono::duration<float> duration = end_time - start_time;
+        chrono::duration<Float> duration = end_time - start_time;
         Console_Printf("[Lightmapper] Finished in %.2f seconds.", duration.count());
     }
 }
 
-void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int bounces)
+void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int bounces)
 {
     try
     {
@@ -1973,7 +1973,7 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int boun
 #include "lightmapper.h"
 #include "gl_console.h"
 
-void Lightmapper_Generate(Scene* scene, Engine* engine, int resolution, int bounces)
+void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int bounces)
 {
     Console_Printf_Error("[Lightmapper] Not available on x86 builds.");
 }

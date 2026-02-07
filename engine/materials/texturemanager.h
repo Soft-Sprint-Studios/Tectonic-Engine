@@ -42,33 +42,33 @@
     } TextureLoadContext;
 
     typedef struct {
-        char name[64];
+        Char name[64];
         GLuint diffuseMap;
         GLuint normalMap;
         GLuint rmaMap;
         GLuint heightMap;
         GLuint detailDiffuseMap;
 
-        char diffusePath[128];
-        char normalPath[128];
-        char rmaPath[128];
-        char heightPath[128];
-        char detailDiffusePath[128];
-        bool isLoaded;
+        Char diffusePath[128];
+        Char normalPath[128];
+        Char rmaPath[128];
+        Char heightPath[128];
+        Char detailDiffusePath[128];
+        Bool isLoaded;
 
-        float heightScale;
-        float detailScale;
-        float roughness;
-        float metalness;
-        bool useTesselation;
-        bool alpha;
+        Float heightScale;
+        Float detailScale;
+        Float roughness;
+        Float metalness;
+        Bool useTesselation;
+        Bool alpha;
     } Material;
 
     extern MATERIALS_API Material g_MissingMaterial;
     extern MATERIALS_API Material g_NodrawMaterial;
-    extern MATERIALS_API bool g_is_editor_mode;
-    extern MATERIALS_API bool g_is_thumbnail_mode;
-    extern MATERIALS_API bool g_is_unlit_mode;
+    extern MATERIALS_API Bool g_is_editor_mode;
+    extern MATERIALS_API Bool g_is_thumbnail_mode;
+    extern MATERIALS_API Bool g_is_unlit_mode;
 
     extern MATERIALS_API GLuint missingTextureID;
     extern MATERIALS_API GLuint defaultNormalMapID;
@@ -77,20 +77,20 @@
     MATERIALS_API void TextureManager_Init();
     MATERIALS_API void TextureManager_Shutdown();
 
-    MATERIALS_API bool TextureManager_ParseMaterialsFromFile(const char* filepath);
+    MATERIALS_API Bool TextureManager_ParseMaterialsFromFile(const Char* filepath);
 
-    MATERIALS_API Material* TextureManager_FindMaterial(const char* name);
-    MATERIALS_API Material* TextureManager_GetMaterial(int index);
-    MATERIALS_API int TextureManager_GetMaterialCount();
-    MATERIALS_API int TextureManager_FindMaterialIndex(const char* name);
+    MATERIALS_API Material* TextureManager_FindMaterial(const Char* name);
+    MATERIALS_API Material* TextureManager_GetMaterial(Int index);
+    MATERIALS_API Int TextureManager_GetMaterialCount();
+    MATERIALS_API Int TextureManager_FindMaterialIndex(const Char* name);
 
-    MATERIALS_API GLuint loadCubemap(const char* faces[6]);
+    MATERIALS_API GLuint loadCubemap(const Char* faces[6]);
 
     MATERIALS_API void TextureManager_LoadMaterialTextures(Material* material);
-    MATERIALS_API GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID);
-    MATERIALS_API GLuint TextureManager_LoadLUT(const char* filename_only);
-    MATERIALS_API GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrgb, TextureLoadContext context);
-    MATERIALS_API GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context);
+    MATERIALS_API GLuint TextureManager_ReloadCubemap(const Char* faces[6], GLuint oldTextureID);
+    MATERIALS_API GLuint TextureManager_LoadLUT(const Char* filename_only);
+    MATERIALS_API GLuint TextureManager_LoadFromMemory(const void* data, Int data_size, Bool isSrgb, TextureLoadContext context);
+    MATERIALS_API GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context);
 
 
 #endif // TEXTURE_MANAGER_H

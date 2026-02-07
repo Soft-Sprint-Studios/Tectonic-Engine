@@ -49,21 +49,21 @@
     } ReverbPreset;
 
     typedef struct {
-        float roomSize;
-        float damping;
-        float wetLevel;
-        float dryLevel;
-        float width;
+        Float roomSize;
+        Float damping;
+        Float wetLevel;
+        Float dryLevel;
+        Float width;
     } ReverbSettings;
 
     typedef struct {
-        short* data;
-        int num_samples;
+        Short* data;
+        Int num_samples;
     } ProcessedAudio;
 
     SOUND_API ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
 
-    SOUND_API ProcessedAudio DSP_Reverb_Process(const short* input, int num_samples, int sample_rate, const ReverbSettings* settings, bool wet_only);
+    SOUND_API ProcessedAudio DSP_Reverb_Process(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only);
 
 
 #endif // DSP_REVERB_H

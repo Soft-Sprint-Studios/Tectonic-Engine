@@ -29,13 +29,13 @@
 #include <cctype>
 
 static GameConfig g_GameConfig;
-bool g_start_fullscreen = false;
-bool g_start_windowed = false;
-bool g_start_with_console = false;
-bool g_dev_mode_requested = false;
-bool g_allow_multiple_instances = false;
-int g_startup_width = 1920;
-int g_startup_height = 1080;
+Bool g_start_fullscreen = false;
+Bool g_start_windowed = false;
+Bool g_start_with_console = false;
+Bool g_dev_mode_requested = false;
+Bool g_allow_multiple_instances = false;
+Int g_startup_width = 1920;
+Int g_startup_height = 1080;
 
 class GameConfigClass {
 private:
@@ -51,10 +51,10 @@ public:
             return;
         }
 
-        char line[256];
+        Char line[256];
         while (fgets(line, sizeof(line), file)) {
-            char* key = strtok(line, "=");
-            char* value = strtok(nullptr, "=");
+            Char* key = strtok(line, "=");
+            Char* value = strtok(nullptr, "=");
 
             if (key && value) {
                 key = trim(key);
@@ -76,13 +76,13 @@ public:
         return &config;
     }
 
-    static void PreParseResolution(int* width, int* height) {
+    static void PreParseResolution(Int* width, Int* height) {
         FILE* file = fopen("cvars.txt", "r");
         if (!file) return;
 
-        char line[256];
-        char name[64];
-        char value_str[128];
+        Char line[256];
+        Char name[64];
+        Char value_str[128];
 
         while (fgets(line, sizeof(line), file)) {
             if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value_str) == 2) {
@@ -98,8 +98,8 @@ public:
         fclose(file);
     }
 
-    static void ParseCommandLine(int argc, char* argv[]) {
-        for (int i = 1; i < argc; ++i) {
+    static void ParseCommandLine(Int argc, Char* argv[]) {
+        for (Int i = 1; i < argc; ++i) {
             if (_stricmp(argv[i], "-fullscreen") == 0) {
                 g_start_fullscreen = true;
                 g_start_windowed = false;
@@ -150,10 +150,10 @@ const GameConfig* GameConfig_Get() {
     return GameConfigClass::Get();
 }
 
-void PreParse_GetResolution(int* width, int* height) {
+void PreParse_GetResolution(Int* width, Int* height) {
     GameConfigClass::PreParseResolution(width, height);
 }
 
-void GameConfig_ParseCommandLine(int argc, char* argv[]) {
+void GameConfig_ParseCommandLine(Int argc, Char* argv[]) {
     GameConfigClass::ParseCommandLine(argc, argv);
 }

@@ -48,7 +48,7 @@
         extern EmbeddedChecksum g_EmbeddedChecksum;
 #endif
 
-    bool Checksum_Verify(const char* exePath);
+    Bool Checksum_Verify(const Char* exePath);
 
 
 #endif // CHECKSUM_H

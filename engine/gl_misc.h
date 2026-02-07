@@ -35,13 +35,13 @@
 #include <stdio.h>
 
 
-	void load_and_register_named_shader_string(const char* name, const char* path);
-	char* load_shader_source(const char* path);
-	GLuint compileShader(GLenum type, const char* src, const char* pathHint);
-	GLuint createShaderProgram(const char* vertPath, const char* fragPath);
-	GLuint createShaderProgramGeom(const char* vertPath, const char* geomPath, const char* fragPath);
-	GLuint createShaderProgramTess(const char* vertPath, const char* tcsPath, const char* tesPath, const char* fragPath);
-	GLuint createShaderProgramCompute(const char* computePath);
+	void load_and_register_named_shader_string(const Char* name, const Char* path);
+	Char* load_shader_source(const Char* path);
+	GLuint compileShader(GLenum type, const Char* src, const Char* pathHint);
+	GLuint createShaderProgram(const Char* vertPath, const Char* fragPath);
+	GLuint createShaderProgramGeom(const Char* vertPath, const Char* geomPath, const Char* fragPath);
+	GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath);
+	GLuint createShaderProgramCompute(const Char* computePath);
 	void GL_InitDebugOutput(void);
 
 

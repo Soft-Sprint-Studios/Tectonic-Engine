@@ -47,7 +47,7 @@
 #include "gl_monitor.h"
 #include "model_loader.h"
 
-static float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
+static Float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 
 static void Renderer_InitShaders(Renderer* renderer) {
     renderer->wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
@@ -69,8 +69,8 @@ static void Renderer_InitShaders(Renderer* renderer) {
 }
 
 static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
-    const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
-    const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
+    const Int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+    const Int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
 
     glGenFramebuffers(1, &renderer->gBufferFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
@@ -138,8 +138,8 @@ static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
 }
 
 static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
-    const int bloom_width = engine->width / Cvar_GetInt("r_bloom_downsample");
-    const int bloom_height = engine->height / Cvar_GetInt("r_bloom_downsample");
+    const Int bloom_width = engine->width / Cvar_GetInt("r_bloom_downsample");
+    const Int bloom_height = engine->height / Cvar_GetInt("r_bloom_downsample");
 
     glGenFramebuffers(1, &renderer->bloomFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->bloomFBO);
@@ -154,7 +154,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
 
     glGenFramebuffers(2, renderer->pingpongFBO);
     glGenTextures(2, renderer->pingpongColorbuffers);
-    for (unsigned int i = 0; i < 2; i++) {
+    for (Uint i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->pingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, renderer->pingpongColorbuffers[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, bloom_width, bloom_height, 0, GL_RGB, GL_FLOAT, nullptr);
@@ -162,13 +162,13 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        Float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->pingpongColorbuffers[i], 0);
     }
 
-    const int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
-    const int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
+    const Int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
+    const Int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
 
     glGenFramebuffers(1, &renderer->ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);
@@ -188,7 +188,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderer->ssaoBlurColorBuffer, 0);
 
-    int vol_downsample = Cvar_GetInt("r_volumetrics_downsample");
+    Int vol_downsample = Cvar_GetInt("r_volumetrics_downsample");
     glGenFramebuffers(1, &renderer->volumetricFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->volumetricFBO);
     glGenTextures(1, &renderer->volumetricTexture);
@@ -202,7 +202,7 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
 
     glGenFramebuffers(2, renderer->volPingpongFBO);
     glGenTextures(2, renderer->volPingpongTextures);
-    for (unsigned int i = 0; i < 2; i++) {
+    for (Uint i = 0; i < 2; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[i]);
         glBindTexture(GL_TEXTURE_2D, renderer->volPingpongTextures[i]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, engine->width / vol_downsample, engine->height / vol_downsample, 0, GL_RGB, GL_FLOAT, nullptr);
@@ -236,10 +236,10 @@ static void Renderer_InitPostBuffers(Renderer* renderer, Engine* engine) {
 }
 
 static void Renderer_InitPlanarReflection(Renderer* renderer, Engine* engine) {
-    int downsample = Cvar_GetInt("r_planar_downsample");
+    Int downsample = Cvar_GetInt("r_planar_downsample");
     if (downsample < 1) downsample = 1;
-    int reflection_width = engine->width / downsample;
-    int reflection_height = engine->height / downsample;
+    Int reflection_width = engine->width / downsample;
+    Int reflection_height = engine->height / downsample;
 
     glGenFramebuffers(1, &renderer->reflectionFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->reflectionFBO);
@@ -268,7 +268,7 @@ static void Renderer_InitShadows_Sun(Renderer* renderer) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, renderer->sunShadowMap, 0);
     glDrawBuffer(GL_NONE);
@@ -281,9 +281,9 @@ static void Renderer_InitBuffers(Renderer* renderer) {
     glBindVertexArray(renderer->quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)(2 * sizeof(Float)));
     glEnableVertexAttribArray(1);
 
     glGenVertexArrays(1, &renderer->parallaxRoomVAO);
@@ -291,19 +291,19 @@ static void Renderer_InitBuffers(Renderer* renderer) {
     glBindVertexArray(renderer->parallaxRoomVAO);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->parallaxRoomVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(parallaxRoomVertices), parallaxRoomVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(Float), (void*)(3 * sizeof(Float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 12 * sizeof(Float), (void*)(6 * sizeof(Float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(8 * sizeof(float)));
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 12 * sizeof(Float), (void*)(8 * sizeof(Float)));
     glEnableVertexAttribArray(3);
 
     glGenBuffers(1, &renderer->exposureSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->exposureSSBO);
-    float initialExposure = 1.0f;
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), &initialExposure, GL_DYNAMIC_DRAW);
+    Float initialExposure = 1.0f;
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Float), &initialExposure, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderer->exposureSSBO);
 
     glGenBuffers(1, &renderer->histogramSSBO);
@@ -417,12 +417,12 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     const GLubyte* gl_version = glGetString(GL_VERSION);
     Console_Printf("------------------------------------------------------\n");
     Console_Printf("Renderer Context Initialized:\n");
-    Console_Printf("  GPU: %s\n", (const char*)gpu);
-    Console_Printf("  OpenGL Version: %s\n", (const char*)gl_version);
+    Console_Printf("  GPU: %s\n", (const Char*)gpu);
+    Console_Printf("  OpenGL Version: %s\n", (const Char*)gl_version);
     Console_Printf("------------------------------------------------------\n");
 }
 
-void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, int viewMode) {
+void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, Int viewMode) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, engine->width, engine->height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

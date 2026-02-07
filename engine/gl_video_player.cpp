@@ -38,7 +38,7 @@ static GLuint video_vbo = 0;
 void VideoPlayer_InitSystem(void) {
     video_shader = createShaderProgram("shaders/video.vert", "shaders/video.frag");
 
-    float vertices[] = {
+    Float vertices[] = {
         -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
          0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
@@ -53,9 +53,9 @@ void VideoPlayer_InitSystem(void) {
     glBindVertexArray(video_vao);
     glBindBuffer(GL_ARRAY_BUFFER, video_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)(3 * sizeof(Float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 }
@@ -79,8 +79,8 @@ void VideoPlayer_Load(VideoPlayer* vp) {
     plm_set_audio_enabled(vp->plm, false);
     plm_set_loop(vp->plm, vp->loop);
 
-    int width = plm_get_width(vp->plm);
-    int height = plm_get_height(vp->plm);
+    Int width = plm_get_width(vp->plm);
+    Int height = plm_get_height(vp->plm);
     vp->time = 0;
     vp->nextFrameTime = 0;
 
@@ -157,7 +157,7 @@ void VideoPlayer_Restart(VideoPlayer* vp) {
     VideoPlayer_Play(vp);
 }
 
-void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
+void VideoPlayer_Update(VideoPlayer* vp, Float deltaTime) {
     if (!vp->plm || vp->state != VP_PLAYING) return;
 
     vp->time += deltaTime;
@@ -178,7 +178,7 @@ void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
 
             glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-            double frameDuration = 1.0 / plm_get_framerate(vp->plm);
+            Double frameDuration = 1.0 / plm_get_framerate(vp->plm);
             vp->nextFrameTime += frameDuration;
         }
         else {
@@ -194,8 +194,8 @@ void VideoPlayer_Update(VideoPlayer* vp, float deltaTime) {
     }
 }
 
-void VideoPlayer_UpdateAll(Scene* scene, float deltaTime) {
-    for (int i = 0; i < scene->numVideoPlayers; ++i) {
+void VideoPlayer_UpdateAll(Scene* scene, Float deltaTime) {
+    for (Int i = 0; i < scene->numVideoPlayers; ++i) {
         VideoPlayer_Update(&scene->videoPlayers[i], deltaTime);
     }
 }
@@ -228,14 +228,14 @@ void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
     glBindVertexArray(0);
 }
 
-void VideoPlayer_Render2D(VideoPlayer* vp, float x, float y, float w, float h, int screenW, int screenH) {
+void VideoPlayer_Render2D(VideoPlayer* vp, Float x, Float y, Float w, Float h, Int screenW, Int screenH) {
     if (!vp || vp->state == VP_STOPPED || vp->textureY == 0) return;
 
     glUseProgram(video_shader);
 
     glDisable(GL_DEPTH_TEST);
 
-    Mat4 projection = mat4_ortho(0.0f, (float)screenW, (float)screenH, 0.0f, -1.0f, 1.0f);
+    Mat4 projection = mat4_ortho(0.0f, (Float)screenW, (Float)screenH, 0.0f, -1.0f, 1.0f);
     Mat4 view;
     mat4_identity(&view);
 

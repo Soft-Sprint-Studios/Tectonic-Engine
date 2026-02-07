@@ -30,22 +30,22 @@
 
 class Weapon {
 public:
-    Weapon(string name, float damage, float range, float fireRate, unsigned int fireSound)
+    Weapon(string name, Float damage, Float range, Float fireRate, Uint fireSound)
         : m_name(name), m_damage(damage), m_range(range), m_fireRate(fireRate), m_fireSound(fireSound) {
     }
     virtual ~Weapon() = default;
 
     virtual void Fire(Engine* engine, Scene* scene) = 0;
 
-    float GetFireRate() const { return m_fireRate; }
-    unsigned int GetFireSound() const { return m_fireSound; }
+    Float GetFireRate() const { return m_fireRate; }
+    Uint GetFireSound() const { return m_fireSound; }
 
 protected:
     string m_name;
-    float m_damage;
-    float m_range;
-    float m_fireRate;
-    unsigned int m_fireSound;
+    Float m_damage;
+    Float m_range;
+    Float m_fireRate;
+    Uint m_fireSound;
 };
 
 class Hands : public Weapon {
@@ -99,7 +99,7 @@ public:
         m_weapons.clear();
     }
 
-    void Update(float deltaTime) {
+    void Update(Float deltaTime) {
         if (m_lastFireTime > 0.0f) {
             m_lastFireTime -= deltaTime;
         }
@@ -128,7 +128,7 @@ public:
 
         m_lastFireTime = currentWeapon->GetFireRate();
 
-        unsigned int fireSound = currentWeapon->GetFireSound();
+        Uint fireSound = currentWeapon->GetFireSound();
         if (fireSound != 0) {
             SoundSystem_PlaySound(fireSound, engine->camera.position, 1.0f, 1.0f, 100.0f, false);
         }
@@ -138,8 +138,8 @@ public:
 
 private:
     vector<unique_ptr<Weapon>> m_weapons;
-    int m_currentWeaponIndex;
-    float m_lastFireTime;
+    Int m_currentWeaponIndex;
+    Float m_lastFireTime;
 };
 
 static WeaponSystem g_weaponSystem;
@@ -152,7 +152,7 @@ void Weapons_Shutdown(void) {
     g_weaponSystem.Shutdown();
 }
 
-void Weapons_Update(float deltaTime) {
+void Weapons_Update(Float deltaTime) {
     g_weaponSystem.Update(deltaTime);
 }
 

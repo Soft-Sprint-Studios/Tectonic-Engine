@@ -32,9 +32,9 @@
 #include <SDL.h>
 
 
-    extern bool g_show_options_menu;
-    extern bool g_show_load_game_menu;
-    extern bool g_show_save_game_menu;
+    extern Bool g_show_options_menu;
+    extern Bool g_show_load_game_menu;
+    extern Bool g_show_save_game_menu;
 
     typedef enum {
         MAINMENU_ACTION_NONE,
@@ -44,11 +44,11 @@
         MAINMENU_ACTION_CONTINUE_GAME
     } MainMenuAction;
 
-    bool MainMenu_Init(int screen_width, int screen_height);
+    Bool MainMenu_Init(Int screen_width, Int screen_height);
     void MainMenu_Shutdown();
-    void MainMenu_SetInGameMenuMode(bool is_in_game, bool is_map_loaded);
+    void MainMenu_SetInGameMenuMode(Bool is_in_game, Bool is_map_loaded);
     MainMenuAction MainMenu_HandleEvent(SDL_Event* event);
-    void MainMenu_Update(float deltaTime);
+    void MainMenu_Update(Float deltaTime);
     void MainMenu_Render();
 
 

@@ -31,7 +31,7 @@ static GLuint g_glow_vbo = 0;
 
 typedef struct {
     Vec3 pos;
-    float size;
+    Float size;
     Vec3 color;
 } GlowVertex;
 
@@ -69,9 +69,9 @@ void Glow_Render(Scene* scene, Mat4 view, Mat4 projection) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
     GlowVertex vbo_data[MAX_LOGIC_ENTITIES];
-    int glow_count = 0;
+    Int glow_count = 0;
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_glow") == 0 && ent->runtime_active) {
             if (glow_count >= MAX_LOGIC_ENTITIES) break;

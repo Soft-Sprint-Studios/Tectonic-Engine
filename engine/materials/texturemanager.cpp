@@ -35,7 +35,7 @@
 #include <GL/glew.h>
 
 static Material materials[MAX_MATERIALS];
-static int num_materials = 0;
+static Int num_materials = 0;
 
 MATERIALS_API GLuint missingTextureID;
 MATERIALS_API GLuint defaultNormalMapID;
@@ -43,18 +43,18 @@ MATERIALS_API GLuint defaultRmaMapID;
 MATERIALS_API Material g_MissingMaterial;
 MATERIALS_API Material g_NodrawMaterial;
 
-MATERIALS_API bool g_is_editor_mode = false;
-MATERIALS_API bool g_is_thumbnail_mode = false;
-MATERIALS_API bool g_is_unlit_mode = false;
+MATERIALS_API Bool g_is_editor_mode = false;
+MATERIALS_API Bool g_is_thumbnail_mode = false;
+MATERIALS_API Bool g_is_unlit_mode = false;
 
-static char* prependTexturePath(const char* filename) {
+static Char* prependTexturePath(const Char* filename) {
     if (filename == nullptr || filename[0] == '\0') return nullptr;
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
         return _strdup(filename);
     }
-    const char* baseFolder = "textures/";
+    const Char* baseFolder = "textures/";
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
-    char* fullPath = (char*)malloc(len);
+    Char* fullPath = (Char*)malloc(len);
     if (!fullPath) {
         Console_Printf_Error("Memory allocation failed for texture path.\n");
         return nullptr;
@@ -65,11 +65,11 @@ static char* prependTexturePath(const char* filename) {
 }
 
 static GLuint createMissingTexture() {
-    unsigned char data[64 * 64 * 4];
-    for (int y = 0; y < 64; ++y) {
-        for (int x = 0; x < 64; ++x) {
-            int i = (y * 64 + x) * 4;
-            bool is_purple = ((x / 8) % 2) ^ ((y / 8) % 2);
+    Uchar data[64 * 64 * 4];
+    for (Int y = 0; y < 64; ++y) {
+        for (Int x = 0; x < 64; ++x) {
+            Int i = (y * 64 + x) * 4;
+            Bool is_purple = ((x / 8) % 2) ^ ((y / 8) % 2);
             if (is_purple) {
                 data[i + 0] = 255; 
                 data[i + 1] = 0;   
@@ -98,23 +98,23 @@ static GLuint createMissingTexture() {
 
 static GLuint createDefaultRmaTexture() {
     GLuint texID;
-    unsigned char data[] = { 255, 128, 0, 255 };
+    Uchar data[] = { 255, 128, 0, 255 };
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     return texID;
 }
 
-static GLuint createPlaceholderTexture(unsigned char r, unsigned char g, unsigned char b) {
+static GLuint createPlaceholderTexture(Uchar r, Uchar g, Uchar b) {
     GLuint texID;
-    unsigned char data[] = { r, g, b, 255 };
+    Uchar data[] = { r, g, b, 255 };
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     return texID;
 }
 
-GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrgb, TextureLoadContext context) {
+GLuint TextureManager_LoadFromMemory(const void* data, Int data_size, Bool isSrgb, TextureLoadContext context) {
     if (!data || data_size <= 0) {
         return missingTextureID;
     }
@@ -132,11 +132,11 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
     }
 
     if (context == TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL) {
-        int max_editor_dim = 128;
+        Int max_editor_dim = 128;
         if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
-            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
-            int scaled_w = (int)(surf->w * scale_factor);
-            int scaled_h = (int)(surf->h * scale_factor);
+            Float scale_factor = (Float)max_editor_dim / (Float)fmax(surf->w, surf->h);
+            Int scaled_w = (Int)(surf->w * scale_factor);
+            Int scaled_h = (Int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
                 SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
@@ -146,8 +146,8 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
         }
     }
     else {
-        int quality = Cvar_GetInt("r_texture_quality");
-        float scale_factor = 1.0f;
+        Int quality = Cvar_GetInt("r_texture_quality");
+        Float scale_factor = 1.0f;
         switch (quality) {
         case 1: scale_factor = 0.25f; break;
         case 2: scale_factor = 0.33f; break;
@@ -157,8 +157,8 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
         default: scale_factor = 1.0f; break;
         }
         if (scale_factor < 1.0f && (surf->w > 16 || surf->h > 16)) {
-            int scaled_w = (int)(surf->w * scale_factor);
-            int scaled_h = (int)(surf->h * scale_factor);
+            Int scaled_w = (Int)(surf->w * scale_factor);
+            Int scaled_h = (Int)(surf->h * scale_factor);
             if (scaled_w < 1) scaled_w = 1;
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
@@ -189,8 +189,8 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
         if (GLEW_EXT_texture_filter_anisotropic) {
             GLfloat max_anisotropy;
             glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-            float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
-            float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
+            Float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
+            Float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
             if (final_anisotropy > 1.0f) {
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, final_anisotropy);
             }
@@ -207,8 +207,8 @@ GLuint TextureManager_LoadFromMemory(const void* data, int data_size, bool isSrg
     return texID;
 }
 
-GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
-    char* fullPath = prependTexturePath(path);
+GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
+    Char* fullPath = prependTexturePath(path);
     if (!fullPath) {
         Console_Printf_Error("Failed to load texture '%s'\n", path);
         return missingTextureID;
@@ -222,11 +222,11 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
     }
 
     if (context == TEXTURE_LOAD_CONTEXT_UI_THUMBNAIL) {
-        int max_editor_dim = 128;
+        Int max_editor_dim = 128;
         if (surf->w > max_editor_dim || surf->h > max_editor_dim) {
-            float scale_factor = (float)max_editor_dim / (float)fmax(surf->w, surf->h);
-            int scaled_w = (int)(surf->w * scale_factor);
-            int scaled_h = (int)(surf->h * scale_factor);
+            Float scale_factor = (Float)max_editor_dim / (Float)fmax(surf->w, surf->h);
+            Int scaled_w = (Int)(surf->w * scale_factor);
+            Int scaled_h = (Int)(surf->h * scale_factor);
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
             if (scaled_surf) {
                 SDL_BlitScaled(surf, nullptr, scaled_surf, nullptr);
@@ -236,8 +236,8 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
         }
     }
     else {
-        int quality = Cvar_GetInt("r_texture_quality");
-        float scale_factor = 1.0f;
+        Int quality = Cvar_GetInt("r_texture_quality");
+        Float scale_factor = 1.0f;
         switch (quality) {
         case 1: scale_factor = 0.25f; break;
         case 2: scale_factor = 0.33f; break;
@@ -247,8 +247,8 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
         default: scale_factor = 1.0f; break;
         }
         if (scale_factor < 1.0f && (surf->w > 16 || surf->h > 16)) {
-            int scaled_w = (int)(surf->w * scale_factor);
-            int scaled_h = (int)(surf->h * scale_factor);
+            Int scaled_w = (Int)(surf->w * scale_factor);
+            Int scaled_h = (Int)(surf->h * scale_factor);
             if (scaled_w < 1) scaled_w = 1;
             if (scaled_h < 1) scaled_h = 1;
             SDL_Surface* scaled_surf = SDL_CreateRGBSurfaceWithFormat(0, scaled_w, scaled_h, 32, SDL_PIXELFORMAT_RGBA32);
@@ -280,8 +280,8 @@ GLuint loadTexture(const char* path, bool isSrgb, TextureLoadContext context) {
         if (GLEW_EXT_texture_filter_anisotropic) {
             GLfloat max_anisotropy;
             glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
-            float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
-            float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
+            Float desired_anisotropy = Cvar_GetFloat("r_anisotropy");
+            Float final_anisotropy = (desired_anisotropy > max_anisotropy) ? max_anisotropy : desired_anisotropy;
             if (final_anisotropy > 1.0f) {
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, final_anisotropy);
             }
@@ -314,11 +314,11 @@ void TextureManager_LoadMaterialTextures(Material* material) {
     material->isLoaded = true;
 }
 
-GLuint loadCubemap(const char* faces[6]) {
+GLuint loadCubemap(const Char* faces[6]) {
     GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-    for (unsigned int i = 0; i < 6; i++) {
+    for (Uint i = 0; i < 6; i++) {
         SDL_Surface* surf = IMG_Load(faces[i]);
         if (surf) {
             SDL_Surface* fSurf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGB24, 0);
@@ -346,8 +346,8 @@ GLuint loadCubemap(const char* faces[6]) {
     return textureID;
 }
 
-GLuint TextureManager_LoadLUT(const char* filename_only) {
-    char* fullPath = prependTexturePath(filename_only);
+GLuint TextureManager_LoadLUT(const Char* filename_only) {
+    Char* fullPath = prependTexturePath(filename_only);
     if (!fullPath) {
         return missingTextureID;
     }
@@ -384,22 +384,22 @@ GLuint TextureManager_LoadLUT(const char* filename_only) {
     return texID;
 }
 
-GLuint TextureManager_ReloadCubemap(const char* faces[6], GLuint oldTextureID) {
+GLuint TextureManager_ReloadCubemap(const Char* faces[6], GLuint oldTextureID) {
     if (glIsTexture(oldTextureID)) {
         glDeleteTextures(1, &oldTextureID);
     }
     return loadCubemap(faces);
 }
 
-static char* strip_numeric_suffix(const char* name) {
-    const char* dot = strrchr(name, '.');
+static Char* strip_numeric_suffix(const Char* name) {
+    const Char* dot = strrchr(name, '.');
     if (dot && dot != name) {
-        const char* p = dot + 1;
+        const Char* p = dot + 1;
         if (*p == '\0') return nullptr;
 
-        bool all_digits = true;
+        Bool all_digits = true;
         while (*p) {
-            if (!isdigit(static_cast<unsigned char>(*p))) {
+            if (!isdigit(static_cast<Uchar>(*p))) {
                 all_digits = false;
                 break;
             }
@@ -408,7 +408,7 @@ static char* strip_numeric_suffix(const char* name) {
 
         if (all_digits) {
             size_t base_len = dot - name;
-            char* base_name = new char[base_len + 1];
+            Char* base_name = new Char[base_len + 1];
             strncpy(base_name, name, base_len);
             base_name[base_len] = '\0';
             return base_name;
@@ -441,7 +441,7 @@ void TextureManager_Init() {
 }
 
 void TextureManager_Shutdown() {
-    for (int i = 0; i < num_materials; ++i) {
+    for (Int i = 0; i < num_materials; ++i) {
         if (materials[i].diffuseMap != missingTextureID) glDeleteTextures(1, &materials[i].diffuseMap);
         if (materials[i].normalMap != defaultNormalMapID) glDeleteTextures(1, &materials[i].normalMap);
         if (materials[i].rmaMap != defaultRmaMapID) glDeleteTextures(1, &materials[i].rmaMap);
@@ -456,11 +456,11 @@ void TextureManager_Shutdown() {
     Console_Printf("Texture Manager Shutdown.\n");
 }
 
-Material* TextureManager_FindMaterial(const char* name) {
+Material* TextureManager_FindMaterial(const Char* name) {
     if (strcmp(name, "nodraw") == 0) {
         return &g_NodrawMaterial;
     }
-    for (int i = 0; i < num_materials; ++i) {
+    for (Int i = 0; i < num_materials; ++i) {
         if (strcmp(materials[i].name, name) == 0)
         {
             Material* mat = &materials[i];
@@ -471,9 +471,9 @@ Material* TextureManager_FindMaterial(const char* name) {
         }
     }
 
-    char* base_name = strip_numeric_suffix(name);
+    Char* base_name = strip_numeric_suffix(name);
     if (base_name) {
-        for (int i = 0; i < num_materials; ++i) {
+        for (Int i = 0; i < num_materials; ++i) {
             if (strcmp(materials[i].name, base_name) == 0) {
                 free(base_name);
                 Material* mat = &materials[i];
@@ -487,8 +487,8 @@ Material* TextureManager_FindMaterial(const char* name) {
     return &g_MissingMaterial;
 }
 
-int TextureManager_FindMaterialIndex(const char* name) {
-    for (int i = 0; i < num_materials; ++i) {
+Int TextureManager_FindMaterialIndex(const Char* name) {
+    for (Int i = 0; i < num_materials; ++i) {
         if (strcmp(materials[i].name, name) == 0) {
             return i;
         }
@@ -496,27 +496,27 @@ int TextureManager_FindMaterialIndex(const char* name) {
     return -1;
 }
 
-Material* TextureManager_GetMaterial(int index) {
+Material* TextureManager_GetMaterial(Int index) {
     if (index < 0 || index >= num_materials) return &g_MissingMaterial;
     return &materials[index];
 }
 
-int TextureManager_GetMaterialCount() {
+Int TextureManager_GetMaterialCount() {
     return num_materials;
 }
 
-bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
+Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
         Console_Printf_Error("Could not open material file '%s'\n", filepath);
         return false;
     }
 
-    char line[256];
+    Char line[256];
     Material* current_material = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed_line = trim(line);
+        Char* trimmed_line = trim(line);
 
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
             continue;
@@ -544,7 +544,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
             }
         }
         else if (current_material) {
-            char key[64], value[128];
+            Char key[64], value[128];
             if (sscanf(trimmed_line, "%s = \"%127[^\"]\"", key, value) == 2) {
                 if (strcmp(key, "diffuse") == 0) {
                     strcpy(current_material->diffusePath, value);
@@ -563,7 +563,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                 }
             }
             else {
-                float float_val;
+                Float float_val;
                 if (sscanf(trimmed_line, "%s = %f", key, &float_val) == 2) {
                     if (strcmp(key, "heightScale") == 0) {
                         current_material->heightScale = float_val;
@@ -584,7 +584,7 @@ bool TextureManager_ParseMaterialsFromFile(const char* filepath) {
                         current_material->alpha = (float_val != 0.0f);
                     }
                     else {
-                        Console_Printf_Error("Unknown float key '%s' in material '%s'\n", key, current_material->name);
+                        Console_Printf_Error("Unknown Float key '%s' in material '%s'\n", key, current_material->name);
                     }
                 }
                 else {

@@ -31,12 +31,12 @@
 void Editor_GroupSelection() {
     if (g_EditorState.num_selections < 2) return;
 
-    char group_name[64];
+    Char group_name[64];
     snprintf(group_name, sizeof(group_name), "group_%d", g_EditorState.next_group_id++);
 
     Undo_BeginMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections);
 
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
         switch (sel->type) {
         case ENTITY_MODEL: g_CurrentScene->objects[sel->index].isGrouped = true; strncpy(g_CurrentScene->objects[sel->index].groupName, group_name, 63); break;
@@ -70,7 +70,7 @@ void Editor_UngroupSelection() {
 
     Undo_BeginMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections);
 
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
         switch (sel->type) {
         case ENTITY_MODEL: g_CurrentScene->objects[sel->index].isGrouped = false; g_CurrentScene->objects[sel->index].groupName[0] = '\0'; break;
@@ -98,7 +98,7 @@ void Editor_UngroupSelection() {
     Undo_EndMultiEntityModification(g_CurrentScene, g_EditorState.selections, g_EditorState.num_selections, "Ungroup Selection");
 }
 
-void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
+void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
     if (g_EditorState.num_selections == 0) {
         return;
     }
@@ -107,7 +107,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, int axis) {
 
     Vec3 centroid = g_EditorState.gizmo_selection_centroid;
 
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
 
         Vec3* pos = nullptr;
@@ -171,11 +171,11 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     if (g_EditorState.num_selections < 2) return;
 
     EditorSelection* brush_selections = (EditorSelection*)malloc(g_EditorState.num_selections * sizeof(EditorSelection));
-    int brush_count = 0;
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    Int brush_count = 0;
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         if (g_EditorState.selections[i].type == ENTITY_BRUSH) {
-            bool already_added = false;
-            for (int j = 0; j < brush_count; ++j) {
+            Bool already_added = false;
+            for (Int j = 0; j < brush_count; ++j) {
                 if (brush_selections[j].index == g_EditorState.selections[i].index) {
                     already_added = true;
                     break;
@@ -194,27 +194,27 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     }
 
     EntityState* before_states = (EntityState*)calloc(brush_count, sizeof(EntityState));
-    for (int i = 0; i < brush_count; i++) {
+    for (Int i = 0; i < brush_count; i++) {
         capture_state(&before_states[i], scene, ENTITY_BRUSH, brush_selections[i].index);
     }
 
-    int base_brush_index = brush_selections[0].index;
+    Int base_brush_index = brush_selections[0].index;
     Brush* base_brush = &scene->brushes[base_brush_index];
 
     Mat4 base_inv_matrix;
     mat4_inverse(&base_brush->modelMatrix, &base_inv_matrix);
 
-    for (int i = 1; i < brush_count; i++) {
-        int source_brush_index = brush_selections[i].index;
+    for (Int i = 1; i < brush_count; i++) {
+        Int source_brush_index = brush_selections[i].index;
         Brush* source_brush = &scene->brushes[source_brush_index];
 
-        int vertex_offset = base_brush->numVertices;
+        Int vertex_offset = base_brush->numVertices;
 
         Mat4 source_to_base_transform;
         mat4_multiply(&source_to_base_transform, &base_inv_matrix, &source_brush->modelMatrix);
 
         base_brush->vertices = (BrushVertex*)realloc(base_brush->vertices, (base_brush->numVertices + source_brush->numVertices) * sizeof(BrushVertex));
-        for (int v = 0; v < source_brush->numVertices; v++) {
+        for (Int v = 0; v < source_brush->numVertices; v++) {
             Vec3 transformed_pos = mat4_mul_vec3(&source_to_base_transform, source_brush->vertices[v].pos);
             base_brush->vertices[vertex_offset + v] = source_brush->vertices[v];
             base_brush->vertices[vertex_offset + v].pos = transformed_pos;
@@ -222,22 +222,22 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         base_brush->numVertices += source_brush->numVertices;
 
         base_brush->faces = (BrushFace*)realloc(base_brush->faces, (base_brush->numFaces + source_brush->numFaces) * sizeof(BrushFace));
-        for (int j = 0; j < source_brush->numFaces; j++) {
+        for (Int j = 0; j < source_brush->numFaces; j++) {
             BrushFace* new_face = &base_brush->faces[base_brush->numFaces + j];
             BrushFace* source_face = &source_brush->faces[j];
 
             *new_face = *source_face;
-            new_face->vertexIndices = (int*)malloc(source_face->numVertexIndices * sizeof(int));
-            memcpy(new_face->vertexIndices, source_face->vertexIndices, source_face->numVertexIndices * sizeof(int));
+            new_face->vertexIndices = (Int*)malloc(source_face->numVertexIndices * sizeof(Int));
+            memcpy(new_face->vertexIndices, source_face->vertexIndices, source_face->numVertexIndices * sizeof(Int));
 
-            for (int k = 0; k < new_face->numVertexIndices; k++) {
+            for (Int k = 0; k < new_face->numVertexIndices; k++) {
                 new_face->vertexIndices[k] += vertex_offset;
             }
         }
         base_brush->numFaces += source_brush->numFaces;
     }
 
-    for (int i = brush_count - 1; i >= 1; --i) {
+    for (Int i = brush_count - 1; i >= 1; --i) {
         _raw_delete_brush(scene, engine, brush_selections[i].index);
     }
 
@@ -248,10 +248,10 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     }
     if (Brush_IsSolid(base_brush) && base_brush->numVertices > 0) {
         Vec3* world_verts = (Vec3*)malloc(base_brush->numVertices * sizeof(Vec3));
-        for (int i = 0; i < base_brush->numVertices; i++) {
+        for (Int i = 0; i < base_brush->numVertices; i++) {
             world_verts[i] = mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
         }
-        base_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const float*)world_verts, base_brush->numVertices);
+        base_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, base_brush->numVertices);
         free(world_verts);
     }
 
@@ -266,7 +266,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     Console_Printf("Merged %d brushes.", brush_count);
 }
 
-void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
+void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
     if (index < 0 || index >= scene->numObjects) return;
     if (scene->numObjects >= MAX_MODELS) return;
 
@@ -278,7 +278,7 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
         return;
     }
     scene->objects = new_objects;
-    int new_index = scene->numObjects;
+    Int new_index = scene->numObjects;
     scene->numObjects++;
     SceneObject* new_obj = &scene->objects[new_index];
     memcpy(new_obj, src_obj, sizeof(SceneObject));
@@ -303,12 +303,12 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, int index) {
     Undo_PushCreateEntity(scene, ENTITY_MODEL, new_index, "Duplicate Model");
 }
 
-void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
+void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index) {
     if (index < 0 || index >= scene->numBrushes || scene->numBrushes >= MAX_BRUSHES) return;
 
     Brush* src_brush = &scene->brushes[index];
 
-    int new_brush_index = scene->numBrushes;
+    Int new_brush_index = scene->numBrushes;
     Brush* new_brush = &scene->brushes[new_brush_index];
     Brush_DeepCopy(new_brush, src_brush);
 
@@ -320,17 +320,17 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
 
     if (Brush_IsSolid(new_brush) && new_brush->numVertices > 0) {
         if (new_brush->mass > 0.0f) {
-            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
+            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
             if (!new_brush->isPhysicsEnabled) {
                 Physics_ToggleCollision(engine->physicsWorld, new_brush->physicsBody, false);
             }
         }
         else {
             Vec3* world_verts = new Vec3[new_brush->numVertices];
-            for (int i = 0; i < new_brush->numVertices; i++)
+            for (Int i = 0; i < new_brush->numVertices; i++)
                 world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
 
-            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), new_brush->numVertices);
+            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_brush->numVertices);
             delete[] world_verts;
         }
     }
@@ -340,7 +340,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index) {
     Undo_PushCreateEntity(scene, ENTITY_BRUSH, new_brush_index, "Duplicate Brush");
 }
 
-void Editor_DuplicateLight(Scene* scene, int index) {
+void Editor_DuplicateLight(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numActiveLights || scene->numActiveLights >= MAX_LIGHTS) return;
     Light* src_light = &scene->lights[index];
     Light* new_light = &scene->lights[scene->numActiveLights];
@@ -349,13 +349,13 @@ void Editor_DuplicateLight(Scene* scene, int index) {
     new_light->shadowFBO = 0; new_light->shadowMapTexture = 0;
     new_light->pos.x += 1.0f;
     Light_InitShadowMap(new_light);
-    int new_light_index = scene->numActiveLights;
+    Int new_light_index = scene->numActiveLights;
     scene->numActiveLights++;
     Editor_AddToSelection(ENTITY_LIGHT, new_light_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_LIGHT, new_light_index, "Duplicate Light");
 }
 
-void Editor_DuplicateDecal(Scene* scene, int index) {
+void Editor_DuplicateDecal(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numDecals || scene->numDecals >= MAX_DECALS) return;
     Decal* src_decal = &scene->decals[index];
     Decal* new_decal = &scene->decals[scene->numDecals];
@@ -363,13 +363,13 @@ void Editor_DuplicateDecal(Scene* scene, int index) {
     sprintf(new_decal->targetname, "Decal_%d", scene->numDecals);
     new_decal->pos.x += 1.0f;
     Decal_UpdateMatrix(new_decal);
-    int new_decal_index = scene->numDecals;
+    Int new_decal_index = scene->numDecals;
     scene->numDecals++;
     Editor_AddToSelection(ENTITY_DECAL, new_decal_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_DECAL, new_decal_index, "Duplicate Decal");
 }
 
-void Editor_DuplicateSoundEntity(Scene* scene, int index) {
+void Editor_DuplicateSoundEntity(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numSoundEntities || scene->numSoundEntities >= MAX_SOUNDS) return;
     SoundEntity* src_sound = &scene->soundEntities[index];
     SoundEntity* new_sound = &scene->soundEntities[scene->numSoundEntities];
@@ -378,13 +378,13 @@ void Editor_DuplicateSoundEntity(Scene* scene, int index) {
     new_sound->sourceID = 0; new_sound->bufferID = 0;
     new_sound->pos.x += 1.0f;
     new_sound->bufferID = SoundSystem_LoadSound(new_sound->soundPath);
-    int new_sound_index = scene->numSoundEntities;
+    Int new_sound_index = scene->numSoundEntities;
     scene->numSoundEntities++;
     Editor_AddToSelection(ENTITY_SOUND, new_sound_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_SOUND, new_sound_index, "Duplicate Sound");
 }
 
-void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
+void Editor_DuplicateParticleEmitter(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numParticleEmitters || scene->numParticleEmitters >= MAX_PARTICLE_EMITTERS) return;
     ParticleEmitter* src_emitter = &scene->particleEmitters[index];
     ParticleEmitter* new_emitter = &scene->particleEmitters[scene->numParticleEmitters];
@@ -393,7 +393,7 @@ void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
     new_emitter->pos.x += 1.0f;
     ParticleSystem* ps = ParticleSystem_Load(new_emitter->parFile);
     if (ps) {
-        int new_emitter_index = scene->numParticleEmitters;
+        Int new_emitter_index = scene->numParticleEmitters;
         ParticleEmitter_Init(new_emitter, ps, new_emitter->pos);
         scene->numParticleEmitters++;
         Editor_AddToSelection(ENTITY_PARTICLE_EMITTER, new_emitter_index, -1, -1);
@@ -401,7 +401,7 @@ void Editor_DuplicateParticleEmitter(Scene* scene, int index) {
     }
 }
 
-void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
+void Editor_DuplicateVideoPlayer(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numVideoPlayers || scene->numVideoPlayers >= MAX_VIDEO_PLAYERS) return;
     VideoPlayer* src_vp = &scene->videoPlayers[index];
     VideoPlayer* new_vp = &scene->videoPlayers[scene->numVideoPlayers];
@@ -414,13 +414,13 @@ void Editor_DuplicateVideoPlayer(Scene* scene, int index) {
     if (new_vp->playOnStart) {
         VideoPlayer_Play(new_vp);
     }
-    int new_vp_index = scene->numVideoPlayers;
+    Int new_vp_index = scene->numVideoPlayers;
     scene->numVideoPlayers++;
     Editor_AddToSelection(ENTITY_VIDEO_PLAYER, new_vp_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_VIDEO_PLAYER, new_vp_index, "Duplicate Video Player");
 }
 
-void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
+void Editor_DuplicateParallaxRoom(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numParallaxRooms || scene->numParallaxRooms >= MAX_PARALLAX_ROOMS) return;
     ParallaxRoom* src_p = &scene->parallaxRooms[index];
     ParallaxRoom* new_p = &scene->parallaxRooms[scene->numParallaxRooms];
@@ -429,41 +429,41 @@ void Editor_DuplicateParallaxRoom(Scene* scene, int index) {
     new_p->pos.x += 1.0f;
     ParallaxRoom_UpdateMatrix(new_p);
 
-    const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-    char face_paths[6][256];
-    const char* face_pointers[6];
-    for (int i = 0; i < 6; ++i) {
+    const Char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+    Char face_paths[6][256];
+    const Char* face_pointers[6];
+    for (Int i = 0; i < 6; ++i) {
         sprintf(face_paths[i], "%s%s", new_p->cubemapPath, suffixes[i]);
         face_pointers[i] = face_paths[i];
     }
     new_p->cubemapTexture = loadCubemap(face_pointers);
-    int new_p_index = scene->numParallaxRooms;
+    Int new_p_index = scene->numParallaxRooms;
     scene->numParallaxRooms++;
     Editor_AddToSelection(ENTITY_PARALLAX_ROOM, new_p_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_PARALLAX_ROOM, new_p_index, "Duplicate Parallax Room");
 }
 
-void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index) {
+void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, Int index) {
     if (index < 0 || index >= scene->numLogicEntities || scene->numLogicEntities >= MAX_LOGIC_ENTITIES) return;
     LogicEntity* src_ent = &scene->logicEntities[index];
     LogicEntity* new_ent = &scene->logicEntities[scene->numLogicEntities];
     memcpy(new_ent, src_ent, sizeof(LogicEntity));
     sprintf(new_ent->targetname, "%s_%d", src_ent->classname, scene->numLogicEntities);
     new_ent->pos.x += 1.0f;
-    int new_ent_index = scene->numLogicEntities;
+    Int new_ent_index = scene->numLogicEntities;
     scene->numLogicEntities++;
     Editor_AddToSelection(ENTITY_LOGIC, new_ent_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_LOGIC, new_ent_index, "Duplicate Logic Entity");
 }
 
-void Editor_DuplicateSprite(Scene* scene, int index) {
+void Editor_DuplicateSprite(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numSprites || scene->numSprites >= MAX_DECALS) return;
     Sprite* src_sprite = &scene->sprites[index];
     Sprite* new_sprite = &scene->sprites[scene->numSprites];
     memcpy(new_sprite, src_sprite, sizeof(Sprite));
     sprintf(new_sprite->targetname, "Sprite_%d", scene->numSprites);
     new_sprite->pos.x += 1.0f;
-    int new_sprite_index = scene->numSprites;
+    Int new_sprite_index = scene->numSprites;
     scene->numSprites++;
     Editor_AddToSelection(ENTITY_SPRITE, new_sprite_index, -1, -1);
     Undo_PushCreateEntity(scene, ENTITY_SPRITE, new_sprite_index, "Duplicate Sprite");

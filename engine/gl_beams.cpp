@@ -36,10 +36,10 @@ void Beams_Init(void) {
     glGenBuffers(1, &g_beam_vbo);
     glBindVertexArray(g_beam_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_beam_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 5, nullptr, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Float) * 6 * 5, nullptr, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(Float), (void*)(3 * sizeof(Float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 }
@@ -50,7 +50,7 @@ void Beams_Shutdown(void) {
     if (g_beam_vbo) glDeleteBuffers(1, &g_beam_vbo);
 }
 
-void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time) {
+void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Float time) {
     glUseProgram(g_beam_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_beam_shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(g_beam_shader, "projection"), 1, GL_FALSE, projection.m);
@@ -63,16 +63,16 @@ void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, floa
     glBindVertexArray(g_beam_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_beam_vbo);
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_beam") == 0 && ent->runtime_active) {
-            const char* target_name = LogicEntity_GetProperty(ent, "target", "");
+            const Char* target_name = LogicEntity_GetProperty(ent, "target", "");
             Vec3 end_pos;
             Vec3 end_angles_dummy;
 
             if (IO_FindNamedEntity(scene, target_name, &end_pos, &end_angles_dummy)) {
                 Vec3 start_pos = ent->pos;
-                float width = atof(LogicEntity_GetProperty(ent, "width", "2.0"));
+                Float width = atof(LogicEntity_GetProperty(ent, "width", "2.0"));
                 Vec3 color;
                 sscanf(LogicEntity_GetProperty(ent, "color", "1.0 1.0 1.0"), "%f %f %f", &color.x, &color.y, &color.z);
 
@@ -84,7 +84,7 @@ void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, floa
                 vec3_normalize(&right);
                 right = vec3_muls(right, width * 0.5f);
 
-                float vertices[] = {
+                Float vertices[] = {
                     start_pos.x - right.x, start_pos.y - right.y, start_pos.z - right.z, 0.0f, 0.0f,
                     start_pos.x + right.x, start_pos.y + right.y, start_pos.z + right.z, 1.0f, 0.0f,
                     end_pos.x + right.x,   end_pos.y + right.y,   end_pos.z + right.z,   1.0f, 1.0f,

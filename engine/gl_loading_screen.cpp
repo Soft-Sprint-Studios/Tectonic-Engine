@@ -27,16 +27,16 @@
 #include <SDL_image.h>
 #include "gl_console.h"
 
-static bool g_is_active = false;
+static Bool g_is_active = false;
 static GLuint g_background_texture = 0;
 static GLuint g_text_texture = 0;
-static int g_text_width = 0, g_text_height = 0;
+static Int g_text_width = 0, g_text_height = 0;
 static GLuint g_quad_vao = 0, g_quad_vbo = 0;
 static GLuint g_shader = 0;
-static int g_screen_width = 0, g_screen_height = 0;
+static Int g_screen_width = 0, g_screen_height = 0;
 static TTF_Font* g_font = nullptr;
 
-static GLuint create_loading_text_texture(TTF_Font* font, const char* text, SDL_Color color, int* width, int* height) {
+static GLuint create_loading_text_texture(TTF_Font* font, const Char* text, SDL_Color color, Int* width, Int* height) {
     if (!font || !text) return 0;
     SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
     if (!surface) return 0;
@@ -58,7 +58,7 @@ static GLuint create_loading_text_texture(TTF_Font* font, const char* text, SDL_
     return texture_id;
 }
 
-void LoadingScreen_Init(int screen_width, int screen_height) {
+void LoadingScreen_Init(Int screen_width, Int screen_height) {
     g_screen_width = screen_width;
     g_screen_height = screen_height;
 
@@ -77,10 +77,10 @@ void LoadingScreen_Init(int screen_width, int screen_height) {
     glGenBuffers(1, &g_quad_vbo);
     glBindVertexArray(g_quad_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_quad_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(Float), (void*)(2 * sizeof(Float)));
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
 }
@@ -94,7 +94,7 @@ void LoadingScreen_Shutdown() {
     if (g_font) TTF_CloseFont(g_font);
 }
 
-void LoadingScreen_Show(const char* map_name) {
+void LoadingScreen_Show(const Char* map_name) {
     g_is_active = true;
     if (g_background_texture) {
         glDeleteTextures(1, &g_background_texture);
@@ -105,7 +105,7 @@ void LoadingScreen_Show(const char* map_name) {
         return;
     }
 
-    char image_path[256];
+    Char image_path[256];
     snprintf(image_path, sizeof(image_path), "media/%s.png", map_name);
     
     SDL_Surface* surf = IMG_Load(image_path);
@@ -134,7 +134,7 @@ void LoadingScreen_Hide() {
     }
 }
 
-static void render_quad(GLuint texture, float x, float y, float w, float h) {
+static void render_quad(GLuint texture, Float x, Float y, Float w, Float h) {
     if (!texture) return;
     
     glActiveTexture(GL_TEXTURE0);
@@ -142,7 +142,7 @@ static void render_quad(GLuint texture, float x, float y, float w, float h) {
     glUniform1i(glGetUniformLocation(g_shader, "u_texture"), 0);
     glUniform4f(glGetUniformLocation(g_shader, "u_color_tint"), 1.0f, 1.0f, 1.0f, 1.0f);
     
-    float vertices[] = {
+    Float vertices[] = {
         x,     y + h, 0.0f, 1.0f,
         x,     y,     0.0f, 0.0f,
         x + w, y,     1.0f, 0.0f,
@@ -170,17 +170,17 @@ void LoadingScreen_Render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     glUseProgram(g_shader);
-    Mat4 projection_matrix = mat4_ortho(0.0f, (float)g_screen_width, (float)g_screen_height, 0.0f, -1.0f, 1.0f);
+    Mat4 projection_matrix = mat4_ortho(0.0f, (Float)g_screen_width, (Float)g_screen_height, 0.0f, -1.0f, 1.0f);
     glUniformMatrix4fv(glGetUniformLocation(g_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
 
     if (g_background_texture) {
-        render_quad(g_background_texture, 0, 0, (float)g_screen_width, (float)g_screen_height);
+        render_quad(g_background_texture, 0, 0, (Float)g_screen_width, (Float)g_screen_height);
     }
     
     if (g_text_texture) {
-        float text_x = g_screen_width - g_text_width - 20.0f;
-        float text_y = g_screen_height - g_text_height - 20.0f;
-        render_quad(g_text_texture, text_x, text_y, (float)g_text_width, (float)g_text_height);
+        Float text_x = g_screen_width - g_text_width - 20.0f;
+        Float text_y = g_screen_height - g_text_height - 20.0f;
+        render_quad(g_text_texture, text_x, text_y, (Float)g_text_width, (Float)g_text_height);
     }
 
     glEnable(GL_DEPTH_TEST);

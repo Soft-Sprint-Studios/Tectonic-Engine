@@ -28,10 +28,10 @@
 #include "editor_internal.h"
 
 
-	void Editor_SetMapDirty(bool is_dirty);
+	void Editor_SetMapDirty(Bool is_dirty);
 	void Editor_SaveRecentFiles();
 	void Editor_LoadRecentFiles();
-	void Editor_AddRecentFile(const char* path);
+	void Editor_AddRecentFile(const Char* path);
 	void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* renderer);
 	void Editor_InitGizmo();
 	void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir);

@@ -47,7 +47,7 @@ typedef SOCKET socket_t;
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
-typedef int socket_t;
+typedef Int socket_t;
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket close
@@ -90,9 +90,9 @@ vector<CvarInfo> g_cvars;
 vector<CommandInfo> g_commands;
 mutex queue_mutex;
 thread server_thread;
-bool should_exit = false;
+Bool should_exit = false;
 
-void append_message(const string& msg, char style_char = 'A') {
+void append_message(const string& msg, Char style_char = 'A') {
     if (msg.rfind("[ERROR]", 0) == 0) {
         style_char = 'C';
     }
@@ -118,14 +118,14 @@ void append_message(const string& msg, char style_char = 'A') {
 
 class ConsoleInput : public Fl_Input {
 public:
-    ConsoleInput(int X, int Y, int W, int H)
+    ConsoleInput(Int X, Int Y, Int W, Int H)
         : Fl_Input(X, Y, W, H) {
     }
 
-    int handle(int event) override {
+    Int handle(Int event) override {
         if (event == FL_KEYBOARD && Fl::event_key() == FL_Tab) {
-            const char* current_text = value();
-            int current_len = strlen(current_text);
+            const Char* current_text = value();
+            Int current_len = strlen(current_text);
 
             if (current_len == 0) return 1;
 
@@ -171,13 +171,13 @@ void idle_callback(void*) {
 
     for (const auto& msg : local_queue) {
         if (msg.rfind("register_cvar", 0) == 0) {
-            char name[64], value[128], desc[128];
+            Char name[64], value[128], desc[128];
             if (sscanf(msg.c_str(), "register_cvar \"%63[^\"]\" \"%127[^\"]\" \"%127[^\"]\"", name, value, desc) == 3) {
                 g_cvars.push_back({ name, value, desc });
             }
         }
         else if (msg.rfind("register_cmd", 0) == 0) {
-            char name[64], desc[128];
+            Char name[64], desc[128];
             if (sscanf(msg.c_str(), "register_cmd \"%63[^\"]\" \"%127[^\"]\"", name, desc) == 2) {
                 g_commands.push_back({ name, desc });
             }
@@ -187,7 +187,7 @@ void idle_callback(void*) {
         }
     }
 
-    static bool last_connected_state = false;
+    static Bool last_connected_state = false;
     if (last_connected_state != (client_socket != INVALID_SOCKET)) {
         last_connected_state = (client_socket != INVALID_SOCKET);
         if (last_connected_state) {
@@ -202,7 +202,7 @@ void idle_callback(void*) {
 }
 
 void send_command_callback(Fl_Widget*, void*) {
-    const char* command = input_field->value();
+    const Char* command = input_field->value();
     if (strlen(command) > 0 && client_socket != INVALID_SOCKET) {
         string full_command = string(command) + "\n";
         send(client_socket, full_command.c_str(), full_command.length(), 0);
@@ -257,8 +257,8 @@ void server_loop() {
     server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server_socket == INVALID_SOCKET) return;
 
-    int opt = 1;
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
+    Int opt = 1;
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (Char*)&opt, sizeof(opt));
 
     sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
@@ -290,8 +290,8 @@ void server_loop() {
 
         send(client_socket, "ok", 2, 0);
 
-        char buffer[BUFFER_SIZE];
-        int bytes_received;
+        Char buffer[BUFFER_SIZE];
+        Int bytes_received;
         string line_buffer;
 
         while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
@@ -328,7 +328,7 @@ void server_loop() {
 #endif
 }
 
-int main(int argc, char** argv) {
+Int main(Int argc, Char** argv) {
     window = new Fl_Double_Window(800, 600, "Tectonic Console");
     window->callback(on_window_close);
 

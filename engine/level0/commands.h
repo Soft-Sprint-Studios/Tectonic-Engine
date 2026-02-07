@@ -35,21 +35,21 @@
 #define CMD_NONE   (0)
 #define CMD_CHEAT  (1 << 0)
 
-    typedef void (*command_func_t)(int argc, char** argv);
+    typedef void (*command_func_t)(Int argc, Char** argv);
 
     typedef struct {
-        const char* name;
+        const Char* name;
         command_func_t function;
-        const char* description;
-        int flags;
+        const Char* description;
+        Int flags;
     } Command;
 
     LEVEL0_API void Commands_Init(void);
     LEVEL0_API void Commands_Shutdown(void);
-    LEVEL0_API void Commands_Register(const char* name, command_func_t func, const char* description, int flags);
-    LEVEL0_API void Commands_Execute(int argc, char** argv);
-    LEVEL0_API int Commands_GetCount();
-    LEVEL0_API const Command* Commands_GetCommand(int index);
+    LEVEL0_API void Commands_Register(const Char* name, command_func_t func, const Char* description, Int flags);
+    LEVEL0_API void Commands_Execute(Int argc, Char** argv);
+    LEVEL0_API Int Commands_GetCount();
+    LEVEL0_API const Command* Commands_GetCommand(Int index);
 
 
 #endif // COMMANDS_H

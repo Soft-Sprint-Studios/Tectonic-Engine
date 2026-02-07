@@ -39,7 +39,7 @@
 #include <SDL.h>
 #include "gl_misc.h"
 #include <math.h>
-#include <float.h>
+#include <Float.h>
 #include <sys/stat.h>
 #include <SDL_image.h>
 #include "sound_system.h"
@@ -55,16 +55,16 @@ EditorState g_EditorState;
 Scene* g_CurrentScene;
 Mat4 g_view_matrix[VIEW_COUNT];
 Mat4 g_proj_matrix[VIEW_COUNT];
-bool g_is_map_dirty = false;
+Bool g_is_map_dirty = false;
 PendingEditorAction g_pending_action = PENDING_ACTION_NONE;
 BrushFace g_copiedFaceProperties;
-bool g_hasCopiedFace = false;
+Bool g_hasCopiedFace = false;
 Camera g_last_editor_camera_state;
-bool g_has_last_camera_state = false;
+Bool g_has_last_camera_state = false;
 
 void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     if (event->type == SDL_MOUSEMOTION) {
-        bool can_look = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
+        Bool can_look = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
         if (can_look) {
             g_EditorState.editor_camera.yaw += event->motion.xrel * 0.005f;
             g_EditorState.editor_camera.pitch -= event->motion.yrel * 0.005f;
@@ -80,7 +80,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     return;
                 }
 
-                int original_brush_index = primary->index;
+                Int original_brush_index = primary->index;
                 Brush* original_brush = &scene->brushes[original_brush_index];
 
                 Undo_BeginEntityModification(scene, ENTITY_BRUSH, original_brush_index);
@@ -98,13 +98,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 else { plane_normal = vec3_cross(dir, Vec3{ 1, 0, 0 }); }
                 vec3_normalize(&plane_normal);
 
-                float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
+                Float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
                 if (side_check < 0.0f) {
                     plane_normal = vec3_muls(plane_normal, -1.0f);
                 }
 
-                float plane_d_a = -vec3_dot(plane_normal, p1);
-                float plane_d_b = -plane_d_a;
+                Float plane_d_a = -vec3_dot(plane_normal, p1);
+                Float plane_d_b = -plane_d_a;
                 Vec3 plane_normal_b = vec3_muls(plane_normal, -1.0f);
 
                 Brush_Clip(original_brush, plane_normal, plane_d_a);
@@ -113,10 +113,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (Brush_IsSolid(original_brush) && original_brush->numVertices > 0) {
                     Vec3* world_verts = new Vec3[original_brush->numVertices];
 
-                    for (int k = 0; k < original_brush->numVertices; ++k)
+                    for (Int k = 0; k < original_brush->numVertices; ++k)
                         world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
 
-                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), original_brush->numVertices);
+                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), original_brush->numVertices);
 
                     delete[] world_verts;
                 }
@@ -127,7 +127,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Brush_Clip(&brush_b_storage, plane_normal_b, plane_d_b);
 
                 if (brush_b_storage.numVertices > 0) {
-                    int new_brush_index = scene->numBrushes;
+                    Int new_brush_index = scene->numBrushes;
                     scene->brushes[new_brush_index] = brush_b_storage;
                     scene->numBrushes++;
 
@@ -136,10 +136,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (Brush_IsSolid(new_b_ptr) && new_b_ptr->numVertices > 0) {
                         Vec3* world_verts = new Vec3[new_b_ptr->numVertices];
 
-                        for (int k = 0; k < new_b_ptr->numVertices; ++k)
+                        for (Int k = 0; k < new_b_ptr->numVertices; ++k)
                             world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
 
-                        new_b_ptr->physicsBody =Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), new_b_ptr->numVertices);
+                        new_b_ptr->physicsBody =Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_b_ptr->numVertices);
 
                         delete[] world_verts;
                     }
@@ -170,8 +170,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
                 return;
             }
-            bool is_hovering_paint_viewport = false;
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            Bool is_hovering_paint_viewport = false;
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     is_hovering_paint_viewport = true;
                     break;
@@ -189,8 +189,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
                 return;
             }
-            bool is_hovering_sculpt_viewport = false;
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            Bool is_hovering_sculpt_viewport = false;
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     is_hovering_sculpt_viewport = true;
                     break;
@@ -203,7 +203,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         if (g_EditorState.is_clipping) {
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     if (g_EditorState.clip_point_count < 2) {
                         if (g_EditorState.clip_point_count == 0) {
@@ -236,7 +236,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
 
         ViewportType active_viewport = VIEW_COUNT;
-        for (int i = 0; i < VIEW_COUNT; ++i) {
+        for (Int i = 0; i < VIEW_COUNT; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 active_viewport = (ViewportType)i;
                 break;
@@ -268,7 +268,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                 Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
 
-                for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                     EditorSelection* sel = &g_EditorState.selections[i];
                     Vec3 pos = { 0 };
                     switch (sel->type) {
@@ -315,14 +315,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
+            Float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
             if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
             else { g_EditorState.vertex_gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
             g_EditorState.vertex_gizmo_drag_plane_d = -vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
 
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
             Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
             Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
             Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -334,7 +334,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.is_manipulating_gizmo = true;
             g_EditorState.gizmo_drag_has_cloned = false;
             g_EditorState.gizmo_selection_centroid = Vec3{ 0 };
-            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 Vec3 pos;
                 switch (g_EditorState.selections[i].type) {
                 case ENTITY_MODEL: pos = scene->objects[g_EditorState.selections[i].index].pos; break;
@@ -363,7 +363,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             g_EditorState.gizmo_drag_start_rotations = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
             g_EditorState.gizmo_drag_start_scales = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
 
-            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
                 switch (sel->type) {
                 case ENTITY_MODEL:
@@ -506,13 +506,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                    float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
+                    Float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
                     if (dot_product > 0.99f) { if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
                     else { g_EditorState.gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.gizmo_drag_plane_normal); }
                     g_EditorState.gizmo_drag_plane_d = -vec3_dot(g_EditorState.gizmo_drag_plane_normal, drag_object_anchor_pos);
                     Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-                    float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                    float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                    Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                    Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                     Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                     Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                     Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -530,8 +530,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) g_EditorState.gizmo_drag_plane_normal = Vec3{ 0,1,0 };
                 if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) g_EditorState.gizmo_drag_plane_normal = Vec3{ 0,0,1 };
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                 Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -548,11 +548,11 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (active_viewport >= VIEW_TOP_XZ && !g_EditorState.is_manipulating_gizmo && primary && primary->type == ENTITY_BRUSH) {
             Brush* b = &scene->brushes[primary->index];
             Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[active_viewport], active_viewport);
-            float pick_dist_sq = (g_EditorState.ortho_cam_zoom[active_viewport - 1] * 0.05f);
+            Float pick_dist_sq = (g_EditorState.ortho_cam_zoom[active_viewport - 1] * 0.05f);
             pick_dist_sq *= pick_dist_sq;
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+            for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                 Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                float dist_sq = 0;
+                Float dist_sq = 0;
                 if (active_viewport == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
                 if (active_viewport == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
                 if (active_viewport == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
@@ -568,7 +568,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         if (active_viewport == VIEW_PERSPECTIVE && primary && primary->type == ENTITY_BRUSH && !g_EditorState.is_manipulating_gizmo && !g_EditorState.is_manipulating_vertex_gizmo) {
-            int picked_vertex = Editor_PickVertexAtScreenPos(scene, g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE], VIEW_PERSPECTIVE);
+            Int picked_vertex = Editor_PickVertexAtScreenPos(scene, g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE], VIEW_PERSPECTIVE);
             if (picked_vertex != -1) {
                 primary->vertex_index = picked_vertex;
                 return;
@@ -674,7 +674,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     }
     if (event->type == SDL_MOUSEMOTION) {
         ViewportType active_viewport = VIEW_COUNT;
-        for (int i = 0; i < VIEW_COUNT; ++i) {
+        for (Int i = 0; i < VIEW_COUNT; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 active_viewport = (ViewportType)i;
                 break;
@@ -682,24 +682,24 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if (g_EditorState.is_painting) {
             Brush* b = &scene->brushes[primary->index];
-            bool needs_update = false;
+            Bool needs_update = false;
 
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                    float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
+                    Float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
 
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                         Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float dist_sq = 0;
+                        Float dist_sq = 0;
                         if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
                         if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
                         if (i == VIEW_SIDE_YZ) dist_sq = (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
 
                         if (dist_sq < radius_sq) {
-                            float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
-                            float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->deltaTime * 10.0f;
-                            float* channel_to_paint = nullptr;
+                            Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
+                            Float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->deltaTime * 10.0f;
+                            Float* channel_to_paint = nullptr;
                             if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
                             else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
                             else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
@@ -724,14 +724,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if (g_EditorState.is_sculpting) {
             Brush* b = &scene->brushes[primary->index];
-            bool needs_update = false;
+            Bool needs_update = false;
 
             if (SDL_GetModState() & KMOD_SHIFT) {
                 Vec3* average_positions = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
                 if (average_positions) {
                     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                         local_min.x = fminf(local_min.x, b->vertices[v_idx].pos.x);
                         local_min.y = fminf(local_min.y, b->vertices[v_idx].pos.y);
                         local_min.z = fminf(local_min.z, b->vertices[v_idx].pos.z);
@@ -740,17 +740,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         local_max.z = fmaxf(local_max.z, b->vertices[v_idx].pos.z);
                     }
 
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                         Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-                        float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                        Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                        Float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                         if (dist_sq_from_brush < radius_sq) {
                             Vec3 neighbor_sum = { 0,0,0 };
-                            int neighbor_count = 0;
-                            for (int n_idx = 0; n_idx < b->numVertices; ++n_idx) {
+                            Int neighbor_count = 0;
+                            for (Int n_idx = 0; n_idx < b->numVertices; ++n_idx) {
                                 if (v_idx == n_idx) continue;
-                                float dist_sq_verts = vec3_length_sq(vec3_sub(b->vertices[v_idx].pos, b->vertices[n_idx].pos));
+                                Float dist_sq_verts = vec3_length_sq(vec3_sub(b->vertices[v_idx].pos, b->vertices[n_idx].pos));
                                 if (dist_sq_verts < (g_EditorState.grid_size * g_EditorState.grid_size * 2.0f)) {
                                     neighbor_sum = vec3_add(neighbor_sum, b->vertices[n_idx].pos);
                                     neighbor_count++;
@@ -764,14 +764,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         }
                     }
 
-                    for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                    for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                         Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                        float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-                        float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                        Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                        Float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                         if (dist_sq_from_brush < radius_sq) {
-                            float falloff = 1.0f - sqrtf(dist_sq_from_brush) / g_EditorState.sculpt_brush_radius;
-                            float smooth_strength = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 1.5f;
+                            Float falloff = 1.0f - sqrtf(dist_sq_from_brush) / g_EditorState.sculpt_brush_radius;
+                            Float smooth_strength = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 1.5f;
 
                             Vec3 new_pos = vec3_add(vec3_muls(b->vertices[v_idx].pos, 1.0f - smooth_strength), vec3_muls(average_positions[v_idx], smooth_strength));
 
@@ -787,14 +787,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
             else {
-                float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-                for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+                Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+                for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                     Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                    float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                    Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                     if (dist_sq < radius_sq) {
-                        float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
-                        float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
+                        Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
+                        Float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
                         if (SDL_GetModState() & KMOD_CTRL) sculpt_amount = -sculpt_amount;
 
                         b->vertices[v_idx].pos = vec3_add(b->vertices[v_idx].pos, vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
@@ -809,9 +809,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
-                        for (int k = 0; k < b->numVertices; ++k)
+                        for (Int k = 0; k < b->numVertices; ++k)
                             world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -837,7 +837,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
             Vec3 delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
 
-            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
                 Vec3 start_pos = g_EditorState.gizmo_drag_start_positions[i];
                 Vec3 new_pos = vec3_add(start_pos, delta);
@@ -849,12 +849,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
 
                     if (g_EditorState.texture_lock_enabled) {
                         Vec3 frame_move = vec3_sub(new_pos, old_pos);
-                        float du = 0, dv = 0;
+                        Float du = 0, dv = 0;
                         if (g_EditorState.selected_brush_drag_body_view == VIEW_TOP_XZ) { du = frame_move.x; dv = frame_move.z; }
                         else if (g_EditorState.selected_brush_drag_body_view == VIEW_FRONT_XY) { du = frame_move.x; dv = frame_move.y; }
                         else { du = frame_move.z; dv = frame_move.y; }
 
-                        for (int f = 0; f < b->numFaces; ++f) {
+                        for (Int f = 0; f < b->numFaces; ++f) {
                             if (b->faces[f].uv_scale.x != 0) b->faces[f].uv_offset.x -= du / b->faces[f].uv_scale.x;
                             if (b->faces[f].uv_scale.y != 0) b->faces[f].uv_offset.y -= dv / b->faces[f].uv_scale.y;
                         }
@@ -883,8 +883,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (g_EditorState.is_manipulating_vertex_gizmo) {
             Brush* b = &scene->brushes[primary->index];
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
             Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
             Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
             Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -895,7 +895,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                float projection_len = vec3_dot(delta, axis_dir);
+                Float projection_len = vec3_dot(delta, axis_dir);
                 Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
                 Vec3 new_world_pos = vec3_add(g_EditorState.vertex_drag_start_pos_world, projected_delta);
                 if (g_EditorState.snap_to_grid) { new_world_pos.x = SnapValue(new_world_pos.x, g_EditorState.grid_size); new_world_pos.y = SnapValue(new_world_pos.y, g_EditorState.grid_size); new_world_pos.z = SnapValue(new_world_pos.z, g_EditorState.grid_size); }
@@ -907,9 +907,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
-                        for (int i = 0; i < b->numVertices; ++i)
+                        for (Int i = 0; i < b->numVertices; ++i)
                             world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -927,8 +927,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view];
 
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                 Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -946,7 +946,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            float projection_len = vec3_dot(delta, axis_dir);
+            Float projection_len = vec3_dot(delta, axis_dir);
             Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
 
             if (g_EditorState.snap_to_grid) {
@@ -956,8 +956,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
 
             Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
-            for (int i = 0; i < face->numVertexIndices; ++i) {
-                int vert_idx = face->vertexIndices[i];
+            for (Int i = 0; i < face->numVertexIndices; ++i) {
+                Int vert_idx = face->vertexIndices[i];
                 Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
                 Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
                 b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
@@ -968,9 +968,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
-                    for (int j = 0; j < b->numVertices; ++j)
+                    for (Int j = 0; j < b->numVertices; ++j)
                         world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -998,9 +998,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
-                    for (int i = 0; i < b->numVertices; ++i)
+                    for (Int i = 0; i < b->numVertices; ++i)
                         world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -1018,8 +1018,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[g_EditorState.gizmo_drag_view];
 
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                 Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -1037,7 +1037,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            float projection_len = vec3_dot(delta, axis_dir);
+            Float projection_len = vec3_dot(delta, axis_dir);
             Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
 
             if (g_EditorState.snap_to_grid) {
@@ -1047,8 +1047,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
 
             Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
-            for (int i = 0; i < face->numVertexIndices; ++i) {
-                int vert_idx = face->vertexIndices[i];
+            for (Int i = 0; i < face->numVertexIndices; ++i) {
+                Int vert_idx = face->vertexIndices[i];
                 Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
                 Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
                 b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
@@ -1059,9 +1059,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
-                    for (int j = 0; j < b->numVertices; ++j)
+                    for (Int j = 0; j < b->numVertices; ++j)
                         world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -1077,13 +1077,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if ((SDL_GetModState() & KMOD_SHIFT) && !g_EditorState.gizmo_drag_has_cloned) {
                 g_EditorState.gizmo_drag_has_cloned = true;
 
-                int num_original_selections = g_EditorState.num_selections;
+                Int num_original_selections = g_EditorState.num_selections;
                 EditorSelection* original_selections = new EditorSelection[num_original_selections];
                 if (original_selections) {
                     memcpy(original_selections, g_EditorState.selections, num_original_selections * sizeof(EditorSelection));
                     Editor_ClearSelection();
 
-                    for (int i = 0; i < num_original_selections; ++i) {
+                    for (Int i = 0; i < num_original_selections; ++i) {
                         EditorSelection* sel = &original_selections[i];
                         switch (sel->type) {
                         case ENTITY_MODEL: Editor_DuplicateModel(scene, engine, sel->index); break;
@@ -1108,7 +1108,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_start_rotations = new Vec3[g_EditorState.num_selections];
                     g_EditorState.gizmo_drag_start_scales = new Vec3[g_EditorState.num_selections];
 
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                         EditorSelection* sel = &g_EditorState.selections[i];
                         switch (sel->type) {
                         case ENTITY_MODEL: g_EditorState.gizmo_drag_start_positions[i] = scene->objects[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->objects[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = scene->objects[sel->index].scale; break;
@@ -1129,17 +1129,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
             Vec3 pos_delta = { 0 };
             Vec3 scale_delta = { 0 };
-            float rot_angle_delta = 0.0f;
+            Float rot_angle_delta = 0.0f;
             Mat4 delta_rot_matrix;
             mat4_identity(&delta_rot_matrix);
 
             Vec3 current_intersect_point;
-            bool intersection_found = false;
+            Bool intersection_found = false;
 
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
                 Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
@@ -1161,17 +1161,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Vec3 u_axis = g_EditorState.gizmo_rotation_start_vec;
                     Vec3 v_axis = vec3_cross(g_EditorState.gizmo_drag_plane_normal, u_axis);
 
-                    float u_coord = vec3_dot(current_vec, u_axis);
-                    float v_coord = vec3_dot(current_vec, v_axis);
+                    Float u_coord = vec3_dot(current_vec, u_axis);
+                    Float v_coord = vec3_dot(current_vec, v_axis);
 
-                    float angle = atan2f(v_coord, u_coord) * (180.0f / M_PI);
+                    Float angle = atan2f(v_coord, u_coord) * (180.0f / M_PI);
 
                     if (SDL_GetModState() & KMOD_CTRL) {
                         angle = SnapValue(angle, 15.0f);
                     }
                     rot_angle_delta = angle;
 
-                    float angle_rad = rot_angle_delta * (M_PI / 180.0f);
+                    Float angle_rad = rot_angle_delta * (M_PI / 180.0f);
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) delta_rot_matrix = mat4_rotate_x(angle_rad);
                     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) delta_rot_matrix = mat4_rotate_y(angle_rad);
                     else delta_rot_matrix = mat4_rotate_z(angle_rad);
@@ -1184,7 +1184,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                        float projection_len = vec3_dot(delta, axis_dir);
+                        Float projection_len = vec3_dot(delta, axis_dir);
 
                         if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
                             if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
@@ -1223,7 +1223,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
 
             Vec3 centroid = g_EditorState.gizmo_selection_centroid;
-            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
 
                 Vec3 start_pos = g_EditorState.gizmo_drag_start_positions[i];
@@ -1321,18 +1321,18 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
                 }
         else if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
-                    for (int j = 0; j < VIEW_COUNT; ++j) {
+                    for (Int j = 0; j < VIEW_COUNT; ++j) {
                         g_EditorState.is_viewport_focused[j] = (j == i);
                     }
                     break;
                 }
             }
 
-            if (g_EditorState.is_viewport_focused[VIEW_TOP_XZ]) { float ms = g_EditorState.ortho_cam_zoom[0] * 0.002f; g_EditorState.ortho_cam_pos[0].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[0].z -= event->motion.yrel * ms; }
-            if (g_EditorState.is_viewport_focused[VIEW_FRONT_XY]) { float ms = g_EditorState.ortho_cam_zoom[1] * 0.002f; g_EditorState.ortho_cam_pos[1].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[1].y += event->motion.yrel * ms; }
-            if (g_EditorState.is_viewport_focused[VIEW_SIDE_YZ]) { float ms = g_EditorState.ortho_cam_zoom[2] * 0.002f; g_EditorState.ortho_cam_pos[2].z += event->motion.xrel * ms; g_EditorState.ortho_cam_pos[2].y += event->motion.yrel * ms; }
+            if (g_EditorState.is_viewport_focused[VIEW_TOP_XZ]) { Float ms = g_EditorState.ortho_cam_zoom[0] * 0.002f; g_EditorState.ortho_cam_pos[0].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[0].z -= event->motion.yrel * ms; }
+            if (g_EditorState.is_viewport_focused[VIEW_FRONT_XY]) { Float ms = g_EditorState.ortho_cam_zoom[1] * 0.002f; g_EditorState.ortho_cam_pos[1].x -= event->motion.xrel * ms; g_EditorState.ortho_cam_pos[1].y += event->motion.yrel * ms; }
+            if (g_EditorState.is_viewport_focused[VIEW_SIDE_YZ]) { Float ms = g_EditorState.ortho_cam_zoom[2] * 0.002f; g_EditorState.ortho_cam_pos[2].z += event->motion.xrel * ms; g_EditorState.ortho_cam_pos[2].y += event->motion.yrel * ms; }
         }
     }
     if (event->type == SDL_MOUSEWHEEL) {
@@ -1347,8 +1347,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.editor_camera_speed > 500.0f) g_EditorState.editor_camera_speed = 500.0f;
             return;
         }
-        bool hovered_any_viewport = false;
-        for (int i = 1; i < VIEW_COUNT; i++) {
+        Bool hovered_any_viewport = false;
+        for (Int i = 1; i < VIEW_COUNT; i++) {
             if (g_EditorState.is_viewport_hovered[i]) { g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true;  if (g_EditorState.ortho_cam_zoom[i - 1] > 64.0f) {
                 g_EditorState.ortho_cam_zoom[i - 1] = 64.0f;
             }
@@ -1414,13 +1414,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_d) {
             if (g_EditorState.num_selections > 0) {
-                int num_to_duplicate = g_EditorState.num_selections;
+                Int num_to_duplicate = g_EditorState.num_selections;
                 EditorSelection* original_selections = new EditorSelection[num_to_duplicate];
                 memcpy(original_selections, g_EditorState.selections, num_to_duplicate * sizeof(EditorSelection));
 
                 Editor_ClearSelection();
 
-                for (int i = 0; i < num_to_duplicate; ++i) {
+                for (Int i = 0; i < num_to_duplicate; ++i) {
                     EditorSelection* sel = &original_selections[i];
                     switch (sel->type) {
                     case ENTITY_MODEL: Editor_DuplicateModel(scene, engine, sel->index); break;
@@ -1445,7 +1445,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 SDL_SetRelativeMouseMode(SDL_FALSE);
             }
             else {
-                for (int i = 0; i < VIEW_COUNT; ++i) {
+                for (Int i = 0; i < VIEW_COUNT; ++i) {
                     if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
                         g_EditorState.is_in_z_mode = true;
                         g_EditorState.captured_viewport = (ViewportType)i;
@@ -1492,7 +1492,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         else if (!g_EditorState.is_manipulating_gizmo && !g_EditorState.is_vertex_manipulating && !g_EditorState.is_manipulating_vertex_gizmo) {
             if (event->key.keysym.sym == SDLK_f && primary) {
                 Vec3 target_pos = { 0 };
-                float target_size = 1.0f;
+                Float target_size = 1.0f;
 
                 switch (primary->type) {
                 case ENTITY_MODEL: {
@@ -1508,7 +1508,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (b->numVertices > 0) {
                         Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                         Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-                        for (int i = 0; i < b->numVertices; ++i) {
+                        for (Int i = 0; i < b->numVertices; ++i) {
                             local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
                             local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
                             local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
@@ -1538,7 +1538,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 };
                 vec3_normalize(&cam_forward);
 
-                float distance_away = target_size * 2.0f;
+                Float distance_away = target_size * 2.0f;
                 if (distance_away < 2.0f) distance_away = 2.0f;
 
                 Vec3 new_cam_pos = vec3_sub(target_pos, vec3_muls(cam_forward, distance_away));
@@ -1551,9 +1551,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 g_EditorState.editor_camera.yaw = atan2f(new_forward.x, -new_forward.z);
             }
             if (primary && primary->type == ENTITY_BRUSH && primary->vertex_index != -1) {
-                bool moved = false;
+                Bool moved = false;
                 Vec3 move_delta = { 0 };
-                float grid_size = g_EditorState.grid_size;
+                Float grid_size = g_EditorState.grid_size;
 
                 if (event->key.keysym.sym == SDLK_UP) {
                     if (g_EditorState.last_active_2d_view == VIEW_TOP_XZ) move_delta.z = -grid_size;
@@ -1598,10 +1598,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                         if (Brush_IsSolid(b) && b->numVertices > 0) {
                             Vec3* world_verts = new Vec3[b->numVertices];
-                            for (int i = 0; i < b->numVertices; ++i) {
+                            for (Int i = 0; i < b->numVertices; ++i) {
                                 world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                             }
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                             delete[] world_verts;
                         }
                         else {
@@ -1617,14 +1617,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
                     EntityState* deleted_states = (EntityState*)calloc(g_EditorState.num_selections, sizeof(EntityState));
-                    int num_deleted = 0;
-                    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+                    Int num_deleted = 0;
+                    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                         capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);
                     }
 
                     Undo_PushDeleteMultipleEntities(scene, deleted_states, num_deleted, "Delete Selection");
 
-                    for (int i = g_EditorState.num_selections - 1; i >= 0; --i) {
+                    for (Int i = g_EditorState.num_selections - 1; i >= 0; --i) {
                         EditorSelection* sel = &g_EditorState.selections[i];
                         switch (sel->type) {
                         case ENTITY_MODEL: _raw_delete_model(scene, sel->index, engine); break;
@@ -1651,7 +1651,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             EditorSelection* primary = Editor_GetPrimarySelection();
             if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
                 ViewportType active_viewport = VIEW_COUNT;
-                for (int i = 0; i < VIEW_COUNT; ++i) {
+                for (Int i = 0; i < VIEW_COUNT; ++i) {
                     if (g_EditorState.is_viewport_hovered[i]) {
                         active_viewport = (ViewportType)i;
                         break;
@@ -1659,8 +1659,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
 
                 if (active_viewport == VIEW_PERSPECTIVE) {
-                    float ndc_x = (g_EditorState.mouse_pos_in_viewport[active_viewport].x / g_EditorState.viewport_width[active_viewport]) * 2.0f - 1.0f;
-                    float ndc_y = 1.0f - (g_EditorState.mouse_pos_in_viewport[active_viewport].y / g_EditorState.viewport_height[active_viewport]) * 2.0f;
+                    Float ndc_x = (g_EditorState.mouse_pos_in_viewport[active_viewport].x / g_EditorState.viewport_width[active_viewport]) * 2.0f - 1.0f;
+                    Float ndc_y = 1.0f - (g_EditorState.mouse_pos_in_viewport[active_viewport].y / g_EditorState.viewport_height[active_viewport]) * 2.0f;
                     Mat4 inv_proj, inv_view;
                     mat4_inverse(&g_proj_matrix[active_viewport], &inv_proj);
                     mat4_inverse(&g_view_matrix[active_viewport], &inv_view);
@@ -1672,26 +1672,26 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     vec3_normalize(&ray_dir_world);
                     Vec3 ray_origin_world = g_EditorState.editor_camera.position;
 
-                    float closest_t = FLT_MAX;
-                    int hit_brush_index = -1;
-                    int hit_face_index = -1;
+                    Float closest_t = FLT_MAX;
+                    Int hit_brush_index = -1;
+                    Int hit_face_index = -1;
 
-                    for (int i = 0; i < g_CurrentScene->numBrushes; ++i) {
+                    for (Int i = 0; i < g_CurrentScene->numBrushes; ++i) {
                         Brush* brush = &g_CurrentScene->brushes[i];
                         Mat4 inv_brush_model_matrix;
                         if (!mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) continue;
                         Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
                         Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
 
-                        for (int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
+                        for (Int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
                             BrushFace* face = &brush->faces[face_idx];
                             if (face->numVertexIndices < 3) continue;
 
-                            for (int k = 0; k < face->numVertexIndices - 2; ++k) {
+                            for (Int k = 0; k < face->numVertexIndices - 2; ++k) {
                                 Vec3 v0 = brush->vertices[face->vertexIndices[0]].pos;
                                 Vec3 v1 = brush->vertices[face->vertexIndices[k + 1]].pos;
                                 Vec3 v2 = brush->vertices[face->vertexIndices[k + 2]].pos;
-                                float t;
+                                Float t;
                                 if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0, v1, v2, &t) && t < closest_t) {
                                     closest_t = t;
                                     hit_brush_index = i;
@@ -1734,7 +1734,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         EditorSelection* primary = Editor_GetPrimarySelection();
-        for (int i = 0; i < VIEW_COUNT; ++i) {
+        for (Int i = 0; i < VIEW_COUNT; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 if (primary && primary->type == ENTITY_BRUSH && primary->face_index != -1) {
                     g_EditorState.show_texture_browser = true;
@@ -1745,9 +1745,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
     }
 }
 void Editor_Update(Engine* engine, Scene* scene) {
-    bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
+    Bool can_move = g_EditorState.is_in_z_mode || (g_EditorState.is_viewport_focused[VIEW_PERSPECTIVE] && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT)));
     if (can_move) {
-        const Uint8* state = SDL_GetKeyboardState(nullptr); float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
+        const Uint8* state = SDL_GetKeyboardState(nullptr); Float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
         Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
         vec3_normalize(&forward); Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 }); vec3_normalize(&right);
         if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
@@ -1773,7 +1773,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
     }
 
-    for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+    for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
         if (g_EditorState.is_viewport_focused[i]) {
             g_EditorState.last_active_2d_view = (ViewportType)i;
         }
@@ -1791,8 +1791,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
         Brush* b = &scene->brushes[primary->index];
         Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
 
-        float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-        float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+        Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+        Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
         Mat4 inv_proj, inv_view;
         mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
         mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
@@ -1810,18 +1810,18 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (mat4_inverse(&b->modelMatrix, &inv_brush_model_matrix)) {
             Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin);
             Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir);
-            float closest_t = FLT_MAX;
+            Float closest_t = FLT_MAX;
 
-            for (int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
+            for (Int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
                 BrushFace* face = &b->faces[face_idx];
                 if (face->numVertexIndices < 3) continue;
 
-                for (int k = 0; k < face->numVertexIndices - 2; ++k) {
+                for (Int k = 0; k < face->numVertexIndices - 2; ++k) {
                     Vec3 v0_local = b->vertices[face->vertexIndices[0]].pos;
                     Vec3 v1_local = b->vertices[face->vertexIndices[k + 1]].pos;
                     Vec3 v2_local = b->vertices[face->vertexIndices[k + 2]].pos;
 
-                    float t_triangle_local;
+                    Float t_triangle_local;
                     if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
                         if (t_triangle_local > 0.0f && t_triangle_local < closest_t) {
                             closest_t = t_triangle_local;
@@ -1836,16 +1836,16 @@ void Editor_Update(Engine* engine, Scene* scene) {
             }
         }
         if (g_EditorState.is_painting) {
-            bool needs_update = false;
-            float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+            Bool needs_update = false;
+            Float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
+            for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                 Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                 if (dist_sq < radius_sq) {
-                    float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
-                    float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
-                    float* channel_to_paint = nullptr;
+                    Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
+                    Float blend_amount = g_EditorState.paint_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
+                    Float* channel_to_paint = nullptr;
                     if (g_EditorState.paint_channel == 0) channel_to_paint = &b->vertices[v_idx].color.x;
                     else if (g_EditorState.paint_channel == 1) channel_to_paint = &b->vertices[v_idx].color.y;
                     else if (g_EditorState.paint_channel == 2) channel_to_paint = &b->vertices[v_idx].color.z;
@@ -1861,15 +1861,15 @@ void Editor_Update(Engine* engine, Scene* scene) {
             if (needs_update) Brush_CreateRenderData(b);
         }
         if (g_EditorState.is_sculpting) {
-            bool needs_update = false;
-            float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+            Bool needs_update = false;
+            Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
+            for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                 Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                 if (dist_sq < radius_sq) {
-                    float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
-                    float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
+                    Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
+                    Float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
                     if (SDL_GetModState() & KMOD_SHIFT) sculpt_amount = -sculpt_amount;
 
                     b->vertices[v_idx].pos = vec3_add(b->vertices[v_idx].pos, vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
@@ -1882,9 +1882,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
-                        for (int k = 0; k < b->numVertices; ++k)
+                        for (Int k = 0; k < b->numVertices; ++k)
                             world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const float*>(world_verts), b->numVertices);
+                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -1897,8 +1897,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
     if (primary && primary->type == ENTITY_BRUSH && primary->vertex_index != -1 && !g_EditorState.is_manipulating_gizmo && !g_EditorState.is_manipulating_vertex_gizmo) {
         if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-            float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-            float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+            Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+            Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
             Mat4 inv_proj, inv_view;
             mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
             mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
@@ -1913,30 +1913,30 @@ void Editor_Update(Engine* engine, Scene* scene) {
             Brush* b = &scene->brushes[primary->index];
             Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
 
-            const float pick_threshold = 0.1f;
-            float min_dist = FLT_MAX;
-            float t_ray, t_seg;
+            const Float pick_threshold = 0.1f;
+            Float min_dist = FLT_MAX;
+            Float t_ray, t_seg;
 
-            float GIZMO_AXIS_LENGTH = 0.5f;
+            Float GIZMO_AXIS_LENGTH = 0.5f;
 
             Vec3 x_p1 = { vert_world_pos.x + GIZMO_AXIS_LENGTH, vert_world_pos.y, vert_world_pos.z };
-            float dist_x = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, x_p1, &t_ray, &t_seg);
+            Float dist_x = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, x_p1, &t_ray, &t_seg);
             if (dist_x < pick_threshold && dist_x < min_dist) { min_dist = dist_x; g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_X; }
 
             Vec3 y_p1 = { vert_world_pos.x, vert_world_pos.y + GIZMO_AXIS_LENGTH, vert_world_pos.z };
-            float dist_y = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, y_p1, &t_ray, &t_seg);
+            Float dist_y = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, y_p1, &t_ray, &t_seg);
             if (dist_y < pick_threshold && dist_y < min_dist) { min_dist = dist_y; g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_Y; }
 
             Vec3 z_p1 = { vert_world_pos.x, vert_world_pos.y, vert_world_pos.z + GIZMO_AXIS_LENGTH };
-            float dist_z = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, z_p1, &t_ray, &t_seg);
+            Float dist_z = dist_RaySegment(ray_origin, ray_dir, vert_world_pos, z_p1, &t_ray, &t_seg);
             if (dist_z < pick_threshold && dist_z < min_dist) { g_EditorState.vertex_gizmo_hovered_axis = GIZMO_AXIS_Z; }
         }
     }
     g_EditorState.sprinkle_brush_hit_surface = false;
     if (g_EditorState.show_sprinkle_tool_window && g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
         Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-        float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-        float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+        Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+        Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
         Mat4 inv_proj, inv_view;
         mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
         mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
@@ -1970,8 +1970,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
                         vec3_normalize(&tangent);
                         Vec3 bitangent = vec3_cross(surface_normal, tangent);
 
-                        float rand_angle = rand_float_range(0, 2.0f * M_PI);
-                        float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
+                        Float rand_angle = rand_float_range(0, 2.0f * M_PI);
+                        Float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
 
                         Vec3 offset_on_plane = vec3_add(vec3_muls(tangent, cosf(rand_angle) * rand_dist), vec3_muls(bitangent, sinf(rand_angle) * rand_dist));
                         Vec3 final_pos = vec3_add(g_EditorState.sprinkle_brush_world_pos, offset_on_plane);
@@ -1995,7 +1995,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                             strncpy(newObj->modelPath, g_EditorState.sprinkle_model_path, sizeof(newObj->modelPath) - 1);
                             newObj->pos = final_pos;
-                            float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
+                            Float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
                             newObj->scale = Vec3{ scale, scale, scale };
                             newObj->rot = Vec3{ 0, 0, 0 };
 
@@ -2028,9 +2028,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                         }
                     }
                     else {
-                        for (int i = scene->numObjects - 1; i >= 0; --i) {
+                        for (Int i = scene->numObjects - 1; i >= 0; --i) {
                             if (strcmp(scene->objects[i].modelPath, g_EditorState.sprinkle_model_path) == 0) {
-                                float dist_sq = vec3_length_sq(vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
+                                Float dist_sq = vec3_length_sq(vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
                                 if (dist_sq < g_EditorState.sprinkle_radius * g_EditorState.sprinkle_radius / 10.0) {
                                     Undo_PushDeleteEntity(scene, ENTITY_MODEL, i, "Erase Sprinkled Model");
                                     _raw_delete_model(scene, i, engine);
@@ -2057,7 +2057,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
         Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-        for (int i = 0; i < b->numVertices; ++i) {
+        for (Int i = 0; i < b->numVertices; ++i) {
             local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
             local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
             local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
@@ -2067,10 +2067,10 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
         Vec3 local_center = vec3_muls(vec3_add(local_min, local_max), 0.5f);
 
-        for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * 0.055f, 2.0f);
+                Float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * 0.055f, 2.0f);
 
                 Vec3 handle_local_positions[6] = {
                     {local_min.x, local_center.y, local_center.z}, {local_max.x, local_center.y, local_center.z},
@@ -2078,8 +2078,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     {local_center.x, local_center.y, local_min.z}, {local_center.x, local_center.y, local_max.z}
                 };
 
-                for (int h_idx = 0; h_idx < 6; ++h_idx) {
-                    bool is_handle_relevant_to_view = false;
+                for (Int h_idx = 0; h_idx < 6; ++h_idx) {
+                    Bool is_handle_relevant_to_view = false;
                     if (i == VIEW_TOP_XZ) {
                         if (h_idx == PREVIEW_BRUSH_HANDLE_MIN_X || h_idx == PREVIEW_BRUSH_HANDLE_MAX_X || h_idx == PREVIEW_BRUSH_HANDLE_MIN_Z || h_idx == PREVIEW_BRUSH_HANDLE_MAX_Z) {
                             is_handle_relevant_to_view = true;
@@ -2098,7 +2098,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                     if (is_handle_relevant_to_view) {
                         Vec3 handle_world_pos = mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
-                        float dist_sq = 0.0f;
+                        Float dist_sq = 0.0f;
 
                         if (i == VIEW_TOP_XZ) {
                             dist_sq = powf(mouse_world.x - handle_world_pos.x, 2) + powf(mouse_world.z - handle_world_pos.z, 2);
@@ -2120,12 +2120,12 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
     }
     if (g_EditorState.is_in_brush_creation_mode && !g_EditorState.is_dragging_preview_brush_handle && !g_EditorState.is_manipulating_gizmo) {
-        for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
 
-                float pick_radius_factor = 0.055f;
-                float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * pick_radius_factor, 2.0f);
+                Float pick_radius_factor = 0.055f;
+                Float handle_pick_dist_sq = powf(g_EditorState.ortho_cam_zoom[i - 1] * pick_radius_factor, 2.0f);
 
                 Vec3 handle_centers_world[PREVIEW_BRUSH_HANDLE_COUNT];
                 handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_X] = Vec3{ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
@@ -2135,9 +2135,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 handle_centers_world[PREVIEW_BRUSH_HANDLE_MIN_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_min.z };
                 handle_centers_world[PREVIEW_BRUSH_HANDLE_MAX_Z] = Vec3{ g_EditorState.preview_brush.pos.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush_world_max.z };
 
-                for (int h_idx = 0; h_idx < PREVIEW_BRUSH_HANDLE_COUNT; ++h_idx) {
-                    bool is_handle_relevant_to_view = false;
-                    float dist_sq = FLT_MAX;
+                for (Int h_idx = 0; h_idx < PREVIEW_BRUSH_HANDLE_COUNT; ++h_idx) {
+                    Bool is_handle_relevant_to_view = false;
+                    Float dist_sq = FLT_MAX;
 
                     if (i == VIEW_TOP_XZ) {
                         if (h_idx == PREVIEW_BRUSH_HANDLE_MIN_X || h_idx == PREVIEW_BRUSH_HANDLE_MAX_X) {
@@ -2184,13 +2184,13 @@ void Editor_Update(Engine* engine, Scene* scene) {
         !g_EditorState.is_manipulating_gizmo &&
         g_EditorState.preview_brush_hovered_handle == PREVIEW_BRUSH_HANDLE_NONE) {
         g_EditorState.is_hovering_preview_brush_body = false;
-        for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+        for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
                 Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
                 Vec3 b_min = g_EditorState.preview_brush_world_min;
                 Vec3 b_max = g_EditorState.preview_brush_world_max;
 
-                bool hovered_this_view = false;
+                Bool hovered_this_view = false;
                 if (i == VIEW_TOP_XZ) {
                     if (mouse_world.x >= b_min.x && mouse_world.x <= b_max.x &&
                         mouse_world.z >= b_min.z && mouse_world.z <= b_max.z) {
@@ -2228,7 +2228,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (b->numVertices > 0) {
             Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int i = 0; i < b->numVertices; ++i) {
+            for (Int i = 0; i < b->numVertices; ++i) {
                 local_min.x = fminf(local_min.x, b->vertices[i].pos.x);
                 local_min.y = fminf(local_min.y, b->vertices[i].pos.y);
                 local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
@@ -2239,10 +2239,10 @@ void Editor_Update(Engine* engine, Scene* scene) {
             Vec3 world_min = mat4_mul_vec3(&b->modelMatrix, local_min);
             Vec3 world_max = mat4_mul_vec3(&b->modelMatrix, local_max);
 
-            for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+            for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
                     Vec3 mouse_world = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                    bool hovered_this_view = false;
+                    Bool hovered_this_view = false;
                     if (i == VIEW_TOP_XZ) {
                         if (mouse_world.x >= world_min.x && mouse_world.x <= world_max.x && mouse_world.z >= world_min.z && mouse_world.z <= world_max.z)
                             hovered_this_view = true;
@@ -2265,14 +2265,14 @@ void Editor_Update(Engine* engine, Scene* scene) {
     }
     if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_NONE && g_EditorState.gizmo_active_axis == GIZMO_AXIS_NONE && (g_EditorState.num_selections > 0 || g_EditorState.is_in_brush_creation_mode)) {
         Vec3 gizmo_target_pos;
-        bool use_gizmo = false;
+        Bool use_gizmo = false;
         if (g_EditorState.is_in_brush_creation_mode) {
             gizmo_target_pos = g_EditorState.preview_brush.pos;
             use_gizmo = true;
         }
         else if (g_EditorState.num_selections > 0) {
             g_EditorState.gizmo_selection_centroid = Vec3{ 0 };
-            for (int i = 0; i < g_EditorState.num_selections; ++i) {
+            for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 Vec3 pos;
                 switch (g_EditorState.selections[i].type) {
                 case ENTITY_MODEL: pos = scene->objects[g_EditorState.selections[i].index].pos; break;
@@ -2298,8 +2298,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
         if (use_gizmo) {
             if (g_EditorState.is_viewport_hovered[VIEW_PERSPECTIVE]) {
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
-                float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
-                float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
+                Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
+                Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view;
                 mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
                 mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
@@ -2312,14 +2312,14 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 Editor_UpdateGizmoHover(scene, g_EditorState.editor_camera.position, ray_dir);
             }
             if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_NONE) {
-                for (int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
+                for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                     if (g_EditorState.is_viewport_hovered[i]) {
                         if (primary && primary->type == ENTITY_BRUSH) {
                             continue;
                         }
                         Vec3 mouse_world = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[i], (ViewportType)i);
-                        float threshold = g_EditorState.ortho_cam_zoom[i - 1] * 0.05f;
-                        float GIZMO_SIZE = 1.0f;
+                        Float threshold = g_EditorState.ortho_cam_zoom[i - 1] * 0.05f;
+                        Float GIZMO_SIZE = 1.0f;
 
                         if (i == VIEW_TOP_XZ) {
                             if (fabsf(mouse_world.z - gizmo_target_pos.z) < threshold && mouse_world.x >= gizmo_target_pos.x && mouse_world.x <= gizmo_target_pos.x + GIZMO_SIZE) g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X;
@@ -2339,11 +2339,11 @@ void Editor_Update(Engine* engine, Scene* scene) {
             }
         }
     }
-    for (int i = 0; i < scene->numParticleEmitters; ++i) { ParticleEmitter_Update(&scene->particleEmitters[i], engine->deltaTime); }
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) { ParticleEmitter_Update(&scene->particleEmitters[i], engine->deltaTime); }
     g_EditorState.autosave_timer += engine->unscaledDeltaTime;
     if (g_EditorState.autosave_timer >= 300.0f) {
         if (strcmp(g_EditorState.currentMapPath, "untitled.map") != 0) {
-            char autosave_path[256];
+            Char autosave_path[256];
             sprintf(autosave_path, "autosaves/_autosave_%s", g_EditorState.currentMapPath);
             Scene_SaveMap(scene, nullptr, autosave_path);
         }

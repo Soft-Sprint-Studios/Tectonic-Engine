@@ -26,14 +26,14 @@
 #include "gl_renderer.h"
 
 void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection) {
-    const int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
-    const int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
+    const Int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
+    const Int ssao_height = engine->height / Cvar_GetInt("r_ssao_downsample");
     glViewport(0, 0, ssao_width, ssao_height);
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(renderer->ssaoShader);
     glUniformMatrix4fv(glGetUniformLocation(renderer->ssaoShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(renderer->ssaoShader, "screenSize"), (float)ssao_width, (float)ssao_height);
+    glUniform2f(glGetUniformLocation(renderer->ssaoShader, "screenSize"), (Float)ssao_width, (Float)ssao_height);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
     glActiveTexture(GL_TEXTURE1);

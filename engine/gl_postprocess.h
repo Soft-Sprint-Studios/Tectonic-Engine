@@ -28,7 +28,7 @@
 #include "map.h"
 
 
-	void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, GLuint sourceTexture, GLuint destFBO, int width, int height);
+	void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, GLuint sourceTexture, GLuint destFBO, Int width, Int height);
 
 
 #endif // GL_POSTPROCESS_H

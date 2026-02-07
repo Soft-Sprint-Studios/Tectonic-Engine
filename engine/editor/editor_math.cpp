@@ -23,25 +23,25 @@
  */
 #include "editor_math.h"
 #include <math.h>
-#include <float.h>
+#include <Float.h>
 
-float SnapValue(float value, float snap_interval) {
+Float SnapValue(Float value, Float snap_interval) {
     if (snap_interval == 0.0f) {
         return value;
     }
 
-    float divided = value / snap_interval;
-    float rounded = roundf(divided);
-    float result = rounded * snap_interval;
+    Float divided = value / snap_interval;
+    Float rounded = roundf(divided);
+    Float result = rounded * snap_interval;
 
     return result;
 }
 
 Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
-    float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
+    Float width = (Float)g_EditorState.viewport_width[viewport]; Float height = (Float)g_EditorState.viewport_height[viewport];
     if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
-    float aspect = width / height; float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
-    float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
+    Float aspect = width / height; Float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
+    Float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; Float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
     Vec3 world_pos = { 0 };
     switch (viewport) {
     case VIEW_TOP_XZ: world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.z = cam_pos.z - ndc_y * zoom; world_pos.y = 0; break;
@@ -57,15 +57,15 @@ Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewp
     if (viewport == VIEW_PERSPECTIVE || viewport >= VIEW_COUNT) {
         return Vec3{ 0, 0, 0 };
     }
-    float width = (float)g_EditorState.viewport_width[viewport];
-    float height = (float)g_EditorState.viewport_height[viewport];
+    Float width = (Float)g_EditorState.viewport_width[viewport];
+    Float height = (Float)g_EditorState.viewport_height[viewport];
     if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
-    float aspect = width / height;
-    int ortho_array_idx = viewport - 1;
-    float zoom = g_EditorState.ortho_cam_zoom[ortho_array_idx];
+    Float aspect = width / height;
+    Int ortho_array_idx = viewport - 1;
+    Float zoom = g_EditorState.ortho_cam_zoom[ortho_array_idx];
     Vec3 cam_center_on_plane = g_EditorState.ortho_cam_pos[ortho_array_idx];
-    float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f;
-    float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
+    Float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f;
+    Float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
     Vec3 world_pos = { 0 };
     switch (viewport) {
     case VIEW_TOP_XZ:
@@ -90,10 +90,10 @@ Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewp
 }
 
 Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
-    float width = (float)g_EditorState.viewport_width[viewport]; float height = (float)g_EditorState.viewport_height[viewport];
+    Float width = (Float)g_EditorState.viewport_width[viewport]; Float height = (Float)g_EditorState.viewport_height[viewport];
     if (width <= 0 || height <= 0) return Vec3{ 0, 0, 0 };
-    float aspect = width / height; float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
-    float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
+    Float aspect = width / height; Float zoom = g_EditorState.ortho_cam_zoom[viewport - 1]; Vec3 cam_pos = g_EditorState.ortho_cam_pos[viewport - 1];
+    Float ndc_x = (screen_pos.x / width) * 2.0f - 1.0f; Float ndc_y = 1.0f - (screen_pos.y / height) * 2.0f;
     Vec3 world_pos = { 0 };
     switch (viewport) {
     case VIEW_TOP_XZ:   world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.z = cam_pos.z - ndc_y * zoom; world_pos.y = g_EditorState.clip_plane_depth; break;
@@ -122,22 +122,22 @@ Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
         clip_pos.y /= clip_pos.w;
     }
 
-    float screen_x = ((clip_pos.x + 1.0f) / 2.0f) * g_EditorState.viewport_width[viewport];
-    float screen_y = ((1.0f - clip_pos.y) / 2.0f) * g_EditorState.viewport_height[viewport];
+    Float screen_x = ((clip_pos.x + 1.0f) / 2.0f) * g_EditorState.viewport_width[viewport];
+    Float screen_y = ((1.0f - clip_pos.y) / 2.0f) * g_EditorState.viewport_height[viewport];
 
     return Vec2{ screen_x, screen_y };
 }
 
-float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, float* t_ray, float* t_seg) {
+Float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, Float* t_ray, Float* t_seg) {
     Vec3 seg_dir = vec3_sub(seg_p1, seg_p0);
     Vec3 w0 = vec3_sub(ray_origin, seg_p0);
-    float a = vec3_dot(ray_dir, ray_dir);
-    float b = vec3_dot(ray_dir, seg_dir);
-    float c = vec3_dot(seg_dir, seg_dir);
-    float d = vec3_dot(ray_dir, w0);
-    float e = vec3_dot(seg_dir, w0);
-    float det = a * c - b * b;
-    float s, t;
+    Float a = vec3_dot(ray_dir, ray_dir);
+    Float b = vec3_dot(ray_dir, seg_dir);
+    Float c = vec3_dot(seg_dir, seg_dir);
+    Float d = vec3_dot(ray_dir, w0);
+    Float e = vec3_dot(seg_dir, w0);
+    Float det = a * c - b * b;
+    Float s, t;
     if (det < 1e-5f) { s = 0.0f; t = e / c; }
     else { s = (b * e - c * d) / det; t = (a * e - b * d) / det; }
     *t_ray = s; *t_seg = fmaxf(0.0f, fminf(1.0f, t));
@@ -146,10 +146,10 @@ float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, f
     return vec3_length(vec3_sub(closest_point_on_ray, closest_point_on_seg));
 }
 
-bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, float plane_d, Vec3* intersect_point) {
-    float denom = vec3_dot(plane_normal, ray_dir);
+Bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, Float plane_d, Vec3* intersect_point) {
+    Float denom = vec3_dot(plane_normal, ray_dir);
     if (fabs(denom) > 1e-6) {
-        float t = -(vec3_dot(plane_normal, ray_origin) + plane_d) / denom;
+        Float t = -(vec3_dot(plane_normal, ray_origin) + plane_d) / denom;
         if (t >= 0) { *intersect_point = vec3_add(ray_origin, vec3_muls(ray_dir, t)); return true; }
     }
     return false;

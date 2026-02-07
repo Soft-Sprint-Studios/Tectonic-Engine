@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <float.h>
+#include <Float.h>
 #include "editor_render.h"
 #include "editor_math.h"
 #include "editor_selection.h"
@@ -36,37 +36,37 @@
 #include "cvar.h"
 #include "io_system.h"
 
-void Editor_RenderGrid(ViewportType type, float aspect) {
+void Editor_RenderGrid(ViewportType type, Float aspect) {
     glUseProgram(g_EditorState.grid_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
     Mat4 model_ident; mat4_identity(&model_ident);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "model"), 1, GL_FALSE, model_ident.m);
-    float grid_lines[2412]; int line_count = 0;
+    Float grid_lines[2412]; Int line_count = 0;
     if (type == VIEW_PERSPECTIVE) {
-        float spacing = g_EditorState.grid_size; int num_lines = 200; float extent = (num_lines / 2.0f) * spacing;
+        Float spacing = g_EditorState.grid_size; Int num_lines = 200; Float extent = (num_lines / 2.0f) * spacing;
         Vec3 cam_pos = g_EditorState.editor_camera.position;
-        float center_x = roundf(cam_pos.x / (spacing * 10.0f)) * (spacing * 10.0f); float center_z = roundf(cam_pos.z / (spacing * 10.0f)) * (spacing * 10.0f);
-        for (int i = 0; i <= num_lines; ++i) {
-            float p = -extent + i * spacing;
+        Float center_x = roundf(cam_pos.x / (spacing * 10.0f)) * (spacing * 10.0f); Float center_z = roundf(cam_pos.z / (spacing * 10.0f)) * (spacing * 10.0f);
+        for (Int i = 0; i <= num_lines; ++i) {
+            Float p = -extent + i * spacing;
             grid_lines[line_count++] = center_x + p; grid_lines[line_count++] = 0.0f; grid_lines[line_count++] = center_z - extent; grid_lines[line_count++] = center_x + p; grid_lines[line_count++] = 0.0f; grid_lines[line_count++] = center_z + extent;
             grid_lines[line_count++] = center_x - extent; grid_lines[line_count++] = 0.0f; grid_lines[line_count++] = center_z + p; grid_lines[line_count++] = center_x + extent; grid_lines[line_count++] = 0.0f; grid_lines[line_count++] = center_z + p;
         }
     }
     else {
-        float zoom = g_EditorState.ortho_cam_zoom[type - 1]; float spacing = g_EditorState.grid_size; Vec3 center = g_EditorState.ortho_cam_pos[type - 1];
-        float left, right, bottom, top;
+        Float zoom = g_EditorState.ortho_cam_zoom[type - 1]; Float spacing = g_EditorState.grid_size; Vec3 center = g_EditorState.ortho_cam_pos[type - 1];
+        Float left, right, bottom, top;
         if (type == VIEW_TOP_XZ) { left = center.x - zoom * aspect; right = center.x + zoom * aspect; bottom = center.z - zoom; top = center.z + zoom; }
         else if (type == VIEW_FRONT_XY) { left = center.x - zoom * aspect; right = center.x + zoom * aspect; bottom = center.y - zoom; top = center.y + zoom; }
         else { left = center.z - zoom * aspect; right = center.z + zoom * aspect; bottom = center.y - zoom; top = center.y + zoom; }
-        float start_x = floorf(left / spacing) * spacing;
-        for (float x = start_x; x <= right && line_count < 2400; x += spacing) {
+        Float start_x = floorf(left / spacing) * spacing;
+        for (Float x = start_x; x <= right && line_count < 2400; x += spacing) {
             if (type == VIEW_TOP_XZ) { grid_lines[line_count++] = x; grid_lines[line_count++] = 0; grid_lines[line_count++] = bottom; grid_lines[line_count++] = x; grid_lines[line_count++] = 0; grid_lines[line_count++] = top; }
             else if (type == VIEW_FRONT_XY) { grid_lines[line_count++] = x; grid_lines[line_count++] = bottom; grid_lines[line_count++] = 0; grid_lines[line_count++] = x; grid_lines[line_count++] = top; grid_lines[line_count++] = 0; }
             else { grid_lines[line_count++] = 0; grid_lines[line_count++] = bottom; grid_lines[line_count++] = x; grid_lines[line_count++] = 0; grid_lines[line_count++] = top; grid_lines[line_count++] = x; }
         }
-        float start_y = floorf(bottom / spacing) * spacing;
-        for (float y = start_y; y <= top && line_count < 2400; y += spacing) {
+        Float start_y = floorf(bottom / spacing) * spacing;
+        for (Float y = start_y; y <= top && line_count < 2400; y += spacing) {
             if (type == VIEW_TOP_XZ) { grid_lines[line_count++] = left; grid_lines[line_count++] = 0; grid_lines[line_count++] = y; grid_lines[line_count++] = right; grid_lines[line_count++] = 0; grid_lines[line_count++] = y; }
             else if (type == VIEW_FRONT_XY) { grid_lines[line_count++] = left; grid_lines[line_count++] = y; grid_lines[line_count++] = 0; grid_lines[line_count++] = right; grid_lines[line_count++] = y; grid_lines[line_count++] = 0; }
             else { grid_lines[line_count++] = 0; grid_lines[line_count++] = y; grid_lines[line_count++] = left; grid_lines[line_count++] = 0; grid_lines[line_count++] = y; grid_lines[line_count++] = right; }
@@ -75,9 +75,9 @@ void Editor_RenderGrid(ViewportType type, float aspect) {
     if (line_count == 0) return;
     if (g_EditorState.grid_vao == 0) { glGenVertexArrays(1, &g_EditorState.grid_vao); glGenBuffers(1, &g_EditorState.grid_vbo); }
     glBindVertexArray(g_EditorState.grid_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.grid_vbo);
-    glBufferData(GL_ARRAY_BUFFER, line_count * sizeof(float), grid_lines, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0); float color[] = { 0.4f, 0.4f, 0.4f, 1.0f };
+    glBufferData(GL_ARRAY_BUFFER, line_count * sizeof(Float), grid_lines, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
+    glEnableVertexAttribArray(0); Float color[] = { 0.4f, 0.4f, 0.4f, 1.0f };
     glUniform4fv(glGetUniformLocation(g_EditorState.grid_shader, "grid_color"), 1, color);
     glDrawArrays(GL_LINES, 0, line_count / 3); glBindVertexArray(0);
 }
@@ -110,14 +110,14 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     switch (g_EditorState.current_gizmo_operation) {
     case GIZMO_OP_TRANSLATE:
     case GIZMO_OP_SCALE: {
-        const float gizmo_arrow_length = 1.0f;
-        const float gizmo_vertices[] = {
+        const Float gizmo_arrow_length = 1.0f;
+        const Float gizmo_vertices[] = {
             0.0f, 0.0f, 0.0f, gizmo_arrow_length, 0.0f, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f, gizmo_arrow_length, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f, 0.0f, gizmo_arrow_length,
         };
         glBufferData(GL_ARRAY_BUFFER, sizeof(gizmo_vertices), gizmo_vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
         glEnableVertexAttribArray(0);
 
         Mat4 model = mat4_translate(object_pos);
@@ -142,24 +142,24 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
 
 #define SEGMENTS 32
-        const float radius = 1.0f;
+        const Float radius = 1.0f;
         Vec3 points[SEGMENTS + 1];
 
         Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
-        for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
+        for (Int i = 0; i <= SEGMENTS; ++i) {
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, 0.0f, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
         glEnableVertexAttribArray(0);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
 
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
-        for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
+        for (Int i = 0; i <= SEGMENTS; ++i) {
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle)* radius, sinf(angle)* radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -167,8 +167,8 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
 
         Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
-        for (int i = 0; i <= SEGMENTS; ++i) {
-            float angle = (i / (float)SEGMENTS) * 2.0f * M_PI;
+        for (Int i = 0; i <= SEGMENTS; ++i) {
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, sinf(angle)* radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -182,7 +182,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     glEnable(GL_DEPTH_TEST);
 }
 void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix) {
-    float aspect = (float)g_EditorState.viewport_width[type] / (float)g_EditorState.viewport_height[type];
+    Float aspect = (Float)g_EditorState.viewport_width[type] / (Float)g_EditorState.viewport_height[type];
     if (aspect <= 0) aspect = 1.0;
 
     switch (type) {
@@ -206,8 +206,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
         MiscRender_AutoexposurePass(renderer, engine);
 
-        const int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
-        const int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
+        const Int LOW_RES_WIDTH = engine->width / Cvar_GetFloat("r_geometry_downsample");
+        const Int LOW_RES_HEIGHT = engine->height / Cvar_GetFloat("r_geometry_downsample");
         glBindFramebuffer(GL_READ_FRAMEBUFFER, renderer->gBufferFBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, renderer->finalRenderFBO);
         glBlitFramebuffer(0, 0, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, 0, engine->width, engine->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -224,9 +224,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         break;
     }
-    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
     }
 
     if (type != VIEW_PERSPECTIVE) {
@@ -243,18 +243,18 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
             Mat4 identity_mat; mat4_identity(&identity_mat);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            float color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
+            Float color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
             glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
-            const int segments = 32;
+            const Int segments = 32;
             Vec3 circle_verts[64];
-            for (int i = 0; i < segments; ++i) {
-                float angle1 = (i / (float)segments) * 2.0f * M_PI;
-                float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
-                float x1 = g_EditorState.paint_brush_radius * cosf(angle1);
-                float y1 = g_EditorState.paint_brush_radius * sinf(angle1);
-                float x2 = g_EditorState.paint_brush_radius * cosf(angle2);
-                float y2 = g_EditorState.paint_brush_radius * sinf(angle2);
+            for (Int i = 0; i < segments; ++i) {
+                Float angle1 = (i / (Float)segments) * 2.0f * M_PI;
+                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * M_PI;
+                Float x1 = g_EditorState.paint_brush_radius * cosf(angle1);
+                Float y1 = g_EditorState.paint_brush_radius * sinf(angle1);
+                Float x2 = g_EditorState.paint_brush_radius * cosf(angle2);
+                Float y2 = g_EditorState.paint_brush_radius * sinf(angle2);
 
                 if (type == VIEW_TOP_XZ) {
                     circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
@@ -288,18 +288,18 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
             Mat4 identity_mat; mat4_identity(&identity_mat);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            float color[] = { 0.0f, 1.0f, 1.0f, 0.8f };
+            Float color[] = { 0.0f, 1.0f, 1.0f, 0.8f };
             glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
-            const int segments = 32;
+            const Int segments = 32;
             Vec3 circle_verts[64];
-            for (int i = 0; i < segments; ++i) {
-                float angle1 = (i / (float)segments) * 2.0f * M_PI;
-                float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
-                float x1 = g_EditorState.sculpt_brush_radius * cosf(angle1);
-                float y1 = g_EditorState.sculpt_brush_radius * sinf(angle1);
-                float x2 = g_EditorState.sculpt_brush_radius * cosf(angle2);
-                float y2 = g_EditorState.sculpt_brush_radius * sinf(angle2);
+            for (Int i = 0; i < segments; ++i) {
+                Float angle1 = (i / (Float)segments) * 2.0f * M_PI;
+                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * M_PI;
+                Float x1 = g_EditorState.sculpt_brush_radius * cosf(angle1);
+                Float y1 = g_EditorState.sculpt_brush_radius * sinf(angle1);
+                Float x2 = g_EditorState.sculpt_brush_radius * cosf(angle2);
+                Float y2 = g_EditorState.sculpt_brush_radius * sinf(angle2);
 
                 if (type == VIEW_TOP_XZ) {
                     circle_verts[i * 2] = Vec3{ mouse_world_pos.x + x1, mouse_world_pos.y, mouse_world_pos.z + y1 };
@@ -326,18 +326,18 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glBindVertexArray(0);
             glEnable(GL_DEPTH_TEST);
         }
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
-        for (int i = 0; i < scene->numObjects; i++) { render_object(renderer, scene, g_EditorState.debug_shader, &scene->objects[i], false, nullptr); }
-        for (int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr); }
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); Float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        for (Int i = 0; i < scene->numObjects; i++) { render_object(renderer, scene, g_EditorState.debug_shader, &scene->objects[i], false, nullptr); }
+        for (Int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        float selected_fill_color[] = { 1.0f, 1.0f, 0.0f, 0.2f };
+        Float selected_fill_color[] = { 1.0f, 1.0f, 0.0f, 0.2f };
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, selected_fill_color);
 
-        for (int i = 0; i < scene->numBrushes; i++) {
+        for (Int i = 0; i < scene->numBrushes; i++) {
             if (Editor_IsSelected(ENTITY_BRUSH, i)) {
                 render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr);
             }
@@ -351,15 +351,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glViewport(0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
 
     glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-    for (int i = 0; i < scene->numDecals; i++) {
-        Decal* d = &scene->decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, d->modelMatrix.m); bool is_selected = Editor_IsSelected(ENTITY_DECAL, i); float color[] = { 0.2f, 1.0f, 0.2f, 1.0f }; if (!is_selected) { color[3] = 0.5f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.decal_box_vao); glLineWidth(is_selected ? 2.0f : 1.0f); glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count); glLineWidth(1.0f);
+    for (Int i = 0; i < scene->numDecals; i++) {
+        Decal* d = &scene->decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, d->modelMatrix.m); Bool is_selected = Editor_IsSelected(ENTITY_DECAL, i); Float color[] = { 0.2f, 1.0f, 0.2f, 1.0f }; if (!is_selected) { color[3] = 0.5f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.decal_box_vao); glLineWidth(is_selected ? 2.0f : 1.0f); glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count); glLineWidth(1.0f);
     }
-    for (int i = 0; i < scene->numVideoPlayers; i++) {
+    for (Int i = 0; i < scene->numVideoPlayers; i++) {
         VideoPlayer* vp = &scene->videoPlayers[i];
         vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
-        bool is_selected = Editor_IsSelected(ENTITY_VIDEO_PLAYER, i);
-        float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        Bool is_selected = Editor_IsSelected(ENTITY_VIDEO_PLAYER, i);
+        Float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
         if (!is_selected) { color[3] = 0.5f; }
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
         glBindVertexArray(g_EditorState.decal_box_vao);
@@ -367,12 +367,12 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
         glLineWidth(1.0f);
     }
-    for (int i = 0; i < scene->numParallaxRooms; i++) {
+    for (Int i = 0; i < scene->numParallaxRooms; i++) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
         p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, p->roomDepth });
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, p->modelMatrix.m);
-        bool is_selected = Editor_IsSelected(ENTITY_PARALLAX_ROOM, i);
-        float color[] = { 0.5f, 0.0f, 1.0f, 1.0f };
+        Bool is_selected = Editor_IsSelected(ENTITY_PARALLAX_ROOM, i);
+        Float color[] = { 0.5f, 0.0f, 1.0f, 1.0f };
         if (!is_selected) { color[3] = 0.5f; }
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
         glBindVertexArray(g_EditorState.decal_box_vao);
@@ -380,15 +380,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
         glLineWidth(1.0f);
     }
-    for (int i = 0; i < scene->numSprites; ++i) {
+    for (Int i = 0; i < scene->numSprites; ++i) {
         Sprite* s = &scene->sprites[i];
-        bool is_selected = Editor_IsSelected(ENTITY_SPRITE, i);
+        Bool is_selected = Editor_IsSelected(ENTITY_SPRITE, i);
         if (!s->visible && !is_selected) continue;
 
         glUseProgram(g_EditorState.debug_shader);
         Mat4 modelMatrix = mat4_translate(s->pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-        float color[] = { 0.8f, 0.2f, 1.0f, 1.0f };
+        Float color[] = { 0.8f, 0.2f, 1.0f, 1.0f };
         if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; }
         else if (!s->visible) { color[3] = 0.3f; }
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
@@ -397,7 +397,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     glDisable(GL_DEPTH_TEST); glLineWidth(2.0f);
     if (g_EditorState.is_in_brush_creation_mode || g_EditorState.is_dragging_for_creation) {
-        glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, g_EditorState.preview_brush.modelMatrix.m); float color[] = { 1.0f, 1.0f, 0.0f, 0.5f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.preview_brush.vao); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); color[3] = 1.0f; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_BLEND);
+        glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, g_EditorState.preview_brush.modelMatrix.m); Float color[] = { 1.0f, 1.0f, 0.0f, 0.5f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.preview_brush.vao); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); color[3] = 1.0f; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_BLEND);
         if (type != VIEW_PERSPECTIVE && g_EditorState.preview_brush.numVertices > 0) {
             glUseProgram(g_EditorState.debug_shader);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
@@ -405,8 +405,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             Mat4 identity_mat; mat4_identity(&identity_mat);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
 
-            float handle_screen_size = 8.0f;
-            float handle_world_size = handle_screen_size * (g_EditorState.ortho_cam_zoom[type - 1] / (float)g_EditorState.viewport_height[type]);
+            Float handle_screen_size = 8.0f;
+            Float handle_world_size = handle_screen_size * (g_EditorState.ortho_cam_zoom[type - 1] / (Float)g_EditorState.viewport_height[type]);
 
             Vec3 handle_positions_world[PREVIEW_BRUSH_HANDLE_COUNT];
             handle_positions_world[PREVIEW_BRUSH_HANDLE_MIN_X] = Vec3{ g_EditorState.preview_brush_world_min.x, g_EditorState.preview_brush.pos.y, g_EditorState.preview_brush.pos.z };
@@ -421,8 +421,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glEnableVertexAttribArray(0);
             glPointSize(handle_screen_size);
 
-            for (int i = 0; i < PREVIEW_BRUSH_HANDLE_COUNT; ++i) {
-                bool show_handle = false;
+            for (Int i = 0; i < PREVIEW_BRUSH_HANDLE_COUNT; ++i) {
+                Bool show_handle = false;
                 if (type == VIEW_TOP_XZ) {
                     if (i == PREVIEW_BRUSH_HANDLE_MIN_X || i == PREVIEW_BRUSH_HANDLE_MAX_X || i == PREVIEW_BRUSH_HANDLE_MIN_Z || i == PREVIEW_BRUSH_HANDLE_MAX_Z) show_handle = true;
                 }
@@ -434,7 +434,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 }
 
                 if (show_handle) {
-                    float color_arr[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+                    Float color_arr[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
                     if ((PreviewBrushHandleType)i == g_EditorState.preview_brush_hovered_handle || (PreviewBrushHandleType)i == g_EditorState.preview_brush_active_handle) {
                         color_arr[0] = 1.0f; color_arr[1] = 1.0f; color_arr[2] = 0.0f;
                     }
@@ -464,7 +464,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
             Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-            for (int i = 0; i < b->numVertices; ++i) {
+            for (Int i = 0; i < b->numVertices; ++i) {
                 local_min.x = fminf(local_min.x, b->vertices[i].pos.x); local_min.y = fminf(local_min.y, b->vertices[i].pos.y); local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
                 local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x); local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y); local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
             }
@@ -476,8 +476,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 {local_center.x, local_center.y, local_min.z}, {local_center.x, local_center.y, local_max.z}
             };
 
-            for (int i = 0; i < 6; ++i) {
-                bool should_draw = false;
+            for (Int i = 0; i < 6; ++i) {
+                Bool should_draw = false;
                 if (type == VIEW_TOP_XZ) {
                     if (i == PREVIEW_BRUSH_HANDLE_MIN_X || i == PREVIEW_BRUSH_HANDLE_MAX_X || i == PREVIEW_BRUSH_HANDLE_MIN_Z || i == PREVIEW_BRUSH_HANDLE_MAX_Z) {
                         should_draw = true;
@@ -495,9 +495,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 }
 
                 if (should_draw) {
-                    bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
-                    bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
-                    float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
+                    Bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
+                    Bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
+                    Float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
                     glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
                     glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
@@ -508,15 +508,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glBindVertexArray(0);
         }
     }
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
-        if (sel->type == ENTITY_MODEL) { SceneObject* obj = &scene->objects[sel->index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(renderer, scene, g_EditorState.debug_shader, obj, false, nullptr); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+        if (sel->type == ENTITY_MODEL) { SceneObject* obj = &scene->objects[sel->index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(renderer, scene, g_EditorState.debug_shader, obj, false, nullptr); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
     }
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strlen(b->classname) == 0) continue;
 
-        bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
+        Bool is_selected = Editor_IsSelected(ENTITY_BRUSH, i);
 
 
         if (!is_selected && (strcmp(b->classname, "func_water") != 0 && strcmp(b->classname, "env_reflectionprobe") != 0 && strcmp(b->classname, "func_clip") != 0)) {
@@ -528,7 +528,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
 
-        float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+        Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
         if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }
         if (strcmp(b->classname, "env_reflectionprobe") == 0) { color[0] = 0.2f; color[1] = 0.8f; color[2] = 1.0f; }
         if (strcmp(b->classname, "func_water") == 0) { color[0] = 0.2f; color[1] = 0.2f; color[2] = 1.0f; }
@@ -545,7 +545,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glBindVertexArray(0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-    for (int i = 0; i < g_EditorState.num_selections; ++i) {
+    for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
 
         if (sel->type == ENTITY_BRUSH) {
@@ -554,14 +554,14 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 if (sel->face_index < 0 || sel->face_index >= b->numFaces) continue;
                 BrushFace* face = &b->faces[sel->face_index];
                 if (face->numVertexIndices >= 3) {
-                    int num_tris = face->numVertexIndices - 2;
-                    int num_verts = num_tris * 3;
+                    Int num_tris = face->numVertexIndices - 2;
+                    Int num_verts = num_tris * 3;
 
-                    float* face_verts = new float[num_verts * 3];
+                    Float* face_verts = new Float[num_verts * 3];
 
-                    for (int tri = 0; tri < num_tris; ++tri) {
-                        int tri_indices[3] = { face->vertexIndices[0], face->vertexIndices[tri + 1], face->vertexIndices[tri + 2] };
-                        for (int j = 0; j < 3; ++j) {
+                    for (Int tri = 0; tri < num_tris; ++tri) {
+                        Int tri_indices[3] = { face->vertexIndices[0], face->vertexIndices[tri + 1], face->vertexIndices[tri + 2] };
+                        for (Int j = 0; j < 3; ++j) {
                             Vec3 v = b->vertices[tri_indices[j]].pos;
                             face_verts[(tri * 3 + j) * 3 + 0] = v.x;
                             face_verts[(tri * 3 + j) * 3 + 1] = v.y;
@@ -578,13 +578,13 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
                     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
 
-                    float color[] = { 0.835f, 0.333f, 0.0f, 0.4f };
+                    Float color[] = { 0.835f, 0.333f, 0.0f, 0.4f };
                     glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
                     glBindVertexArray(g_EditorState.selected_face_vao);
                     glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
-                    glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(float), face_verts, GL_DYNAMIC_DRAW);
-                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                    glBufferData(GL_ARRAY_BUFFER, num_verts * 3 * sizeof(Float), face_verts, GL_DYNAMIC_DRAW);
+                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
                     glEnableVertexAttribArray(0);
                     glDrawArrays(GL_TRIANGLES, 0, num_verts);
 
@@ -600,14 +600,14 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glUseProgram(g_EditorState.debug_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-    for (int i = 0; i < scene->numActiveLights; ++i) {
+    for (Int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
-        bool is_selected = Editor_IsSelected(ENTITY_LIGHT, i);
+        Bool is_selected = Editor_IsSelected(ENTITY_LIGHT, i);
 
         Mat4 modelMatrix = mat4_translate(light->pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
 
-        float color[] = { light->color.x, light->color.y, light->color.z, 1.0f };
+        Float color[] = { light->color.x, light->color.y, light->color.z, 1.0f };
         if (is_selected) {
             color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f;
         }
@@ -629,7 +629,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 mat4_multiply(&area_model_mat, &modelMatrix, &area_model_mat);
 
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, area_model_mat.m);
-                float area_color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
+                Float area_color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
                 glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, area_color);
 
                 glBindVertexArray(g_EditorState.decal_box_vao);
@@ -642,7 +642,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Mat4 scaledModelMatrix;
                 mat4_multiply(&scaledModelMatrix, &modelMatrix, &scaleMatrix);
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, scaledModelMatrix.m);
-                float radius_color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
+                Float radius_color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
                 glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, radius_color);
                 glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -661,7 +661,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 mat4_identity(&identity_mat);
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
 
-                float line_color[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+                Float line_color[] = { 1.0f, 1.0f, 0.0f, 1.0f };
                 glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, line_color);
 
                 glBindVertexArray(g_EditorState.vertex_points_vao);
@@ -675,25 +675,25 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 glLineWidth(1.0f);
             }
             if (light->type == LIGHT_SPOT) {
-                float far_plane = light->shadowFarPlane > 0 ? light->shadowFarPlane : 25.0f;
-                float angle = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
-                float radius = tanf(angle) * far_plane;
+                Float far_plane = light->shadowFarPlane > 0 ? light->shadowFarPlane : 25.0f;
+                Float angle = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
+                Float radius = tanf(angle) * far_plane;
                 Vec3 dir = light->direction; vec3_normalize(&dir);
                 Vec3 up_ish = (fabsf(vec3_dot(dir, Vec3{ 0, 1, 0 })) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
                 Vec3 right = vec3_cross(dir, up_ish); vec3_normalize(&right);
                 Vec3 up = vec3_cross(right, dir);
-                int segments = 16;
-                Vec3 cone_verts[40]; int vert_count = 0;
-                for (int k = 0; k < 4; ++k) {
-                    float theta = (k / 4.0f) * 2.0f * M_PI;
+                Int segments = 16;
+                Vec3 cone_verts[40]; Int vert_count = 0;
+                for (Int k = 0; k < 4; ++k) {
+                    Float theta = (k / 4.0f) * 2.0f * M_PI;
                     Vec3 p_on_circle = vec3_add(vec3_muls(right, cosf(theta) * radius), vec3_muls(up, sinf(theta) * radius));
                     Vec3 world_p = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
                     cone_verts[vert_count++] = light->pos;
                     cone_verts[vert_count++] = world_p;
                 }
-                for (int k = 0; k < segments; ++k) {
-                    float theta1 = (k / (float)segments) * 2.0f * M_PI;
-                    float theta2 = ((k + 1) / (float)segments) * 2.0f * M_PI;
+                for (Int k = 0; k < segments; ++k) {
+                    Float theta1 = (k / (Float)segments) * 2.0f * M_PI;
+                    Float theta2 = ((k + 1) / (Float)segments) * 2.0f * M_PI;
                     Vec3 p1_on_circle = vec3_add(vec3_muls(right, cosf(theta1) * radius), vec3_muls(up, sinf(theta1) * radius));
                     Vec3 p2_on_circle = vec3_add(vec3_muls(right, cosf(theta2) * radius), vec3_muls(up, sinf(theta2) * radius));
                     cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
@@ -711,13 +711,13 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
     }
     glUseProgram(g_EditorState.debug_shader);
-    for (int i = 0; i < scene->numSoundEntities; ++i) { bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); float color[] = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
-    for (int i = 0; i < scene->numParticleEmitters; ++i) { bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); float color[] = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
+    for (Int i = 0; i < scene->numSoundEntities; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); Float color[] = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); Float color[] = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
     glUseProgram(g_EditorState.debug_shader);
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].classname, "env_beam") == 0) {
             LogicEntity* ent = &scene->logicEntities[i];
-            const char* target_name = LogicEntity_GetProperty(ent, "target", "");
+            const Char* target_name = LogicEntity_GetProperty(ent, "target", "");
             Vec3 end_pos;
 
             if (Editor_FindNamedEntityPosition(scene, target_name, &end_pos)) {
@@ -725,15 +725,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 mat4_identity(&identity);
                 glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity.m);
 
-                float line_verts[6] = { ent->pos.x, ent->pos.y, ent->pos.z, end_pos.x, end_pos.y, end_pos.z };
-                float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+                Float line_verts[6] = { ent->pos.x, ent->pos.y, ent->pos.z, end_pos.x, end_pos.y, end_pos.z };
+                Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
 
                 glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
                 glBindVertexArray(g_EditorState.vertex_points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
                 glBufferData(GL_ARRAY_BUFFER, sizeof(line_verts), line_verts, GL_DYNAMIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
                 glEnableVertexAttribArray(0);
 
                 glLineWidth(2.0f);
@@ -742,10 +742,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 glBindVertexArray(0);
             }
         }
-        bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
+        Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
         Mat4 modelMatrix = mat4_translate(scene->logicEntities[i].pos);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-        float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
+        Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
         if (!is_selected) {
             color[3] = 0.5f;
         }
@@ -753,7 +753,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glBindVertexArray(g_EditorState.light_gizmo_vao);
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
     }
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "info_monitorcamera") == 0) {
             glUseProgram(g_EditorState.debug_shader);
@@ -763,24 +763,24 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, Vec3{ 1, 1, 1 });
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
 
-            bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
-            float color[] = { 0.0f, 1.0f, 1.0f, 1.0f };
+            Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
+            Float color[] = { 0.0f, 1.0f, 1.0f, 1.0f };
             if (is_selected) { color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f; }
             glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
             glBindVertexArray(g_EditorState.light_gizmo_vao);
             glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
 
-            const char* fovStr = LogicEntity_GetProperty(ent, "fov", "90");
-            float fov = atof(fovStr);
+            const Char* fovStr = LogicEntity_GetProperty(ent, "fov", "90");
+            Float fov = atof(fovStr);
             if (fov <= 0.0f) fov = 90.0f;
 
-            float fLen = 2.0f;
-            float halfW = fLen * tanf((fov * 0.5f) * (float)(M_PI / 180.0f));
-            float fW = halfW;
+            Float fLen = 2.0f;
+            Float halfW = fLen * tanf((fov * 0.5f) * (Float)(M_PI / 180.0f));
+            Float fW = halfW;
 
-            float zTip = 0.0f;
-            float zBase = -fLen;
+            Float zTip = 0.0f;
+            Float zBase = -fLen;
 
             Vec3 frustum_lines[] = {
                 {0,0,0}, {-fW,  fW, zBase},
@@ -813,7 +813,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
             Mat4 identity_mat; mat4_identity(&identity_mat);
             glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            float color[] = { 1.0f, 0.0f, 1.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+            Float color[] = { 1.0f, 0.0f, 1.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
             glPointSize(10.0f); glBindVertexArray(g_EditorState.vertex_points_vao);
             glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
             glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &vertex_world_pos, GL_DYNAMIC_DRAW);
@@ -834,7 +834,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
 
-        float color[] = { 1.0f, 0.0f, 1.0f, 0.5f };
+        Float color[] = { 1.0f, 0.0f, 1.0f, 0.5f };
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -850,14 +850,14 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
 
-        float radius = g_EditorState.is_painting_mode_enabled ? g_EditorState.paint_brush_radius : g_EditorState.sculpt_brush_radius;
+        Float radius = g_EditorState.is_painting_mode_enabled ? g_EditorState.paint_brush_radius : g_EditorState.sculpt_brush_radius;
         Mat4 model_mat = mat4_translate(g_EditorState.paint_brush_world_pos);
         Mat4 scale_mat = mat4_scale(Vec3{ radius, radius, radius });
         mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
 
-        float color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
+        Float color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -892,7 +892,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             line_verts[1] = g_EditorState.clip_points[1];
         }
 
-        float color_yellow[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+        Float color_yellow[] = { 1.0f, 1.0f, 0.0f, 1.0f };
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color_yellow);
 
         glBindVertexArray(g_EditorState.vertex_points_vao);
@@ -915,7 +915,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             vec3_normalize(&plane_normal);
 
             if (g_EditorState.clip_side_point.x != 0 || g_EditorState.clip_side_point.y != 0 || g_EditorState.clip_side_point.z != 0) {
-                float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
+                Float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
                 if (side_check < 0) plane_normal = vec3_muls(plane_normal, -1.0f);
             }
 
@@ -934,8 +934,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     Mat4 player_model_matrix = mat4_translate(scene->playerStart.pos);
     glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, player_model_matrix.m);
 
-    bool is_selected = Editor_IsSelected(ENTITY_PLAYERSTART, 0);
-    float player_color[] = { 0.2f, 0.2f, 1.0f, 1.0f };
+    Bool is_selected = Editor_IsSelected(ENTITY_PLAYERSTART, 0);
+    Float player_color[] = { 0.2f, 0.2f, 1.0f, 1.0f };
     if (is_selected) {
         player_color[0] = 1.0f; player_color[1] = 0.5f; player_color[2] = 0.0f;
     }
@@ -953,29 +953,29 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Mat4 model_ident;
         mat4_identity(&model_ident);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_ident.m);
-        float radius_color[] = { 1.0f, 0.65f, 0.0f, 0.7f };
+        Float radius_color[] = { 1.0f, 0.65f, 0.0f, 0.7f };
         glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, radius_color);
         glLineWidth(1.0f);
         glDisable(GL_DEPTH_TEST);
 
-        for (int i = 0; i < scene->numLogicEntities; ++i) {
+        for (Int i = 0; i < scene->numLogicEntities; ++i) {
             LogicEntity* ent = &scene->logicEntities[i];
             const TGD_EntityDef* def = GameData_FindEntityDef(ent->classname);
             if (!def) continue;
 
-            for (int j = 0; j < def->num_properties; ++j) {
+            for (Int j = 0; j < def->num_properties; ++j) {
                 if (def->properties[j].type == TGD_PROP_RADIUS) {
-                    const char* radius_str = LogicEntity_GetProperty(ent, def->properties[j].key, "0");
-                    float radius = atof(radius_str);
+                    const Char* radius_str = LogicEntity_GetProperty(ent, def->properties[j].key, "0");
+                    Float radius = atof(radius_str);
                     if (radius > 0.0f) {
                         Vec3 circle_verts[RADIUS_GIZMO_SEGMENTS * 2];
-                        for (int k = 0; k < RADIUS_GIZMO_SEGMENTS; ++k) {
-                            float angle1 = (k / (float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
-                            float angle2 = ((k + 1) / (float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
-                            float x1 = radius * cosf(angle1);
-                            float y1 = radius * sinf(angle1);
-                            float x2 = radius * cosf(angle2);
-                            float y2 = radius * sinf(angle2);
+                        for (Int k = 0; k < RADIUS_GIZMO_SEGMENTS; ++k) {
+                            Float angle1 = (k / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
+                            Float angle2 = ((k + 1) / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * M_PI;
+                            Float x1 = radius * cosf(angle1);
+                            Float y1 = radius * sinf(angle1);
+                            Float x2 = radius * cosf(angle2);
+                            Float y2 = radius * sinf(angle2);
 
                             if (type == VIEW_TOP_XZ) {
                                 circle_verts[k * 2] = Vec3{ ent->pos.x + x1, ent->pos.y, ent->pos.z + y1 };
@@ -1050,7 +1050,7 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     if (g_EditorState.preview_model) {
-        float aspect = (float)g_EditorState.model_preview_width / (float)g_EditorState.model_preview_height;
+        Float aspect = (Float)g_EditorState.model_preview_width / (Float)g_EditorState.model_preview_height;
         if (aspect <= 0) aspect = 1.0f;
         Vec3 cam_pos;
         cam_pos.x = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * cosf(g_EditorState.model_preview_cam_angles.x);
@@ -1087,7 +1087,7 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
         Shadows_RenderSun(renderer, scene, &sunLightSpaceMatrix);
     }
 
-    for (int i = 0; i < VIEW_COUNT; i++) {
+    for (Int i = 0; i < VIEW_COUNT; i++) {
         Editor_RenderSceneInternal((ViewportType)i, engine, renderer, scene, &sunLightSpaceMatrix);
     }
     if (g_EditorState.show_add_model_popup) {

@@ -36,49 +36,49 @@
 #include "math_api.h"
 
 
-	typedef struct { float x, y; } Vec2;
-	typedef struct { float x, y, z; } Vec3;
-	typedef struct { float x, y, z, w; } Vec4;
-	typedef struct { float m[16]; } Mat4;
+	typedef struct { Float x, y; } Vec2;
+	typedef struct { Float x, y, z; } Vec3;
+	typedef struct { Float x, y, z, w; } Vec4;
+	typedef struct { Float m[16]; } Mat4;
 	typedef struct { Vec4 planes[6]; } Frustum;
 
 	MATH_API Vec3 vec3_add(Vec3 a, Vec3 b);
 	MATH_API Vec3 vec3_sub(Vec3 a, Vec3 b);
-	MATH_API Vec3 vec3_muls(Vec3 v, float s);
+	MATH_API Vec3 vec3_muls(Vec3 v, Float s);
 	MATH_API Vec3 vec3_mul(Vec3 a, Vec3 b);
-	MATH_API float vec3_dot(Vec3 a, Vec3 b);
-	MATH_API float vec3_length(Vec3 v);
-	MATH_API float vec3_length_sq(Vec3 v);
+	MATH_API Float vec3_dot(Vec3 a, Vec3 b);
+	MATH_API Float vec3_length(Vec3 v);
+	MATH_API Float vec3_length_sq(Vec3 v);
 	MATH_API void vec3_normalize(Vec3* v);
 	MATH_API Vec3 vec3_cross(Vec3 a, Vec3 b);
 	MATH_API Vec3 mat4_mul_vec3(const Mat4* m, Vec3 v);
 	MATH_API void mat4_identity(Mat4* m);
 	MATH_API void mat4_multiply(Mat4* result, const Mat4* a, const Mat4* b);
-	MATH_API bool mat4_inverse(const Mat4* m, Mat4* out);
-	MATH_API Mat4 mat4_perspective(float fov_rad, float aspect, float near_p, float far_p);
+	MATH_API Bool mat4_inverse(const Mat4* m, Mat4* out);
+	MATH_API Mat4 mat4_perspective(Float fov_rad, Float aspect, Float near_p, Float far_p);
 	MATH_API Mat4 mat4_lookAt(Vec3 eye, Vec3 center, Vec3 up);
-	MATH_API Mat4 mat4_ortho(float left, float right, float bottom, float top, float near_p, float far_p);
+	MATH_API Mat4 mat4_ortho(Float left, Float right, Float bottom, Float top, Float near_p, Float far_p);
 	MATH_API Mat4 mat4_translate(Vec3 pos);
 	MATH_API Mat4 mat4_scale(Vec3 scale);
-	MATH_API Mat4 mat4_rotate_x(float radians);
-	MATH_API Mat4 mat4_rotate_y(float radians);
-	MATH_API Mat4 mat4_rotate_z(float radians);
+	MATH_API Mat4 mat4_rotate_x(Float radians);
+	MATH_API Mat4 mat4_rotate_y(Float radians);
+	MATH_API Mat4 mat4_rotate_z(Float radians);
 	MATH_API Vec4 vec4_add(Vec4 a, Vec4 b);
-	MATH_API Vec4 vec4_muls(Vec4 v, float s);
-	MATH_API Vec4 quat_slerp(Vec4 q1, Vec4 q2, float t);
+	MATH_API Vec4 vec4_muls(Vec4 v, Float s);
+	MATH_API Vec4 quat_slerp(Vec4 q1, Vec4 q2, Float t);
 	MATH_API Mat4 quat_to_mat4(Vec4 q);
-	MATH_API Vec3 vec3_lerp(Vec3 a, Vec3 b, float t);
+	MATH_API Vec3 vec3_lerp(Vec3 a, Vec3 b, Float t);
 	MATH_API Vec3 mat4_mul_vec3_dir(const Mat4* m, Vec3 v);
 	MATH_API Vec4 mat4_mul_vec4(const Mat4* m, Vec4 v);
 	MATH_API void mat4_compose(Mat4* result, Vec3 translation, Vec4 rotation, Vec3 scale);
 	MATH_API void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3* scale);
 	MATH_API Mat4 create_trs_matrix(Vec3 pos, Vec3 rot_deg, Vec3 scale);
-	MATH_API bool RayIntersectsOBB(Vec3 rayOrigin, Vec3 rayDir, const Mat4* modelMatrix, Vec3 localAABBMin, Vec3 localAABBMax, float* t);
-	MATH_API void extract_frustum_planes(const Mat4* view_proj, Frustum* frustum, bool normalize);
-	MATH_API bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs);
+	MATH_API Bool RayIntersectsOBB(Vec3 rayOrigin, Vec3 rayDir, const Mat4* modelMatrix, Vec3 localAABBMin, Vec3 localAABBMax, Float* t);
+	MATH_API void extract_frustum_planes(const Mat4* view_proj, Frustum* frustum, Bool normalize);
+	MATH_API Bool frustum_check_aabb(const Frustum* frustum, Vec3 mins, Vec3 maxs);
 	MATH_API Vec3 barycentric_coords(Vec2 p, Vec2 a, Vec2 b, Vec2 c);
-	MATH_API bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir, Vec3 v0, Vec3 v1, Vec3 v2, float* t_out);
-	MATH_API float rand_float_range(float min, float max);
+	MATH_API Bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir, Vec3 v0, Vec3 v1, Vec3 v2, Float* t_out);
+	MATH_API Float rand_float_range(Float min, Float max);
 
 
 #endif // MATH_LIB_H

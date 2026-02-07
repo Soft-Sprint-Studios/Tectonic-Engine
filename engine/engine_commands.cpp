@@ -42,13 +42,13 @@ extern Engine* g_engine;
 extern Renderer g_renderer;
 extern Scene g_scene;
 extern EngineMode g_current_mode;
-extern int g_last_water_cvar_state;
+extern Int g_last_water_cvar_state;
 extern EngineModeTransition g_pending_mode_transition;
-extern bool g_is_editor_mode;
-extern bool g_screenshot_requested;
-extern char g_screenshot_path[256];
+extern Bool g_is_editor_mode;
+extern Bool g_screenshot_requested;
+extern Char g_screenshot_path[256];
 
-void Cmd_Edit(int argc, char** argv) {
+void Cmd_Edit(Int argc, Char** argv) {
     if (g_current_mode == MODE_GAME) {
         g_last_water_cvar_state = Cvar_GetInt("r_water");
         Cvar_Set("r_water", "0");
@@ -57,7 +57,7 @@ void Cmd_Edit(int argc, char** argv) {
     }
     else if (g_current_mode == MODE_EDITOR) {
         if (g_last_water_cvar_state != -1) {
-            char val[2];
+            Char val[2];
             sprintf(val, "%d", g_last_water_cvar_state);
             Cvar_Set("r_water", val);
         }
@@ -65,20 +65,20 @@ void Cmd_Edit(int argc, char** argv) {
     }
 }
 
-void Cmd_Quit(int argc, char** argv) {
+void Cmd_Quit(Int argc, Char** argv) {
     g_quit_requested = true;
 }
 
-void Cmd_Restart(int argc, char** argv) {
+void Cmd_Restart(Int argc, Char** argv) {
     g_restart_requested = true;
     Cvar_EngineSet("engine_running", "0");
 }
 
-void Cmd_SetPos(int argc, char** argv) {
+void Cmd_SetPos(Int argc, Char** argv) {
     if (argc == 4) {
-        float x = atof(argv[1]);
-        float y = atof(argv[2]);
-        float z = atof(argv[3]);
+        Float x = atof(argv[1]);
+        Float y = atof(argv[2]);
+        Float z = atof(argv[3]);
         Vec3 new_pos = { x, y, z };
         if (g_engine->camera.physicsBody) {
             Physics_Teleport(g_engine->camera.physicsBody, new_pos);
@@ -91,10 +91,10 @@ void Cmd_SetPos(int argc, char** argv) {
     }
 }
 
-void Cmd_Noclip(int argc, char** argv) {
+void Cmd_Noclip(Int argc, Char** argv) {
     Cvar* c = Cvar_Find("noclip");
     if (c) {
-        bool currently_noclip = c->intValue;
+        Bool currently_noclip = c->intValue;
         Cvar_Set("noclip", currently_noclip ? "0" : "1");
         if (currently_noclip) {
             Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position);
@@ -102,7 +102,7 @@ void Cmd_Noclip(int argc, char** argv) {
     }
 }
 
-void Cmd_Bind(int argc, char** argv) {
+void Cmd_Bind(Int argc, Char** argv) {
     if (argc == 3) {
         Binds_Set(argv[1], argv[2]);
     }
@@ -111,7 +111,7 @@ void Cmd_Bind(int argc, char** argv) {
     }
 }
 
-void Cmd_Unbind(int argc, char** argv) {
+void Cmd_Unbind(Int argc, Char** argv) {
     if (argc == 2) {
         Binds_Unset(argv[1]);
     }
@@ -120,15 +120,15 @@ void Cmd_Unbind(int argc, char** argv) {
     }
 }
 
-void Cmd_UnbindAll(int argc, char** argv) {
+void Cmd_UnbindAll(Int argc, Char** argv) {
     Binds_UnbindAll();
 }
 
-void Cmd_Map(int argc, char** argv) {
+void Cmd_Map(Int argc, Char** argv) {
     if (argc == 2) {
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
-        char map_path[256];
+        Char map_path[256];
         snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
         Console_Printf("Loading map: %s", map_path);
 
@@ -151,18 +151,18 @@ void Cmd_Map(int argc, char** argv) {
     LoadingScreen_Hide();
 }
 
-void Cmd_Maps(int argc, char** argv) {
+void Cmd_Maps(Int argc, Char** argv) {
     Console_Printf("Available maps in root directory:");
 
-    int count = 0;
-    const char* exts[] = { ".map" };
-    char** files = IO_ScanDirectory("./", exts, 1, &count);
+    Int count = 0;
+    const Char* exts[] = { ".map" };
+    Char** files = IO_ScanDirectory("./", exts, 1, &count);
 
     if (count == 0) {
         Console_Printf("...No maps found.");
     }
     else {
-        for (int i = 0; i < count; ++i) {
+        for (Int i = 0; i < count; ++i) {
             Console_Printf("  %s", files[i]);
         }
 
@@ -172,7 +172,7 @@ void Cmd_Maps(int argc, char** argv) {
     }
 }
 
-void Cmd_Disconnect(int argc, char** argv) {
+void Cmd_Disconnect(Int argc, Char** argv) {
     if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
         Console_Printf("Disconnecting from map...");
         g_current_mode = MODE_MAINMENU;
@@ -188,10 +188,10 @@ void Cmd_Disconnect(int argc, char** argv) {
     }
 }
 
-void Cmd_Download(int argc, char** argv) {
+void Cmd_Download(Int argc, Char** argv) {
     if (argc == 2 && strncmp(argv[1], "http", 4) == 0) {
-        const char* url = argv[1];
-        const char* filename_start = strrchr(url, '/');
+        const Char* url = argv[1];
+        const Char* filename_start = strrchr(url, '/');
         if (filename_start) {
             filename_start++;
         }
@@ -199,7 +199,7 @@ void Cmd_Download(int argc, char** argv) {
             filename_start = url;
         }
         _mkdir("downloads");
-        char output_path[256];
+        Char output_path[256];
         snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);
         Console_Printf("Starting download for %s...", url);
         Network_DownloadFile(url, output_path);
@@ -209,7 +209,7 @@ void Cmd_Download(int argc, char** argv) {
     }
 }
 
-void Cmd_Ping(int argc, char** argv) {
+void Cmd_Ping(Int argc, Char** argv) {
     if (argc == 2) {
         Console_Printf("Pinging %s...", argv[1]);
         Network_Ping(argv[1]);
@@ -219,7 +219,7 @@ void Cmd_Ping(int argc, char** argv) {
     }
 }
 
-void Cmd_Screenshot(int argc, char** argv) {
+void Cmd_Screenshot(Int argc, Char** argv) {
     if (g_screenshot_requested) {
         Console_Printf("Screenshot already queued.");
         return;
@@ -235,14 +235,14 @@ void Cmd_Screenshot(int argc, char** argv) {
     g_screenshot_requested = true;
 }
 
-void Cmd_Echo(int argc, char** argv) {
+void Cmd_Echo(Int argc, Char** argv) {
     if (argc < 2) {
         Console_Printf("Usage: echo <message>");
         return;
     }
 
-    char message[1024] = { 0 };
-    for (int i = 1; i < argc; i++) {
+    Char message[1024] = { 0 };
+    for (Int i = 1; i < argc; i++) {
         strcat(message, argv[i]);
         if (i < argc - 1) {
             strcat(message, " ");
@@ -251,13 +251,13 @@ void Cmd_Echo(int argc, char** argv) {
     Console_Printf("%s", message);
 }
 
-void Cmd_Clear(int argc, char** argv) {
+void Cmd_Clear(Int argc, Char** argv) {
     Console_ClearLog();
 }
 
-void Cmd_Help(int argc, char** argv) {
+void Cmd_Help(Int argc, Char** argv) {
     Console_Printf("--- Command List ---");
-    for (int i = 0; i < Commands_GetCount(); ++i) {
+    for (Int i = 0; i < Commands_GetCount(); ++i) {
         const Command* cmd = Commands_GetCommand(i);
         if (cmd) {
             Console_Printf("%s - %s", cmd->name, cmd->description);
@@ -265,7 +265,7 @@ void Cmd_Help(int argc, char** argv) {
     }
     Console_Printf("--- CVAR List ---");
     Console_Printf("To set a cvar, type: <cvar_name> <value>");
-    for (int i = 0; i < Cvar_GetCount(); i++) {
+    for (Int i = 0; i < Cvar_GetCount(); i++) {
         const Cvar* c = Cvar_GetCvar(i);
         if (c && !(c->flags & CVAR_HIDDEN)) {
             Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
@@ -274,13 +274,13 @@ void Cmd_Help(int argc, char** argv) {
     Console_Printf("--------------------");
 }
 
-void Cmd_Exec(int argc, char** argv) {
+void Cmd_Exec(Int argc, Char** argv) {
     if (argc != 2) {
         Console_Printf("Usage: exec <filename>");
         return;
     }
 
-    const char* filename = argv[1];
+    const Char* filename = argv[1];
     FILE* file = fopen(filename, "r");
     if (!file) {
         Console_Printf_Error("Could not open script file: %s", filename);
@@ -288,19 +288,19 @@ void Cmd_Exec(int argc, char** argv) {
     }
 
     Console_Printf("Executing script: %s", filename);
-    char line[512];
+    Char line[512];
     while (fgets(line, sizeof(line), file)) {
-        char* trimmed_line = trim(line);
+        Char* trimmed_line = trim(line);
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
             continue;
         }
 
-        char* cmd_copy = _strdup(trimmed_line);
+        Char* cmd_copy = _strdup(trimmed_line);
 #define MAX_ARGS 32
-        int exec_argc = 0;
-        char* exec_argv[MAX_ARGS];
+        Int exec_argc = 0;
+        Char* exec_argv[MAX_ARGS];
 
-        char* p = strtok(cmd_copy, " ");
+        Char* p = strtok(cmd_copy, " ");
         while (p != nullptr && exec_argc < MAX_ARGS) {
             exec_argv[exec_argc++] = p;
             p = strtok(nullptr, " ");
@@ -316,11 +316,11 @@ void Cmd_Exec(int argc, char** argv) {
     Console_Printf("Finished executing script: %s", filename);
 }
 
-void Cmd_Version(int argc, char** argv) {
+void Cmd_Version(Int argc, Char** argv) {
     Console_Printf("Build: %d (%s, %s)", Compat_GetBuildNumber(), __DATE__, __TIME__);
 }
 
-void Cmd_SaveGame(int argc, char** argv) {
+void Cmd_SaveGame(Int argc, Char** argv) {
     if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR && g_current_mode != MODE_INGAMEMENU) {
         Console_Printf_Error("Can only save when a map is loaded.");
         return;
@@ -331,7 +331,7 @@ void Cmd_SaveGame(int argc, char** argv) {
         return;
     }
 
-    char savePath[256];
+    Char savePath[256];
     snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
 
     if (_mkdir("saves") != 0 && errno != EEXIST) {
@@ -347,13 +347,13 @@ void Cmd_SaveGame(int argc, char** argv) {
     }
 }
 
-void Cmd_LoadGame(int argc, char** argv) {
+void Cmd_LoadGame(Int argc, Char** argv) {
     if (argc != 2) {
         Console_Printf("Usage: load <savename>");
         return;
     }
 
-    char savePath[256];
+    Char savePath[256];
     snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
 
     Console_Printf("Loading game from %s...", savePath);
@@ -381,7 +381,7 @@ void Cmd_LoadGame(int argc, char** argv) {
     LoadingScreen_Hide();
 }
 
-void Cmd_ScreenShake(int argc, char** argv) {
+void Cmd_ScreenShake(Int argc, Char** argv) {
     if (argc < 4) {
         Console_Printf("Usage: screenshake <amplitude> <frequency> <duration>");
         return;
@@ -392,11 +392,11 @@ void Cmd_ScreenShake(int argc, char** argv) {
     g_engine->shake_duration_timer = atof(argv[3]);
 }
 
-void Cmd_Condump(int argc, char** argv) {
-    char filename[32];
+void Cmd_Condump(Int argc, Char** argv) {
+    Char filename[32];
     FILE* file = nullptr;
 
-    for (int i = 0; i < 1000; ++i) {
+    for (Int i = 0; i < 1000; ++i) {
         snprintf(filename, sizeof(filename), "condump%03d.txt", i);
         file = fopen(filename, "r");
         if (file == nullptr) {
@@ -416,10 +416,10 @@ void Cmd_Condump(int argc, char** argv) {
         return;
     }
 
-    int count = 0;
+    Int count = 0;
     const ConsoleItem* items = Console_GetLogItems(&count);
 
-    for (int i = 0; i < count; ++i) {
+    for (Int i = 0; i < count; ++i) {
         fprintf(file, "%s\n", items[i].text);
     }
 
@@ -427,7 +427,7 @@ void Cmd_Condump(int argc, char** argv) {
     Console_Printf("Console dumped to %s", filename);
 }
 
-void Cmd_PlayerPosition(int argc, char** argv) {
+void Cmd_PlayerPosition(Int argc, Char** argv) {
     if (g_current_mode == MODE_GAME) {
         Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
     }
@@ -436,7 +436,7 @@ void Cmd_PlayerPosition(int argc, char** argv) {
     }
 }
 
-void Cmd_HurtMe(int argc, char** argv) {
+void Cmd_HurtMe(Int argc, Char** argv) {
     if (argc < 2) {
         Console_Printf("Usage: hurtme <damage>");
         return;
@@ -447,11 +447,11 @@ void Cmd_HurtMe(int argc, char** argv) {
         return;
     }
 
-    float damage = (float)atof(argv[1]);
+    Float damage = (Float)atof(argv[1]);
     g_engine->camera.health -= damage;
 }
 
-void Cmd_Kill(int argc, char** argv) {
+void Cmd_Kill(Int argc, Char** argv) {
     if (Cvar_GetInt("god")) {
         Console_Printf("God Mode is enabled.");
         return;
@@ -460,13 +460,13 @@ void Cmd_Kill(int argc, char** argv) {
     g_engine->camera.health = 0.0f;
 }
 
-void Cmd_Skyname(int argc, char** argv) {
+void Cmd_Skyname(Int argc, Char** argv) {
     if (argc != 2) {
         Console_Printf("Usage: skyname <sky>");
         return;
     }
 
-    const char* new_skybox_name = argv[1];
+    const Char* new_skybox_name = argv[1];
 
     if (g_scene.skybox_cubemap) {
         glDeleteTextures(1, &g_scene.skybox_cubemap);
@@ -476,12 +476,12 @@ void Cmd_Skyname(int argc, char** argv) {
     strncpy(g_scene.skybox_path, new_skybox_name, sizeof(g_scene.skybox_path) - 1);
     g_scene.skybox_path[sizeof(g_scene.skybox_path) - 1] = '\0';
 
-    const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-    char face_paths[6][256];
-    const char* face_pointers[6];
-    bool all_files_exist = true;
+    const Char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
+    Char face_paths[6][256];
+    const Char* face_pointers[6];
+    Bool all_files_exist = true;
 
-    for (int i = 0; i < 6; ++i) {
+    for (Int i = 0; i < 6; ++i) {
         snprintf(face_paths[i], sizeof(face_paths[i]), "skybox/%s%s", g_scene.skybox_path, suffixes[i]);
         face_pointers[i] = face_paths[i];
 
@@ -507,13 +507,13 @@ void Cmd_Skyname(int argc, char** argv) {
     }
 }
 
-void Cmd_Reset(int argc, char** argv) {
+void Cmd_Reset(Int argc, Char** argv) {
     if (argc != 2) {
         Console_Printf("Usage: reset <cvar>\n");
         return;
     }
 
-    const char* cvar_name = argv[1];
+    const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
 
     if (c) {
@@ -524,55 +524,55 @@ void Cmd_Reset(int argc, char** argv) {
     }
 }
 
-void Cmd_Inc_f(int argc, char** argv) {
+void Cmd_Inc_f(Int argc, Char** argv) {
     if (argc < 2 || argc > 3) {
         Console_Printf("Usage: inc <cvar> [amount]\n");
         return;
     }
 
-    const char* cvar_name = argv[1];
+    const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
         Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
         return;
     }
 
-    float increment_amount = (argc == 3) ? (float)atof(argv[2]) : 1.0f;
-    float new_value = Cvar_GetFloat(cvar_name) + increment_amount;
+    Float increment_amount = (argc == 3) ? (Float)atof(argv[2]) : 1.0f;
+    Float new_value = Cvar_GetFloat(cvar_name) + increment_amount;
 
-    char new_value_str[128];
+    Char new_value_str[128];
     snprintf(new_value_str, sizeof(new_value_str), "%g", new_value);
     Cvar_Set(cvar_name, new_value_str);
 }
 
-void Cmd_Dec_f(int argc, char** argv) {
+void Cmd_Dec_f(Int argc, Char** argv) {
     if (argc < 2 || argc > 3) {
         Console_Printf("Usage: dec <cvar> [amount]\n");
         return;
     }
 
-    const char* cvar_name = argv[1];
+    const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
         Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
         return;
     }
 
-    float decrement_amount = (argc == 3) ? (float)atof(argv[2]) : 1.0f;
-    float new_value = Cvar_GetFloat(cvar_name) - decrement_amount;
+    Float decrement_amount = (argc == 3) ? (Float)atof(argv[2]) : 1.0f;
+    Float new_value = Cvar_GetFloat(cvar_name) - decrement_amount;
 
-    char new_value_str[128];
+    Char new_value_str[128];
     snprintf(new_value_str, sizeof(new_value_str), "%g", new_value);
     Cvar_Set(cvar_name, new_value_str);
 }
 
-void Cmd_Set(int argc, char** argv) {
+void Cmd_Set(Int argc, Char** argv) {
     if (argc != 2 && argc != 3) {
         Console_Printf("Usage: set <variable> [value]\n");
         return;
     }
 
-    const char* cvar_name = argv[1];
+    const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
         Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
@@ -736,8 +736,8 @@ void init_commands() {
 }
 
 void PrintSystemInfo() {
-    char vendor[13];
-    char brand[49];
+    Char vendor[13];
+    Char brand[49];
 
     GetCPUType(vendor);
     GetCPUName(brand);

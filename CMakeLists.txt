@@ -120,7 +120,7 @@ set(ENGINE_SOURCES
 )
 
 set(ENGINE_HEADERS
-    engine/common/compat.h engine/engine_api.h engine/discord_wrapper.h
+    engine/common/compat.h engine/common/datatypes.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_windows.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_geometry_helpers.h engine/editor/editor_render.h engine/editor/editor_undo.h engine/editor/editor_misc.h
     engine/game_data.h
     engine/engine.h

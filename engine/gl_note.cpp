@@ -25,18 +25,18 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern bool g_player_input_disabled;
+extern Bool g_player_input_disabled;
 
 void Note_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->note_active) {
         return;
     }
 
-    float screen_w, screen_h;
+    Float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
 
-    float window_w = 400.0f;
-    float window_h = 500.0f;
+    Float window_w = 400.0f;
+    Float window_h = 500.0f;
     UI_SetNextWindowPos((screen_w - window_w) * 0.5f, (screen_h - window_h) * 0.5f);
     UI_SetNextWindowSize(window_w, window_h);
 

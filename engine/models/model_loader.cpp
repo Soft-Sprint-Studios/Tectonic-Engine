@@ -38,16 +38,16 @@ static void EnsureErrorModelLoaded() {
     g_ErrorModel = Model_Load("models/error.glb");
 
     if (g_ErrorModel) {
-        float scale_factor = 0.05f;
+        Float scale_factor = 0.05f;
 
         g_ErrorModel->aabb_min = vec3_muls(g_ErrorModel->aabb_min, scale_factor);
         g_ErrorModel->aabb_max = vec3_muls(g_ErrorModel->aabb_max, scale_factor);
 
-        for (int i = 0; i < g_ErrorModel->meshCount; ++i) {
+        for (Int i = 0; i < g_ErrorModel->meshCount; ++i) {
             Mesh* mesh = &g_ErrorModel->meshes[i];
 
-            for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
-                int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
+            for (Uint v = 0; v < mesh->vertexCount; ++v) {
+                Int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
 
                 mesh->final_vbo_data[base_idx + 0] *= scale_factor;
                 mesh->final_vbo_data[base_idx + 1] *= scale_factor;
@@ -68,7 +68,7 @@ static void Model_CombineMeshData(LoadedModel* model) {
 
     model->totalVertexCount = 0;
     model->totalIndexCount = 0;
-    for (int i = 0; i < model->meshCount; ++i) {
+    for (Int i = 0; i < model->meshCount; ++i) {
         model->totalVertexCount += model->meshes[i].vertexCount;
         model->totalIndexCount += model->meshes[i].indexCount;
     }
@@ -77,9 +77,9 @@ static void Model_CombineMeshData(LoadedModel* model) {
         return;
     }
 
-    model->combinedVertexData = static_cast<float*>(malloc(model->totalVertexCount * 3 * sizeof(float)));
-    model->combinedNormalData = static_cast<float*>(malloc(model->totalVertexCount * 3 * sizeof(float)));
-    model->combinedIndexData = static_cast<unsigned int*>(malloc(model->totalIndexCount * sizeof(unsigned int)));
+    model->combinedVertexData = static_cast<Float*>(malloc(model->totalVertexCount * 3 * sizeof(Float)));
+    model->combinedNormalData = static_cast<Float*>(malloc(model->totalVertexCount * 3 * sizeof(Float)));
+    model->combinedIndexData = static_cast<Uint*>(malloc(model->totalIndexCount * sizeof(Uint)));
 
     if (!model->combinedVertexData || !model->combinedIndexData || !model->combinedNormalData) {
         free(model->combinedVertexData);
@@ -91,15 +91,15 @@ static void Model_CombineMeshData(LoadedModel* model) {
         return;
     }
 
-    unsigned int vertexOffset = 0;
-    unsigned int indexOffset = 0;
-    for (int i = 0; i < model->meshCount; ++i) {
+    Uint vertexOffset = 0;
+    Uint indexOffset = 0;
+    for (Int i = 0; i < model->meshCount; ++i) {
         Mesh* mesh = &model->meshes[i];
-        for (unsigned int v = 0; v < mesh->vertexCount; ++v) {
-            memcpy(&model->combinedVertexData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 0], 3 * sizeof(float));
-            memcpy(&model->combinedNormalData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 3], 3 * sizeof(float));
+        for (Uint v = 0; v < mesh->vertexCount; ++v) {
+            memcpy(&model->combinedVertexData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 0], 3 * sizeof(Float));
+            memcpy(&model->combinedNormalData[(vertexOffset + v) * 3], &mesh->final_vbo_data[v * MODEL_VERTEX_STRIDE_FLOATS + 3], 3 * sizeof(Float));
         }
-        for (unsigned int j = 0; j < mesh->indexCount; ++j) {
+        for (Uint j = 0; j < mesh->indexCount; ++j) {
             model->combinedIndexData[indexOffset + j] = mesh->indexData[j] + vertexOffset;
         }
         vertexOffset += mesh->vertexCount;
@@ -107,11 +107,11 @@ static void Model_CombineMeshData(LoadedModel* model) {
     }
 }
 
-LoadedModel* Model_Load(const char* path) {
-    bool is_loading_error_asset = (path && strstr(path, "error.glb") != nullptr);
+LoadedModel* Model_Load(const Char* path) {
+    Bool is_loading_error_asset = (path && strstr(path, "error.glb") != nullptr);
 
-    bool is_glb = false;
-    const char* ext = strrchr(path, '.');
+    Bool is_glb = false;
+    const Char* ext = strrchr(path, '.');
     if (ext && _stricmp(ext, ".glb") == 0) {
         is_glb = true;
     }
@@ -181,7 +181,7 @@ LoadedModel* Model_Load(const char* path) {
                 cgltf_animation_sampler* sampler_data = chan_data->sampler;
                 channel->sampler.num_keyframes = sampler_data->input->count;
 
-                channel->sampler.timestamps = static_cast<float*>(malloc(channel->sampler.num_keyframes * sizeof(float)));
+                channel->sampler.timestamps = static_cast<Float*>(malloc(channel->sampler.num_keyframes * sizeof(Float)));
                 cgltf_accessor_unpack_floats(sampler_data->input, channel->sampler.timestamps, channel->sampler.num_keyframes);
 
                 if (clip->duration < channel->sampler.timestamps[channel->sampler.num_keyframes - 1]) {
@@ -190,15 +190,15 @@ LoadedModel* Model_Load(const char* path) {
 
                 if (chan_data->target_path == cgltf_animation_path_type_translation) {
                     channel->sampler.translations = static_cast<Vec3*>(malloc(channel->sampler.num_keyframes * sizeof(Vec3)));
-                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.translations, channel->sampler.num_keyframes * 3);
+                    cgltf_accessor_unpack_floats(sampler_data->output, (Float*)channel->sampler.translations, channel->sampler.num_keyframes * 3);
                 }
                 else if (chan_data->target_path == cgltf_animation_path_type_rotation) {
                     channel->sampler.rotations = static_cast<Vec4*>(malloc(channel->sampler.num_keyframes * sizeof(Vec4)));
-                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.rotations, channel->sampler.num_keyframes * 4);
+                    cgltf_accessor_unpack_floats(sampler_data->output, (Float*)channel->sampler.rotations, channel->sampler.num_keyframes * 4);
                 }
                 else if (chan_data->target_path == cgltf_animation_path_type_scale) {
                     channel->sampler.scales = static_cast<Vec3*>(malloc(channel->sampler.num_keyframes * sizeof(Vec3)));
-                    cgltf_accessor_unpack_floats(sampler_data->output, (float*)channel->sampler.scales, channel->sampler.num_keyframes * 3);
+                    cgltf_accessor_unpack_floats(sampler_data->output, (Float*)channel->sampler.scales, channel->sampler.num_keyframes * 3);
                 }
             }
         }
@@ -218,7 +218,7 @@ LoadedModel* Model_Load(const char* path) {
         return g_ErrorModel;
     }
 
-    int currentMeshIndex = 0;
+    Int currentMeshIndex = 0;
     for (size_t i = 0; i < data->meshes_count; ++i) {
         cgltf_mesh* mesh = &data->meshes[i];
         for (size_t j = 0; j < mesh->primitives_count; ++j) {
@@ -245,7 +245,7 @@ LoadedModel* Model_Load(const char* path) {
                         cgltf_texture_view* base_color_tex = &primitive->material->pbr_metallic_roughness.base_color_texture;
                         if (base_color_tex->texture && base_color_tex->texture->image && base_color_tex->texture->image->buffer_view) {
                             cgltf_buffer_view* bv = base_color_tex->texture->image->buffer_view;
-                            newMesh->material->diffuseMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, true, context);
+                            newMesh->material->diffuseMap = TextureManager_LoadFromMemory((Char*)bv->buffer->data + bv->offset, bv->size, true, context);
                         }
                         else {
                             newMesh->material->diffuseMap = missingTextureID;
@@ -254,14 +254,14 @@ LoadedModel* Model_Load(const char* path) {
                         cgltf_texture_view* metallic_roughness_tex = &primitive->material->pbr_metallic_roughness.metallic_roughness_texture;
                         if (metallic_roughness_tex->texture && metallic_roughness_tex->texture->image && metallic_roughness_tex->texture->image->buffer_view) {
                             cgltf_buffer_view* bv = metallic_roughness_tex->texture->image->buffer_view;
-                            newMesh->material->rmaMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, false, context);
+                            newMesh->material->rmaMap = TextureManager_LoadFromMemory((Char*)bv->buffer->data + bv->offset, bv->size, false, context);
                         }
                     }
 
                     cgltf_texture_view* normal_tex = &primitive->material->normal_texture;
                     if (normal_tex->texture && normal_tex->texture->image && normal_tex->texture->image->buffer_view) {
                         cgltf_buffer_view* bv = normal_tex->texture->image->buffer_view;
-                        newMesh->material->normalMap = TextureManager_LoadFromMemory((char*)bv->buffer->data + bv->offset, bv->size, false, context);
+                        newMesh->material->normalMap = TextureManager_LoadFromMemory((Char*)bv->buffer->data + bv->offset, bv->size, false, context);
                     }
                 }
                 else {
@@ -272,7 +272,7 @@ LoadedModel* Model_Load(const char* path) {
                 newMesh->material = (primitive->material && primitive->material->name) ? TextureManager_FindMaterial(primitive->material->name) : &g_MissingMaterial;
             }
 
-            float* positions = nullptr, * normals = nullptr, * texcoords = nullptr, * tangents = nullptr;
+            Float* positions = nullptr, * normals = nullptr, * texcoords = nullptr, * tangents = nullptr;
             cgltf_accessor* joints_accessor = nullptr;
             cgltf_accessor* weights_accessor = nullptr;
             cgltf_size vertexCount = 0;
@@ -285,7 +285,7 @@ LoadedModel* Model_Load(const char* path) {
                 cgltf_attribute* attr = &primitive->attributes[k];
                 vertexCount = attr->data->count;
                 if (attr->type == cgltf_attribute_type_position) {
-                    positions = static_cast<float*>(malloc(vertexCount * 3 * sizeof(float)));
+                    positions = static_cast<Float*>(malloc(vertexCount * 3 * sizeof(Float)));
                     cgltf_accessor_unpack_floats(attr->data, positions, vertexCount * 3);
                     for (cgltf_size v_idx = 0; v_idx < vertexCount; ++v_idx) {
                         loadedModel->aabb_min.x = fminf(loadedModel->aabb_min.x, positions[v_idx * 3 + 0]);
@@ -297,15 +297,15 @@ LoadedModel* Model_Load(const char* path) {
                     }
                 }
                 else if (attr->type == cgltf_attribute_type_normal) {
-                    normals = static_cast<float*>(malloc(vertexCount * 3 * sizeof(float)));
+                    normals = static_cast<Float*>(malloc(vertexCount * 3 * sizeof(Float)));
                     cgltf_accessor_unpack_floats(attr->data, normals, vertexCount * 3);
                 }
                 else if (attr->type == cgltf_attribute_type_texcoord) {
-                    texcoords = static_cast<float*>(malloc(vertexCount * 2 * sizeof(float)));
+                    texcoords = static_cast<Float*>(malloc(vertexCount * 2 * sizeof(Float)));
                     cgltf_accessor_unpack_floats(attr->data, texcoords, vertexCount * 2);
                 }
                 else if (attr->type == cgltf_attribute_type_tangent) {
-                    tangents = static_cast<float*>(malloc(vertexCount * 4 * sizeof(float)));
+                    tangents = static_cast<Float*>(malloc(vertexCount * 4 * sizeof(Float)));
                     cgltf_accessor_unpack_floats(attr->data, tangents, vertexCount * 4);
                 }
                 else if (attr->type == cgltf_attribute_type_joints) {
@@ -316,7 +316,7 @@ LoadedModel* Model_Load(const char* path) {
                 }
             }
 
-            newMesh->vertexCount = (unsigned int)vertexCount;
+            newMesh->vertexCount = (Uint)vertexCount;
             if (!positions) {
                 free(positions);
                 free(normals);
@@ -325,9 +325,9 @@ LoadedModel* Model_Load(const char* path) {
                 continue;
             }
 
-            if (!normals) normals = static_cast<float*>(calloc(vertexCount * 3, sizeof(float)));
-            if (!texcoords) texcoords = static_cast<float*>(calloc(vertexCount * 2, sizeof(float)));
-            if (!tangents) tangents = static_cast<float*>(calloc(vertexCount * 4, sizeof(float)));
+            if (!normals) normals = static_cast<Float*>(calloc(vertexCount * 3, sizeof(Float)));
+            if (!texcoords) texcoords = static_cast<Float*>(calloc(vertexCount * 2, sizeof(Float)));
+            if (!tangents) tangents = static_cast<Float*>(calloc(vertexCount * 4, sizeof(Float)));
 
             SkinningVertexData* skinning_data = nullptr;
             if (joints_accessor && weights_accessor) {
@@ -335,23 +335,23 @@ LoadedModel* Model_Load(const char* path) {
                 for (cgltf_size v = 0; v < vertexCount; v++) {
                     cgltf_uint joint_indices_u16[4] = { 0 };
                     cgltf_accessor_read_uint(joints_accessor, v, joint_indices_u16, 4);
-                    skinning_data[v].bone_indices[0] = (int)joint_indices_u16[0];
-                    skinning_data[v].bone_indices[1] = (int)joint_indices_u16[1];
-                    skinning_data[v].bone_indices[2] = (int)joint_indices_u16[2];
-                    skinning_data[v].bone_indices[3] = (int)joint_indices_u16[3];
+                    skinning_data[v].bone_indices[0] = (Int)joint_indices_u16[0];
+                    skinning_data[v].bone_indices[1] = (Int)joint_indices_u16[1];
+                    skinning_data[v].bone_indices[2] = (Int)joint_indices_u16[2];
+                    skinning_data[v].bone_indices[3] = (Int)joint_indices_u16[3];
                     cgltf_accessor_read_float(weights_accessor, v, skinning_data[v].bone_weights, 4);
                 }
             }
 
-            newMesh->final_vbo_data_size = vertexCount * MODEL_VERTEX_STRIDE_FLOATS * sizeof(float);
-            newMesh->final_vbo_data = static_cast<float*>(malloc(newMesh->final_vbo_data_size));
+            newMesh->final_vbo_data_size = vertexCount * MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float);
+            newMesh->final_vbo_data = static_cast<Float*>(malloc(newMesh->final_vbo_data_size));
 
             for (cgltf_size v = 0; v < vertexCount; v++) {
-                int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
-                memcpy(&newMesh->final_vbo_data[base_idx + 0], &positions[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[base_idx + 3], &normals[v * 3], 3 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[base_idx + 6], &texcoords[v * 2], 2 * sizeof(float));
-                memcpy(&newMesh->final_vbo_data[base_idx + 8], &tangents[v * 4], 4 * sizeof(float));
+                Int base_idx = v * MODEL_VERTEX_STRIDE_FLOATS;
+                memcpy(&newMesh->final_vbo_data[base_idx + 0], &positions[v * 3], 3 * sizeof(Float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 3], &normals[v * 3], 3 * sizeof(Float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 6], &texcoords[v * 2], 2 * sizeof(Float));
+                memcpy(&newMesh->final_vbo_data[base_idx + 8], &tangents[v * 4], 4 * sizeof(Float));
 
                 newMesh->final_vbo_data[base_idx + 12] = 1.0f;
                 newMesh->final_vbo_data[base_idx + 13] = 1.0f;
@@ -363,7 +363,7 @@ LoadedModel* Model_Load(const char* path) {
                 newMesh->final_vbo_data[base_idx + 18] = 0.0f;
                 newMesh->final_vbo_data[base_idx + 19] = 0.0f;
 
-                memset(&newMesh->final_vbo_data[base_idx + 20], 0, 4 * sizeof(float));
+                memset(&newMesh->final_vbo_data[base_idx + 20], 0, 4 * sizeof(Float));
             }
             free(positions);
             free(normals);
@@ -371,16 +371,16 @@ LoadedModel* Model_Load(const char* path) {
             free(tangents);
 
             if (primitive->indices) {
-                newMesh->indexCount = (int)primitive->indices->count;
-                newMesh->indexData = static_cast<unsigned int*>(malloc(newMesh->indexCount * sizeof(unsigned int)));
-                cgltf_accessor_unpack_indices(primitive->indices, newMesh->indexData, sizeof(unsigned int), newMesh->indexCount);
+                newMesh->indexCount = (Int)primitive->indices->count;
+                newMesh->indexData = static_cast<Uint*>(malloc(newMesh->indexCount * sizeof(Uint)));
+                cgltf_accessor_unpack_indices(primitive->indices, newMesh->indexData, sizeof(Uint), newMesh->indexCount);
                 newMesh->useEBO = true;
             }
             else {
-                newMesh->indexCount = (int)vertexCount;
+                newMesh->indexCount = (Int)vertexCount;
                 newMesh->useEBO = false;
-                newMesh->indexData = static_cast<unsigned int*>(malloc(vertexCount * sizeof(unsigned int)));
-                for (unsigned int v = 0; v < vertexCount; v++) {
+                newMesh->indexData = static_cast<Uint*>(malloc(vertexCount * sizeof(Uint)));
+                for (Uint v = 0; v < vertexCount; v++) {
                     newMesh->indexData[v] = v;
                 }
             }
@@ -408,26 +408,26 @@ LoadedModel* Model_Load(const char* path) {
 
             if (newMesh->useEBO) {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newMesh->EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indexCount * sizeof(unsigned int), newMesh->indexData, GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indexCount * sizeof(Uint), newMesh->indexData, GL_STATIC_DRAW);
             }
 
             size_t offset = 0;
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(0);
-            offset += 3 * sizeof(float);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            offset += 3 * sizeof(Float);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(1);
-            offset += 3 * sizeof(float);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            offset += 3 * sizeof(Float);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(2);
-            offset += 2 * sizeof(float);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            offset += 2 * sizeof(Float);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(3);
-            offset += 4 * sizeof(float);
-            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            offset += 4 * sizeof(Float);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(4);
-            offset += 4 * sizeof(float);
-            glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)offset);
+            offset += 4 * sizeof(Float);
+            glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(9);
             if (skinning_data) {
                 glBindBuffer(GL_ARRAY_BUFFER, newMesh->skinningVBO);
@@ -437,7 +437,7 @@ LoadedModel* Model_Load(const char* path) {
                 glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(SkinningVertexData), (void*)offsetof(SkinningVertexData, bone_weights));
                 free(skinning_data);
             }
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(float), (void*)(22 * sizeof(float)));
+            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)(22 * sizeof(Float)));
             glEnableVertexAttribArray(8);
 
             currentMeshIndex++;
@@ -455,8 +455,8 @@ void Model_Free(LoadedModel* model) {
     if (model == g_ErrorModel && g_ErrorModel != nullptr) return;
 
     if (model->animations) {
-        for (int i = 0; i < model->num_animations; ++i) {
-            for (int j = 0; j < model->animations[i].num_channels; ++j) {
+        for (Int i = 0; i < model->num_animations; ++i) {
+            for (Int j = 0; j < model->animations[i].num_channels; ++j) {
                 if (model->animations[i].channels[j].sampler.timestamps) free(model->animations[i].channels[j].sampler.timestamps);
                 if (model->animations[i].channels[j].sampler.translations) free(model->animations[i].channels[j].sampler.translations);
                 if (model->animations[i].channels[j].sampler.rotations) free(model->animations[i].channels[j].sampler.rotations);
@@ -467,20 +467,20 @@ void Model_Free(LoadedModel* model) {
         free(model->animations);
     }
     if (model->skins) {
-        for (int i = 0; i < model->num_skins; ++i) {
+        for (Int i = 0; i < model->num_skins; ++i) {
             free(model->skins[i].joints);
         }
         free(model->skins);
     }
-    for (int i = 0; i < model->meshCount; ++i) {
+    for (Int i = 0; i < model->meshCount; ++i) {
         glDeleteVertexArrays(1, &model->meshes[i].VAO);
         glDeleteBuffers(1, &model->meshes[i].VBO);
         if (model->meshes[i].skinningVBO) {
             glDeleteBuffers(1, &model->meshes[i].skinningVBO);
         }
         if (model->meshes[i].material && model->meshes[i].material != &g_MissingMaterial && model->meshes[i].material != &g_NodrawMaterial) {
-            bool is_from_manager = false;
-            for (int m = 0; m < TextureManager_GetMaterialCount(); ++m) {
+            Bool is_from_manager = false;
+            for (Int m = 0; m < TextureManager_GetMaterialCount(); ++m) {
                 if (TextureManager_GetMaterial(m) == model->meshes[i].material) {
                     is_from_manager = true;
                     break;
@@ -503,11 +503,11 @@ void Model_Free(LoadedModel* model) {
     free(model);
 }
 
-bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
+Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path) {
     FILE* f = fopen(lmuv_path, "rb");
     if (!f) return false;
 
-    char magic[4];
+    Char magic[4];
     if (fread(magic, 1, 4, f) != 4 || strncmp(magic, "LMUV", 4) != 0) {
         fclose(f); return false;
     }
@@ -529,19 +529,19 @@ bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
         fread(new_indices, sizeof(uint32_t), num_new_indices, f);
 
         size_t stride_floats = 24;
-        size_t stride_bytes = stride_floats * sizeof(float);
-        float* new_vbo_data = static_cast<float*>(malloc(num_new_verts * stride_bytes));
+        size_t stride_bytes = stride_floats * sizeof(Float);
+        Float* new_vbo_data = static_cast<Float*>(malloc(num_new_verts * stride_bytes));
 
         for (uint32_t v = 0; v < num_new_verts; ++v) {
             uint32_t original_index = 0;
-            float lu = 0.0f, lv = 0.0f;
+            Float lu = 0.0f, lv = 0.0f;
             fread(&original_index, sizeof(uint32_t), 1, f);
-            fread(&lu, sizeof(float), 1, f);
-            fread(&lv, sizeof(float), 1, f);
+            fread(&lu, sizeof(Float), 1, f);
+            fread(&lv, sizeof(Float), 1, f);
 
-            float* dst = &new_vbo_data[v * stride_floats];
+            Float* dst = &new_vbo_data[v * stride_floats];
             if (original_index < mesh->vertexCount) {
-                float* src = &mesh->final_vbo_data[original_index * stride_floats];
+                Float* src = &mesh->final_vbo_data[original_index * stride_floats];
                 memcpy(dst, src, stride_bytes);
             }
             else {
@@ -569,7 +569,7 @@ bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path) {
 
         if (mesh->EBO == 0) glGenBuffers(1, &mesh->EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indexCount * sizeof(unsigned int), mesh->indexData, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indexCount * sizeof(Uint), mesh->indexData, GL_STATIC_DRAW);
 
         glBindVertexArray(0);
     }

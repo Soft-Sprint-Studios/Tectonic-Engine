@@ -28,7 +28,7 @@
 #include "map.h"
 
 
-    static float parallaxRoomVertices[] = {
+    static Float parallaxRoomVertices[] = {
         -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f,
         -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
          0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f, 0.0f,
@@ -43,8 +43,8 @@
     void Light_InitShadowMap(Light* light);
     void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition);
     void Light_DestroyShadowMap(Light* light);
-    void MiscRender_SaveScreenshot(Engine* engine, const char* filepath);
-    void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, int resolution);
+    void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath);
+    void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, Int resolution);
 
 
 #endif // GL_RENDER_MISC_H

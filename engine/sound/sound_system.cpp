@@ -36,13 +36,13 @@
 typedef struct {
     ALuint bufferID;
     void* pcmData;
-    unsigned int dataSize;
+    Uint dataSize;
     ALenum format;
     ALsizei freq;
 } BufferData;
 
 static BufferData g_buffers[MAX_BUFFERS];
-static int g_buffer_count = 0;
+static Int g_buffer_count = 0;
 
 static ALCdevice* g_sound_device = nullptr;
 static ALCcontext* g_sound_context = nullptr;
@@ -55,7 +55,7 @@ typedef struct {
 } WetBufferCacheEntry;
 
 static WetBufferCacheEntry g_wet_buffer_cache[MAX_WET_CACHE_ENTRIES];
-static int g_wet_cache_count = 0;
+static Int g_wet_cache_count = 0;
 
 typedef struct {
     ALuint drySourceID;
@@ -63,9 +63,9 @@ typedef struct {
 } PlayingSourceLink;
 
 static PlayingSourceLink g_playing_source_links[MAX_PLAYING_SOUNDS];
-static int g_playing_link_count = 0;
+static Int g_playing_link_count = 0;
 
-bool SoundSystem_Init() {
+Bool SoundSystem_Init() {
     g_sound_device = alcOpenDevice(nullptr);
     if (!g_sound_device) return false;
 
@@ -87,7 +87,7 @@ bool SoundSystem_Init() {
 }
 
 void SoundSystem_Shutdown() {
-    for (int i = 0; i < g_buffer_count; i++) {
+    for (Int i = 0; i < g_buffer_count; i++) {
         free(g_buffers[i].pcmData);
         alDeleteBuffers(1, &g_buffers[i].bufferID);
     }
@@ -108,7 +108,7 @@ void SoundSystem_Shutdown() {
 
 void SoundSystem_UpdateListener(Vec3 position, Vec3 forward, Vec3 up) {
     alListener3f(AL_POSITION, position.x, position.y, position.z);
-    float orientation[] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
+    Float orientation[] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
     alListenerfv(AL_ORIENTATION, orientation);
 }
 
@@ -119,18 +119,18 @@ void SoundSystem_SetCurrentReverb(ReverbPreset preset) {
 }
 
 static BufferData* find_buffer_data(ALuint bufferID) {
-    for (int i = 0; i < g_buffer_count; i++) {
+    for (Int i = 0; i < g_buffer_count; i++) {
         if (g_buffers[i].bufferID == bufferID) return &g_buffers[i];
     }
     return nullptr;
 }
 
-static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPreset preset) {
+static Uint get_or_create_wet_buffer(Uint dryBufferID, ReverbPreset preset) {
     if (preset == REVERB_PRESET_NONE) {
         return 0;
     }
 
-    for (int i = 0; i < g_wet_cache_count; ++i) {
+    for (Int i = 0; i < g_wet_cache_count; ++i) {
         if (g_wet_buffer_cache[i].dryBufferID == dryBufferID && g_wet_buffer_cache[i].preset == preset) {
             return g_wet_buffer_cache[i].wetBufferID;
         }
@@ -145,17 +145,17 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
         return 0;
     }
 
-    int num_samples = dryBuffer->dataSize / sizeof(short);
+    Int num_samples = dryBuffer->dataSize / sizeof(Short);
     ReverbSettings settings = DSP_Reverb_GetSettingsForPreset(preset);
 
-    ProcessedAudio wet_audio = DSP_Reverb_Process((short*)dryBuffer->pcmData, num_samples, dryBuffer->freq, &settings, true);
+    ProcessedAudio wet_audio = DSP_Reverb_Process((Short*)dryBuffer->pcmData, num_samples, dryBuffer->freq, &settings, true);
     if (!wet_audio.data) {
         return 0;
     }
 
     ALuint wetBufferID;
     alGenBuffers(1, &wetBufferID);
-    alBufferData(wetBufferID, AL_FORMAT_MONO16, wet_audio.data, wet_audio.num_samples * sizeof(short), dryBuffer->freq);
+    alBufferData(wetBufferID, AL_FORMAT_MONO16, wet_audio.data, wet_audio.num_samples * sizeof(Short), dryBuffer->freq);
     free(wet_audio.data);
 
     if (alGetError() != AL_NO_ERROR) {
@@ -173,7 +173,7 @@ static unsigned int get_or_create_wet_buffer(unsigned int dryBufferID, ReverbPre
     return wetBufferID;
 }
 
-static unsigned int internal_LoadMP3(const char* path) {
+static Uint internal_LoadMP3(const Char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
         Console_Printf_Error("Could not open MP3 file %s\n", path);
@@ -181,10 +181,10 @@ static unsigned int internal_LoadMP3(const char* path) {
     }
 
     fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
+    Long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    unsigned char* file_buffer = (unsigned char*)malloc(file_size);
+    Uchar* file_buffer = (Uchar*)malloc(file_size);
     if (!file_buffer) {
         fclose(file);
         return 0;
@@ -196,24 +196,24 @@ static unsigned int internal_LoadMP3(const char* path) {
     mp3dec_init(&mp3d);
 
     mp3dec_frame_info_t info;
-    short* pcm_buffer = nullptr;
+    Short* pcm_buffer = nullptr;
     size_t pcm_size = 0;
     size_t pcm_capacity = 65536;
-    pcm_buffer = (short*)malloc(pcm_capacity * sizeof(short));
+    pcm_buffer = (Short*)malloc(pcm_capacity * sizeof(Short));
 
     if (!pcm_buffer) {
         free(file_buffer);
         return 0;
     }
 
-    int samples;
-    unsigned char* buf_ptr = file_buffer;
-    int bytes_left = file_size;
+    Int samples;
+    Uchar* buf_ptr = file_buffer;
+    Int bytes_left = file_size;
 
     while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, nullptr, &info)) > 0) {
         if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
             pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
-            short* new_pcm_buffer = (short*)realloc(pcm_buffer, pcm_capacity * sizeof(short));
+            Short* new_pcm_buffer = (Short*)realloc(pcm_buffer, pcm_capacity * sizeof(Short));
             if (!new_pcm_buffer) {
                 free(pcm_buffer);
                 free(file_buffer);
@@ -236,23 +236,23 @@ static unsigned int internal_LoadMP3(const char* path) {
         return 0;
     }
 
-    short* final_pcm_buffer = pcm_buffer;
-    size_t final_pcm_size_bytes = pcm_size * sizeof(short);
+    Short* final_pcm_buffer = pcm_buffer;
+    size_t final_pcm_size_bytes = pcm_size * sizeof(Short);
     ALenum format = (info.channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 
     if (info.channels == 2) {
         size_t mono_samples = pcm_size / 2;
-        short* mono_buffer = (short*)malloc(mono_samples * sizeof(short));
+        Short* mono_buffer = (Short*)malloc(mono_samples * sizeof(Short));
         if (!mono_buffer) {
             free(pcm_buffer);
             return 0;
         }
         for (size_t i = 0; i < mono_samples; i++) {
-            mono_buffer[i] = (short)(((int)pcm_buffer[i * 2] + (int)pcm_buffer[i * 2 + 1]) / 2);
+            mono_buffer[i] = (Short)(((Int)pcm_buffer[i * 2] + (Int)pcm_buffer[i * 2 + 1]) / 2);
         }
         free(pcm_buffer);
         final_pcm_buffer = mono_buffer;
-        final_pcm_size_bytes = mono_samples * sizeof(short);
+        final_pcm_size_bytes = mono_samples * sizeof(Short);
         format = AL_FORMAT_MONO16;
     }
 
@@ -283,12 +283,12 @@ static unsigned int internal_LoadMP3(const char* path) {
     return bufferID;
 }
 
-static unsigned int internal_LoadWAV(const char* path) {
+static Uint internal_LoadWAV(const Char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) return 0;
 
-    char chunkId[4];
-    unsigned int chunkSize;
+    Char chunkId[4];
+    Uint chunkSize;
 
     fread(chunkId, 1, 4, file);
     fread(&chunkSize, 4, 1, file);
@@ -298,10 +298,10 @@ static unsigned int internal_LoadWAV(const char* path) {
         return 0;
     }
 
-    bool foundFmt = false;
-    bool foundData = false;
-    unsigned short audioFormat = 0, numChannels = 0, bitsPerSample = 0;
-    unsigned int sampleRate = 0, dataSize = 0;
+    Bool foundFmt = false;
+    Bool foundData = false;
+    Ushort audioFormat = 0, numChannels = 0, bitsPerSample = 0;
+    Uint sampleRate = 0, dataSize = 0;
     void* data = nullptr;
 
     while (!feof(file)) {
@@ -372,8 +372,8 @@ static unsigned int internal_LoadWAV(const char* path) {
     return bufferID;
 }
 
-unsigned int SoundSystem_LoadSound(const char* path) {
-    const char* ext = strrchr(path, '.');
+Uint SoundSystem_LoadSound(const Char* path) {
+    const Char* ext = strrchr(path, '.');
     if (!ext) {
         Console_Printf_Error("Could not determine file type for %s\n", path);
         return 0;
@@ -391,7 +391,7 @@ unsigned int SoundSystem_LoadSound(const char* path) {
 }
 
 static ALuint find_wet_source(ALuint drySourceID) {
-    for (int i = 0; i < g_playing_link_count; ++i) {
+    for (Int i = 0; i < g_playing_link_count; ++i) {
         if (g_playing_source_links[i].drySourceID == drySourceID) {
             return g_playing_source_links[i].wetSourceID;
         }
@@ -400,8 +400,8 @@ static ALuint find_wet_source(ALuint drySourceID) {
 }
 
 static void remove_link(ALuint drySourceID) {
-    int found_index = -1;
-    for (int i = 0; i < g_playing_link_count; ++i) {
+    Int found_index = -1;
+    for (Int i = 0; i < g_playing_link_count; ++i) {
         if (g_playing_source_links[i].drySourceID == drySourceID) {
             found_index = i;
             break;
@@ -415,11 +415,11 @@ static void remove_link(ALuint drySourceID) {
     }
 }
 
-unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float volume, float pitch, float maxDistance, bool looping) {
+Uint SoundSystem_PlaySound(Uint bufferID, Vec3 position, Float volume, Float pitch, Float maxDistance, Bool looping) {
     if (bufferID == 0) return 0;
 
     ReverbSettings settings = DSP_Reverb_GetSettingsForPreset(g_current_reverb_preset);
-    unsigned int wetBufferID = get_or_create_wet_buffer(bufferID, g_current_reverb_preset);
+    Uint wetBufferID = get_or_create_wet_buffer(bufferID, g_current_reverb_preset);
 
     PlayingSound p_sound = { 0, 0 };
     alGenSources(1, &p_sound.drySourceID);
@@ -458,7 +458,7 @@ unsigned int SoundSystem_PlaySound(unsigned int bufferID, Vec3 position, float v
     return p_sound.drySourceID;
 }
 
-void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop) {
+void SoundSystem_SetSourceLooping(Uint sourceID, Bool loop) {
     if (sourceID == 0) return;
     alSourcei(sourceID, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
     ALuint wetSourceID = find_wet_source(sourceID);
@@ -467,7 +467,7 @@ void SoundSystem_SetSourceLooping(unsigned int sourceID, bool loop) {
     }
 }
 
-void SoundSystem_SetSourceIsGlobal(unsigned int sourceID, bool is_global) {
+void SoundSystem_SetSourceIsGlobal(Uint sourceID, Bool is_global) {
     if (sourceID == 0) return;
 
     alSourcei(sourceID, AL_SOURCE_RELATIVE, is_global ? AL_TRUE : AL_FALSE);
@@ -485,13 +485,13 @@ void SoundSystem_SetSourceIsGlobal(unsigned int sourceID, bool is_global) {
     }
 }
 
-void SoundSystem_SetMasterVolume(float volume) {
+void SoundSystem_SetMasterVolume(Float volume) {
     if (volume < 0.0f) volume = 0.0f;
     if (volume > 4.0f) volume = 4.0f;
     alListenerf(AL_GAIN, volume);
 }
 
-void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float pitch, float maxDistance) {
+void SoundSystem_SetSourceProperties(Uint sourceID, Float volume, Float pitch, Float maxDistance) {
     if (sourceID == 0) return;
     ReverbSettings settings = DSP_Reverb_GetSettingsForPreset(g_current_reverb_preset);
     alSourcef(sourceID, AL_GAIN, volume * settings.dryLevel);
@@ -505,7 +505,7 @@ void SoundSystem_SetSourceProperties(unsigned int sourceID, float volume, float 
     }
 }
 
-void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position) {
+void SoundSystem_SetSourcePosition(Uint sourceID, Vec3 position) {
     if (sourceID == 0) return;
     alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);
     ALuint wetSourceID = find_wet_source(sourceID);
@@ -514,7 +514,7 @@ void SoundSystem_SetSourcePosition(unsigned int sourceID, Vec3 position) {
     }
 }
 
-void SoundSystem_DeleteSource(unsigned int sourceID) {
+void SoundSystem_DeleteSource(Uint sourceID) {
     if (sourceID == 0) return;
     ALuint wetSourceID = find_wet_source(sourceID);
     if (wetSourceID != 0) {
@@ -524,10 +524,10 @@ void SoundSystem_DeleteSource(unsigned int sourceID) {
     alDeleteSources(1, &sourceID);
 }
 
-void SoundSystem_DeleteBuffer(unsigned int bufferID) {
+void SoundSystem_DeleteBuffer(Uint bufferID) {
     if (bufferID == 0) return;
 
-    for (int i = g_wet_cache_count - 1; i >= 0; i--) {
+    for (Int i = g_wet_cache_count - 1; i >= 0; i--) {
         if (g_wet_buffer_cache[i].dryBufferID == bufferID) {
             alDeleteBuffers(1, &g_wet_buffer_cache[i].wetBufferID);
             g_wet_buffer_cache[i] = g_wet_buffer_cache[g_wet_cache_count - 1];
@@ -540,7 +540,7 @@ void SoundSystem_DeleteBuffer(unsigned int bufferID) {
         free(buf->pcmData);
         alDeleteBuffers(1, &bufferID);
 
-        int index = buf - g_buffers;
+        Int index = buf - g_buffers;
         if (index != g_buffer_count - 1) {
             g_buffers[index] = g_buffers[g_buffer_count - 1];
         }
@@ -553,8 +553,8 @@ void SoundSystem_Update(void) {
         return;
     }
 
-    int write_idx = 0;
-    for (int read_idx = 0; read_idx < g_playing_link_count; ++read_idx) {
+    Int write_idx = 0;
+    for (Int read_idx = 0; read_idx < g_playing_link_count; ++read_idx) {
         ALint state;
         alGetSourcei(g_playing_source_links[read_idx].drySourceID, AL_SOURCE_STATE, &state);
 

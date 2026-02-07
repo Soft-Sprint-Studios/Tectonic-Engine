@@ -30,7 +30,7 @@
 class CvarManager {
 private:
     static Cvar cvar_list[MAX_CVARS];
-    static int num_cvars;
+    static Int num_cvars;
 
     static void UpdateValues(Cvar* c) {
         c->floatValue = atof(c->stringValue);
@@ -43,17 +43,17 @@ public:
         num_cvars = 0;
     }
 
-    static void Load(const char* filename) {
+    static void Load(const Char* filename) {
         FILE* file = fopen(filename, "r");
         if (!file) {
             Console_Printf("No %s found. Using default cvar values.", filename);
             return;
         }
 
-        char line[256];
-        char name[64];
-        char value[128];
-        int loaded_count = 0;
+        Char line[256];
+        Char name[64];
+        Char value[128];
+        Int loaded_count = 0;
 
         while (fgets(line, sizeof(line), file)) {
             if (sscanf(line, "set \"%63[^\"]\" \"%127[^\"]\"", name, value) == 2) {
@@ -64,15 +64,15 @@ public:
         fclose(file);
     }
 
-    static void Save(const char* filename) {
+    static void Save(const Char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
             Console_Printf_Error("Could not save cvars to %s", filename);
             return;
         }
 
-        int saved_count = 0;
-        for (int i = 0; i < num_cvars; i++) {
+        Int saved_count = 0;
+        for (Int i = 0; i < num_cvars; i++) {
             if (!(cvar_list[i].flags & CVAR_HIDDEN)) {
                 fprintf(file, "set \"%s\" \"%s\"\n", cvar_list[i].name, cvar_list[i].stringValue);
                 saved_count++;
@@ -82,7 +82,7 @@ public:
         Console_Printf("Saved %d cvars to %s", saved_count, filename);
     }
 
-    static Cvar* Register(const char* name, const char* defaultValue, const char* helpText, int flags) {
+    static Cvar* Register(const Char* name, const Char* defaultValue, const Char* helpText, Int flags) {
         Cvar* c = Find(name);
         if (c) {
             strcpy(c->helpText, helpText);
@@ -106,8 +106,8 @@ public:
         return c;
     }
 
-    static Cvar* Find(const char* name) {
-        for (int i = 0; i < num_cvars; ++i) {
+    static Cvar* Find(const Char* name) {
+        for (Int i = 0; i < num_cvars; ++i) {
             if (_stricmp(cvar_list[i].name, name) == 0) {
                 return &cvar_list[i];
             }
@@ -115,7 +115,7 @@ public:
         return nullptr;
     }
 
-    static void Set(const char* name, const char* value) {
+    static void Set(const Char* name, const Char* value) {
         Cvar* c = Find(name);
         if (c) {
             if ((c->flags & CVAR_CHEAT) && GetInt("g_cheats") == 0) {
@@ -132,7 +132,7 @@ public:
         }
     }
 
-    static void EngineSet(const char* name, const char* value) {
+    static void EngineSet(const Char* name, const Char* value) {
         Cvar* c = Find(name);
         if (c) {
             strncpy(c->stringValue, value, MAX_COMMAND_LENGTH - 1);
@@ -144,26 +144,26 @@ public:
         }
     }
 
-    static float GetFloat(const char* name) {
+    static Float GetFloat(const Char* name) {
         Cvar* c = Find(name);
         return c ? c->floatValue : 0.0f;
     }
 
-    static int GetInt(const char* name) {
+    static Int GetInt(const Char* name) {
         Cvar* c = Find(name);
         return c ? c->intValue : 0;
     }
 
-    static const char* GetString(const char* name) {
+    static const Char* GetString(const Char* name) {
         Cvar* c = Find(name);
         return c ? c->stringValue : "";
     }
 
-    static int GetCount() {
+    static Int GetCount() {
         return num_cvars;
     }
 
-    static const Cvar* GetCvar(int index) {
+    static const Cvar* GetCvar(Int index) {
         if (index >= 0 && index < num_cvars) {
             return &cvar_list[index];
         }
@@ -172,52 +172,52 @@ public:
 };
 
 Cvar CvarManager::cvar_list[MAX_CVARS] = {};
-int CvarManager::num_cvars = 0;
+Int CvarManager::num_cvars = 0;
 
 void Cvar_Init() {
     CvarManager::Init();
 }
 
-void Cvar_Load(const char* filename) {
+void Cvar_Load(const Char* filename) {
     CvarManager::Load(filename);
 }
 
-void Cvar_Save(const char* filename) {
+void Cvar_Save(const Char* filename) {
     CvarManager::Save(filename);
 }
 
-Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText, int flags) {
+Cvar* Cvar_Register(const Char* name, const Char* defaultValue, const Char* helpText, Int flags) {
     return CvarManager::Register(name, defaultValue, helpText, flags);
 }
 
-Cvar* Cvar_Find(const char* name) {
+Cvar* Cvar_Find(const Char* name) {
     return CvarManager::Find(name);
 }
 
-void Cvar_Set(const char* name, const char* value) {
+void Cvar_Set(const Char* name, const Char* value) {
     CvarManager::Set(name, value);
 }
 
-void Cvar_EngineSet(const char* name, const char* value) {
+void Cvar_EngineSet(const Char* name, const Char* value) {
     CvarManager::EngineSet(name, value);
 }
 
-float Cvar_GetFloat(const char* name) {
+Float Cvar_GetFloat(const Char* name) {
     return CvarManager::GetFloat(name);
 }
 
-int Cvar_GetInt(const char* name) {
+Int Cvar_GetInt(const Char* name) {
     return CvarManager::GetInt(name);
 }
 
-const char* Cvar_GetString(const char* name) {
+const Char* Cvar_GetString(const Char* name) {
     return CvarManager::GetString(name);
 }
 
-int Cvar_GetCount() {
+Int Cvar_GetCount() {
     return CvarManager::GetCount();
 }
 
-const Cvar* Cvar_GetCvar(int index) {
+const Cvar* Cvar_GetCvar(Int index) {
     return CvarManager::GetCvar(index);
 }

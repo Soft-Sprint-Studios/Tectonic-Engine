@@ -26,12 +26,12 @@
 #include "gl_renderer.h"
 
 void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
-    bool should_render_volumetrics = false;
+    Bool should_render_volumetrics = false;
     if (scene->sun.enabled && scene->sun.volumetricIntensity > 0.001f) {
         should_render_volumetrics = true;
     }
     if (!should_render_volumetrics) {
-        for (int i = 0; i < scene->numActiveLights; ++i) {
+        for (Int i = 0; i < scene->numActiveLights; ++i) {
             if (scene->lights[i].intensity > 0.001f && scene->lights[i].volumetricIntensity > 0.001f) {
                 should_render_volumetrics = true;
                 break;
@@ -62,8 +62,8 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "projection"), 1, GL_FALSE, projection->m);
     glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "view"), 1, GL_FALSE, view->m);
 
-    int num_dynamic_lights = 0;
-    for (int i = 0; i < scene->numActiveLights; ++i) {
+    Int num_dynamic_lights = 0;
+    for (Int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         if (light->is_static != 1 && light->intensity > 0.001f) {
             num_dynamic_lights++;
@@ -90,10 +90,10 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glBindVertexArray(renderer->quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    bool horizontal = true, first_iteration = true;
-    unsigned int amount = 4;
+    Bool horizontal = true, first_iteration = true;
+    Uint amount = 4;
     glUseProgram(renderer->volumetricBlurShader);
-    for (unsigned int i = 0; i < amount; i++) {
+    for (Uint i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[horizontal]);
         glUniform1i(glGetUniformLocation(renderer->volumetricBlurShader, "horizontal"), horizontal);
         glActiveTexture(GL_TEXTURE0);

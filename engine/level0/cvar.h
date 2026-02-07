@@ -41,30 +41,30 @@
 #define CVAR_CHEAT  (1 << 1)
 
     typedef struct {
-        char name[64];
-        char stringValue[MAX_COMMAND_LENGTH];
-        char defaultValue[MAX_COMMAND_LENGTH];
-        float floatValue;
-        int intValue;
-        char helpText[128];
-        int flags;
+        Char name[64];
+        Char stringValue[MAX_COMMAND_LENGTH];
+        Char defaultValue[MAX_COMMAND_LENGTH];
+        Float floatValue;
+        Int intValue;
+        Char helpText[128];
+        Int flags;
     } Cvar;
 
     extern Cvar cvar_list[MAX_CVARS];
-    extern int num_cvars;
+    extern Int num_cvars;
 
     LEVEL0_API void Cvar_Init();
-    LEVEL0_API void Cvar_Load(const char* filename);
-    LEVEL0_API void Cvar_Save(const char* filename);
-    LEVEL0_API Cvar* Cvar_Register(const char* name, const char* defaultValue, const char* helpText, int flags);
-    LEVEL0_API Cvar* Cvar_Find(const char* name);
-    LEVEL0_API void Cvar_Set(const char* name, const char* value);
-    LEVEL0_API void Cvar_EngineSet(const char* name, const char* value);
-    LEVEL0_API float Cvar_GetFloat(const char* name);
-    LEVEL0_API int Cvar_GetInt(const char* name);
-    LEVEL0_API const char* Cvar_GetString(const char* name);
-    LEVEL0_API int Cvar_GetCount();
-    LEVEL0_API const Cvar* Cvar_GetCvar(int index);
+    LEVEL0_API void Cvar_Load(const Char* filename);
+    LEVEL0_API void Cvar_Save(const Char* filename);
+    LEVEL0_API Cvar* Cvar_Register(const Char* name, const Char* defaultValue, const Char* helpText, Int flags);
+    LEVEL0_API Cvar* Cvar_Find(const Char* name);
+    LEVEL0_API void Cvar_Set(const Char* name, const Char* value);
+    LEVEL0_API void Cvar_EngineSet(const Char* name, const Char* value);
+    LEVEL0_API Float Cvar_GetFloat(const Char* name);
+    LEVEL0_API Int Cvar_GetInt(const Char* name);
+    LEVEL0_API const Char* Cvar_GetString(const Char* name);
+    LEVEL0_API Int Cvar_GetCount();
+    LEVEL0_API const Cvar* Cvar_GetCvar(Int index);
 
 
 #endif // CVAR_H

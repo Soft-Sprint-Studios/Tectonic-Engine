@@ -40,16 +40,16 @@
 	void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer);
 	void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene);
 
-	void Editor_DuplicateModel(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateBrush(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateLight(Scene* scene, int index);
-	void Editor_DuplicateDecal(Scene* scene, int index);
-	void Editor_DuplicateSoundEntity(Scene* scene, int index);
-	void Editor_DuplicateParticleEmitter(Scene* scene, int index);
-	void Editor_DuplicateVideoPlayer(Scene* scene, int index);
-	void Editor_DuplicateParallaxRoom(Scene* scene, int index);
-	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, int index);
-	void Editor_DuplicateSprite(Scene* scene, int index);
+	void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index);
+	void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index);
+	void Editor_DuplicateLight(Scene* scene, Int index);
+	void Editor_DuplicateDecal(Scene* scene, Int index);
+	void Editor_DuplicateSoundEntity(Scene* scene, Int index);
+	void Editor_DuplicateParticleEmitter(Scene* scene, Int index);
+	void Editor_DuplicateVideoPlayer(Scene* scene, Int index);
+	void Editor_DuplicateParallaxRoom(Scene* scene, Int index);
+	void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, Int index);
+	void Editor_DuplicateSprite(Scene* scene, Int index);
 
 
 #endif // EDITOR_H

@@ -27,7 +27,7 @@
 
 #include "physics_wrapper.h"
 
-static bool g_physics_deactivation_enabled = true;
+static Bool g_physics_deactivation_enabled = true;
 
 struct PhysicsWorld {
     btDiscreteDynamicsWorld* dynamicsWorld;
@@ -43,7 +43,7 @@ struct RigidBody {
     btRigidBody* body;
 };
 
-    PhysicsWorldHandle Physics_CreateWorld(float gravity_y) {
+    PhysicsWorldHandle Physics_CreateWorld(Float gravity_y) {
         PhysicsWorld* world = new PhysicsWorld();
         world->collisionConfiguration = new btDefaultCollisionConfiguration();
         world->dispatcher = new btCollisionDispatcher(world->collisionConfiguration);
@@ -58,7 +58,7 @@ struct RigidBody {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        for (int i = world->dynamicsWorld->getNumCollisionObjects() - 1; i >= 0; i--) {
+        for (Int i = world->dynamicsWorld->getNumCollisionObjects() - 1; i >= 0; i--) {
             btCollisionObject* obj = world->dynamicsWorld->getCollisionObjectArray()[i];
             btRigidBody* body = btRigidBody::upcast(obj);
             if (body && body->getMotionState()) {
@@ -86,17 +86,17 @@ struct RigidBody {
         delete world;
     }
 
-    void Physics_StepSimulation(PhysicsWorldHandle handle, float deltaTime) {
+    void Physics_StepSimulation(PhysicsWorldHandle handle, Float deltaTime) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         world->dynamicsWorld->stepSimulation(deltaTime, 10, 1.0f / 60.0f);
     }
 
-    RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle handle, float radius, float totalHeight, float mass, Vec3 startPos) {
+    RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle handle, Float radius, Float totalHeight, Float mass, Vec3 startPos) {
         if (!handle) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        float cylinderHeight = totalHeight - (2.0f * radius);
+        Float cylinderHeight = totalHeight - (2.0f * radius);
         if (cylinderHeight < 0) {
             cylinderHeight = 0;
         }
@@ -132,11 +132,11 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle handle, const float* points, int numPoints, float mass, Mat4 transform) {
+    RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints, Float mass, Mat4 transform) {
         if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(float));
+        btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(Float));
         world->collisionShapes.push_back(hullShape);
 
         btTransform startTransform;
@@ -164,7 +164,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, int stride, float mass, Mat4 transform) {
+    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Int stride, Float mass, Mat4 transform) {
         if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -192,19 +192,19 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle handle, const float* vertices, int numVertices, const unsigned int* indices, int numIndices, Mat4 transform, Vec3 scale) {
+    RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Uint* indices, Int numIndices, Mat4 transform, Vec3 scale) {
         if (!handle || !vertices || numVertices == 0 || !indices || numIndices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
         btIndexedMesh mesh;
         mesh.m_numTriangles = numIndices / 3;
-        mesh.m_triangleIndexBase = (const unsigned char*)indices;
-        mesh.m_triangleIndexStride = 3 * sizeof(unsigned int);
+        mesh.m_triangleIndexBase = (const Uchar*)indices;
+        mesh.m_triangleIndexStride = 3 * sizeof(Uint);
         mesh.m_indexType = PHY_INTEGER;
 
         mesh.m_numVertices = numVertices;
-        mesh.m_vertexBase = (const unsigned char*)vertices;
-        mesh.m_vertexStride = 3 * sizeof(float);
+        mesh.m_vertexBase = (const Uchar*)vertices;
+        mesh.m_vertexStride = 3 * sizeof(Float);
         mesh.m_vertexType = PHY_FLOAT;
 
         btTriangleIndexVertexArray* meshInterface = new btTriangleIndexVertexArray();
@@ -236,11 +236,11 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle handle, const float* points, int numPoints) {
+    RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints) {
         if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(float));
+        btConvexHullShape* hullShape = new btConvexHullShape(points, numPoints, 3 * sizeof(Float));
 
         world->collisionShapes.push_back(hullShape);
 
@@ -259,11 +259,11 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle handle, const float* vertices, int numVertices, Mat4 transform) {
+    RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Mat4 transform) {
         if (!handle || !vertices || numVertices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
-        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(float));
+        btConvexHullShape* hullShape = new btConvexHullShape(vertices, numVertices, 3 * sizeof(Float));
         world->collisionShapes.push_back(hullShape);
 
         btTransform startTransform;
@@ -312,7 +312,7 @@ struct RigidBody {
         delete rb;
     }
 
-    void Physics_GetRigidBodyTransform(RigidBodyHandle bodyHandle, float* transformMatrix) {
+    void Physics_GetRigidBodyTransform(RigidBodyHandle bodyHandle, Float* transformMatrix) {
         if (!bodyHandle || !transformMatrix) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         btTransform trans;
@@ -373,10 +373,10 @@ struct RigidBody {
         return Vec3{ vel.x(), vel.y(), vel.z() };
     }
 
-    void Physics_SetGravityEnabled(RigidBodyHandle bodyHandle, bool enabled) {
+    void Physics_SetGravityEnabled(RigidBodyHandle bodyHandle, Bool enabled) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
-        int flags = rb->body->getFlags();
+        Int flags = rb->body->getFlags();
         if (enabled) {
             rb->body->setFlags(flags & ~BT_DISABLE_WORLD_GRAVITY);
         }
@@ -386,15 +386,15 @@ struct RigidBody {
         rb->body->activate(true);
     }
 
-    void Physics_ToggleCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, bool enabled) {
+    void Physics_ToggleCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Bool enabled) {
         if (!handle || !bodyHandle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
 
         if (!rb || !rb->body) return;
 
-        bool isInWorld = false;
-        for (int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
+        Bool isInWorld = false;
+        for (Int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
             if (world->dynamicsWorld->getCollisionObjectArray()[i] == rb->body) {
                 isInWorld = true;
                 break;
@@ -432,7 +432,7 @@ struct RigidBody {
         }
     }
 
-    bool Physics_Raycast(PhysicsWorldHandle handle, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo) {
+    Bool Physics_Raycast(PhysicsWorldHandle handle, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo) {
         if (!handle || !hitInfo) return false;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -464,18 +464,18 @@ struct RigidBody {
         return false;
     }
 
-    float Physics_GetMass(RigidBodyHandle bodyHandle) {
+    Float Physics_GetMass(RigidBodyHandle bodyHandle) {
         if (!bodyHandle) return 0.0f;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (!rb->body) return 0.0f;
-        float invMass = rb->body->getInvMass();
+        Float invMass = rb->body->getInvMass();
         if (invMass == 0.0f) {
             return 0.0f;
         }
         return 1.0f / invMass;
     }
 
-    void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, bool enabled, float motion_threshold) {
+    void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, Bool enabled, Float motion_threshold) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (!rb->body) return;
@@ -498,7 +498,7 @@ struct RigidBody {
         }
     }
 
-    void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const float* vertices, int numVertices, const Mat4* transform) {
+    void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Mat4* transform) {
         if (!handle || !vertices || numVertices == 0) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         btDynamicsWorld* dynamicsWorld = world->dynamicsWorld;
@@ -509,14 +509,14 @@ struct RigidBody {
 
         btVector3 brush_min(FLT_MAX, FLT_MAX, FLT_MAX);
         btVector3 brush_max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        for (int v_idx = 0; v_idx < numVertices; ++v_idx) {
+        for (Int v_idx = 0; v_idx < numVertices; ++v_idx) {
             btVector3 local_v(vertices[v_idx * 7 + 0], vertices[v_idx * 7 + 1], vertices[v_idx * 7 + 2]);
             btVector3 world_v = brushTransform * local_v;
             brush_min.setMin(world_v);
             brush_max.setMax(world_v);
         }
 
-        for (int i = 0; i < dynamicsWorld->getNumCollisionObjects(); ++i) {
+        for (Int i = 0; i < dynamicsWorld->getNumCollisionObjects(); ++i) {
             btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
             btRigidBody* body = btRigidBody::upcast(obj);
 
@@ -527,7 +527,7 @@ struct RigidBody {
                     bodyPos.y() > brush_min.y() && bodyPos.y() < brush_max.y() &&
                     bodyPos.z() > brush_min.z() && bodyPos.z() < brush_max.z())
                 {
-                    float buoyancyMultiplier = 1.5f;
+                    Float buoyancyMultiplier = 1.5f;
                     btVector3 buoyancyForce = -gravity * body->getMass() * buoyancyMultiplier;
                     body->applyCentralForce(buoyancyForce);
 
@@ -543,12 +543,12 @@ struct RigidBody {
         }
     }
 
-    void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, bool enabled) {
+    void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, Bool enabled) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         g_physics_deactivation_enabled = enabled;
 
-        for (int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
+        for (Int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
             btCollisionObject* obj = world->dynamicsWorld->getCollisionObjectArray()[i];
             btRigidBody* body = btRigidBody::upcast(obj);
 
@@ -564,7 +564,7 @@ struct RigidBody {
         }
     }
 
-    bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, float groundCheckDistance) {
+    Bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Float groundCheckDistance) {
         if (!handle || !bodyHandle) return false;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -578,8 +578,8 @@ struct RigidBody {
         btVector3 startPos = trans.getOrigin();
 
         btCapsuleShape* shape = static_cast<btCapsuleShape*>(rb->body->getCollisionShape());
-        float halfHeight = shape->getHalfHeight();
-        float radius = shape->getRadius();
+        Float halfHeight = shape->getHalfHeight();
+        Float radius = shape->getRadius();
 
         btVector3 rayStart = startPos;
         btVector3 rayEnd = startPos - btVector3(0, halfHeight + radius + groundCheckDistance, 0);
@@ -599,15 +599,15 @@ struct RigidBody {
         return false;
     }
 
-    float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
+    Float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
         if (!handle || !bodyHandle) return 0.0f;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (!rb->body) return 0.0f;
 
-        float totalMass = 0.0f;
-        int numManifolds = world->dispatcher->getNumManifolds();
-        for (int i = 0; i < numManifolds; i++) {
+        Float totalMass = 0.0f;
+        Int numManifolds = world->dispatcher->getNumManifolds();
+        for (Int i = 0; i < numManifolds; i++) {
             btPersistentManifold* contactManifold = world->dispatcher->getManifoldByIndexInternal(i);
             const btCollisionObject* obA = contactManifold->getBody0();
             const btCollisionObject* obB = contactManifold->getBody1();
@@ -617,8 +617,8 @@ struct RigidBody {
 
             if (!bodyA || !bodyB) continue;
 
-            bool isTouching = false;
-            for (int j = 0; j < contactManifold->getNumContacts(); j++) {
+            Bool isTouching = false;
+            for (Int j = 0; j < contactManifold->getNumContacts(); j++) {
                 if (contactManifold->getContactPoint(j).getDistance() < 0.05f) {
                     isTouching = true;
                     break;
@@ -642,7 +642,7 @@ struct RigidBody {
         PhysicsWorld* world = (PhysicsWorld*)handle;
         world->dynamicsWorld->setGravity(btVector3(gravity.x, gravity.y, gravity.z));
 
-        for (int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
+        for (Int i = 0; i < world->dynamicsWorld->getNumCollisionObjects(); ++i) {
             btCollisionObject* obj = world->dynamicsWorld->getCollisionObjectArray()[i];
             btRigidBody* body = btRigidBody::upcast(obj);
             if (body && body->getInvMass() > 0.0f) {

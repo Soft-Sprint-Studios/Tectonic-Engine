@@ -40,7 +40,7 @@
 #define MAX_BONES_PER_MODEL 128
 
     typedef struct {
-        float* timestamps;
+        Float* timestamps;
         Vec3* translations;
         Vec4* rotations;
         Vec3* scales;
@@ -48,31 +48,31 @@
     } AnimationSampler;
 
     typedef struct {
-        int target_joint;
+        Int target_joint;
         AnimationSampler sampler;
     } AnimationChannel;
 
     typedef struct {
-        char name[64];
-        float duration;
+        Char name[64];
+        Float duration;
         AnimationChannel* channels;
-        int num_channels;
+        Int num_channels;
     } AnimationClip;
 
     typedef struct {
-        int joint_index;
+        Int joint_index;
         Mat4 inverse_bind_matrix;
     } SkinJoint;
 
     typedef struct {
-        char name[64];
+        Char name[64];
         SkinJoint* joints;
-        int num_joints;
+        Int num_joints;
     } Skin;
 
     typedef struct {
-        int bone_indices[MAX_BONES_PER_VERTEX];
-        float bone_weights[MAX_BONES_PER_VERTEX];
+        Int bone_indices[MAX_BONES_PER_VERTEX];
+        Float bone_weights[MAX_BONES_PER_VERTEX];
     } SkinningVertexData;
 
     typedef struct {
@@ -80,13 +80,13 @@
         GLuint VBO;
         GLuint skinningVBO;
         GLuint EBO;
-        int indexCount;
-        bool useEBO;
+        Int indexCount;
+        Bool useEBO;
         Material* material;
-        float* vertexData;
-        unsigned int* indexData;
-        unsigned int vertexCount;
-        float* final_vbo_data;
+        Float* vertexData;
+        Uint* indexData;
+        Uint vertexCount;
+        Float* final_vbo_data;
         size_t final_vbo_data_size;
     } Mesh;
 
@@ -94,23 +94,23 @@
         Vec3 aabb_min;
         Vec3 aabb_max;
         Mesh* meshes;
-        int meshCount;
-        float* combinedVertexData;
-        float* combinedNormalData;
-        float* combinedWorldVertexData;
-        unsigned int* combinedIndexData;
-        unsigned int totalVertexCount;
-        unsigned int totalIndexCount;
+        Int meshCount;
+        Float* combinedVertexData;
+        Float* combinedNormalData;
+        Float* combinedWorldVertexData;
+        Uint* combinedIndexData;
+        Uint totalVertexCount;
+        Uint totalIndexCount;
         AnimationClip* animations;
-        int num_animations;
+        Int num_animations;
         Skin* skins;
-        int num_skins;
+        Int num_skins;
         void* nodes;
         size_t num_nodes;
     } LoadedModel;
 
-    MODELS_API LoadedModel* Model_Load(const char* path);
-    MODELS_API bool Model_ApplyLMUV(LoadedModel* model, const char* lmuv_path);
+    MODELS_API LoadedModel* Model_Load(const Char* path);
+    MODELS_API Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path);
     MODELS_API void Model_Free(LoadedModel* model);
     MODELS_API void ModelLoader_Shutdown();
 

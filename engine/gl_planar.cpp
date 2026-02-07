@@ -24,7 +24,7 @@
 #include "gl_planar.h"
 #include "gl_misc.h"
 #include "cvar.h"
-#include <float.h>
+#include <Float.h>
 #include "gl_geometry.h"
 #include "gl_skybox.h"
 #include "water_manager.h"
@@ -32,7 +32,7 @@
 
 #ifdef BRANCH_NOCTURNE
 // hack alert
-static bool NoSkyReflectionMap(const char* map) {
+static Bool NoSkyReflectionMap(const Char* map) {
     return _stricmp(map, "level1.map") == 0 ||
         _stricmp(map, "level2.map") == 0 ||
         _stricmp(map, "level3.map") == 0 ||
@@ -41,23 +41,23 @@ static bool NoSkyReflectionMap(const char* map) {
 #endif
 
 void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
-    static int frameCounter = 0;
+    static Int frameCounter = 0;
     frameCounter++;
 
-    int updateEveryNFrames = 2;
+    Int updateEveryNFrames = 2;
     if ((frameCounter % updateEveryNFrames) != 0) {
         return;
     }
 
     if (!Cvar_GetInt("r_planar")) return;
 
-    float reflection_plane_height = 0.0;
-    bool reflection_plane_found = false;
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    Float reflection_plane_height = 0.0;
+    Bool reflection_plane_found = false;
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_water") == 0 || strcmp(b->classname, "func_reflective_glass") == 0) {
-            float max_y = -FLT_MAX;
-            for (int v = 0; v < b->numVertices; ++v) {
+            Float max_y = -FLT_MAX;
+            for (Int v = 0; v < b->numVertices; ++v) {
                 Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
                 if (world_v.y > max_y) {
                     max_y = world_v.y;
@@ -73,16 +73,16 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
         return;
     }
 
-    int downsample = Cvar_GetInt("r_planar_downsample");
+    Int downsample = Cvar_GetInt("r_planar_downsample");
     if (downsample < 1) downsample = 1;
-    int reflection_width = engine->width / downsample;
-    int reflection_height = engine->height / downsample;
+    Int reflection_width = engine->width / downsample;
+    Int reflection_height = engine->height / downsample;
 
     glEnable(GL_CLIP_DISTANCE0);
 
     Camera reflection_camera = *camera;
 
-    float distance = 2 * (reflection_camera.position.y - reflection_plane_height);
+    Float distance = 2 * (reflection_camera.position.y - reflection_plane_height);
     reflection_camera.position.y -= distance;
     reflection_camera.pitch = -reflection_camera.pitch;
 
@@ -168,20 +168,20 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
     glUniform1i(glGetUniformLocation(renderer->waterShader, "reflectionTexture"), 2);
 
-    for (int i = 0; i < scene->numBrushes; ++i) {
+    for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_water") != 0) continue;
-        const char* water_def_name = Brush_GetProperty(b, "water_def", "default_water");
+        const Char* water_def_name = Brush_GetProperty(b, "water_def", "default_water");
         WaterDef* water_def = WaterManager_FindWaterDef(water_def_name);
         if (!water_def) continue;
 
-        float uv_scale = atof(Brush_GetProperty(b, "uv_scale", "0.0"));
+        Float uv_scale = atof(Brush_GetProperty(b, "uv_scale", "0.0"));
         glUniform1f(glGetUniformLocation(renderer->waterShader, "u_uv_scale"), uv_scale);
 
         Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
         if (b->numVertices > 0) {
-            for (int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
+            for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
                 Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                 world_min.x = fminf(world_min.x, world_v.x);
                 world_min.y = fminf(world_min.y, world_v.y);
@@ -256,11 +256,11 @@ void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engi
     glActiveTexture(GL_TEXTURE2);
     glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "normalMap"), 2);
 
-    for (int i = 0; i < scene->numBrushes; i++) {
+    for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
         if (strcmp(b->classname, "func_reflective_glass") != 0) continue;
 
-        const char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
+        const Char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
         glBindTexture(GL_TEXTURE_2D, (normal_mat && normal_mat != &g_MissingMaterial) ? normal_mat->normalMap : defaultNormalMapID);
 

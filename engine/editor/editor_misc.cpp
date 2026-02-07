@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <float.h>
+#include <Float.h>
 #include "commands.h"
 #include "gl_misc.h"
 #include "editor_misc.h"
@@ -30,14 +30,14 @@
 #include "editor_selection.h"
 #include "sound_system.h"
 
-void Editor_SetMapDirty(bool is_dirty) {
+void Editor_SetMapDirty(Bool is_dirty) {
     g_is_map_dirty = is_dirty;
 }
 
 void Editor_SaveRecentFiles() {
     FILE* file = fopen("editor_prefs.cfg", "w");
     if (!file) return;
-    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+    for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
         fprintf(file, "%s\n", g_EditorState.recent_map_files[i]);
     }
     fclose(file);
@@ -47,19 +47,19 @@ void Editor_LoadRecentFiles() {
     FILE* file = fopen("editor_prefs.cfg", "r");
     if (!file) return;
 
-    char line[256];
+    Char line[256];
     while (fgets(line, sizeof(line), file) && g_EditorState.num_recent_map_files < MAX_RECENT_FILES) {
         line[strcspn(line, "\r\n")] = 0;
         if (strlen(line) > 0) {
-            char** new_files = new char* [g_EditorState.num_recent_map_files + 1];
-            for (int i = 0; i < g_EditorState.num_recent_map_files; ++i)
+            Char** new_files = new Char* [g_EditorState.num_recent_map_files + 1];
+            for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i)
                 new_files[i] = g_EditorState.recent_map_files[i];
 
             delete[] g_EditorState.recent_map_files;
             g_EditorState.recent_map_files = new_files;
 
             size_t len = strlen(line) + 1;
-            g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = new char[len];
+            g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = new Char[len];
             memcpy(g_EditorState.recent_map_files[g_EditorState.num_recent_map_files], line, len);
 
             g_EditorState.num_recent_map_files++;
@@ -68,11 +68,11 @@ void Editor_LoadRecentFiles() {
     fclose(file);
 }
 
-void Editor_AddRecentFile(const char* path) {
-    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+void Editor_AddRecentFile(const Char* path) {
+    for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
         if (strcmp(g_EditorState.recent_map_files[i], path) == 0) {
             delete[] g_EditorState.recent_map_files[i];
-            for (int j = i; j < g_EditorState.num_recent_map_files - 1; ++j)
+            for (Int j = i; j < g_EditorState.num_recent_map_files - 1; ++j)
                 g_EditorState.recent_map_files[j] = g_EditorState.recent_map_files[j + 1];
             g_EditorState.num_recent_map_files--;
             break;
@@ -84,11 +84,11 @@ void Editor_AddRecentFile(const char* path) {
         g_EditorState.num_recent_map_files = MAX_RECENT_FILES - 1;
     }
 
-    char** new_files = new char* [g_EditorState.num_recent_map_files + 1];
-    new_files[0] = new char[strlen(path) + 1];
+    Char** new_files = new Char* [g_EditorState.num_recent_map_files + 1];
+    new_files[0] = new Char[strlen(path) + 1];
     memcpy(new_files[0], path, strlen(path) + 1);
 
-    for (int i = 0; i < g_EditorState.num_recent_map_files; ++i)
+    for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i)
         new_files[i + 1] = g_EditorState.recent_map_files[i];
 
     delete[] g_EditorState.recent_map_files;
@@ -113,7 +113,7 @@ void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* rendere
         break;
     case PENDING_ACTION_EXIT_EDITOR:
     {
-        char* args[] = { "edit" };
+        Char* args[] = { "edit" };
         Commands_Execute(1, args);
         break;
     }
@@ -125,8 +125,8 @@ void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* rendere
 
 void Editor_InitGizmo() {
     g_EditorState.gizmo_shader = createShaderProgram("shaders/gizmo.vert", "shaders/gizmo.frag");
-    const float gizmo_arrow_length = 1.0f;
-    const float gizmo_vertices[] = {
+    const Float gizmo_arrow_length = 1.0f;
+    const Float gizmo_vertices[] = {
         0.0f, 0.0f, 0.0f, gizmo_arrow_length, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f, gizmo_arrow_length, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, gizmo_arrow_length,
@@ -136,7 +136,7 @@ void Editor_InitGizmo() {
     glBindVertexArray(g_EditorState.gizmo_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.gizmo_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gizmo_vertices), gizmo_vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 }
@@ -159,34 +159,34 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
     Vec3 object_pos = g_EditorState.gizmo_selection_centroid;
 
     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_NONE;
-    float min_dist = FLT_MAX;
+    Float min_dist = FLT_MAX;
 
     switch (g_EditorState.current_gizmo_operation) {
     case GIZMO_OP_TRANSLATE:
     case GIZMO_OP_SCALE: {
-        const float pick_threshold = 0.1f;
-        float t_ray, t_seg;
+        const Float pick_threshold = 0.1f;
+        Float t_ray, t_seg;
         Vec3 x_p1 = { object_pos.x + 1.0f, object_pos.y, object_pos.z };
-        float dist_x = dist_RaySegment(ray_origin, ray_dir, object_pos, x_p1, &t_ray, &t_seg);
+        Float dist_x = dist_RaySegment(ray_origin, ray_dir, object_pos, x_p1, &t_ray, &t_seg);
         if (dist_x < pick_threshold && dist_x < min_dist) { min_dist = dist_x; g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X; }
 
         Vec3 y_p1 = { object_pos.x, object_pos.y + 1.0f, object_pos.z };
-        float dist_y = dist_RaySegment(ray_origin, ray_dir, object_pos, y_p1, &t_ray, &t_seg);
+        Float dist_y = dist_RaySegment(ray_origin, ray_dir, object_pos, y_p1, &t_ray, &t_seg);
         if (dist_y < pick_threshold && dist_y < min_dist) { min_dist = dist_y; g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y; }
 
         Vec3 z_p1 = { object_pos.x, object_pos.y, object_pos.z + 1.0f };
-        float dist_z = dist_RaySegment(ray_origin, ray_dir, object_pos, z_p1, &t_ray, &t_seg);
+        Float dist_z = dist_RaySegment(ray_origin, ray_dir, object_pos, z_p1, &t_ray, &t_seg);
         if (dist_z < pick_threshold && dist_z < min_dist) { g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z; }
         break;
     }
     case GIZMO_OP_ROTATE: {
-        const float radius = 1.0f;
-        const float pick_threshold = 0.1f;
+        const Float radius = 1.0f;
+        const Float pick_threshold = 0.1f;
         Vec3 intersect_point;
-        float closest_dist = FLT_MAX;
+        Float closest_dist = FLT_MAX;
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 1, 0 }, -object_pos.y, & intersect_point)) {
-            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     closest_dist = dist_to_intersection;
@@ -196,7 +196,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         }
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 1, 0, 0 }, -object_pos.x, & intersect_point)) {
-            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     closest_dist = dist_to_intersection;
@@ -206,7 +206,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         }
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 0, 1 }, -object_pos.z, & intersect_point)) {
-            float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
+            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z;
@@ -220,43 +220,43 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
 
 void Editor_InitDebugRenderer() {
     g_EditorState.debug_shader = createShaderProgram("shaders/debug.vert", "shaders/debug.frag");
-    float radius = 0.25f; float sphere_lines[24 * 3 * 2 * 3]; int index = 0;
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
-    for (int i = 0; i < 24; ++i) { float a1 = (i / 24.0f) * 2.0f * M_PI; float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
+    Float radius = 0.25f; Float sphere_lines[24 * 3 * 2 * 3]; Int index = 0;
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * M_PI; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
     g_EditorState.light_gizmo_vertex_count = index / 3; GLuint vbo;
     glGenVertexArrays(1, &g_EditorState.light_gizmo_vao); glGenBuffers(1, &vbo);
     glBindVertexArray(g_EditorState.light_gizmo_vao); glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(sphere_lines), sphere_lines, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0); glEnableVertexAttribArray(0);
     glBindVertexArray(0);
-    float lines[] = { -0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,0.5 };
+    Float lines[] = { -0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,0.5 };
     g_EditorState.decal_box_vertex_count = 24;
     glGenVertexArrays(1, &g_EditorState.decal_box_vao); glGenBuffers(1, &g_EditorState.decal_box_vbo);
     glBindVertexArray(g_EditorState.decal_box_vao); glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.decal_box_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(lines), lines, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0); glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 #define PLAYER_HEIGHT_NORMAL_EDITOR 1.83f
 #define PLAYER_RADIUS_EDITOR 0.4f
     Vec3 p_verts[500];
-    int p_vert_count = 0;
-    float p_radius = PLAYER_RADIUS_EDITOR;
-    float p_height = PLAYER_HEIGHT_NORMAL_EDITOR;
-    float p_cylinder_height = p_height - (2.0f * p_radius);
+    Int p_vert_count = 0;
+    Float p_radius = PLAYER_RADIUS_EDITOR;
+    Float p_height = PLAYER_HEIGHT_NORMAL_EDITOR;
+    Float p_cylinder_height = p_height - (2.0f * p_radius);
 
     Vec3 bottom_center = { 0, p_radius, 0 };
     Vec3 top_center = { 0, p_radius + p_cylinder_height, 0 };
-    int segments = 16;
+    Int segments = 16;
 
-    for (int i = 0; i < segments; ++i) {
-        float angle1 = (i / (float)segments) * 2.0f * M_PI;
-        float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
+    for (Int i = 0; i < segments; ++i) {
+        Float angle1 = (i / (Float)segments) * 2.0f * M_PI;
+        Float angle2 = ((i + 1) / (Float)segments) * 2.0f * M_PI;
 
-        float x1 = p_radius * cosf(angle1);
-        float z1 = p_radius * sinf(angle1);
-        float x2 = p_radius * cosf(angle2);
-        float z2 = p_radius * sinf(angle2);
+        Float x1 = p_radius * cosf(angle1);
+        Float z1 = p_radius * sinf(angle1);
+        Float x2 = p_radius * cosf(angle2);
+        Float z2 = p_radius * sinf(angle2);
 
         p_verts[p_vert_count++] = Vec3{ x1, bottom_center.y, z1 };
         p_verts[p_vert_count++] = Vec3{ x2, bottom_center.y, z2 };
@@ -270,10 +270,10 @@ void Editor_InitDebugRenderer() {
         }
     }
 
-    int arc_segments = 8;
-    for (int i = 0; i < arc_segments; ++i) {
-        float angle1 = (i / (float)arc_segments) * 0.5f * M_PI;
-        float angle2 = ((i + 1) / (float)arc_segments) * 0.5f * M_PI;
+    Int arc_segments = 8;
+    for (Int i = 0; i < arc_segments; ++i) {
+        Float angle1 = (i / (Float)arc_segments) * 0.5f * M_PI;
+        Float angle2 = ((i + 1) / (Float)arc_segments) * 0.5f * M_PI;
 
         p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle1), top_center.z + p_radius * cosf(angle1) };
         p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle2), top_center.z + p_radius * cosf(angle2) };
@@ -291,7 +291,7 @@ void Editor_InitDebugRenderer() {
     glBindVertexArray(g_EditorState.player_start_gizmo_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.player_start_gizmo_vbo);
     glBufferData(GL_ARRAY_BUFFER, p_vert_count * sizeof(Vec3), p_verts, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 }
@@ -325,7 +325,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
         g_EditorState.editor_camera.yaw = -M_PI / 2.0f;
         g_EditorState.editor_camera.pitch = -0.4f;
     }
-    for (int i = 0; i < VIEW_COUNT; i++) {
+    for (Int i = 0; i < VIEW_COUNT; i++) {
         g_EditorState.viewport_width[i] = 800; g_EditorState.viewport_height[i] = 600;
         glGenFramebuffers(1, &g_EditorState.viewport_fbo[i]); glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[i]);
         glGenTextures(1, &g_EditorState.viewport_texture[i]); glBindTexture(GL_TEXTURE_2D, g_EditorState.viewport_texture[i]);
@@ -345,7 +345,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glGenRenderbuffers(1, &g_EditorState.model_preview_rbo); glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
-    int thumb_size = 128;
+    Int thumb_size = 128;
     glGenFramebuffers(1, &g_EditorState.model_thumb_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_thumb_fbo);
     glGenTextures(1, &g_EditorState.model_thumb_texture);
@@ -367,7 +367,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_EditorState.arch_preview_texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     g_EditorState.model_preview_cam_dist = 5.0f; g_EditorState.model_preview_cam_angles = Vec2{ 0.f, -0.5f };
-    for (int i = 0; i < 3; i++) { g_EditorState.ortho_cam_pos[i] = Vec3{ 0,0,0 }; g_EditorState.ortho_cam_zoom[i] = 10.0f; }
+    for (Int i = 0; i < 3; i++) { g_EditorState.ortho_cam_pos[i] = Vec3{ 0,0,0 }; g_EditorState.ortho_cam_zoom[i] = 10.0f; }
     Editor_InitDebugRenderer();
     glGenVertexArrays(1, &g_EditorState.vertex_points_vao); glGenBuffers(1, &g_EditorState.vertex_points_vbo);
     glGenVertexArrays(1, &g_EditorState.selected_face_vao); glGenBuffers(1, &g_EditorState.selected_face_vbo);
@@ -468,14 +468,14 @@ void Editor_Shutdown() {
     g_last_editor_camera_state = g_EditorState.editor_camera;
     g_has_last_camera_state = true;
     Undo_Shutdown();
-    for (int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
+    for (Int i = 0; i < VIEW_COUNT; i++) { glDeleteFramebuffers(1, &g_EditorState.viewport_fbo[i]); glDeleteTextures(1, &g_EditorState.viewport_texture[i]); glDeleteRenderbuffers(1, &g_EditorState.viewport_rbo[i]); }
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
     glDeleteFramebuffers(1, &g_EditorState.model_thumb_fbo); glDeleteTextures(1, &g_EditorState.model_thumb_texture); glDeleteRenderbuffers(1, &g_EditorState.model_thumb_rbo);
     if (g_EditorState.preview_model) Model_Free(g_EditorState.preview_model);
     if (g_EditorState.preview_sound_source != 0) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
     if (g_EditorState.preview_sound_buffer != 0) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
     if (g_EditorState.sound_file_list) {
-        for (int i = 0; i < g_EditorState.num_sound_files; ++i) {
+        for (Int i = 0; i < g_EditorState.num_sound_files; ++i) {
             free(g_EditorState.sound_file_list[i]);
         }
         free(g_EditorState.sound_file_list);
@@ -497,7 +497,7 @@ void Editor_Shutdown() {
     glDeleteFramebuffers(1, &g_EditorState.arch_preview_fbo);
     glDeleteTextures(1, &g_EditorState.arch_preview_texture);
     if (g_EditorState.recent_map_files) {
-        for (int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
+        for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
             free(g_EditorState.recent_map_files[i]);
         }
         free(g_EditorState.recent_map_files);

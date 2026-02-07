@@ -37,115 +37,115 @@
     LEVEL0_API void UI_BeginFrame();
     LEVEL0_API void UI_EndFrame(SDL_Window* window);
 
-    LEVEL0_API bool UI_Begin(const char* name, bool* p_open);
-    LEVEL0_API bool UI_Begin_NoBringToFront(const char* name, bool* p_open);
-    LEVEL0_API bool UI_Begin_NoClose(const char* name);
-    LEVEL0_API bool UI_Begin_NoTitlebar_NoResize_NoMove(const char* name, bool* p_open);
-    LEVEL0_API bool UI_Begin_WithFlags(const char* name, bool* p_open, int flags);
-    LEVEL0_API bool UI_IsWindowOpen(const char* name);
-    LEVEL0_API void UI_OpenPopup(const char* str_id);
-    LEVEL0_API bool UI_BeginPopupModal(const char* name, bool* p_open, int flags);
+    LEVEL0_API Bool UI_Begin(const Char* name, Bool* p_open);
+    LEVEL0_API Bool UI_Begin_NoBringToFront(const Char* name, Bool* p_open);
+    LEVEL0_API Bool UI_Begin_NoClose(const Char* name);
+    LEVEL0_API Bool UI_Begin_NoTitlebar_NoResize_NoMove(const Char* name, Bool* p_open);
+    LEVEL0_API Bool UI_Begin_WithFlags(const Char* name, Bool* p_open, Int flags);
+    LEVEL0_API Bool UI_IsWindowOpen(const Char* name);
+    LEVEL0_API void UI_OpenPopup(const Char* str_id);
+    LEVEL0_API Bool UI_BeginPopupModal(const Char* name, Bool* p_open, Int flags);
     LEVEL0_API void UI_CloseCurrentPopup(void);
     LEVEL0_API void UI_End();
 
-    LEVEL0_API bool UI_BeginMainMenuBar();
+    LEVEL0_API Bool UI_BeginMainMenuBar();
     LEVEL0_API void UI_EndMainMenuBar();
-    LEVEL0_API bool UI_BeginMenu(const char* label, bool enabled);
+    LEVEL0_API Bool UI_BeginMenu(const Char* label, Bool enabled);
     LEVEL0_API void UI_EndMenu();
-    LEVEL0_API bool UI_MenuItem(const char* label, const char* shortcut, bool selected, bool enabled);
+    LEVEL0_API Bool UI_MenuItem(const Char* label, const Char* shortcut, Bool selected, Bool enabled);
 
-    LEVEL0_API void UI_Text(const char* fmt, ...);
-    LEVEL0_API void UI_TextColored(Vec4 color, const char* fmt, ...);
-    LEVEL0_API void UI_TextWrapped(const char* fmt, ...);
-    LEVEL0_API void UI_BulletText(const char* fmt, ...);
+    LEVEL0_API void UI_Text(const Char* fmt, ...);
+    LEVEL0_API void UI_TextColored(Vec4 color, const Char* fmt, ...);
+    LEVEL0_API void UI_TextWrapped(const Char* fmt, ...);
+    LEVEL0_API void UI_BulletText(const Char* fmt, ...);
     LEVEL0_API void UI_Separator();
-    LEVEL0_API void UI_SeparatorEx(int flags);
-    LEVEL0_API bool UI_CollapsingHeader(const char* label, int flags);
+    LEVEL0_API void UI_SeparatorEx(Int flags);
+    LEVEL0_API Bool UI_CollapsingHeader(const Char* label, Int flags);
     LEVEL0_API void UI_Spacing();
     LEVEL0_API void UI_SameLine();
     LEVEL0_API void UI_BeginGroup(void);
     LEVEL0_API void UI_EndGroup(void);
 
-    LEVEL0_API bool UI_Selectable(const char* label, bool selected);
-    LEVEL0_API bool UI_Button(const char* label);
-    LEVEL0_API bool UI_DragFloat3(const char* label, float v[3], float v_speed, float v_min, float v_max);
-    LEVEL0_API bool UI_DragFloat(const char* label, float* v, float v_speed, float v_min, float v_max);
-    LEVEL0_API bool UI_DragFloat2(const char* label, float v[2], float v_speed, float v_min, float v_max);
-    LEVEL0_API bool UI_DragInt(const char* label, int* v, float v_speed, int v_min, int v_max);
-    LEVEL0_API bool UI_InputFloat(const char* label, float* v, float step, float step_fast, const char* format);
-    LEVEL0_API bool UI_ColorEdit3(const char* label, float col[3]);
-    LEVEL0_API void UI_Image(void* user_texture_id, float width, float height);
-    LEVEL0_API bool UI_ImageButton(const char* str_id, unsigned int user_texture_id, float width, float height);
-    LEVEL0_API bool UI_ImageButton_Flip(const char* id, void* texture_id, float width, float height);
-    LEVEL0_API void UI_InputText(const char* label, char* buf, size_t buf_size);
-    LEVEL0_API bool UI_InputText_Flags(const char* label, char* buf, size_t buf_size, int flags);
-    LEVEL0_API bool UI_Checkbox(const char* label, bool* v);
-    LEVEL0_API bool UI_RadioButton(const char* label, bool active);
-    LEVEL0_API bool UI_RadioButton_Int(const char* label, int* v, int v_button);
-    LEVEL0_API bool UI_Combo(const char* label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items);
-    LEVEL0_API bool UI_ListBox(const char* label, int* current_item, const char* const* items, int items_count, int height_in_items);
+    LEVEL0_API Bool UI_Selectable(const Char* label, Bool selected);
+    LEVEL0_API Bool UI_Button(const Char* label);
+    LEVEL0_API Bool UI_DragFloat3(const Char* label, Float v[3], Float v_speed, Float v_min, Float v_max);
+    LEVEL0_API Bool UI_DragFloat(const Char* label, Float* v, Float v_speed, Float v_min, Float v_max);
+    LEVEL0_API Bool UI_DragFloat2(const Char* label, Float v[2], Float v_speed, Float v_min, Float v_max);
+    LEVEL0_API Bool UI_DragInt(const Char* label, Int* v, Float v_speed, Int v_min, Int v_max);
+    LEVEL0_API Bool UI_InputFloat(const Char* label, Float* v, Float step, Float step_fast, const Char* format);
+    LEVEL0_API Bool UI_ColorEdit3(const Char* label, Float col[3]);
+    LEVEL0_API void UI_Image(void* user_texture_id, Float width, Float height);
+    LEVEL0_API Bool UI_ImageButton(const Char* str_id, Uint user_texture_id, Float width, Float height);
+    LEVEL0_API Bool UI_ImageButton_Flip(const Char* id, void* texture_id, Float width, Float height);
+    LEVEL0_API void UI_InputText(const Char* label, Char* buf, size_t buf_size);
+    LEVEL0_API Bool UI_InputText_Flags(const Char* label, Char* buf, size_t buf_size, Int flags);
+    LEVEL0_API Bool UI_Checkbox(const Char* label, Bool* v);
+    LEVEL0_API Bool UI_RadioButton(const Char* label, Bool active);
+    LEVEL0_API Bool UI_RadioButton_Int(const Char* label, Int* v, Int v_button);
+    LEVEL0_API Bool UI_Combo(const Char* label, Int* current_item, const Char* const items[], Int items_count, Int popup_max_height_in_items);
+    LEVEL0_API Bool UI_ListBox(const Char* label, Int* current_item, const Char* const* items, Int items_count, Int height_in_items);
 
-    LEVEL0_API bool UI_IsWindowFocused();
-    LEVEL0_API bool UI_IsWindowHovered();
-    LEVEL0_API bool UI_IsMouseDragging(int button);
-    LEVEL0_API bool UI_IsItemHovered();
-    LEVEL0_API bool UI_IsItemActivated(void);
-    LEVEL0_API bool UI_IsItemDeactivatedAfterEdit(void);
-    LEVEL0_API bool UI_WantCaptureMouse();
-    LEVEL0_API bool UI_WantCaptureKeyboard();
+    LEVEL0_API Bool UI_IsWindowFocused();
+    LEVEL0_API Bool UI_IsWindowHovered();
+    LEVEL0_API Bool UI_IsMouseDragging(Int button);
+    LEVEL0_API Bool UI_IsItemHovered();
+    LEVEL0_API Bool UI_IsItemActivated(void);
+    LEVEL0_API Bool UI_IsItemDeactivatedAfterEdit(void);
+    LEVEL0_API Bool UI_WantCaptureMouse();
+    LEVEL0_API Bool UI_WantCaptureKeyboard();
 
-    LEVEL0_API void UI_GetContentRegionAvail(float* w, float* h);
-    LEVEL0_API void UI_GetWindowContentRegionMin(float* x, float* y);
-    LEVEL0_API void UI_GetMousePos(float* x, float* y);
-    LEVEL0_API void UI_GetWindowPos(float* x, float* y);
-    LEVEL0_API void UI_GetWindowSize(float* w, float* h);
-    LEVEL0_API void UI_PushStyleVar_WindowPadding(float val_x, float val_y);
-    LEVEL0_API void UI_PopStyleVar(int count);
-    LEVEL0_API bool UI_BeginChild(const char* str_id, float width, float height, bool border, int flags);
+    LEVEL0_API void UI_GetContentRegionAvail(Float* w, Float* h);
+    LEVEL0_API void UI_GetWindowContentRegionMin(Float* x, Float* y);
+    LEVEL0_API void UI_GetMousePos(Float* x, Float* y);
+    LEVEL0_API void UI_GetWindowPos(Float* x, Float* y);
+    LEVEL0_API void UI_GetWindowSize(Float* w, Float* h);
+    LEVEL0_API void UI_PushStyleVar_WindowPadding(Float val_x, Float val_y);
+    LEVEL0_API void UI_PopStyleVar(Int count);
+    LEVEL0_API Bool UI_BeginChild(const Char* str_id, Float width, Float height, Bool border, Int flags);
     LEVEL0_API void UI_EndChild();
    
-    LEVEL0_API void UI_SetNextWindowPos(float x, float y);
-    LEVEL0_API void UI_SetNextWindowSize(float w, float h);
-    LEVEL0_API void UI_SetNextItemWidth(float item_width);
-    LEVEL0_API void UI_SetCursorPosX(float x);
+    LEVEL0_API void UI_SetNextWindowPos(Float x, Float y);
+    LEVEL0_API void UI_SetNextWindowSize(Float w, Float h);
+    LEVEL0_API void UI_SetNextItemWidth(Float item_width);
+    LEVEL0_API void UI_SetCursorPosX(Float x);
 
-    LEVEL0_API float UI_GetMouseWheel();
-    LEVEL0_API void UI_GetMouseDragDelta(int button, float lock_threshold, float* dx, float* dy);
-    LEVEL0_API void UI_ResetMouseDragDelta(int button);
+    LEVEL0_API Float UI_GetMouseWheel();
+    LEVEL0_API void UI_GetMouseDragDelta(Int button, Float lock_threshold, Float* dx, Float* dy);
+    LEVEL0_API void UI_ResetMouseDragDelta(Int button);
 
-    LEVEL0_API void UI_GetDisplaySize(float* w, float* h);
+    LEVEL0_API void UI_GetDisplaySize(Float* w, Float* h);
 
-    LEVEL0_API bool UI_BeginPopupContextItem(const char* str_id);
+    LEVEL0_API Bool UI_BeginPopupContextItem(const Char* str_id);
     LEVEL0_API void UI_EndPopup();
     LEVEL0_API void UI_BeginTooltip();
     LEVEL0_API void UI_EndTooltip();
 
-    LEVEL0_API bool UI_BeginTabBar(const char* str_id, int flags);
+    LEVEL0_API Bool UI_BeginTabBar(const Char* str_id, Int flags);
     LEVEL0_API void UI_EndTabBar();
-    LEVEL0_API bool UI_BeginTabItem(const char* label);
+    LEVEL0_API Bool UI_BeginTabItem(const Char* label);
     LEVEL0_API void UI_EndTabItem();
 
-    LEVEL0_API bool UI_BeginTable(const char* str_id, int column, int flags, float outer_width, float inner_width);
+    LEVEL0_API Bool UI_BeginTable(const Char* str_id, Int column, Int flags, Float outer_width, Float inner_width);
     LEVEL0_API void UI_EndTable();
     LEVEL0_API void UI_TableNextRow();
     LEVEL0_API void UI_TableNextColumn();
     LEVEL0_API void UI_TableHeadersRow();
 
-    LEVEL0_API void UI_BeginDisabled(bool disabled);
+    LEVEL0_API void UI_BeginDisabled(Bool disabled);
     LEVEL0_API void UI_EndDisabled(void);
 
-    LEVEL0_API void UI_PushID(int int_id);
+    LEVEL0_API void UI_PushID(Int int_id);
     LEVEL0_API void UI_PopID();
 
-    LEVEL0_API float UI_GetWindowPos_X();
-    LEVEL0_API float UI_GetWindowContentRegionMax_X();
-    LEVEL0_API float UI_GetWindowWidth();
-    LEVEL0_API float UI_GetItemRectMax_X();
-    LEVEL0_API float UI_GetStyle_ItemSpacing_X();
+    LEVEL0_API Float UI_GetWindowPos_X();
+    LEVEL0_API Float UI_GetWindowContentRegionMax_X();
+    LEVEL0_API Float UI_GetWindowWidth();
+    LEVEL0_API Float UI_GetItemRectMax_X();
+    LEVEL0_API Float UI_GetStyle_ItemSpacing_X();
 
     LEVEL0_API void* UI_GetWindowDrawList();
-    LEVEL0_API void UI_DrawList_AddText(void* draw_list, float pos_x, float pos_y, unsigned int col, const char* text);
-    LEVEL0_API unsigned int UI_GetColorU32(int r, int g, int b, int a);
+    LEVEL0_API void UI_DrawList_AddText(void* draw_list, Float pos_x, Float pos_y, Uint col, const Char* text);
+    LEVEL0_API Uint UI_GetColorU32(Int r, Int g, Int b, Int a);
 
 
 #endif // IMGUI_WRAPPER_H

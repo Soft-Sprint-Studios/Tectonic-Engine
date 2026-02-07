@@ -42,29 +42,29 @@
 #include <cstring>
 #include <algorithm>
 
-struct Vec3_t { float x, y, z; };
-struct Vec4_t { float r, g, b, a; };
+struct Vec3_t { Float x, y, z; };
+struct Vec4_t { Float r, g, b, a; };
 
 struct ParticleProperties {
-    int maxParticles;
-    float spawnRate;
-    float lifetime;
-    float lifetimeVariation;
-    float startSize;
-    float endSize;
-    float startAngle;
-    float angleVariation;
-    float startAngularVelocity;
-    float angularVelocityVariation;
-    float softness;
+    Int maxParticles;
+    Float spawnRate;
+    Float lifetime;
+    Float lifetimeVariation;
+    Float startSize;
+    Float endSize;
+    Float startAngle;
+    Float angleVariation;
+    Float startAngularVelocity;
+    Float angularVelocityVariation;
+    Float softness;
     string texture;
     Vec3_t gravity;
     Vec4_t startColor;
     Vec4_t endColor;
     Vec3_t startVelocity;
     Vec3_t velocityVariation;
-    bool additiveBlending;
-    bool useLighting;
+    Bool additiveBlending;
+    Bool useLighting;
 };
 
 Fl_Window* g_mainWindow = nullptr;
@@ -102,9 +102,9 @@ Fl_Check_Button* g_useLightingCheck = nullptr;
 
 ParticleProperties g_currentProps;
 string g_currentFilePath = "";
-bool g_isDirty = false;
+Bool g_isDirty = false;
 
-void set_dirty(bool dirty) {
+void set_dirty(Bool dirty) {
     g_isDirty = dirty;
     string title = "Tectonic Particle Editor";
     if (!g_currentFilePath.empty()) {
@@ -123,7 +123,7 @@ void mark_dirty_cb(Fl_Widget*, void*) {
 void update_ui_from_props() {
     g_textureInput->value(g_currentProps.texture.c_str());
     
-    static char buffer[32];
+    static Char buffer[32];
     snprintf(buffer, sizeof(buffer), "%d", g_currentProps.maxParticles); g_maxParticlesInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.spawnRate); g_spawnRateInput->value(buffer);
     snprintf(buffer, sizeof(buffer), "%.2f", g_currentProps.softness); g_softnessInput->value(buffer);
@@ -220,7 +220,7 @@ void new_file() {
     update_ui_from_props();
 }
 
-bool save_file(const string& path) {
+Bool save_file(const string& path) {
     update_props_from_ui();
 
     ofstream file(path);
@@ -285,19 +285,19 @@ void open_file(const string& path) {
         else if (key == "angularVelocityVariation") ss >> g_currentProps.angularVelocityVariation;
         else if (key == "texture") ss >> g_currentProps.texture;
         else if (key == "gravity") {
-            char comma;
+            Char comma;
             ss >> g_currentProps.gravity.x >> comma >> g_currentProps.gravity.y >> comma >> g_currentProps.gravity.z;
         } else if (key == "startColor") {
-            char comma;
+            Char comma;
             ss >> g_currentProps.startColor.r >> comma >> g_currentProps.startColor.g >> comma >> g_currentProps.startColor.b >> comma >> g_currentProps.startColor.a;
         } else if (key == "endColor") {
-            char comma;
+            Char comma;
             ss >> g_currentProps.endColor.r >> comma >> g_currentProps.endColor.g >> comma >> g_currentProps.endColor.b >> comma >> g_currentProps.endColor.a;
         } else if (key == "startVelocity") {
-            char comma;
+            Char comma;
             ss >> g_currentProps.startVelocity.x >> comma >> g_currentProps.startVelocity.y >> comma >> g_currentProps.startVelocity.z;
         } else if (key == "velocityVariation") {
-            char comma;
+            Char comma;
             ss >> g_currentProps.velocityVariation.x >> comma >> g_currentProps.velocityVariation.y >> comma >> g_currentProps.velocityVariation.z;
         } else if (key == "blendFunc") {
             string blendMode;
@@ -307,7 +307,7 @@ void open_file(const string& path) {
             }
         }
         else if (key == "useLighting") {
-            int val;
+            Int val;
             ss >> val;
             g_currentProps.useLighting = (val != 0);
         }
@@ -319,7 +319,7 @@ void open_file(const string& path) {
 
 void on_new_cb(Fl_Widget*, void*) {
     if (g_isDirty) {
-        int choice = fl_choice("You have unsaved changes. Do you want to save first?", "Save", "Discard", "Cancel");
+        Int choice = fl_choice("You have unsaved changes. Do you want to save first?", "Save", "Discard", "Cancel");
         if (choice == 2) return;
         if (choice == 0) {
             if (g_currentFilePath.empty()) {
@@ -359,7 +359,7 @@ void on_save_cb(Fl_Widget*, void*) {
 
 void on_open_cb(Fl_Widget*, void*) {
      if (g_isDirty) {
-        int choice = fl_choice("You have unsaved changes. Do you want to save first?", "Save", "Discard", "Cancel");
+        Int choice = fl_choice("You have unsaved changes. Do you want to save first?", "Save", "Discard", "Cancel");
         if (choice == 2) return;
         if (choice == 0) { on_save_cb(nullptr, nullptr); }
     }
@@ -373,7 +373,7 @@ void on_open_cb(Fl_Widget*, void*) {
 
 void on_quit_cb(Fl_Widget*, void*) {
     if (g_isDirty) {
-        int choice = fl_choice("You have unsaved changes. Quit without saving?", "Quit", "Save and Quit", "Cancel");
+        Int choice = fl_choice("You have unsaved changes. Quit without saving?", "Quit", "Save and Quit", "Cancel");
         if (choice == 2) {
             return;
         }
@@ -402,7 +402,7 @@ void on_about_cb(Fl_Widget*, void*) {
     fl_message("A tool to create and edit .par files for the Tectonic Engine.\n\nCopyright (c) 2025-2026 Soft Sprint Studios");
 }
 
-int main(int argc, char** argv) {
+Int main(Int argc, Char** argv) {
     g_mainWindow = new Fl_Window(500, 480, "Tectonic Particle Editor");
     g_mainWindow->callback((Fl_Callback*)on_quit_cb);
     

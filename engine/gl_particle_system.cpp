@@ -29,11 +29,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <float.h>
+#include <Float.h>
 
 static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
 
-ParticleSystem* ParticleSystem_Load(const char* path) {
+ParticleSystem* ParticleSystem_Load(const Char* path) {
     FILE* file = fopen(path, "r");
     if (!file) return nullptr;
 
@@ -54,9 +54,9 @@ ParticleSystem* ParticleSystem_Load(const char* path) {
     ps->blend_dfactor = GL_ONE_MINUS_SRC_ALPHA;
     ps->useLighting = true;
 
-    char line[256];
+    Char line[256];
     while (fgets(line, sizeof(line), file)) {
-        char key[64], value[128];
+        Char key[64], value[128];
         if (sscanf(line, "%s %s", key, value) != 2) continue;
 
         if (strcmp(key, "maxParticles") == 0) ps->maxParticles = atoi(value);
@@ -94,9 +94,9 @@ void ParticleSystem_Free(ParticleSystem* system) {
     free(system);
 }
 
-static int find_unused_particle(ParticleEmitter* emitter) {
-    for (int i = emitter->activeParticles; i < emitter->system->maxParticles; ++i) if (emitter->particles[i].life < 0.0f) return i;
-    for (int i = 0; i < emitter->activeParticles; ++i) if (emitter->particles[i].life < 0.0f) return i;
+static Int find_unused_particle(ParticleEmitter* emitter) {
+    for (Int i = emitter->activeParticles; i < emitter->system->maxParticles; ++i) if (emitter->particles[i].life < 0.0f) return i;
+    for (Int i = 0; i < emitter->activeParticles; ++i) if (emitter->particles[i].life < 0.0f) return i;
     return -1;
 }
 
@@ -119,7 +119,7 @@ void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3
     emitter->is_on = emitter->on_by_default;
     emitter->activeParticles = 0;
     emitter->timeSinceLastSpawn = 0.0f;
-    for (int i = 0; i < emitter->system->maxParticles; ++i) emitter->particles[i].life = -1.0f;
+    for (Int i = 0; i < emitter->system->maxParticles; ++i) emitter->particles[i].life = -1.0f;
     glGenVertexArrays(1, &emitter->vao);
     glGenBuffers(1, &emitter->vbo);
     glBindVertexArray(emitter->vao);
@@ -136,19 +136,19 @@ void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3
     glBindVertexArray(0);
 }
 
-void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
+void ParticleEmitter_Update(ParticleEmitter* emitter, Float deltaTime) {
     if (!emitter || !emitter->system) return;
     ParticleSystem* ps = emitter->system;
 
     if (emitter->is_on) {
         emitter->timeSinceLastSpawn += deltaTime;
-        int particlesToSpawn = (int)(emitter->timeSinceLastSpawn * ps->spawnRate);
+        Int particlesToSpawn = (Int)(emitter->timeSinceLastSpawn * ps->spawnRate);
         if (particlesToSpawn > 0) {
             emitter->timeSinceLastSpawn = 0.0f;
         }
 
-        for (int i = 0; i < particlesToSpawn; ++i) {
-            int particleIndex = find_unused_particle(emitter);
+        for (Int i = 0; i < particlesToSpawn; ++i) {
+            Int particleIndex = find_unused_particle(emitter);
             if (particleIndex != -1) {
                 respawn_particle(emitter, &emitter->particles[particleIndex]);
             }
@@ -156,7 +156,7 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
     }
 
     emitter->activeParticles = 0;
-    for (int i = 0; i < ps->maxParticles; ++i) {
+    for (Int i = 0; i < ps->maxParticles; ++i) {
         Particle* p = &emitter->particles[i];
         if (p->life > 0.0f) {
             p->life -= deltaTime;
@@ -164,7 +164,7 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
                 p->velocity = vec3_add(p->velocity, vec3_muls(ps->gravity, deltaTime));
                 p->position = vec3_add(p->position, vec3_muls(p->velocity, deltaTime));
                 p->angle += p->angularVelocity * deltaTime;
-                float lifeRatio = 1.0f - (p->life / (ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation)));
+                Float lifeRatio = 1.0f - (p->life / (ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation)));
                 p->color.x = ps->startColor.x + (ps->endColor.x - ps->startColor.x) * lifeRatio;
                 p->color.y = ps->startColor.y + (ps->endColor.y - ps->startColor.y) * lifeRatio;
                 p->color.z = ps->startColor.z + (ps->endColor.z - ps->startColor.z) * lifeRatio;
@@ -188,7 +188,7 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, float deltaTime) {
     }
 }
 
-void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* engine_ptr, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight) {
+void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* engine_ptr, Mat4 view, Mat4 projection, GLuint gPosition, Float screenWidth, Float screenHeight) {
     if (!emitter || !emitter->system || emitter->activeParticles == 0) return;
 
     Scene* scene = (Scene*)scene_ptr;
@@ -217,14 +217,14 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
     glUniform1i(glGetUniformLocation(ps->shader, "u_numAmbientProbes"), scene->num_ambient_probes);
     if (scene->num_ambient_probes > 0) {
         AmbientProbe* nearest_probes[8] = { nullptr };
-        float distances[8];
-        for (int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
+        Float distances[8];
+        for (Int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
 
-        for (int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
-            float d = vec3_length_sq(vec3_sub(engine->camera.position, scene->ambient_probes[p_idx].position));
-            for (int k = 0; k < 8; ++k) {
+        for (Int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
+            Float d = vec3_length_sq(vec3_sub(engine->camera.position, scene->ambient_probes[p_idx].position));
+            for (Int k = 0; k < 8; ++k) {
                 if (d < distances[k]) {
-                    for (int l = 7; l > k; --l) {
+                    for (Int l = 7; l > k; --l) {
                         distances[l] = distances[l - 1];
                         nearest_probes[l] = nearest_probes[l - 1];
                     }
@@ -235,12 +235,12 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
             }
         }
 
-        for (int k = 0; k < 8; ++k) {
-            char buf[64];
+        for (Int k = 0; k < 8; ++k) {
+            Char buf[64];
             if (nearest_probes[k]) {
                 sprintf(buf, "u_probes[%d].position", k);
                 glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->position.x);
-                for (int f = 0; f < 6; ++f) {
+                for (Int f = 0; f < 6; ++f) {
                     sprintf(buf, "u_probes[%d].colors[%d]", k, f);
                     glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->colors[f].x);
                 }

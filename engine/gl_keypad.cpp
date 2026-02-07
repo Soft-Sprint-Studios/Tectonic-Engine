@@ -25,14 +25,14 @@
 #include "gl_console.h"
 #include "io_system.h"
 
-extern bool g_player_input_disabled;
+extern Bool g_player_input_disabled;
 
 void Keypad_RenderUI(Scene* scene, Engine* engine) {
     if (!engine->keypad_active) {
         return;
     }
 
-    float screen_w, screen_h;
+    Float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
     UI_SetNextWindowPos(screen_w * 0.5f - 90.0f, screen_h * 0.5f - 140.0f);
     UI_SetNextWindowSize(80, 125);
@@ -40,8 +40,8 @@ void Keypad_RenderUI(Scene* scene, Engine* engine) {
     if (UI_Begin_WithFlags("Keypad", &engine->keypad_active, 1 << 0 | 1 << 3 | 1 << 5)) {
         UI_InputText_Flags("##code", engine->keypad_input_buffer, sizeof(engine->keypad_input_buffer), 1 << 10);
 
-        const char* buttons[] = { "7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "E" };
-        for (int i = 0; i < 12; i++) {
+        const Char* buttons[] = { "7", "8", "9", "4", "5", "6", "1", "2", "3", "C", "0", "E" };
+        for (Int i = 0; i < 12; i++) {
             if (i % 3 != 0) {
                 UI_SameLine();
             }
@@ -52,7 +52,7 @@ void Keypad_RenderUI(Scene* scene, Engine* engine) {
                     memset(engine->keypad_input_buffer, 0, sizeof(engine->keypad_input_buffer));
                 } else if (strcmp(buttons[i], "E") == 0) {
                     LogicEntity* keypad_ent = &scene->logicEntities[engine->active_keypad_entity_index];
-                    const char* correct_password = LogicEntity_GetProperty(keypad_ent, "password", "");
+                    const Char* correct_password = LogicEntity_GetProperty(keypad_ent, "password", "");
 
                     if (strcmp(engine->keypad_input_buffer, correct_password) == 0) {
                         IO_FireOutput(ENTITY_LOGIC, engine->active_keypad_entity_index, "OnPasswordCorrect", engine->lastFrame, nullptr);

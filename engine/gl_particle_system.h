@@ -40,51 +40,51 @@
         Vec3 position;
         Vec3 velocity;
         Vec4 color;
-        float size;
-        float life;
-        float angle;
-        float angularVelocity;
+        Float size;
+        Float life;
+        Float angle;
+        Float angularVelocity;
     } Particle;
 
     typedef struct {
-        char name[64];
+        Char name[64];
         Vec3 gravity;
-        float spawnRate;
-        float lifetime;
-        float lifetimeVariation;
+        Float spawnRate;
+        Float lifetime;
+        Float lifetimeVariation;
         Vec4 startColor;
         Vec4 endColor;
-        float startSize;
-        float endSize;
-        float startAngle;
-        float angleVariation;
-        float startAngularVelocity;
-        float angularVelocityVariation;
-        float softness;
+        Float startSize;
+        Float endSize;
+        Float startAngle;
+        Float angleVariation;
+        Float startAngularVelocity;
+        Float angularVelocityVariation;
+        Float softness;
         Vec3 startVelocity;
         Vec3 velocityVariation;
-        int maxParticles;
+        Int maxParticles;
         Material* material;
         GLuint shader;
         GLenum blend_sfactor;
         GLenum blend_dfactor;
-        bool useLighting;
+        Bool useLighting;
     } ParticleSystem;
 
     typedef struct {
         Vec3 position;
-        float size;
-        float angle;
+        Float size;
+        Float angle;
         Vec4 color;
     } ParticleVertex;
 
     struct ParticleEmitter;
 
-    ParticleSystem* ParticleSystem_Load(const char* path);
+    ParticleSystem* ParticleSystem_Load(const Char* path);
     void ParticleSystem_Free(ParticleSystem* system);
     void ParticleEmitter_Init(struct ParticleEmitter* emitter, ParticleSystem* system, Vec3 position);
-    void ParticleEmitter_Update(struct ParticleEmitter* emitter, float deltaTime);
-    void ParticleEmitter_Render(struct ParticleEmitter* emitter, void* scene, void* engine, Mat4 view, Mat4 projection, GLuint gPosition, float screenWidth, float screenHeight);
+    void ParticleEmitter_Update(struct ParticleEmitter* emitter, Float deltaTime);
+    void ParticleEmitter_Render(struct ParticleEmitter* emitter, void* scene, void* engine, Mat4 view, Mat4 projection, GLuint gPosition, Float screenWidth, Float screenHeight);
     void ParticleEmitter_Free(struct ParticleEmitter* emitter);
 
 

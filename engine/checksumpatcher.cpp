@@ -30,28 +30,28 @@
 #include <cstring>
 
 #ifdef PLATFORM_WINDOWS
-const char* g_module_names[] = {
+const Char* g_module_names[] = {
     "engine.dll", "level0.dll", "level1.dll",
     "math_lib.dll", "physics.dll", "sound.dll",
     "materials.dll", "models.dll"
 };
 #else
-const char* g_module_names[] = {
+const Char* g_module_names[] = {
     "libengine.so", "liblevel0.so", "liblevel1.so",
     "libmath_lib.so", "libphysics.so", "libsound.so",
     "libmaterials.so", "libmodels.so"
 };
 #endif
-const int g_num_modules = sizeof(g_module_names) / sizeof(g_module_names[0]);
+const Int g_num_modules = sizeof(g_module_names) / sizeof(g_module_names[0]);
 
 static uint32_t crc_table[256];
-static bool table_initialized = false;
+static Bool table_initialized = false;
 
 void crc32_init_table() {
     if (table_initialized) return;
     for (uint32_t i = 0; i < 256; i++) {
         uint32_t c = i;
-        for (int j = 0; j < 8; j++) {
+        for (Int j = 0; j < 8; j++) {
             c = (c & 1) ? (0xEDB88320L ^ (c >> 1)) : (c >> 1);
         }
         crc_table[i] = c;
@@ -59,7 +59,7 @@ void crc32_init_table() {
     table_initialized = true;
 }
 
-uint32_t crc32_calculate(const unsigned char* data, size_t size) {
+uint32_t crc32_calculate(const Uchar* data, size_t size) {
     uint32_t crc = 0;
     crc = crc ^ ~0U;
     while (size--) {
@@ -81,7 +81,7 @@ string get_directory(const string& path) {
     return "./";
 }
 
-int main(int argc, char* argv[]) {
+Int main(Int argc, Char* argv[]) {
     if (argc < 2) {
         cerr << "[Patcher] FATAL: No executable path provided." << endl;
         cerr << "Usage: " << argv[0] << " <path_to_engine_dll>" << endl;
@@ -93,10 +93,10 @@ int main(int argc, char* argv[]) {
     string buildDir = get_directory(fileToPatchPath);
     cout << "[Patcher] Using build directory: " << buildDir << endl;
 
-    vector<unsigned char> fullBuffer;
-    long engineDllSize = 0;
+    vector<Uchar> fullBuffer;
+    Long engineDllSize = 0;
 
-    for (int i = 0; i < g_num_modules; ++i) {
+    for (Int i = 0; i < g_num_modules; ++i) {
         string modulePath = buildDir + g_module_names[i];
         cout << "[Patcher] Reading module: " << modulePath << endl;
 
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
         size_t originalSize = fullBuffer.size();
         fullBuffer.resize(originalSize + moduleSize);
 
-        if (!moduleFile.read(reinterpret_cast<char*>(fullBuffer.data() + originalSize), moduleSize)) {
+        if (!moduleFile.read(reinterpret_cast<Char*>(fullBuffer.data() + originalSize), moduleSize)) {
             cerr << "[Patcher] FATAL: Failed to read module into buffer: " << modulePath << endl;
             moduleFile.close();
             return 1;
@@ -125,8 +125,8 @@ int main(int argc, char* argv[]) {
         cout << "[Patcher] Appended " << moduleSize << " bytes. Total buffer size now: " << fullBuffer.size() << " bytes." << endl;
     }
 
-    long checksumStructOffset = -1;
-    for (long i = 0; i <= engineDllSize - (long)sizeof(EmbeddedChecksum); ++i) {
+    Long checksumStructOffset = -1;
+    for (Long i = 0; i <= engineDllSize - (Long)sizeof(EmbeddedChecksum); ++i) {
         EmbeddedChecksum current_val;
         memcpy(&current_val, &fullBuffer[i], sizeof(EmbeddedChecksum));
         if (current_val.signature == 0xBADF00D5) {
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
     }
     cout << "[Patcher] Found signature at offset: " << checksumStructOffset << endl;
 
-    long checksumValueOffset = checksumStructOffset + offsetof(EmbeddedChecksum, checksum);
+    Long checksumValueOffset = checksumStructOffset + offsetof(EmbeddedChecksum, checksum);
 
     *(reinterpret_cast<uint32_t*>(&fullBuffer[checksumValueOffset])) = 0;
 
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     }
 
     outFile.seekp(checksumValueOffset);
-    outFile.write(reinterpret_cast<const char*>(&checksum), sizeof(checksum));
+    outFile.write(reinterpret_cast<const Char*>(&checksum), sizeof(checksum));
     if (outFile.fail()) {
         cerr << "[Patcher] FATAL: Failed to write new checksum to file." << endl;
         outFile.close();

@@ -38,7 +38,7 @@
 #include <iostream>
 #endif
 
-void launch_tool(const char* tool_executable) {
+void launch_tool(const Char* tool_executable) {
 #ifdef PLATFORM_WINDOWS
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
@@ -46,7 +46,7 @@ void launch_tool(const char* tool_executable) {
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    char cmdLine[256];
+    Char cmdLine[256];
     strncpy_s(cmdLine, tool_executable, sizeof(cmdLine) - 1);
     cmdLine[sizeof(cmdLine) - 1] = '\0';
 
@@ -62,9 +62,9 @@ void launch_tool(const char* tool_executable) {
 #else
     pid_t pid = fork();
     if (pid == 0) {
-        char path_buffer[512];
+        Char path_buffer[512];
         snprintf(path_buffer, sizeof(path_buffer), "./%s", tool_executable);
-        execlp(path_buffer, tool_executable, (char*)nullptr);
+        execlp(path_buffer, tool_executable, (Char*)nullptr);
         perror("execlp");
         _exit(1);
     }
@@ -98,9 +98,9 @@ void on_quit_cb(Fl_Widget* w, void*) {
     win->hide();
 }
 
-int main(int argc, char** argv) {
-    const int win_w = 320;
-    const int win_h = 240;
+Int main(Int argc, Char** argv) {
+    const Int win_w = 320;
+    const Int win_h = 240;
 
     Fl_Window* window = new Fl_Window(win_w, win_h, "Tectonic SDK Launcher");
     window->begin();

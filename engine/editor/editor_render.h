@@ -28,7 +28,7 @@
 #include "editor_internal.h"
 
 
-	void Editor_RenderGrid(ViewportType type, float aspect);
+	void Editor_RenderGrid(ViewportType type, Float aspect);
 	void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type);
 	void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* renderer, Scene* scene, const Mat4* sunLightSpaceMatrix);
 	void Editor_RenderModelPreviewerScene(Renderer* renderer);

@@ -37,7 +37,7 @@ void Cable_Init(void) {
     glGenBuffers(1, &g_cable_vbo);
     glBindVertexArray(g_cable_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_cable_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 }
@@ -48,17 +48,17 @@ void Cable_Shutdown(void) {
     if (g_cable_vbo) glDeleteBuffers(1, &g_cable_vbo);
 }
 
-static Vec3 get_bezier_point(float t, Vec3 p0, Vec3 p1, Vec3 p2) {
-    float u = 1.0f - t;
-    float tt = t * t;
-    float uu = u * u;
+static Vec3 get_bezier_point(Float t, Vec3 p0, Vec3 p1, Vec3 p2) {
+    Float u = 1.0f - t;
+    Float tt = t * t;
+    Float uu = u * u;
     Vec3 p = vec3_muls(p0, uu);
     p = vec3_add(p, vec3_muls(p1, 2.0f * u * t));
     p = vec3_add(p, vec3_muls(p2, tt));
     return p;
 }
 
-void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time) {
+void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Float time) {
     glUseProgram(g_cable_shader);
     glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "view"), 1, GL_FALSE, view.m);
     glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "projection"), 1, GL_FALSE, projection.m);
@@ -70,22 +70,22 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, floa
     glBindVertexArray(g_cable_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_cable_vbo);
 
-    for (int i = 0; i < scene->numLogicEntities; ++i) {
+    for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_cable") == 0) {
-            const char* target_name = LogicEntity_GetProperty(ent, "Target", "");
+            const Char* target_name = LogicEntity_GetProperty(ent, "Target", "");
             Vec3 end_pos;
             Vec3 end_angles_dummy;
 
             if (IO_FindNamedEntity(scene, target_name, &end_pos, &end_angles_dummy)) {
                 Vec3 start_pos = ent->pos;
-                float depth = atof(LogicEntity_GetProperty(ent, "Depth", "20.0"));
-                float width = atof(LogicEntity_GetProperty(ent, "Width", "0.1"));
-                int segments = atoi(LogicEntity_GetProperty(ent, "Segments", "16"));
+                Float depth = atof(LogicEntity_GetProperty(ent, "Depth", "20.0"));
+                Float width = atof(LogicEntity_GetProperty(ent, "Width", "0.1"));
+                Int segments = atoi(LogicEntity_GetProperty(ent, "Segments", "16"));
                 if (segments < 2) segments = 2;
 
-                float wind_amount = atof(LogicEntity_GetProperty(ent, "WindAmount", "5.0"));
-                float wind_speed = atof(LogicEntity_GetProperty(ent, "WindSpeed", "1.0"));
+                Float wind_amount = atof(LogicEntity_GetProperty(ent, "WindAmount", "5.0"));
+                Float wind_speed = atof(LogicEntity_GetProperty(ent, "WindSpeed", "1.0"));
                 Vec3 wind_angles;
                 sscanf(LogicEntity_GetProperty(ent, "WindDirection", "0 0 0"), "%f %f %f", &wind_angles.x, &wind_angles.y, &wind_angles.z);
 
@@ -97,28 +97,28 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, floa
                     Vec3 wind_dir = mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
                     vec3_normalize(&wind_dir);
 
-                    float sway1 = sin(time * wind_speed * 1.0f) * wind_amount * 0.6f;
-                    float sway2 = sin(time * wind_speed * 0.45f + 1.23f) * wind_amount * 0.4f;
+                    Float sway1 = sin(time * wind_speed * 1.0f) * wind_amount * 0.6f;
+                    Float sway2 = sin(time * wind_speed * 0.45f + 1.23f) * wind_amount * 0.4f;
                     Vec3 wind_offset = vec3_muls(wind_dir, sway1 + sway2);
                     control_pos = vec3_add(control_pos, wind_offset);
                 }
 
-                int num_vertices = (segments + 1) * 2;
+                Int num_vertices = (segments + 1) * 2;
                 Vec3* vertices = (Vec3*)malloc(num_vertices * sizeof(Vec3));
                 if (!vertices) continue;
 
-                for (int j = 0; j <= segments; ++j) {
-                    float t = (float)j / (float)segments;
+                for (Int j = 0; j <= segments; ++j) {
+                    Float t = (Float)j / (Float)segments;
                     Vec3 p = get_bezier_point(t, start_pos, control_pos, end_pos);
 
                     Vec3 next_p;
                     if (j == segments) {
-                        float t_prev = (float)(j - 1) / (float)segments;
+                        Float t_prev = (Float)(j - 1) / (Float)segments;
                         Vec3 prev_p = get_bezier_point(t_prev, start_pos, control_pos, end_pos);
                         next_p = vec3_add(p, vec3_sub(p, prev_p));
                     }
                     else {
-                        float t_next = (float)(j + 1) / (float)segments;
+                        Float t_next = (Float)(j + 1) / (Float)segments;
                         next_p = get_bezier_point(t_next, start_pos, control_pos, end_pos);
                     }
 

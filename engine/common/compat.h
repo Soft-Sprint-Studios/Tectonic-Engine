@@ -30,6 +30,7 @@
 //----------------------------------------//
 
 #include <stdio.h>
+#include "datatypes.h"
 
 #ifdef __cplusplus
     using namespace std;
@@ -123,15 +124,15 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
-static const char* _stristr(const char* haystack, const char* needle) {
+static const Char* _stristr(const Char* haystack, const Char* needle) {
     if (!needle || !*needle) {
         return haystack;
     }
     for (; *haystack; ++haystack) {
-        if (tolower((unsigned char)*haystack) == tolower((unsigned char)*needle)) {
-            const char* h = haystack;
-            const char* n = needle;
-            while (*h && *n && tolower((unsigned char)*h) == tolower((unsigned char)*n)) {
+        if (tolower((Uchar)*haystack) == tolower((Uchar)*needle)) {
+            const Char* h = haystack;
+            const Char* n = needle;
+            while (*h && *n && tolower((Uchar)*h) == tolower((Uchar)*n)) {
                 h++;
                 n++;
             }
@@ -147,10 +148,10 @@ static const char* _stristr(const char* haystack, const char* needle) {
 #endif
 }
 
-static char* trim(char* str) {
-    char* end;
+static Char* trim(Char* str) {
+    Char* end;
 
-    while (isspace((unsigned char)*str)) {
+    while (isspace((Uchar)*str)) {
         str++;
     }
 
@@ -160,7 +161,7 @@ static char* trim(char* str) {
 
     end = str + strlen(str) - 1;
 
-    while (end > str && isspace((unsigned char)*end)) {
+    while (end > str && isspace((Uchar)*end)) {
         end--;
     }
 
@@ -169,9 +170,9 @@ static char* trim(char* str) {
     return str;
 }
 
-static int g_build_number = -1;
+static Int g_build_number = -1;
 
-static int get_month_from_name(const char* month_name) {
+static Int get_month_from_name(const Char* month_name) {
     if (strcmp(month_name, "Jan") == 0) return 1;
     if (strcmp(month_name, "Feb") == 0) return 2;
     if (strcmp(month_name, "Mar") == 0) return 3;
@@ -187,7 +188,7 @@ static int get_month_from_name(const char* month_name) {
     return 0;
 }
 
-static int days_from_origin(int year, int month, int day) {
+static Int days_from_origin(Int year, Int month, Int day) {
     if (month < 3) {
         year--;
         month += 12;
@@ -195,15 +196,15 @@ static int days_from_origin(int year, int month, int day) {
     return 365 * year + year / 4 - year / 100 + year / 400 + (153 * month - 457) / 5 + day - 306;
 }
 
-static int Compat_GetBuildNumber() {
+static Int Compat_GetBuildNumber() {
     if (g_build_number == -1) {
-        char month_str[4];
-        int day, year;
+        Char month_str[4];
+        Int day, year;
         sscanf(__DATE__, "%s %d %d", month_str, &day, &year);
-        int month = get_month_from_name(month_str);
+        Int month = get_month_from_name(month_str);
 
-        int days_current = days_from_origin(year, month, day);
-        int days_ref = days_from_origin(2025, 6, 1);
+        Int days_current = days_from_origin(year, month, day);
+        Int days_ref = days_from_origin(2025, 6, 1);
 
         g_build_number = days_current - days_ref;
         if (g_build_number < 0) {
@@ -213,19 +214,19 @@ static int Compat_GetBuildNumber() {
     return g_build_number;
 }
 
-static inline void cpuid(unsigned int function_id, unsigned int subfunction_id,
-    unsigned int* eax, unsigned int* ebx,
-    unsigned int* ecx, unsigned int* edx) 
+static inline void cpuid(Uint function_id, Uint subfunction_id,
+    Uint* eax, Uint* ebx,
+    Uint* ecx, Uint* edx) 
 {
 #if defined(COMPILER_MSVC)
-    int regs[4];
+    Int regs[4];
     __cpuidex(regs, function_id, subfunction_id);
     *eax = regs[0];
     *ebx = regs[1];
     *ecx = regs[2];
     *edx = regs[3];
 #elif defined(COMPILER_GNU)
-    unsigned int _eax, _ebx, _ecx, _edx;
+    Uint _eax, _ebx, _ecx, _edx;
     __asm__ volatile (
         "cpuid"
         : "=a" (_eax), "=b" (_ebx), "=c" (_ecx), "=d" (_edx)
@@ -237,8 +238,8 @@ static inline void cpuid(unsigned int function_id, unsigned int subfunction_id,
 #endif
 }
 
-static void GetCPUType(char out[13]) {
-    unsigned int eax, ebx, ecx, edx;
+static void GetCPUType(Char out[13]) {
+    Uint eax, ebx, ecx, edx;
     cpuid(0, 0, &eax, &ebx, &ecx, &edx);
     memcpy(out + 0, &ebx, 4);
     memcpy(out + 4, &edx, 4);
@@ -246,9 +247,9 @@ static void GetCPUType(char out[13]) {
     out[12] = '\0';
 }
 
-static void GetCPUName(char out[49]) {
-    unsigned int eax, ebx, ecx, edx;
-    for (int i = 0; i < 3; ++i) {
+static void GetCPUName(Char out[49]) {
+    Uint eax, ebx, ecx, edx;
+    for (Int i = 0; i < 3; ++i) {
         cpuid(0x80000002 + i, 0, &eax, &ebx, &ecx, &edx);
         memcpy(out + i * 16 + 0, &eax, 4);
         memcpy(out + i * 16 + 4, &ebx, 4);

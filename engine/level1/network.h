@@ -35,8 +35,8 @@
 
 	LEVEL1_API void Network_Init(void);
 	LEVEL1_API void Network_Shutdown(void);
-	LEVEL1_API bool Network_DownloadFile(const char* url, const char* output_filepath);
-	LEVEL1_API bool Network_Ping(const char* hostname);
+	LEVEL1_API Bool Network_DownloadFile(const Char* url, const Char* output_filepath);
+	LEVEL1_API Bool Network_Ping(const Char* hostname);
 
 
 #endif

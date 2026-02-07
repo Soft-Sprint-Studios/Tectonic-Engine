@@ -33,7 +33,7 @@
 class Commands {
 private:
     static Command g_commands[MAX_COMMANDS];
-    static int g_num_commands;
+    static Int g_num_commands;
 
 public:
     static void Init() {
@@ -43,7 +43,7 @@ public:
 
     static void Shutdown() {}
 
-    static void Register(const char* name, command_func_t func, const char* description, int flags) {
+    static void Register(const Char* name, command_func_t func, const Char* description, Int flags) {
         if (g_num_commands >= MAX_COMMANDS) {
             Console_Printf_Error("Command registration failed, max commands reached.");
             return;
@@ -55,11 +55,11 @@ public:
         g_num_commands++;
     }
 
-    static void Execute(int argc, char** argv) {
+    static void Execute(Int argc, Char** argv) {
         if (argc == 0) return;
-        char* cmd_name = argv[0];
+        Char* cmd_name = argv[0];
 
-        for (int i = 0; i < g_num_commands; ++i) {
+        for (Int i = 0; i < g_num_commands; ++i) {
             if (_stricmp(cmd_name, g_commands[i].name) == 0) {
                 if ((g_commands[i].flags & CMD_CHEAT) && Cvar_GetInt("g_cheats") == 0) {
                     Console_Printf_Error("Command '%s' is cheat protected.", cmd_name);
@@ -84,11 +84,11 @@ public:
         Console_Printf_Error("Unknown command or cvar: %s", cmd_name);
     }
 
-    static int GetCount() {
+    static Int GetCount() {
         return g_num_commands;
     }
 
-    static const Command* GetCommand(int index) {
+    static const Command* GetCommand(Int index) {
         if (index >= 0 && index < g_num_commands) {
             return &g_commands[index];
         }
@@ -97,7 +97,7 @@ public:
 };
 
 Command Commands::g_commands[MAX_COMMANDS] = {};
-int Commands::g_num_commands = 0;
+Int Commands::g_num_commands = 0;
 
 void Commands_Init(void) {
     Commands::Init();
@@ -107,18 +107,18 @@ void Commands_Shutdown(void) {
     Commands::Shutdown();
 }
 
-void Commands_Register(const char* name, command_func_t func, const char* description, int flags) {
+void Commands_Register(const Char* name, command_func_t func, const Char* description, Int flags) {
     Commands::Register(name, func, description, flags);
 }
 
-void Commands_Execute(int argc, char** argv) {
+void Commands_Execute(Int argc, Char** argv) {
     Commands::Execute(argc, argv);
 }
 
-int Commands_GetCount() {
+Int Commands_GetCount() {
     return Commands::GetCount();
 }
 
-const Command* Commands_GetCommand(int index) {
+const Command* Commands_GetCommand(Int index) {
     return Commands::GetCommand(index);
 }

@@ -30,13 +30,13 @@
 class Binds {
 private:
     static KeyBind binds[MAX_BINDS];
-    static int num_binds;
+    static Int num_binds;
 
-    static SDL_Keycode GetKeyFromName(const char* keyName) {
+    static SDL_Keycode GetKeyFromName(const Char* keyName) {
         return SDL_GetKeyFromName(keyName);
     }
 
-    static const char* GetKeyName(SDL_Keycode key) {
+    static const Char* GetKeyName(SDL_Keycode key) {
         return SDL_GetKeyName(key);
     }
 
@@ -53,7 +53,7 @@ public:
         Console_Printf("Binds System Shutdown.\n");
     }
 
-    static void Load(const char* filename) {
+    static void Load(const Char* filename) {
         FILE* file = fopen(filename, "r");
         if (!file) {
             Console_Printf("No binds.txt found. Creating new one on exit.");
@@ -61,10 +61,10 @@ public:
         }
 
         num_binds = 0;
-        char line[256];
+        Char line[256];
         while (fgets(line, sizeof(line), file) && num_binds < MAX_BINDS) {
-            char keyName[64];
-            char command[MAX_COMMAND_LENGTH];
+            Char keyName[64];
+            Char command[MAX_COMMAND_LENGTH];
             if (sscanf(line, "bind \"%63[^\"]\" \"%127[^\"]\"", keyName, command) == 2) {
                 Set(keyName, command);
             }
@@ -72,15 +72,15 @@ public:
         fclose(file);
     }
 
-    static void Save(const char* filename) {
+    static void Save(const Char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
             Console_Printf_Error("Could not save binds to %s", filename);
             return;
         }
 
-        for (int i = 0; i < num_binds; i++) {
-            const char* keyName = GetKeyName(binds[i].key);
+        for (Int i = 0; i < num_binds; i++) {
+            const Char* keyName = GetKeyName(binds[i].key);
             if (keyName && strlen(keyName) > 0) {
                 fprintf(file, "bind \"%s\" \"%s\"\n", keyName, binds[i].command);
             }
@@ -89,14 +89,14 @@ public:
         Console_Printf("Saved %d binds to %s", num_binds, filename);
     }
 
-    static void Set(const char* keyName, const char* command) {
+    static void Set(const Char* keyName, const Char* command) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
             Console_Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 
-        for (int i = 0; i < num_binds; i++) {
+        for (Int i = 0; i < num_binds; i++) {
             if (binds[i].key == key) {
                 strncpy(binds[i].command, command, MAX_COMMAND_LENGTH - 1);
                 binds[i].command[MAX_COMMAND_LENGTH - 1] = '\0';
@@ -117,16 +117,16 @@ public:
         }
     }
 
-    static void Unset(const char* keyName) {
+    static void Unset(const Char* keyName) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
             Console_Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 
-        for (int i = 0; i < num_binds; i++) {
+        for (Int i = 0; i < num_binds; i++) {
             if (binds[i].key == key) {
-                for (int j = i; j < num_binds - 1; j++) {
+                for (Int j = i; j < num_binds - 1; j++) {
                     binds[j] = binds[j + 1];
                 }
                 num_binds--;
@@ -138,14 +138,14 @@ public:
     }
 
     static void UnbindAll() {
-        int old_num = num_binds;
+        Int old_num = num_binds;
         memset(binds, 0, sizeof(binds));
         num_binds = 0;
         Console_Printf("Unbound all %d keys.", old_num);
     }
 
-    static const char* GetCommand(SDL_Keycode key) {
-        for (int i = 0; i < num_binds; i++) {
+    static const Char* GetCommand(SDL_Keycode key) {
+        for (Int i = 0; i < num_binds; i++) {
             if (binds[i].key == key) {
                 return binds[i].command;
             }
@@ -155,7 +155,7 @@ public:
 };
 
 KeyBind Binds::binds[MAX_BINDS] = {};
-int Binds::num_binds = 0;
+Int Binds::num_binds = 0;
 
 void Binds_Init()
 {
@@ -167,22 +167,22 @@ void Binds_Shutdown()
     Binds::Shutdown();
 }
 
-void Binds_Load(const char* f)
+void Binds_Load(const Char* f)
 {
     Binds::Load(f);
 }
 
-void Binds_Save(const char* f)
+void Binds_Save(const Char* f)
 {
     Binds::Save(f);
 }
 
-void Binds_Set(const char* k, const char* c)
+void Binds_Set(const Char* k, const Char* c)
 {
     Binds::Set(k, c);
 }
 
-void Binds_Unset(const char* k)
+void Binds_Unset(const Char* k)
 {
     Binds::Unset(k);
 }
@@ -192,7 +192,7 @@ void Binds_UnbindAll()
     Binds::UnbindAll();
 }
 
-const char* Binds_GetCommand(SDL_Keycode k)
+const Char* Binds_GetCommand(SDL_Keycode k)
 {
     return Binds::GetCommand(k);
 }

@@ -33,22 +33,22 @@
 
 
     typedef struct {
-        char startmap[128];
-        char gamename[128];
+        Char startmap[128];
+        Char gamename[128];
     } GameConfig;
 
-    extern LEVEL1_API bool g_start_fullscreen;
-    extern LEVEL1_API bool g_start_windowed;
-    extern LEVEL1_API bool g_start_with_console;
-    extern LEVEL1_API bool g_dev_mode_requested;
-    extern LEVEL1_API int g_startup_width;
-    extern LEVEL1_API int g_startup_height;
-    extern LEVEL1_API bool g_allow_multiple_instances;
+    extern LEVEL1_API Bool g_start_fullscreen;
+    extern LEVEL1_API Bool g_start_windowed;
+    extern LEVEL1_API Bool g_start_with_console;
+    extern LEVEL1_API Bool g_dev_mode_requested;
+    extern LEVEL1_API Int g_startup_width;
+    extern LEVEL1_API Int g_startup_height;
+    extern LEVEL1_API Bool g_allow_multiple_instances;
 
     LEVEL1_API void GameConfig_Init(void);
     LEVEL1_API const GameConfig* GameConfig_Get(void);
-    LEVEL1_API void PreParse_GetResolution(int* width, int* height);
-    LEVEL1_API void GameConfig_ParseCommandLine(int argc, char* argv[]);
+    LEVEL1_API void PreParse_GetResolution(Int* width, Int* height);
+    LEVEL1_API void GameConfig_ParseCommandLine(Int argc, Char* argv[]);
 
 
 #endif // GAMECONFIG_H

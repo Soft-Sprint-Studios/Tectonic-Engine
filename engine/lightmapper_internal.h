@@ -25,13 +25,13 @@
 #ifndef LIGHTMAPPER_INTERNAL_H
 #define LIGHTMAPPER_INTERNAL_H
 
-constexpr float SHADOW_BIAS = 0.005f;
-constexpr int BLUR_RADIUS = 2;
-constexpr int NUM_AREA_LIGHT_SAMPLES = 16;
-constexpr int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64; // for lightmapped brushes and models
-constexpr int INDIRECT_SAMPLES_PER_POINT_MODELS = 512; // for vertex lit models
-constexpr int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
-constexpr int INDIRECT_SAMPLES_PER_POINT_DECALS = 64;
-constexpr float LUXELS_PER_UNIT = 16.0f;
+constexpr Float SHADOW_BIAS = 0.005f;
+constexpr Int BLUR_RADIUS = 2;
+constexpr Int NUM_AREA_LIGHT_SAMPLES = 16;
+constexpr Int INDIRECT_SAMPLES_PER_POINT_BRUSHES = 64; // for lightmapped brushes and models
+constexpr Int INDIRECT_SAMPLES_PER_POINT_MODELS = 512; // for vertex lit models
+constexpr Int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
+constexpr Int INDIRECT_SAMPLES_PER_POINT_DECALS = 64;
+constexpr Float LUXELS_PER_UNIT = 16.0f;
 
 #endif // LIGHTMAPPER_INTERNAL_H

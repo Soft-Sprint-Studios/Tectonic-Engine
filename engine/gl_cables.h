@@ -30,7 +30,7 @@
 
 	void Cable_Init(void);
 	void Cable_Shutdown(void);
-	void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, float time);
+	void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Float time);
 	
 
 #endif // GL_CABLES_H

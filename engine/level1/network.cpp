@@ -37,16 +37,16 @@
 #endif
 
 typedef struct {
-    char* url;
-    char* filepath;
+    Char* url;
+    Char* filepath;
 } DownloadArgs;
 
 typedef struct {
-    char* hostname;
+    Char* hostname;
 } PingArgs;
 
-static void parse_url(const char* url, char* host, size_t host_len, char* path, size_t path_len) {
-    const char* scheme_end = strstr(url, "://");
+static void parse_url(const Char* url, Char* host, size_t host_len, Char* path, size_t path_len) {
+    const Char* scheme_end = strstr(url, "://");
     if (scheme_end) {
         host = strncpy(host, scheme_end + 3, host_len - 1);
         host[host_len - 1] = '\0';
@@ -56,7 +56,7 @@ static void parse_url(const char* url, char* host, size_t host_len, char* path, 
         host[host_len - 1] = '\0';
     }
 
-    char* path_start = strchr(host, '/');
+    Char* path_start = strchr(host, '/');
     if (path_start) {
         strncpy(path, path_start, path_len - 1);
         path[path_len - 1] = '\0';
@@ -68,11 +68,11 @@ static void parse_url(const char* url, char* host, size_t host_len, char* path, 
 }
 
 #ifdef PLATFORM_WINDOWS
-static int download_thread_func_win32(void* data) {
+static Int download_thread_func_win32(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
     SOCKET sock = INVALID_SOCKET;
     struct addrinfo* result = nullptr, * ptr = nullptr, hints;
-    char host[256], path[2048];
+    Char host[256], path[2048];
 
     parse_url(args->url, host, sizeof(host), path, sizeof(path));
 
@@ -92,7 +92,7 @@ static int download_thread_func_win32(void* data) {
     for (ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
         sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (sock == INVALID_SOCKET) continue;
-        if (connect(sock, ptr->ai_addr, (int)ptr->ai_addrlen) == SOCKET_ERROR) {
+        if (connect(sock, ptr->ai_addr, (Int)ptr->ai_addrlen) == SOCKET_ERROR) {
             closesocket(sock);
             sock = INVALID_SOCKET;
             continue;
@@ -109,10 +109,10 @@ static int download_thread_func_win32(void* data) {
         free(args);
     }
 
-    char request[2048];
+    Char request[2048];
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
-    if (send(sock, request, (int)strlen(request), 0) == SOCKET_ERROR) {
+    if (send(sock, request, (Int)strlen(request), 0) == SOCKET_ERROR) {
         Console_Printf_Error("[Network] send failed.");
         if (sock != INVALID_SOCKET) closesocket(sock);
         free(args->url);
@@ -129,9 +129,9 @@ static int download_thread_func_win32(void* data) {
         free(args);
     }
 
-    char buffer[4096];
-    int bytes_received;
-    char* body_start = nullptr;
+    Char buffer[4096];
+    Int bytes_received;
+    Char* body_start = nullptr;
 
     while ((bytes_received = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
         if (!body_start) {
@@ -151,7 +151,7 @@ static int download_thread_func_win32(void* data) {
     return 0;
 }
 
-static int ping_thread_func_win32(void* data) {
+static Int ping_thread_func_win32(void* data) {
     PingArgs* args = (PingArgs*)data;
     SOCKET sock = INVALID_SOCKET;
     struct addrinfo* result = nullptr, hints;
@@ -181,12 +181,12 @@ static int ping_thread_func_win32(void* data) {
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&start);
 
-    if (connect(sock, result->ai_addr, (int)result->ai_addrlen) == SOCKET_ERROR) {
+    if (connect(sock, result->ai_addr, (Int)result->ai_addrlen) == SOCKET_ERROR) {
         Console_Printf_Error("[Network] Ping failed for %s: Connection timed out or refused", args->hostname);
     }
     else {
         QueryPerformanceCounter(&end);
-        double time_ms = (double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
+        Double time_ms = (Double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
         Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
@@ -195,11 +195,11 @@ static int ping_thread_func_win32(void* data) {
     return 0;
 }
 #else
-static int download_thread_func_posix(void* data) {
+static Int download_thread_func_posix(void* data) {
     DownloadArgs* args = (DownloadArgs*)data;
-    int sock = -1;
+    Int sock = -1;
     struct addrinfo* result = nullptr, * ptr = nullptr, hints;
-    char host[256], path[2048];
+    Char host[256], path[2048];
 
     parse_url(args->url, host, sizeof(host), path, sizeof(path));
 
@@ -235,7 +235,7 @@ static int download_thread_func_posix(void* data) {
         free(args);
     }
 
-    char request[2048];
+    Char request[2048];
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
     if (send(sock, request, strlen(request), 0) < 0) {
@@ -255,9 +255,9 @@ static int download_thread_func_posix(void* data) {
         free(args);
     }
 
-    char buffer[4096];
-    int bytes_received;
-    char* body_start = nullptr;
+    Char buffer[4096];
+    Int bytes_received;
+    Char* body_start = nullptr;
 
     while ((bytes_received = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
         if (!body_start) {
@@ -277,9 +277,9 @@ static int download_thread_func_posix(void* data) {
     return 0;
 }
 
-static int ping_thread_func_posix(void* data) {
+static Int ping_thread_func_posix(void* data) {
     PingArgs* args = (PingArgs*)data;
-    int sock = -1;
+    Int sock = -1;
     struct addrinfo* result = nullptr, hints;
 
     memset(&hints, 0, sizeof(hints));
@@ -310,7 +310,7 @@ static int ping_thread_func_posix(void* data) {
     }
     else {
         clock_gettime(CLOCK_MONOTONIC, &end);
-        double time_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0;
+        Double time_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0;
         Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
@@ -337,7 +337,7 @@ void Network_Shutdown(void) {
     Console_Printf("Network System Shutdown.\n");
 }
 
-bool Network_DownloadFile(const char* url, const char* output_filepath) {
+Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
     DownloadArgs* args = (DownloadArgs*)malloc(sizeof(DownloadArgs));
     if (!args) return false;
 
@@ -368,7 +368,7 @@ bool Network_DownloadFile(const char* url, const char* output_filepath) {
     return true;
 }
 
-bool Network_Ping(const char* hostname) {
+Bool Network_Ping(const Char* hostname) {
     PingArgs* args = (PingArgs*)malloc(sizeof(PingArgs));
     if (!args) return false;
 

@@ -36,22 +36,22 @@
 #define MAX_WATER_DEFS 64
 
     typedef struct {
-        char name[64];
-        char normalPath[128];
-        char dudvPath[128];
-        char flowmapPath[128];
+        Char name[64];
+        Char normalPath[128];
+        Char dudvPath[128];
+        Char flowmapPath[128];
         GLuint normalMap;
         GLuint dudvMap;
         GLuint flowMap;
-        float flowSpeed;
+        Float flowSpeed;
     } WaterDef;
 
     MATERIALS_API void WaterManager_Init(void);
     MATERIALS_API void WaterManager_Shutdown(void);
-    MATERIALS_API void WaterManager_ParseWaters(const char* filepath);
-    MATERIALS_API WaterDef* WaterManager_FindWaterDef(const char* name);
-    MATERIALS_API int WaterManager_GetWaterDefCount(void);
-    MATERIALS_API WaterDef* WaterManager_GetWaterDef(int index);
+    MATERIALS_API void WaterManager_ParseWaters(const Char* filepath);
+    MATERIALS_API WaterDef* WaterManager_FindWaterDef(const Char* name);
+    MATERIALS_API Int WaterManager_GetWaterDefCount(void);
+    MATERIALS_API WaterDef* WaterManager_GetWaterDef(Int index);
 
 
 #endif // WATER_MANAGER_H
