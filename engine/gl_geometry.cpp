@@ -28,7 +28,7 @@
 #include "gl_sprites.h"
 #include "gl_video_player.h"
 #include "cvar.h"
-#include <Float.h>
+#include <float.h>
 #include "io_system.h"
 #include "gl_decals.h"
 #include "gl_beams.h"

@@ -27,7 +27,7 @@
 #include "editor_math.h"
 #include "editor_undo.h"
 #include "gl_console.h"
-#include <Float.h>
+#include <float.h>
 
 void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, Int face_index, Int u_divs, Int v_divs) {
     if (brush_index < 0 || brush_index >= scene->numBrushes) return;

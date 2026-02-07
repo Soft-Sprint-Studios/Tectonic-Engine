@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <Float.h>
+#include <float.h>
 
 static ParticleVertex vboData[MAX_PARTICLES_PER_SYSTEM];
 

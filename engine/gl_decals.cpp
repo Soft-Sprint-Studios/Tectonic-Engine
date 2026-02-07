@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <Float.h>
+#include <float.h>
 #include "gl_decals.h"
 #include "gl_geometry.h"
 #include "cvar.h"

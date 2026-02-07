@@ -39,7 +39,7 @@
 #include <SDL.h>
 #include "gl_misc.h"
 #include <math.h>
-#include <Float.h>
+#include <float.h>
 #include <sys/stat.h>
 #include <SDL_image.h>
 #include "sound_system.h"

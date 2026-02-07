@@ -36,7 +36,7 @@
 #include "gl_render_misc.h"
 #include "water_manager.h"
 #include "mikktspace.h"
-#include <Float.h>
+#include <float.h>
 #include <time.h>
 #include <sys/stat.h>
 

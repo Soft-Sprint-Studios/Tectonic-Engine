@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <Float.h>
+#include <float.h>
 
 static void render_markdown_line(const Char* line) {
     if (strncmp(line, "## ", 3) == 0) {

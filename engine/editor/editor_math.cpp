@@ -23,7 +23,7 @@
  */
 #include "editor_math.h"
 #include <math.h>
-#include <Float.h>
+#include <float.h>
 
 Float SnapValue(Float value, Float snap_interval) {
     if (snap_interval == 0.0f) {

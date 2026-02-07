@@ -35,7 +35,7 @@
 #include "physics_wrapper.h"
 #include "editor.h"
 #include <stdlib.h>
-#include <Float.h>
+#include <float.h>
 #include "sound_system.h"
 #include "io_system.h"
 #include "binds.h"

@@ -23,7 +23,7 @@
  */
 #include "editor_selection.h"
 #include "editor_math.h"
-#include <Float.h>
+#include <float.h>
 
 void Editor_AddToSelection(EntityType type, Int index, Int face_index, Int vertex_index) {
     EditorSelection* new_selections = new EditorSelection[g_EditorState.num_selections + 1];

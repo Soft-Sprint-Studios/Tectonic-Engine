@@ -24,7 +24,7 @@
 #include "gl_planar.h"
 #include "gl_misc.h"
 #include "cvar.h"
-#include <Float.h>
+#include <float.h>
 #include "gl_geometry.h"
 #include "gl_skybox.h"
 #include "water_manager.h"
