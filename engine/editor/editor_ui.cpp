@@ -1387,10 +1387,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("About Tectonic Editor", nullptr, false, true)) {
                 g_EditorState.show_about_window = true;
             }
-            if (UI_MenuItem("Documentation", nullptr, false, true)) {
-                g_EditorState.show_help_window = true;
-                ScanDocFiles();
-            }
             UI_EndMenu();
         }
         UI_EndMainMenuBar();
@@ -1442,7 +1438,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Editor_RenderVertexToolsWindow(scene);
     Editor_RenderSculptNoisePopup(scene);
     Editor_RenderAboutWindow();
-    Editor_RenderHelpWindow();
     Editor_RenderSprinkleToolWindow();
     Editor_RenderParticleBrowser(scene);
     Editor_RenderBakeLightingWindow(scene, engine);

@@ -200,7 +200,6 @@
         ViewportType last_active_2d_view;
         Float editor_camera_speed;
         Bool texture_lock_enabled;
-        Bool show_help_window;
         Char** doc_files;
         Int num_doc_files;
         Int selected_doc_index;

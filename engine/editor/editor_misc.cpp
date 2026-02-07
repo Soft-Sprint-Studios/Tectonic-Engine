@@ -432,7 +432,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.last_active_2d_view = VIEW_TOP_XZ;
     g_EditorState.editor_camera_speed = 10.0f;
     g_EditorState.texture_lock_enabled = true;
-    g_EditorState.show_help_window = false;
     g_EditorState.doc_files = nullptr;
     g_EditorState.num_doc_files = 0;
     g_EditorState.selected_doc_index = -1;

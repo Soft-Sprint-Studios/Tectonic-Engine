@@ -45,70 +45,6 @@
 #include <string.h>
 #include <float.h>
 
-static void render_markdown_line(const Char* line) {
-    if (strncmp(line, "## ", 3) == 0) {
-        UI_TextColored(Vec4{ 0.6f, 0.8f, 1.0f, 1.0f }, "%s", line + 3);
-        return;
-    }
-    if (strncmp(line, "# ", 2) == 0) {
-        UI_TextColored(Vec4{ 0.8f, 1.0f, 0.8f, 1.0f }, "%s", line + 2);
-        return;
-    }
-    if (strcmp(line, "---") == 0) {
-        UI_Separator();
-        return;
-    }
-    if (strncmp(line, "* ", 2) == 0) {
-        UI_BulletText("%s", line + 2);
-        return;
-    }
-    if (strncmp(line, "|", 1) == 0) {
-        UI_TextWrapped("%s", line);
-        return;
-    }
-
-    const Char* p = line;
-    while (*p) {
-        const Char* bold_start = strstr(p, "**");
-
-        if (!bold_start) {
-            UI_TextWrapped("%s", p);
-            break;
-        }
-
-        if (bold_start > p) {
-            Char buffer[1024];
-            size_t len = bold_start - p;
-            if (len > sizeof(buffer) - 1) len = sizeof(buffer) - 1;
-            strncpy(buffer, p, len);
-            buffer[len] = '\0';
-            UI_TextWrapped("%s", buffer);
-            UI_SameLine();
-        }
-
-        const Char* bold_end = strstr(bold_start + 2, "**");
-
-        if (!bold_end) {
-            UI_TextWrapped("%s", bold_start);
-            break;
-        }
-
-        Char bold_text[1024];
-        size_t bold_len = bold_end - (bold_start + 2);
-        if (bold_len > sizeof(bold_text) - 1) bold_len = sizeof(bold_text) - 1;
-        strncpy(bold_text, bold_start + 2, bold_len);
-        bold_text[bold_len] = '\0';
-
-        UI_TextColored(Vec4{ 1.0f, 1.0f, 0.5f, 1.0f }, "%s", bold_text);
-
-        p = bold_end + 2;
-
-        if (*p) {
-            UI_SameLine();
-        }
-    }
-}
-
 void RenderIOEditor(EntityType type, Int index) {
     const TGD_EntityDef* def = nullptr;
     if (type == ENTITY_BRUSH) {
@@ -553,123 +489,6 @@ void Editor_RenderSoundBrowser(Scene* scene) {
             SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
             g_EditorState.preview_sound_buffer = 0;
         }
-    }
-    UI_End();
-}
-
-void Editor_RenderHelpWindow() {
-    if (!g_EditorState.show_help_window) return;
-
-    UI_SetNextWindowSize(800, 600);
-    if (UI_Begin("Help & Documentation", &g_EditorState.show_help_window)) {
-        UI_BeginChild("doc_list_child", 200, 0, true, 0);
-        if (UI_Button("Refresh List")) {
-            ScanDocFiles();
-        }
-        UI_Separator();
-
-        if (g_EditorState.num_doc_files > 0) {
-            for (Int i = 0; i < g_EditorState.num_doc_files; ++i) {
-                if (UI_Selectable(g_EditorState.doc_files[i], g_EditorState.selected_doc_index == i)) {
-                    g_EditorState.selected_doc_index = i;
-                    Char path_buffer[256];
-                    snprintf(path_buffer, sizeof(path_buffer), "docs/%s", g_EditorState.doc_files[i]);
-
-                    FILE* f = fopen(path_buffer, "rb");
-                    if (f) {
-                        fseek(f, 0, SEEK_END);
-                        Long length = ftell(f);
-                        fseek(f, 0, SEEK_SET);
-
-                        if (g_EditorState.current_doc_content) {
-                            delete[] g_EditorState.current_doc_content;
-                            g_EditorState.current_doc_content = nullptr;
-                        }
-
-                        g_EditorState.current_doc_content = new Char[length + 1];
-                        if (g_EditorState.current_doc_content) {
-                            fread(g_EditorState.current_doc_content, 1, length, f);
-                            g_EditorState.current_doc_content[length] = '\0';
-                        }
-                        fclose(f);
-                    }
-                }
-            }
-        }
-        UI_EndChild();
-        UI_SameLine();
-
-        UI_BeginChild("doc_preview_child", 0, 0, true, 0);
-        if (g_EditorState.current_doc_content) {
-            const Char* content_ptr = g_EditorState.current_doc_content;
-            Char* content_copy = new Char[strlen(content_ptr) + 1];
-            strcpy(content_copy, content_ptr);
-
-            Char* line = strtok(content_copy, "\n");
-            Bool in_table = false;
-            Bool in_code_block = false;
-
-            while (line) {
-                if (strncmp(line, "```", 3) == 0) {
-                    in_code_block = !in_code_block;
-                    line = strtok(nullptr, "\n");
-                    continue;
-                }
-
-                if (in_code_block) {
-                    UI_TextColored(Vec4{ 0.8f, 0.9f, 1.0f, 1.0f }, "%s", line);
-                    line = strtok(nullptr, "\n");
-                    continue;
-                }
-
-                if (line[0] == '|') {
-                    if (!in_table) {
-                        Int columns = 0;
-                        for (const Char* p = line; *p; ++p) if (*p == '|') columns++;
-                        if (columns > 1) {
-                            if (UI_BeginTable("md_table", columns - 1, 1 | (1 << 6), 0, 0)) {
-                                in_table = true;
-                            }
-                        }
-                    }
-
-                    Char next_line_peek[128] = { 0 };
-                    Char* next_line_ptr = strtok(nullptr, "\n");
-                    if (next_line_ptr) {
-                        strncpy(next_line_peek, next_line_ptr, sizeof(next_line_peek) - 1);
-                        next_line_peek[sizeof(next_line_peek) - 1] = '\0';
-                    }
-
-                    if (in_table && strncmp(next_line_peek, "|:---", 5) == 0) {
-                        UI_TableHeadersRow();
-                        render_markdown_line(line);
-                        line = strtok(nullptr, "\n");
-                        line = strtok(nullptr, "\n");
-                    }
-                    else if (in_table) {
-                        UI_TableNextRow();
-                        render_markdown_line(line);
-                    }
-                    line = next_line_ptr;
-                }
-                else {
-                    if (in_table) {
-                        UI_EndTable();
-                        in_table = false;
-                    }
-                    render_markdown_line(line);
-                    line = strtok(nullptr, "\n");
-                }
-            }
-
-            if (in_table) UI_EndTable();
-            delete[] content_copy;
-        }
-        else {
-            UI_Text("Select a document to view.");
-        }
-
-        UI_EndChild();
     }
     UI_End();
 }
@@ -1992,11 +1811,6 @@ void Editor_RenderStatusBar()
     UI_SetNextWindowSize(screen_w, STATUS_BAR_HEIGHT);
 
     UI_Begin_NoTitlebar_NoResize_NoMove("Status Bar", nullptr);
-
-    UI_Text("For Help, press F1");
-    UI_SameLine();
-    UI_SeparatorEx(1 << 1);
-    UI_SameLine();
 
     if (g_EditorState.num_selections > 0) {
         Char selection_text[128];

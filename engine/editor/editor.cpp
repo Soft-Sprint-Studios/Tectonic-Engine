@@ -1380,13 +1380,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Editor_FlipSelection(scene, engine, 0);
             return;
         }
-        if (event->key.keysym.sym == SDLK_F1) {
-            g_EditorState.show_help_window = !g_EditorState.show_help_window;
-            if (g_EditorState.show_help_window) {
-                ScanDocFiles();
-            }
-            return;
-        }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_z) { Undo_PerformUndo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_y) { Undo_PerformRedo(scene, engine); return; }
         if ((event->key.keysym.mod & KMOD_CTRL) && event->key.keysym.sym == SDLK_s) {

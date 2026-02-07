@@ -41,7 +41,6 @@
 
 	void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer);
 	void Editor_RenderSoundBrowser(Scene* scene);
-	void Editor_RenderHelpWindow();
 	void Editor_RenderVertexToolsWindow(Scene* scene);
 	void Editor_RenderSculptNoisePopup(Scene* scene);
 	void Editor_RenderSprinkleToolWindow();
