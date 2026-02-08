@@ -34,7 +34,7 @@
 
 
     constexpr int MAX_CVARS = 1024;
-    constexpr int MAX_COMMAND_LENGTH = 128;
+    #define MAX_COMMAND_LENGTH 128
 
     enum {
         CVAR_NONE = (0),

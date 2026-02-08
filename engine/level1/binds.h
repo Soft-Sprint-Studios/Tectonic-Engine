@@ -33,8 +33,8 @@
 #include "level1_api.h"
 
 
-constexpr int MAX_BINDS = 256;
-constexpr int MAX_COMMAND_LENGTH = 128;
+    constexpr int MAX_BINDS          = 256;
+    #define MAX_COMMAND_LENGTH 128
 
     typedef struct {
         SDL_Keycode key;

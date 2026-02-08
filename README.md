@@ -1,5 +1,5 @@
 # Tectonic Engine
-A modern, feature-rich 3D game engine written in C, inspired by classic FPS engines.
+A modern, feature-rich 3D game engine written in C++, inspired by classic FPS engines.
 
 # Tectonic Engine - Feature Set
 An overview of the core technologies and rendering capabilities of the Tectonic Engine.
