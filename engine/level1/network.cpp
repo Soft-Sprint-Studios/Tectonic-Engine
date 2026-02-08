@@ -338,16 +338,18 @@ void Network_Shutdown(void) {
 }
 
 Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
-    DownloadArgs* args = (DownloadArgs*)malloc(sizeof(DownloadArgs));
-    if (!args) return false;
+    DownloadArgs* args = new DownloadArgs;
 
-    args->url = _strdup(url);
-    args->filepath = _strdup(output_filepath);
+    args->url = new Char[strlen(url) + 1];
+    strcpy(args->url, url);
+
+    args->filepath = new Char[strlen(output_filepath) + 1];
+    strcpy(args->filepath, output_filepath);
 
     if (!args->url || !args->filepath) {
-        free(args->url);
-        free(args->filepath);
-        free(args);
+        delete[] args->url;
+        delete[] args->filepath;
+        delete args;
         return false;
     }
 
@@ -359,9 +361,9 @@ Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
 
     if (!thread) {
         Console_Printf_Error("[Network] Could not create download thread.");
-        free(args->url);
-        free(args->filepath);
-        free(args);
+        delete[] args->url;
+        delete[] args->filepath;
+        delete args;
         return false;
     }
     SDL_DetachThread(thread);
@@ -369,12 +371,13 @@ Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
 }
 
 Bool Network_Ping(const Char* hostname) {
-    PingArgs* args = (PingArgs*)malloc(sizeof(PingArgs));
-    if (!args) return false;
+    PingArgs* args = new PingArgs;
 
-    args->hostname = _strdup(hostname);
+    args->hostname = new Char[strlen(hostname) + 1];
+    strcpy(args->hostname, hostname);
+
     if (!args->hostname) {
-        free(args);
+        delete args;
         return false;
     }
 
@@ -386,8 +389,8 @@ Bool Network_Ping(const Char* hostname) {
 
     if (!thread) {
         Console_Printf_Error("[Network] Could not create ping thread.");
-        free(args->hostname);
-        free(args);
+        delete[] args->hostname;
+        delete args;
         return false;
     }
     SDL_DetachThread(thread);

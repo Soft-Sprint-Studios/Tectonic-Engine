@@ -215,7 +215,7 @@ void Light_DestroyShadowMap(Light* light) {
 
 static void SaveFramebufferToPNG(GLuint fbo, Int width, Int height, const Char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    Uchar* pixels = (Uchar*)malloc(width * height * 4);
+    Uchar* pixels = new Uchar[width * height * 4];
     if (!pixels) {
         Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -240,13 +240,13 @@ static void SaveFramebufferToPNG(GLuint fbo, Int width, Int height, const Char* 
         SDL_FreeSurface(surface);
     }
 
-    free(pixels);
+    delete[] pixels;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    Uchar* pixels = (Uchar*)malloc(engine->width * engine->height * 4);
+    Uchar* pixels = new Uchar[engine->width * engine->height * 4];
     if (!pixels) {
         Console_Printf_Error("Failed to allocate memory for screenshot pixels.");
         return;
@@ -255,7 +255,7 @@ void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
     glReadPixels(0, 0, engine->width, engine->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     Int row_size = engine->width * 4;
-    Uchar* temp_row = (Uchar*)malloc(row_size);
+    Uchar* temp_row = new Uchar[row_size];
     if (!temp_row) {
         Console_Printf_Error("Failed to allocate memory for screenshot row buffer.");
         free(pixels);
@@ -269,7 +269,7 @@ void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
         memcpy(top, bottom, row_size);
         memcpy(bottom, temp_row, row_size);
     }
-    free(temp_row);
+    delete[] temp_row;
 
     SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, engine->width, engine->height, 32, row_size, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 
@@ -285,7 +285,7 @@ void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
         }
         SDL_FreeSurface(surface);
     }
-    free(pixels);
+    delete[] pixels;
 }
 
 void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, Int resolution) {

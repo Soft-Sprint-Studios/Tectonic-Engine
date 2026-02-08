@@ -104,8 +104,7 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
                 }
 
                 Int num_vertices = (segments + 1) * 2;
-                Vec3* vertices = (Vec3*)malloc(num_vertices * sizeof(Vec3));
-                if (!vertices) continue;
+                Vec3* vertices = new Vec3[num_vertices];
 
                 for (Int j = 0; j <= segments; ++j) {
                     Float t = (Float)j / (Float)segments;
@@ -135,7 +134,7 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
 
                 glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Vec3), vertices, GL_STREAM_DRAW);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, num_vertices);
-                free(vertices);
+                delete[] vertices;
             }
         }
     }

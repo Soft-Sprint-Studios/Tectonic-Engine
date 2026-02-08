@@ -49,18 +49,21 @@ Bool g_is_unlit_mode = false;
 
 static Char* prependTexturePath(const Char* filename) {
     if (filename == nullptr || filename[0] == '\0') return nullptr;
+
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
-        return _strdup(filename);
+        size_t len = strlen(filename) + 1;
+        Char* copy = new Char[len];
+        strcpy(copy, filename);
+        return copy;
     }
+
     const Char* baseFolder = "textures/";
     size_t len = strlen(baseFolder) + strlen(filename) + 1;
-    Char* fullPath = (Char*)malloc(len);
-    if (!fullPath) {
-        Console_Printf_Error("Memory allocation failed for texture path.\n");
-        return nullptr;
-    }
+
+    Char* fullPath = new Char[len];
     strcpy(fullPath, baseFolder);
     strcat(fullPath, filename);
+
     return fullPath;
 }
 
@@ -217,7 +220,7 @@ GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
         Console_Printf_Error("Failed to load texture '%s'\n", fullPath);
-        free(fullPath);
+        delete[] fullPath;
         return missingTextureID;
     }
 
@@ -265,7 +268,7 @@ GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
 
     if (!fSurf) {
         Console_Printf_Error("Failed to convert surface for '%s'\n", fullPath);
-        free(fullPath);
+        delete[] fullPath;
         return missingTextureID;
     }
 
@@ -295,7 +298,7 @@ GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     SDL_FreeSurface(fSurf);
-    free(fullPath);
+    delete[] fullPath;
     return texID;
 }
 
@@ -355,7 +358,7 @@ GLuint TextureManager_LoadLUT(const Char* filename_only) {
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
         Console_Printf_Error(" Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
-        free(fullPath);
+        delete[] fullPath;
         return missingTextureID;
     }
 
@@ -364,7 +367,7 @@ GLuint TextureManager_LoadLUT(const Char* filename_only) {
 
     if (!fSurf) {
         Console_Printf_Error("Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
-        free(fullPath);
+        delete[] fullPath;
         return missingTextureID;
     }
 
@@ -379,7 +382,7 @@ GLuint TextureManager_LoadLUT(const Char* filename_only) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     SDL_FreeSurface(fSurf);
-    free(fullPath);
+    delete[] fullPath;
 
     return texID;
 }

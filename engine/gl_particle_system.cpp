@@ -37,7 +37,7 @@ ParticleSystem* ParticleSystem_Load(const Char* path) {
     FILE* file = fopen(path, "r");
     if (!file) return nullptr;
 
-    ParticleSystem* ps = (ParticleSystem*)calloc(1, sizeof(ParticleSystem));
+    ParticleSystem* ps = new ParticleSystem();
     if (!ps) { fclose(file); return nullptr; }
 
     ps->maxParticles = 1000;
@@ -91,7 +91,7 @@ ParticleSystem* ParticleSystem_Load(const Char* path) {
 void ParticleSystem_Free(ParticleSystem* system) {
     if (!system) return;
     glDeleteProgram(system->shader);
-    free(system);
+    delete system;
 }
 
 static Int find_unused_particle(ParticleEmitter* emitter) {

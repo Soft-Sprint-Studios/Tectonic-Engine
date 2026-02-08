@@ -128,7 +128,7 @@ static void MainMenu_RenderOptionsMenu() {
 
                 UI_Spacing();
                 Int num_displays = SDL_GetNumVideoDisplays();
-                const Char** display_names = (const Char**)malloc(num_displays * sizeof(const Char*));
+                const Char** display_names = new const Char * [num_displays];
                 for (Int i = 0; i < num_displays; ++i) {
                     display_names[i] = SDL_GetDisplayName(i);
                 }
@@ -141,7 +141,7 @@ static void MainMenu_RenderOptionsMenu() {
                         Cvar_Set("r_monitor", value_str);
                     }
                 }
-                free(display_names);
+                delete[] display_names;
 
                 Bool vsync = Cvar_GetInt("r_vsync");
                 if (UI_Checkbox("V-Sync", &vsync)) {
