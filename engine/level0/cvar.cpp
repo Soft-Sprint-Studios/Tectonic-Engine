@@ -79,7 +79,6 @@ public:
             }
         }
         fclose(file);
-        Console_Printf("Saved %d cvars to %s", saved_count, filename);
     }
 
     static Cvar* Register(const Char* name, const Char* defaultValue, const Char* helpText, Int flags) {
