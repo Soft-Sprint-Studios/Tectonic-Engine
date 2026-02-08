@@ -762,7 +762,7 @@ void update_state() {
             g_engine->camera.radiation_level += g_engine->camera.rads_per_second * g_engine->deltaTime;
         }
         else {
-            Float decay_rate = 1.5f;
+            constexpr Float decay_rate = 1.5f;
             g_engine->camera.radiation_level -= decay_rate * g_engine->deltaTime;
             if (g_engine->camera.radiation_level < 0.0f) {
                 g_engine->camera.radiation_level = 0.0f;
@@ -1263,9 +1263,9 @@ void update_state() {
         if (on_ground && g_engine->prev_player_y_velocity < -1.0f) {
             Float fall_speed = -g_engine->prev_player_y_velocity;
 
-            const Float min_fall_speed_for_damage = 10.0f;
-            const Float max_fall_speed_for_damage = 30.0f;
-            const Float max_damage = 100.0f;
+            constexpr Float min_fall_speed_for_damage = 10.0f;
+            constexpr Float max_fall_speed_for_damage = 30.0f;
+            constexpr Float max_damage = 100.0f;
 
             if (fall_speed > min_fall_speed_for_damage) {
                 Float damage_lerp_factor = (fall_speed - min_fall_speed_for_damage) / (max_fall_speed_for_damage - min_fall_speed_for_damage);

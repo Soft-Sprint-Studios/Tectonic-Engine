@@ -73,7 +73,7 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
             const Char* scale_str = LogicEntity_GetProperty(ent, "scale", "1.0");
             Float scale = atof(scale_str);
 
-            const Float deg_to_rad = (Float)M_PI / 180.0f;
+            constexpr Float deg_to_rad = (Float)M_PI / 180.0f;
             Float rotation_rad = ent->rot.y * deg_to_rad;
 
             Vec3 offset_pos = vec3_add(ent->pos, Vec3{ scale, 0.0f, 0.0f });

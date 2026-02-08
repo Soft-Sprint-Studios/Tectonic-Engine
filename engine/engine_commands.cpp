@@ -297,7 +297,7 @@ void Cmd_Exec(Int argc, Char** argv) {
         }
 
         Char* cmd_copy = _strdup(trimmed_line);
-#define MAX_ARGS 32
+        constexpr int MAX_ARGS = 32;
         Int exec_argc = 0;
         Char* exec_argv[MAX_ARGS];
 

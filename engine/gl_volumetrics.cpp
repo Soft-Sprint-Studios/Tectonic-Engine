@@ -91,7 +91,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     Bool horizontal = true, first_iteration = true;
-    Uint amount = 4;
+    constexpr Uint amount = 4;
     glUseProgram(renderer->volumetricBlurShader);
     for (Uint i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[horizontal]);

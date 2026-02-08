@@ -68,7 +68,7 @@ void LoadingScreen_Init(Int screen_width, Int screen_height) {
         return;
     }
 
-    SDL_Color white = { 255, 255, 255, 255 };
+    constexpr SDL_Color white = { 255, 255, 255, 255 };
     g_text_texture = create_loading_text_texture(g_font, "Loading...", white, &g_text_width, &g_text_height);
     
     g_shader = createShaderProgram("shaders/menu.vert", "shaders/menu.frag");

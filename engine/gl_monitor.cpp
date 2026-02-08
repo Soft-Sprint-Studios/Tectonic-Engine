@@ -34,7 +34,7 @@
 
 // function based on CreateScanlineTexture from pathos engine
 static void CreateScanlineTexture(Renderer* renderer) {
-    Uint dataSize = 64 * 64 * 4;
+    constexpr Uint dataSize = 64 * 64 * 4;
     Uchar* pscanlinetexture = (Uchar*)malloc(dataSize * sizeof(Uchar));
     if (!pscanlinetexture) return;
 

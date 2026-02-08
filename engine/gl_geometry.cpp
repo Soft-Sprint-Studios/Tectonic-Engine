@@ -126,7 +126,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
     if (obj->model) {
         if (obj->bakedVertexColors || obj->bakedVertexDirections) {
             Uint vertex_offset = 0;
-            const Int stride_floats = 24;
+            constexpr Int stride_floats = 24;
             for (Int i = 0; i < obj->model->meshCount; ++i) {
                 Mesh* mesh = &obj->model->meshes[i];
                 for (Uint v = 0; v < mesh->vertexCount; ++v) {

@@ -163,7 +163,7 @@ void Light_InitShadowMap(Light* light) {
 }
 
 void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 cameraPosition) {
-    const Float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
+    constexpr Float SUN_SHADOW_MAP_SIZE_F = 8192.0f;
 
     Float shadowOrthoSize = Cvar_GetFloat("r_sun_shadow_distance");
 

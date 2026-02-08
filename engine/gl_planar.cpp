@@ -44,7 +44,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     static Int frameCounter = 0;
     frameCounter++;
 
-    Int updateEveryNFrames = 2;
+    constexpr Int updateEveryNFrames = 2;
     if ((frameCounter % updateEveryNFrames) != 0) {
         return;
     }

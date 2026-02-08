@@ -35,8 +35,8 @@ void Note_RenderUI(Scene* scene, Engine* engine) {
     Float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
 
-    Float window_w = 400.0f;
-    Float window_h = 500.0f;
+    constexpr Float window_w = 400.0f;
+    constexpr Float window_h = 500.0f;
     UI_SetNextWindowPos((screen_w - window_w) * 0.5f, (screen_h - window_h) * 0.5f);
     UI_SetNextWindowSize(window_w, window_h);
 

@@ -35,7 +35,7 @@ void Bloom_RenderPass(Renderer* renderer, Engine* engine) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
     Bool horizontal = true, first_iteration = true; 
-    Uint amount = 10; 
+    constexpr Uint amount = 10; 
     glUseProgram(renderer->bloomBlurShader);
     
     for (Uint i = 0; i < amount; i++) {

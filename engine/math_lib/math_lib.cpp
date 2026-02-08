@@ -543,7 +543,7 @@ Bool RayIntersectsOBB(Vec3 rayOrigin, Vec3 rayDir, const Mat4* modelMatrix, Vec3
 }
 
 Bool RayIntersectsTriangle(Vec3 ray_origin, Vec3 ray_dir, Vec3 v0, Vec3 v1, Vec3 v2, Float* t_out) {
-    const Float EPSILON = 1e-7f;
+    constexpr Float EPSILON = 1e-7f;
 
     Vec3 edge1 = vec3_sub(v1, v0);
     Vec3 edge2 = vec3_sub(v2, v0);

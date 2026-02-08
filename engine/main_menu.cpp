@@ -188,7 +188,7 @@ static void MainMenu_RenderOptionsMenu() {
             UI_EndTabBar();
         }
         UI_Separator();
-        Float button_width = 80.0f;
+        constexpr Float button_width = 80.0f;
         Float window_width = UI_GetWindowWidth();
         UI_SetCursorPosX(window_width - button_width - 15.0f);
         if (UI_Button("Close")) {
@@ -319,8 +319,8 @@ Bool MainMenu_Init(Int screen_width, Int screen_height) {
         g_background_video.loop = true;
         VideoPlayer_Play(&g_background_video);
     }
-    SDL_Color white = { 255, 255, 255, 255 };
-    SDL_Color title_color = { 255, 255, 0, 255 };
+    constexpr SDL_Color white = { 255, 255, 255, 255 };
+    constexpr SDL_Color title_color = { 255, 255, 0, 255 };
     const GameConfig* config = GameConfig_Get();
     const Char* game_name = config->gamename[0] != '\0' ? config->gamename : "Tectonic Engine";
     g_text_texture_game_title = create_text_texture(g_menu_font, game_name, title_color, &g_text_width_game_title, &g_text_height_game_title);
@@ -365,7 +365,7 @@ void MainMenu_Shutdown() {
 void MainMenu_SetInGameMenuMode(Bool is_in_game, Bool is_map_loaded_state) {
     g_is_in_game_menu = is_in_game;
     g_is_map_loaded = is_map_loaded_state;
-    SDL_Color white = { 255, 255, 255, 255 };
+    constexpr SDL_Color white = { 255, 255, 255, 255 };
 
     if (g_text_texture_start) glDeleteTextures(1, &g_text_texture_start);
 
@@ -389,7 +389,7 @@ MainMenuAction MainMenu_HandleEvent(SDL_Event* event) {
     if (event->type == SDL_MOUSEMOTION) {
         Int mouseX = event->motion.x;
         Int mouseY = event->motion.y;
-        Float button_spacing = 60.0f;
+        constexpr Float button_spacing = 60.0f;
         Float button_y_start = g_screen_height / 2.0f - (g_is_in_game_menu ? 120.0f : 20.0f);
 
         Float start_x = (g_screen_width - g_text_width_start) / 2.0f;
@@ -476,11 +476,11 @@ void MainMenu_Render() {
         }, 0.0f);
     }
 
-    Float button_spacing = 60.0f;
+    constexpr Float button_spacing = 60.0f;
     Float button_y_start = g_screen_height / 2.0f - (g_is_in_game_menu ? 120.0f : 20.0f);
 
-    SDL_Color normal_color = { 255, 255, 255, 255 };
-    SDL_Color hover_color = { 255, 255, 0, 255 };
+    constexpr SDL_Color normal_color = { 255, 255, 255, 255 };
+    constexpr SDL_Color hover_color = { 255, 255, 0, 255 };
 
     Float current_button_offset_x = (g_selected_button_index == 0) ? g_button_hover_offset : 0.0f;
     SDL_Color current_button_color = (g_selected_button_index == 0) ? hover_color : normal_color;

@@ -157,42 +157,34 @@ public:
 KeyBind Binds::binds[MAX_BINDS] = {};
 Int Binds::num_binds = 0;
 
-void Binds_Init()
-{
+void Binds_Init() {
     Binds::Init();
 }
 
-void Binds_Shutdown()
-{
+void Binds_Shutdown() {
     Binds::Shutdown();
 }
 
-void Binds_Load(const Char* f)
-{
+void Binds_Load(const Char* f) {
     Binds::Load(f);
 }
 
-void Binds_Save(const Char* f)
-{
+void Binds_Save(const Char* f) {
     Binds::Save(f);
 }
 
-void Binds_Set(const Char* k, const Char* c)
-{
+void Binds_Set(const Char* k, const Char* c) {
     Binds::Set(k, c);
 }
 
-void Binds_Unset(const Char* k)
-{
+void Binds_Unset(const Char* k) {
     Binds::Unset(k);
 }
 
-void Binds_UnbindAll()
-{
+void Binds_UnbindAll() {
     Binds::UnbindAll();
 }
 
-const Char* Binds_GetCommand(SDL_Keycode k)
-{
+const Char* Binds_GetCommand(SDL_Keycode k) {
     return Binds::GetCommand(k);
 }

@@ -39,7 +39,7 @@ static void EnsureErrorModelLoaded() {
     g_ErrorModel = Model_Load("models/error.glb");
 
     if (g_ErrorModel) {
-        Float scale_factor = 0.05f;
+        constexpr Float scale_factor = 0.05f;
 
         g_ErrorModel->aabb_min = vec3_muls(g_ErrorModel->aabb_min, scale_factor);
         g_ErrorModel->aabb_max = vec3_muls(g_ErrorModel->aabb_max, scale_factor);
@@ -529,7 +529,7 @@ Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path) {
         uint32_t* new_indices = static_cast<uint32_t*>(malloc(num_new_indices * sizeof(uint32_t)));
         fread(new_indices, sizeof(uint32_t), num_new_indices, f);
 
-        size_t stride_floats = 24;
+        constexpr size_t stride_floats = 24;
         size_t stride_bytes = stride_floats * sizeof(Float);
         Float* new_vbo_data = static_cast<Float*>(malloc(num_new_verts * stride_bytes));
 

@@ -386,7 +386,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    const Int stride_floats = 32;
+    constexpr Int stride_floats = 32;
     Float* final_vbo_data = static_cast<Float*>(calloc(total_render_verts * stride_floats, sizeof(Float)));
     if (!final_vbo_data) {
         free(temp_normals);
