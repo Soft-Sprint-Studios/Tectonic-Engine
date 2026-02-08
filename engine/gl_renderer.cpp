@@ -413,12 +413,12 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Monitor_Init(renderer);
     VideoPlayer_InitSystem();
 
-    const GLubyte* gpu = glGetString(GL_RENDERER);
-    const GLubyte* gl_version = glGetString(GL_VERSION);
     Console_Printf("------------------------------------------------------\n");
     Console_Printf("Renderer Context Initialized:\n");
-    Console_Printf("  GPU: %s\n", (const Char*)gpu);
-    Console_Printf("  OpenGL Version: %s\n", (const Char*)gl_version);
+    Console_Printf("  GPU: %s\n", glGetString(GL_RENDERER));
+    Console_Printf("  GPU Vendor: %s\n", glGetString(GL_VENDOR));
+    Console_Printf("  OpenGL Version: %s\n", glGetString(GL_VERSION));
+    Console_Printf("  OpenGL Shading Language Version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     Console_Printf("------------------------------------------------------\n");
 }
 
