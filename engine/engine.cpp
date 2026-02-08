@@ -62,7 +62,6 @@
 #include "gl_loading_screen.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
-#include "checksum.h"
 #include "water_manager.h"
 #include "lightmapper.h"
 #include "ipc_system.h"
@@ -1612,31 +1611,12 @@ void cleanup() {
 static Int Engine_Initialize(Int argc, Char* argv[]) {
     GameConfig_ParseCommandLine(argc, argv);
 
-#ifdef ENABLE_CHECKSUM
-    Char dllPath[1024];
-#ifdef PLATFORM_WINDOWS
-    HMODULE hModule = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCSTR)Engine_Main, &hModule);
-    GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
-#else
-    Dl_info info;
-    dladdr((void*)Engine_Main, &info);
-    strncpy(dllPath, info.dli_fname, sizeof(dllPath) - 1);
-    dllPath[sizeof(dllPath) - 1] = '\0';
-#endif
-    if (!Checksum_Verify(dllPath)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Protection Error", "Corrupted game files detected. Please attempt to reinstall.", nullptr);
-        return 0;
-    }
-#endif
-
 #ifdef PLATFORM_WINDOWS
     if (!g_allow_multiple_instances) {
         const Char* mutexName = "TectonicEngine_Instance_Mutex_9A4F";
         g_hMutex = CreateMutex(nullptr, TRUE, mutexName);
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
             if (g_hMutex) CloseHandle(g_hMutex);
             return 0;
         }
@@ -1650,7 +1630,7 @@ static Int Engine_Initialize(Int argc, Char* argv[]) {
             return 0;
         }
         if (flock(g_lockFileFd, LOCK_EX | LOCK_NB) == -1 && errno == EWOULDBLOCK) {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Engine Already Running", "An instance of Tectonic Engine is already running.", nullptr);
             close(g_lockFileFd);
             return 0;
         }

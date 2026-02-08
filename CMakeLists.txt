@@ -93,7 +93,7 @@ set(ENGINE_SOURCES
     engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/main_menu.cpp
     engine/map.cpp engine/map_lighting.cpp engine/gl_particle_system.cpp
     engine/gl_video_player.cpp engine/weapons.cpp
-    engine/sentry_wrapper.cpp engine/checksum.cpp
+    engine/sentry_wrapper.cpp
     engine/gl_beams.cpp
     engine/gl_cables.cpp
     engine/gl_overlay.cpp
@@ -132,7 +132,7 @@ set(ENGINE_HEADERS
     engine/engine.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h engine/map_lighting.h
     engine/gl_particle_system.h
-    engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h engine/checksum.h
+    engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h
     engine/gl_beams.h
     engine/gl_cables.h
     engine/gl_overlay.h
@@ -614,25 +614,4 @@ if(WIN32)
 else()
     target_link_directories(SDKLauncher PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(SDKLauncher PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
-endif()
-
-# Patcher executable and post-build command on Windows
-add_executable(Patcher engine/checksumpatcher.cpp)
-set_target_properties(Patcher PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-)
-
-target_compile_options(Patcher PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
-    $<$<CXX_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
-)
-
-if(WIN32)
-    add_custom_target(patch_engine ALL
-        COMMAND $<TARGET_FILE:Patcher> $<TARGET_FILE:engine>
-        DEPENDS Patcher engine
-        COMMENT "Patching DLL with checksum..."
-        VERBATIM
-    )
 endif()

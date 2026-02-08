@@ -37,7 +37,6 @@
 #endif
 
 //#define GAME_RELEASE 1
-#define ENABLE_CHECKSUM 1
 
 //#define BRANCH_PUBLIC
 #define BRANCH_NOCTURNE
