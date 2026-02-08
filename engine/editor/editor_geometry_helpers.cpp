@@ -461,8 +461,8 @@ void Brush_SetVerticesFromTube(Brush* b, Vec3 size, Int num_sides, Float wall_th
 }
 
 static Int compare_cap_verts(const void* a, const void* b) {
-    Vec3 va = ((const BrushVertex*)a)->pos;
-    Vec3 vb = ((const BrushVertex*)b)->pos;
+    Vec3 va = *(const Vec3*)a;
+    Vec3 vb = *(const Vec3*)b;
 
     Vec3 dir_a = vec3_sub(va, g_sort_centroid);
     Vec3 dir_b = vec3_sub(vb, g_sort_centroid);
@@ -488,8 +488,25 @@ static Int compare_cap_verts(const void* a, const void* b) {
 void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
     if (!b || b->numVertices == 0 || b->numFaces == 0) return;
 
-    Float* dists = new Float[b->numVertices];
-    Int* side = new Int[b->numVertices];
+    Float* dists = nullptr;
+    Int* side = nullptr;
+    BrushVertex* temp_new_verts = nullptr;
+    Int* temp_face_verts_idx = nullptr;
+    BrushVertex* temp_cap_verts = nullptr;
+    BrushFace* new_face_list_array = nullptr;
+    Int current_new_face_count = 0;
+
+    dists = (Float*)malloc(b->numVertices * sizeof(Float));
+    side = (Int*)malloc(b->numVertices * sizeof(Int));
+
+    if (!dists || !side) {
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
+    }
 
     Int positive_count = 0;
     Int negative_count = 0;
@@ -511,16 +528,28 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         if (positive_count == 0) {
             Brush_FreeData(b);
         }
-        delete[] dists;
-        delete[] side;
-        return;
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
     }
 
-    BrushVertex* temp_new_verts = new BrushVertex[MAX_BRUSH_VERTS * 2];
-    Int* temp_face_verts_idx = new Int[MAX_BRUSH_VERTS];
-    BrushVertex* temp_cap_verts = new BrushVertex[MAX_BRUSH_FACES + 1];
-    BrushFace* new_face_list_array = new BrushFace[MAX_BRUSH_FACES];
-    Int current_new_face_count = 0;
+    temp_new_verts = (BrushVertex*)malloc(MAX_BRUSH_VERTS * 2 * sizeof(BrushVertex));
+    temp_face_verts_idx = (Int*)malloc(MAX_BRUSH_VERTS * sizeof(Int));
+    temp_cap_verts = (BrushVertex*)malloc((MAX_BRUSH_FACES + 1) * sizeof(BrushVertex));
+    new_face_list_array = (BrushFace*)malloc(MAX_BRUSH_FACES * sizeof(BrushFace));
+
+    if (!temp_new_verts || !temp_face_verts_idx || !temp_cap_verts || !new_face_list_array) {
+        Console_Printf_Error("Brush_Clip: Failed to allocate temporary memory.\n");
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
+    }
 
     Int new_vert_count = 0;
     Int vert_map[MAX_BRUSH_VERTS];
@@ -530,16 +559,23 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         if (side[i] >= 0) {
             if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
                 Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
-                delete[] dists; delete[] side; delete[] temp_new_verts; delete[] temp_face_verts_idx; delete[] temp_cap_verts; delete[] new_face_list_array;
-                return;
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             vert_map[i] = new_vert_count;
             temp_new_verts[new_vert_count++] = b->vertices[i];
         }
     }
 
-    for (Int i = 0; i < b->numFaces; ++i) {
-        BrushFace* face = &b->faces[i];
+    BrushFace* old_faces = b->faces;
+    Int old_face_count = b->numFaces;
+
+    for (Int i = 0; i < old_face_count; ++i) {
+        BrushFace* face = &old_faces[i];
         Int face_verts_current_idx_count = 0;
 
         for (Int j = 0; j < face->numVertexIndices; ++j) {
@@ -547,6 +583,15 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
             Int p2_idx = face->vertexIndices[(j + 1) % face->numVertexIndices];
 
             if (side[p1_idx] >= 0) {
+                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
+                }
                 temp_face_verts_idx[face_verts_current_idx_count++] = vert_map[p1_idx];
             }
 
@@ -559,6 +604,25 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                 intersect_color.z = b->vertices[p1_idx].color.z + (b->vertices[p2_idx].color.z - b->vertices[p1_idx].color.z) * t;
                 intersect_color.w = b->vertices[p1_idx].color.w + (b->vertices[p2_idx].color.w - b->vertices[p1_idx].color.w) * t;
 
+                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
+                }
+                if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
+                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
+                    free(dists);
+                    free(side);
+                    free(temp_new_verts);
+                    free(temp_face_verts_idx);
+                    free(temp_cap_verts);
+                    free(new_face_list_array);
+                }
+
                 temp_face_verts_idx[face_verts_current_idx_count++] = new_vert_count;
                 temp_new_verts[new_vert_count].pos = intersect_pos;
                 temp_new_verts[new_vert_count].color = intersect_color;
@@ -567,14 +631,30 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         }
 
         if (face_verts_current_idx_count >= 3) {
+            if (current_new_face_count >= MAX_BRUSH_FACES) {
+                Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
+            }
             BrushFace new_face_entry = *face;
             new_face_entry.numVertexIndices = face_verts_current_idx_count;
-            new_face_entry.vertexIndices = new Int[face_verts_current_idx_count];
+            new_face_entry.vertexIndices = (Int*)malloc(face_verts_current_idx_count * sizeof(Int));
+            if (!new_face_entry.vertexIndices) {
+                Console_Printf_Error("Brush_Clip: Failed to allocate vertexIndices for new face.\n");
+                for (Int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
+            }
             memcpy(new_face_entry.vertexIndices, temp_face_verts_idx, face_verts_current_idx_count * sizeof(Int));
             new_face_list_array[current_new_face_count++] = new_face_entry;
-        }
-        else {
-            delete[] face->vertexIndices;
         }
     }
 
@@ -602,6 +682,15 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                     }
                 }
                 if (!is_duplicate) {
+                    if (cap_vert_count >= MAX_BRUSH_FACES + 1) {
+                        Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
+                        free(dists);
+                        free(side);
+                        free(temp_new_verts);
+                        free(temp_face_verts_idx);
+                        free(temp_cap_verts);
+                        free(new_face_list_array);
+                    }
                     temp_cap_verts[cap_vert_count].pos = intersect_pos;
                     temp_cap_verts[cap_vert_count].color = intersect_color;
                     cap_vert_count++;
@@ -619,12 +708,46 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         g_sort_centroid = centroid;
         qsort(temp_cap_verts, cap_vert_count, sizeof(BrushVertex), compare_cap_verts);
 
-        BrushFace cap_face = {};
+        if (current_new_face_count >= MAX_BRUSH_FACES) {
+            Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
+            free(dists);
+            free(side);
+            free(temp_new_verts);
+            free(temp_face_verts_idx);
+            free(temp_cap_verts);
+            free(new_face_list_array);
+        }
+
+        BrushFace cap_face;
         cap_face.material = TextureManager_GetMaterial(0);
+        cap_face.material2 = nullptr;
+        cap_face.material3 = nullptr;
+        cap_face.material4 = nullptr;
+        cap_face.uv_offset = Vec2{ 0, 0 };
         cap_face.uv_scale = Vec2{ 1, 1 };
-        cap_face.lightmap_scale = 1.0f;
+        cap_face.uv_rotation = 0;
+        cap_face.uv_offset2 = Vec2{ 0, 0 };
+        cap_face.uv_scale2 = Vec2{ 1, 1 };
+        cap_face.uv_rotation2 = 0;
+        cap_face.uv_offset3 = Vec2{ 0, 0 };
+        cap_face.uv_scale3 = Vec2{ 1, 1 };
+        cap_face.uv_rotation3 = 0;
+        cap_face.uv_offset4 = Vec2{ 0, 0 };
+        cap_face.uv_scale4 = Vec2{ 1, 1 };
+        cap_face.uv_rotation4 = 0;
+
         cap_face.numVertexIndices = cap_vert_count;
-        cap_face.vertexIndices = new Int[cap_vert_count];
+        cap_face.vertexIndices = (Int*)malloc(cap_vert_count * sizeof(Int));
+        if (!cap_face.vertexIndices) {
+            Console_Printf_Error("Brush_Clip: Failed to allocate vertexIndices for cap face.\n");
+            for (Int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+            free(dists);
+            free(side);
+            free(temp_new_verts);
+            free(temp_face_verts_idx);
+            free(temp_cap_verts);
+            free(new_face_list_array);
+        }
 
         for (Int i = 0; i < cap_vert_count; ++i) {
             Int vert_idx = -1;
@@ -633,6 +756,17 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                     vert_idx = k;
                     break;
                 }
+            }
+            if (vert_idx == -1) {
+                Console_Printf_Error("Brush_Clip: Capping vertex not found in temp_new_verts.\n");
+                free(cap_face.vertexIndices);
+                for (Int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+                free(dists);
+                free(side);
+                free(temp_new_verts);
+                free(temp_face_verts_idx);
+                free(temp_cap_verts);
+                free(new_face_list_array);
             }
             cap_face.vertexIndices[i] = vert_idx;
         }
@@ -647,17 +781,31 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
     Brush_FreeData(b);
 
     b->numVertices = new_vert_count;
-    b->vertices = new BrushVertex[new_vert_count];
+    b->vertices = (BrushVertex*)malloc(new_vert_count * sizeof(BrushVertex));
+    if (!b->vertices) {
+        Console_Printf_Error("Brush_Clip: Failed to allocate final brush vertices.\n");
+        for (Int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
+    }
     memcpy(b->vertices, temp_new_verts, new_vert_count * sizeof(BrushVertex));
 
     b->numFaces = current_new_face_count;
-    b->faces = new BrushFace[current_new_face_count];
+    b->faces = (BrushFace*)malloc(b->numFaces * sizeof(BrushFace));
+    if (!b->faces) {
+        Console_Printf_Error("Brush_Clip: Failed to allocate final brush faces.\n");
+        free(b->vertices); b->vertices = nullptr;
+        for (Int k = 0; k < current_new_face_count; ++k) free(new_face_list_array[k].vertexIndices);
+        free(dists);
+        free(side);
+        free(temp_new_verts);
+        free(temp_face_verts_idx);
+        free(temp_cap_verts);
+        free(new_face_list_array);
+    }
     memcpy(b->faces, new_face_list_array, current_new_face_count * sizeof(BrushFace));
-
-    delete[] dists;
-    delete[] side;
-    delete[] temp_new_verts;
-    delete[] temp_face_verts_idx;
-    delete[] temp_cap_verts;
-    delete[] new_face_list_array;
 }
