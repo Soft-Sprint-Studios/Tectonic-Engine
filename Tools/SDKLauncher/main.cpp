@@ -99,8 +99,8 @@ void on_quit_cb(Fl_Widget* w, void*) {
 }
 
 Int main(Int argc, Char** argv) {
-    const Int win_w = 320;
-    const Int win_h = 240;
+    constexpr Int win_w = 320;
+    constexpr Int win_h = 240;
 
     Fl_Window* window = new Fl_Window(win_w, win_h, "Tectonic SDK Launcher");
     window->begin();
