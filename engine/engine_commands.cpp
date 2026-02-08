@@ -37,6 +37,7 @@
 #include "io_system.h"
 #include <time.h>
 #include <errno.h>
+#include "minispec.h"
 
 extern Engine* g_engine;
 extern Renderer g_renderer;
@@ -736,15 +737,13 @@ void init_commands() {
 }
 
 void PrintSystemInfo() {
-    Char vendor[13];
-    Char brand[49];
-
-    GetCPUType(vendor);
-    GetCPUName(brand);
+    const Char* vendor = minispec_cpu_vendor();
+    const Char* brand = minispec_cpu_brand();
+    LongLong ram_bytes = minispec_memory_bytes();
 
     Console_Printf("CPU Vendor: %s\n", vendor);
     Console_Printf("CPU Brand:  %s\n", brand);
-    Console_Printf("RAM: %d MB\n", SDL_GetSystemRAM());
+    Console_Printf("RAM: %llu MB\n", ram_bytes / (1024 * 1024));
 }
 
 void RegisterEngineCommandsAndCvars(void) {

@@ -356,6 +356,7 @@ target_compile_definitions(engine PRIVATE
     PL_MPEG_IMPLEMENTATION
     STB_IMAGE_WRITE_IMPLEMENTATION
     STB_IMAGE_IMPLEMENTATION
+    MINISPEC_IMPLEMENTATION
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
 
@@ -386,6 +387,7 @@ target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/xatlas"
     "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/cgltf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/minispec"
 )
 
 target_compile_options(engine PRIVATE

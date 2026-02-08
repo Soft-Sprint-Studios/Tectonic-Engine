@@ -213,50 +213,5 @@ static Int Compat_GetBuildNumber() {
     return g_build_number;
 }
 
-static inline void cpuid(Uint function_id, Uint subfunction_id,
-    Uint* eax, Uint* ebx,
-    Uint* ecx, Uint* edx) 
-{
-#if defined(COMPILER_MSVC)
-    Int regs[4];
-    __cpuidex(regs, function_id, subfunction_id);
-    *eax = regs[0];
-    *ebx = regs[1];
-    *ecx = regs[2];
-    *edx = regs[3];
-#elif defined(COMPILER_GNU)
-    Uint _eax, _ebx, _ecx, _edx;
-    __asm__ volatile (
-        "cpuid"
-        : "=a" (_eax), "=b" (_ebx), "=c" (_ecx), "=d" (_edx)
-        : "a" (function_id), "c" (subfunction_id)
-    );
-    *eax = _eax; *ebx = _ebx; *ecx = _ecx; *edx = _edx;
-#else
-    #error "Unsupported compiler for cpuid"
-#endif
-}
-
-static void GetCPUType(Char out[13]) {
-    Uint eax, ebx, ecx, edx;
-    cpuid(0, 0, &eax, &ebx, &ecx, &edx);
-    memcpy(out + 0, &ebx, 4);
-    memcpy(out + 4, &edx, 4);
-    memcpy(out + 8, &ecx, 4);
-    out[12] = '\0';
-}
-
-static void GetCPUName(Char out[49]) {
-    Uint eax, ebx, ecx, edx;
-    for (Int i = 0; i < 3; ++i) {
-        cpuid(0x80000002 + i, 0, &eax, &ebx, &ecx, &edx);
-        memcpy(out + i * 16 + 0, &eax, 4);
-        memcpy(out + i * 16 + 4, &ebx, 4);
-        memcpy(out + i * 16 + 8, &ecx, 4);
-        memcpy(out + i * 16 + 12, &edx, 4);
-    }
-    out[48] = '\0';
-}
-
 
 #endif // COMPAT_H
