@@ -149,7 +149,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, 0.0f, sinf(angle)* radius });
+            points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, 0.0f, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
@@ -160,7 +160,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle)* radius, sinf(angle)* radius });
+            points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle) * radius, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
@@ -169,7 +169,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
-            points[i] = vec3_add(object_pos, Vec3{ cosf(angle)* radius, sinf(angle)* radius, 0.0f });
+            points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, sinf(angle) * radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);

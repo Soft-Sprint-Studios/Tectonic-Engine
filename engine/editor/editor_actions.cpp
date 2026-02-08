@@ -170,7 +170,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
 void Editor_MergeSelection(Scene* scene, Engine* engine) {
     if (g_EditorState.num_selections < 2) return;
 
-    EditorSelection* brush_selections = (EditorSelection*)malloc(g_EditorState.num_selections * sizeof(EditorSelection));
+    EditorSelection* brush_selections = new EditorSelection[g_EditorState.num_selections];
     Int brush_count = 0;
     for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         if (g_EditorState.selections[i].type == ENTITY_BRUSH) {
@@ -189,11 +189,11 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
 
     if (brush_count < 2) {
         Console_Printf_Warning("Merge requires at least two unique brushes to be selected.");
-        free(brush_selections);
+        delete[] brush_selections;
         return;
     }
 
-    EntityState* before_states = (EntityState*)calloc(brush_count, sizeof(EntityState));
+    EntityState* before_states = new EntityState[brush_count]();
     for (Int i = 0; i < brush_count; i++) {
         capture_state(&before_states[i], scene, ENTITY_BRUSH, brush_selections[i].index);
     }
@@ -213,7 +213,12 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         Mat4 source_to_base_transform;
         mat4_multiply(&source_to_base_transform, &base_inv_matrix, &source_brush->modelMatrix);
 
-        base_brush->vertices = (BrushVertex*)realloc(base_brush->vertices, (base_brush->numVertices + source_brush->numVertices) * sizeof(BrushVertex));
+        BrushVertex* new_vertices = new BrushVertex[base_brush->numVertices + source_brush->numVertices];
+        if (base_brush->vertices) {
+            memcpy(new_vertices, base_brush->vertices, base_brush->numVertices * sizeof(BrushVertex));
+            delete[] base_brush->vertices;
+        }
+        base_brush->vertices = new_vertices;
         for (Int v = 0; v < source_brush->numVertices; v++) {
             Vec3 transformed_pos = mat4_mul_vec3(&source_to_base_transform, source_brush->vertices[v].pos);
             base_brush->vertices[vertex_offset + v] = source_brush->vertices[v];
@@ -221,13 +226,18 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         }
         base_brush->numVertices += source_brush->numVertices;
 
-        base_brush->faces = (BrushFace*)realloc(base_brush->faces, (base_brush->numFaces + source_brush->numFaces) * sizeof(BrushFace));
+        BrushFace* new_faces = new BrushFace[base_brush->numFaces + source_brush->numFaces];
+        if (base_brush->faces) {
+            memcpy(new_faces, base_brush->faces, base_brush->numFaces * sizeof(BrushFace));
+            delete[] base_brush->faces;
+        }
+        base_brush->faces = new_faces;
         for (Int j = 0; j < source_brush->numFaces; j++) {
             BrushFace* new_face = &base_brush->faces[base_brush->numFaces + j];
             BrushFace* source_face = &source_brush->faces[j];
 
             *new_face = *source_face;
-            new_face->vertexIndices = (Int*)malloc(source_face->numVertexIndices * sizeof(Int));
+            new_face->vertexIndices = new Int[source_face->numVertexIndices];
             memcpy(new_face->vertexIndices, source_face->vertexIndices, source_face->numVertexIndices * sizeof(Int));
 
             for (Int k = 0; k < new_face->numVertexIndices; k++) {
@@ -247,20 +257,21 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         base_brush->physicsBody = nullptr;
     }
     if (Brush_IsSolid(base_brush) && base_brush->numVertices > 0) {
-        Vec3* world_verts = (Vec3*)malloc(base_brush->numVertices * sizeof(Vec3));
+        Vec3* world_verts = new Vec3[base_brush->numVertices];
         for (Int i = 0; i < base_brush->numVertices; i++) {
             world_verts[i] = mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
         }
         base_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, base_brush->numVertices);
-        free(world_verts);
+        delete[] world_verts;
     }
 
-    EntityState* after_state = (EntityState*)calloc(1, sizeof(EntityState));
+    EntityState* after_state = new EntityState();
     capture_state(after_state, scene, ENTITY_BRUSH, base_brush_index);
 
     Undo_PushMergeAction(scene, before_states, brush_count, after_state, 1, "Merge Brushes");
 
-    free(brush_selections);
+    delete[] brush_selections;
+
     Editor_ClearSelection();
     Editor_AddToSelection(ENTITY_BRUSH, base_brush_index, 0, 0);
     Console_Printf("Merged %d brushes.", brush_count);
@@ -272,18 +283,15 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
 
     SceneObject* src_obj = &scene->objects[index];
 
-    SceneObject* new_objects = (SceneObject*)realloc(scene->objects, (scene->numObjects + 1) * sizeof(SceneObject));
-    if (!new_objects) {
-        Console_Printf_Error("Failed to reallocate memory for model duplication.");
-        return;
-    }
+    SceneObject* new_objects = new SceneObject[scene->numObjects + 1];
+    for (Int i = 0; i < scene->numObjects; ++i)
+        new_objects[i] = scene->objects[i];
+    delete[] scene->objects;
     scene->objects = new_objects;
-    Int new_index = scene->numObjects;
-    scene->numObjects++;
-    SceneObject* new_obj = &scene->objects[new_index];
-    memcpy(new_obj, src_obj, sizeof(SceneObject));
 
-    sprintf(new_obj->targetname, "Model_%d", new_index);
+    scene->numObjects++;
+    SceneObject* new_obj = &scene->objects[scene->numObjects - 1];
+    memcpy(new_obj, src_obj, sizeof(SceneObject));
 
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
     new_obj->bone_matrices = nullptr;
@@ -299,8 +307,8 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
         new_obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
     }
 
-    Editor_AddToSelection(ENTITY_MODEL, new_index, -1, -1);
-    Undo_PushCreateEntity(scene, ENTITY_MODEL, new_index, "Duplicate Model");
+    Editor_AddToSelection(ENTITY_MODEL, scene->numObjects - 1, -1, -1);
+    Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Duplicate Model");
 }
 
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index) {

@@ -507,7 +507,7 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
             world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         }
 
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts),b->numVertices);
+        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
 
         delete[] world_verts;
     }

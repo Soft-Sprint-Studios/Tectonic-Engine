@@ -28,7 +28,7 @@
 #include "editor.h"
 
 
-constexpr int MAX_RECENT_FILES = 10;
+constexpr Int MAX_RECENT_FILES = 10;
 
     typedef enum {
         BRUSH_SHAPE_BLOCK, BRUSH_SHAPE_CYLINDER, BRUSH_SHAPE_TUBE,

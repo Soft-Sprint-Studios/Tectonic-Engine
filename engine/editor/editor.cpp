@@ -139,7 +139,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         for (Int k = 0; k < new_b_ptr->numVertices; ++k)
                             world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
 
-                        new_b_ptr->physicsBody =Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_b_ptr->numVertices);
+                        new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_b_ptr->numVertices);
 
                         delete[] world_verts;
                     }
@@ -355,13 +355,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.num_selections > 0) {
                 g_EditorState.gizmo_selection_centroid = vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
             }
-            if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
-            if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
-            if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
+            delete[] g_EditorState.gizmo_drag_start_positions;
+            delete[] g_EditorState.gizmo_drag_start_rotations;
+            delete[] g_EditorState.gizmo_drag_start_scales;
 
-            g_EditorState.gizmo_drag_start_positions = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
-            g_EditorState.gizmo_drag_start_rotations = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
-            g_EditorState.gizmo_drag_start_scales = (Vec3*)malloc(g_EditorState.num_selections * sizeof(Vec3));
+            g_EditorState.gizmo_drag_start_positions = new Vec3[g_EditorState.num_selections];
+            g_EditorState.gizmo_drag_start_rotations = new Vec3[g_EditorState.num_selections];
+            g_EditorState.gizmo_drag_start_scales = new Vec3[g_EditorState.num_selections];
 
             for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
@@ -727,7 +727,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Bool needs_update = false;
 
             if (SDL_GetModState() & KMOD_SHIFT) {
-                Vec3* average_positions = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
+                Vec3* average_positions = new Vec3[b->numVertices]();
                 if (average_positions) {
                     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
                     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -783,7 +783,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                             needs_update = true;
                         }
                     }
-                    free(average_positions);
+                    delete[] average_positions;
                 }
             }
             else {
@@ -1310,16 +1310,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             }
         }
         else if (g_EditorState.is_dragging_for_creation) {
-                BrushCreationShapeType original_shape = g_EditorState.current_brush_shape;
-                if (original_shape == BRUSH_SHAPE_ARCH) {
-                    g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK;
-                }
-                Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], (ViewportType)g_EditorState.brush_creation_view);
-                Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
-                if (original_shape == BRUSH_SHAPE_ARCH) {
-                    g_EditorState.current_brush_shape = original_shape;
-                }
-                }
+            BrushCreationShapeType original_shape = g_EditorState.current_brush_shape;
+            if (original_shape == BRUSH_SHAPE_ARCH) {
+                g_EditorState.current_brush_shape = BRUSH_SHAPE_BLOCK;
+            }
+            Vec3 current_point = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.brush_creation_view], (ViewportType)g_EditorState.brush_creation_view);
+            Editor_UpdatePreviewBrushForInitialDrag(g_EditorState.brush_creation_start_point_2d_drag, current_point, g_EditorState.brush_creation_view);
+            if (original_shape == BRUSH_SHAPE_ARCH) {
+                g_EditorState.current_brush_shape = original_shape;
+            }
+        }
         else if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
             for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
@@ -1349,12 +1349,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         Bool hovered_any_viewport = false;
         for (Int i = 1; i < VIEW_COUNT; i++) {
-            if (g_EditorState.is_viewport_hovered[i]) { g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true;  if (g_EditorState.ortho_cam_zoom[i - 1] > 64.0f) {
-                g_EditorState.ortho_cam_zoom[i - 1] = 64.0f;
-            }
-            if (g_EditorState.ortho_cam_zoom[i - 1] < 0.5f) {
-                g_EditorState.ortho_cam_zoom[i - 1] = 0.5f;
-            }
+            if (g_EditorState.is_viewport_hovered[i]) {
+                g_EditorState.ortho_cam_zoom[i - 1] -= event->wheel.y * g_EditorState.ortho_cam_zoom[i - 1] * 0.1f; hovered_any_viewport = true;  if (g_EditorState.ortho_cam_zoom[i - 1] > 64.0f) {
+                    g_EditorState.ortho_cam_zoom[i - 1] = 64.0f;
+                }
+                if (g_EditorState.ortho_cam_zoom[i - 1] < 0.5f) {
+                    g_EditorState.ortho_cam_zoom[i - 1] = 0.5f;
+                }
             }
         }
     }
@@ -1609,7 +1610,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (event->key.keysym.sym == SDLK_3) g_EditorState.current_gizmo_operation = GIZMO_OP_SCALE;
             if (event->key.keysym.sym == SDLK_DELETE) {
                 if (g_EditorState.num_selections > 0) {
-                    EntityState* deleted_states = (EntityState*)calloc(g_EditorState.num_selections, sizeof(EntityState));
+                    EntityState* deleted_states = new EntityState[g_EditorState.num_selections]();
                     Int num_deleted = 0;
                     for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                         capture_state(&deleted_states[num_deleted++], scene, g_EditorState.selections[i].type, g_EditorState.selections[i].index);

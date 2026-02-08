@@ -185,7 +185,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         Vec3 intersect_point;
         Float closest_dist = FLT_MAX;
 
-        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 1, 0 }, -object_pos.y, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 1, 0 }, -object_pos.y, &intersect_point)) {
             Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
@@ -195,7 +195,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
             }
         }
 
-        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 1, 0, 0 }, -object_pos.x, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 1, 0, 0 }, -object_pos.x, &intersect_point)) {
             Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
@@ -205,7 +205,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
             }
         }
 
-        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 0, 1 }, -object_pos.z, & intersect_point)) {
+        if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 0, 1 }, -object_pos.z, &intersect_point)) {
             Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
             if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
