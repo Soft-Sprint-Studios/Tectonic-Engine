@@ -91,8 +91,15 @@ void Brush_FreeData(Brush* b) {
         free(b->faces);
         b->faces = nullptr;
     }
-    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = nullptr; }
-    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = nullptr; }
+    if (b->bakedVertexColors) {
+        delete[] b->bakedVertexColors;
+        b->bakedVertexColors = nullptr;
+    }
+
+    if (b->bakedVertexDirections) {
+        delete[] b->bakedVertexDirections;
+        b->bakedVertexDirections = nullptr;
+    }
     b->numVertices = 0;
     b->numFaces = 0;
 }
@@ -548,10 +555,12 @@ void Scene_Clear(Scene* scene, Engine* engine) {
                 Model_Free(scene->objects[i].model);
             }
             if (scene->objects[i].bakedVertexColors) {
-                free(scene->objects[i].bakedVertexColors);
+                delete[] scene->objects[i].bakedVertexColors;
+                scene->objects[i].bakedVertexColors = nullptr;
             }
             if (scene->objects[i].bakedVertexDirections) {
-                free(scene->objects[i].bakedVertexDirections);
+                delete[] scene->objects[i].bakedVertexDirections;
+                scene->objects[i].bakedVertexDirections = nullptr;
             }
             if (scene->objects[i].lightmapHandle) {
                 glMakeTextureHandleNonResidentARB(scene->objects[i].lightmapHandle);
