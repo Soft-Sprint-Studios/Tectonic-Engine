@@ -33,12 +33,14 @@
 #include "level0_api.h"
 
 
-#define MAX_CVARS 1024
-#define MAX_COMMAND_LENGTH 128
+    constexpr int MAX_CVARS = 1024;
+    constexpr int MAX_COMMAND_LENGTH = 128;
 
-#define CVAR_NONE   (0)
-#define CVAR_HIDDEN (1 << 0)
-#define CVAR_CHEAT  (1 << 1)
+    enum {
+        CVAR_NONE = (0),
+        CVAR_HIDDEN = (1 << 0),
+        CVAR_CHEAT = (1 << 1)
+    };
 
     typedef struct {
         Char name[64];

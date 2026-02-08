@@ -33,7 +33,7 @@
 #include <stdbool.h>
 
 
-#define MAX_MATERIALS 16384
+constexpr int MAX_MATERIALS = 16384;
 
     typedef enum {
         TEXTURE_LOAD_CONTEXT_WORLD,

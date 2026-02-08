@@ -29,7 +29,7 @@
 
 #include "pl_mpeg.h"
 
-#define NUM_AUDIO_BUFFERS 4
+constexpr int NUM_AUDIO_BUFFERS = 4;
 
 static GLuint video_shader = 0;
 static GLuint video_vao = 0;

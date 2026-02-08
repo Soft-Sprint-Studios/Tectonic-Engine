@@ -237,8 +237,8 @@ void Editor_InitDebugRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(lines), lines, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0); glEnableVertexAttribArray(0);
     glBindVertexArray(0);
-#define PLAYER_HEIGHT_NORMAL_EDITOR 1.83f
-#define PLAYER_RADIUS_EDITOR 0.4f
+    constexpr float PLAYER_HEIGHT_NORMAL_EDITOR = 1.83f;
+    constexpr float PLAYER_RADIUS_EDITOR = 0.4f;
     Vec3 p_verts[500];
     Int p_vert_count = 0;
     Float p_radius = PLAYER_RADIUS_EDITOR;

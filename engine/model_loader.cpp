@@ -30,7 +30,7 @@
 #include <cstring>
 #include <cfloat>
 
-#define MODEL_VERTEX_STRIDE_FLOATS 24
+constexpr int MODEL_VERTEX_STRIDE_FLOATS = 24;
 
 static LoadedModel* g_ErrorModel = nullptr;
 

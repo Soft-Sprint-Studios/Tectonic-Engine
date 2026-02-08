@@ -32,8 +32,8 @@
 #include "map.h"
 
 
-#define MAX_IO_CONNECTIONS 1024
-#define MAX_PENDING_EVENTS 256
+constexpr int MAX_IO_CONNECTIONS = 1024;
+constexpr int MAX_PENDING_EVENTS = 256;
 
     typedef struct {
         Bool active;

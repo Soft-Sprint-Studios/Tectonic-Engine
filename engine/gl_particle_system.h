@@ -34,7 +34,7 @@
 #include <GL/glew.h>
 
 
-#define MAX_PARTICLES_PER_SYSTEM 8192
+constexpr int MAX_PARTICLES_PER_SYSTEM = 8192;
 
     typedef struct {
         Vec3 position;

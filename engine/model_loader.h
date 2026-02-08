@@ -35,8 +35,8 @@
 #include "math_lib.h"
 
 
-#define MAX_BONES_PER_VERTEX 4
-#define MAX_BONES_PER_MODEL 128
+constexpr int MAX_BONES_PER_VERTEX = 4;
+constexpr int MAX_BONES_PER_MODEL = 128;
 
     typedef struct {
         Float* timestamps;

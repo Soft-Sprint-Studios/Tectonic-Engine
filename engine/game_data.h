@@ -28,9 +28,9 @@
 #include "map.h"
 
 
-#define MAX_TGD_ENTITIES 256
-#define MAX_TGD_PROPERTIES 32
-#define MAX_TGD_IOS 32
+constexpr int MAX_TGD_ENTITIES = 256;
+constexpr int MAX_TGD_PROPERTIES = 32;
+constexpr int MAX_TGD_IOS = 32;
 
     typedef enum {
         TGD_PROP_STRING,

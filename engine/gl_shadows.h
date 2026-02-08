@@ -28,7 +28,7 @@
 #include "map.h"
 
 
-#define SUN_SHADOW_MAP_SIZE 8192
+constexpr int SUN_SHADOW_MAP_SIZE = 8192;
 
 	void Shadows_Init(Renderer* renderer);
 	void Shadows_Shutdown(Renderer* renderer);

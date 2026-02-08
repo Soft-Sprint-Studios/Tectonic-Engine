@@ -32,7 +32,7 @@
 #include "texturemanager.h"
 
 
-#define MAX_WATER_DEFS 64
+constexpr int MAX_WATER_DEFS = 64;
 
     typedef struct {
         Char name[64];

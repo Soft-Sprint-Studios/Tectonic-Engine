@@ -32,8 +32,12 @@
 #include "level0_api.h"
 
 
-#define CMD_NONE   (0)
-#define CMD_CHEAT  (1 << 0)
+    constexpr int MAX_COMMANDS = 256;
+
+    enum {
+        CMD_NONE = (0),
+        CMD_CHEAT = (1 << 0)
+    };
 
     typedef void (*command_func_t)(Int argc, Char** argv);
 

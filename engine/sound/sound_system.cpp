@@ -29,9 +29,9 @@
 #include <AL/alc.h>
 #include "minimp3.h"
 
-#define MAX_WET_CACHE_ENTRIES 256
-#define MAX_PLAYING_SOUNDS 512
-#define MAX_BUFFERS 1024
+constexpr int MAX_WET_CACHE_ENTRIES = 256;
+constexpr int MAX_PLAYING_SOUNDS = 512;
+constexpr int MAX_BUFFERS = 1024;
 
 typedef struct {
     ALuint bufferID;

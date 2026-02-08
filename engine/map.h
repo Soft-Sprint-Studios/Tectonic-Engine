@@ -41,26 +41,26 @@
 #include <AL/al.h>
 
 
-#define MAX_LIGHTS 256
-#define MAX_BRUSHES 8192
-#define MAX_MODELS 8192
-#define MAX_DECALS 8192
-#define MAX_SOUNDS 2048
-#define MAX_PARTICLE_EMITTERS 2048
-#define MAX_SPRITES 8192
-#define MAX_VIDEO_PLAYERS 32
-#define MAX_PARALLAX_ROOMS 128
-#define MAX_BRUSH_VERTS 32768
-#define MAX_BRUSH_FACES 16384
-#define MAX_LOGIC_ENTITIES 8192
-#define MAX_ENTITY_PROPERTIES 32
+constexpr int MAX_LIGHTS = 256;
+constexpr int MAX_BRUSHES = 8192;
+constexpr int MAX_MODELS = 8192;
+constexpr int MAX_DECALS = 8192;
+constexpr int MAX_SOUNDS = 2048;
+constexpr int MAX_PARTICLE_EMITTERS = 2048;
+constexpr int MAX_SPRITES = 8192;
+constexpr int MAX_VIDEO_PLAYERS = 32;
+constexpr int MAX_PARALLAX_ROOMS = 128;
+constexpr int MAX_BRUSH_VERTS = 32768;
+constexpr int MAX_BRUSH_FACES = 16384;
+constexpr int MAX_LOGIC_ENTITIES = 8192;
+constexpr int MAX_ENTITY_PROPERTIES = 32;
 
-#define MIN_MAP_VERSION 18
-#define MAP_VERSION 22
+constexpr int MIN_MAP_VERSION = 18;
+constexpr int MAP_VERSION = 22;
 
-#define PLAYER_HEIGHT_NORMAL 1.83f
+constexpr float PLAYER_HEIGHT_NORMAL = 1.83f;
 
-#define LIGHTMAPPADDING 2
+constexpr int LIGHTMAPPADDING = 2;
 
     typedef enum {
         ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC, ENTITY_SPRITE
@@ -548,7 +548,7 @@
         Int num_ambient_probes;
     } Scene;
 
-#define MAX_GAME_TEXT_MESSAGES 4
+    constexpr int MAX_GAME_TEXT_MESSAGES = 4;
 
     typedef enum {
         TEXT_STATE_IDLE,

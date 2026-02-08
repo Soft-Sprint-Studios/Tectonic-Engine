@@ -31,7 +31,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define MAX_UNDO_ACTIONS 128
+constexpr int MAX_UNDO_ACTIONS = 128;
 
 typedef enum {
     ACTION_NONE,

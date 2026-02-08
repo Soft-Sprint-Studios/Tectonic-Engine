@@ -28,7 +28,7 @@
 #include <SDL_thread.h>
 #include <SDL_mutex.h>
 
-#define MAX_DSP_JOBS 16
+constexpr int MAX_DSP_JOBS = 16;
 
 typedef struct {
     const Short* input;
@@ -101,7 +101,7 @@ void DSP_Reverb_Thread_Shutdown(void) {
     g_dsp_jobs_available_sem = nullptr;
 }
 
-#define REVERB_TAIL_SECONDS 5.0f
+constexpr float REVERB_TAIL_SECONDS = 5.0f;
 
 const Float comb_tunings[8] = { 25.31f, 26.94f, 28.96f, 30.75f, 32.24f, 33.81f, 35.31f, 36.69f };
 const Float allpass_tunings[4] = { 5.56f, 4.41f, 3.53f, 2.89f };

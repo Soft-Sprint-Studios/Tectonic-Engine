@@ -28,8 +28,6 @@
 #include <cstdlib>
 #include <cstdio>
 
-#define MAX_COMMANDS 256
-
 class Commands {
 private:
     static Command g_commands[MAX_COMMANDS];

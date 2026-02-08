@@ -119,7 +119,7 @@ Uint g_footstep_sound_buffer = 0;
 Uint g_jump_sound_buffer = 0;
 Uint g_geiger_tick_sound_buffer = 0;
 static Float g_geiger_timer = 0.0f;
-#define FPS_GRAPH_SAMPLES 8000
+constexpr int FPS_GRAPH_SAMPLES = 8000;
 static Float g_fps_history[FPS_GRAPH_SAMPLES] = { 0.0f };
 static Int g_fps_history_index = 0;
 static Vec3 g_last_player_pos = { 0.0f, 0.0f, 0.0f };

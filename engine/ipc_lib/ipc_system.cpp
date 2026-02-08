@@ -40,12 +40,12 @@ typedef SOCKET socket_t;
 #include <fcntl.h>
 #include <errno.h>
 typedef Int socket_t;
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
+constexpr int INVALID_SOCKET = -1;
+constexpr int SOCKET_ERROR = -1;
 #endif
 
-#define TCONSOLE_PORT 28016
-#define TCONSOLE_BUFFER_SIZE 4096
+constexpr int TCONSOLE_PORT = 28016;
+constexpr int TCONSOLE_BUFFER_SIZE = 4096;
 
 static socket_t g_tconsole_socket = INVALID_SOCKET;
 static Bool g_tconsole_connected = false;

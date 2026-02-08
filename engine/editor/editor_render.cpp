@@ -141,7 +141,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Mat4 model; mat4_identity(&model);
         glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
 
-#define SEGMENTS 32
+        constexpr int SEGMENTS = 32;
         const Float radius = 1.0f;
         Vec3 points[SEGMENTS + 1];
 
@@ -948,7 +948,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glBindVertexArray(0);
 
     if (type != VIEW_PERSPECTIVE) {
-#define RADIUS_GIZMO_SEGMENTS 32
+        constexpr int RADIUS_GIZMO_SEGMENTS = 32;
         glUseProgram(g_EditorState.debug_shader);
         Mat4 model_ident;
         mat4_identity(&model_ident);
