@@ -80,15 +80,15 @@ void Brush_FreeData(Brush* b) {
             glMakeTextureHandleNonResidentARB(b->directionalLightmapAtlasHandle);
             b->directionalLightmapAtlasHandle = 0;
         } glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-    if (b->vertices) { free(b->vertices); b->vertices = nullptr; }
+    if (b->vertices) { delete[] b->vertices; b->vertices = nullptr; }
     if (b->faces) {
         for (Int i = 0; i < b->numFaces; i++) {
             if (b->faces[i].vertexIndices) {
-                free(b->faces[i].vertexIndices);
+                delete[] b->faces[i].vertexIndices;
                 b->faces[i].vertexIndices = nullptr;
             }
         }
-        free(b->faces);
+        delete[] b->faces;
         b->faces = nullptr;
     }
     if (b->bakedVertexColors) {
@@ -120,7 +120,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     memcpy(dest->properties, src->properties, sizeof(KeyValue) * MAX_ENTITY_PROPERTIES);
     dest->numVertices = src->numVertices;
     if (src->numVertices > 0) {
-        dest->vertices = static_cast<BrushVertex*>(malloc(src->numVertices * sizeof(BrushVertex)));
+        dest->vertices = new BrushVertex[src->numVertices];
         memcpy(dest->vertices, src->vertices, src->numVertices * sizeof(BrushVertex));
     }
     else {
@@ -129,11 +129,11 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
 
     dest->numFaces = src->numFaces;
     if (src->numFaces > 0) {
-        dest->faces = static_cast<BrushFace*>(malloc(src->numFaces * sizeof(BrushFace)));
+        dest->faces = new BrushFace[src->numFaces];
         for (Int i = 0; i < src->numFaces; ++i) {
             dest->faces[i] = src->faces[i];
             if (src->faces[i].numVertexIndices > 0) {
-                dest->faces[i].vertexIndices = static_cast<Int*>(malloc(src->faces[i].numVertexIndices * sizeof(Int)));
+                dest->faces[i].vertexIndices = new Int[src->faces[i].numVertexIndices];
                 memcpy(dest->faces[i].vertexIndices, src->faces[i].vertexIndices, src->faces[i].numVertexIndices * sizeof(Int));
             }
             else {
@@ -358,8 +358,7 @@ void Brush_CreateRenderData(Brush* b) {
         return;
     }
 
-    Vec3* temp_normals = (Vec3*)calloc(b->numVertices, sizeof(Vec3));
-    if (!temp_normals) return;
+    Vec3* temp_normals = new Vec3[b->numVertices]{};
 
     for (Int i = 0; i < b->numFaces; ++i) {
         BrushFace* face = &b->faces[i];
@@ -389,14 +388,14 @@ void Brush_CreateRenderData(Brush* b) {
     }
     b->totalRenderVertexCount = total_render_verts;
     if (total_render_verts == 0) {
-        free(temp_normals);
+        delete[] temp_normals;
         return;
     }
 
     constexpr Int stride_floats = 32;
-    Float* final_vbo_data = static_cast<Float*>(calloc(total_render_verts * stride_floats, sizeof(Float)));
+    Float* final_vbo_data = new Float[total_render_verts * stride_floats]{};
     if (!final_vbo_data) {
-        free(temp_normals);
+        delete[] temp_normals;
         return;
     }
 
@@ -436,7 +435,7 @@ void Brush_CreateRenderData(Brush* b) {
         Int num_tris_in_face = face->numVertexIndices - 2;
         Int num_verts_in_face = num_tris_in_face * 3;
 
-        Int* face_tri_indices = static_cast<Int*>(malloc(num_verts_in_face * sizeof(Int)));
+        Int* face_tri_indices = new Int[num_verts_in_face];
         for (Int j = 0; j < num_tris_in_face; ++j) {
             face_tri_indices[j * 3 + 0] = face->vertexIndices[0];
             face_tri_indices[j * 3 + 1] = face->vertexIndices[j + 1];
@@ -519,7 +518,7 @@ void Brush_CreateRenderData(Brush* b) {
 
             memcpy(&final_vbo_data[vbo_idx + 28], &vert.color, sizeof(Vec4));
         }
-        free(face_tri_indices);
+        delete[] face_tri_indices;
         vbo_vertex_offset += num_verts_in_face;
     }
 
@@ -542,8 +541,8 @@ void Brush_CreateRenderData(Brush* b) {
     glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, stride_floats * sizeof(Float), (void*)offset); glEnableVertexAttribArray(12);
 
     glBindVertexArray(0);
-    free(final_vbo_data);
-    free(temp_normals);
+    delete[] final_vbo_data;
+    delete[] temp_normals;
 }
 
 void Scene_Clear(Scene* scene, Engine* engine) {
@@ -571,7 +570,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
                 glDeleteTextures(1, &scene->objects[i].dirLightmapTexture);
             }
         }
-        free(scene->objects);
+        delete[] scene->objects;
         scene->objects = nullptr;
     }
 
@@ -672,7 +671,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     memset(scene->colorCorrection.lutPath, 0, sizeof(scene->colorCorrection.lutPath));
     scene->colorCorrection.lutTexture = 0;
     if (scene->ambient_probes) {
-        free(scene->ambient_probes);
+        delete[] scene->ambient_probes;
         scene->ambient_probes = nullptr;
     }
     scene->num_ambient_probes = 0;
@@ -824,7 +823,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 Char face_keyword[64];
                 sscanf(line, "%s", face_keyword);
                 if (sscanf(line, " num_verts %d", &b->numVertices) == 1) {
-                    b->vertices = static_cast<BrushVertex*>(malloc(b->numVertices * sizeof(BrushVertex)));
+                    b->vertices = new BrushVertex[b->numVertices];
                     for (Int i = 0; i < b->numVertices; ++i) {
                         fgets(line, sizeof(line), file);
                         if (sscanf(line, " v %*d %f %f %f %f %f %f %f", &b->vertices[i].pos.x, &b->vertices[i].pos.y, &b->vertices[i].pos.z, &b->vertices[i].color.x, &b->vertices[i].color.y, &b->vertices[i].color.z, &b->vertices[i].color.w) != 7) {
@@ -833,7 +832,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                     }
                 }
                 else if (sscanf(line, " num_faces %d", &b->numFaces) == 1) {
-                    b->faces = static_cast<BrushFace*>(calloc(b->numFaces, sizeof(BrushFace)));
+                    b->faces = new BrushFace[b->numFaces]{};
                     for (Int i = 0; i < b->numFaces; ++i) {
                         fgets(line, sizeof(line), file);
                         Char mat_name[64], mat2_name[64], mat3_name[64], mat4_name[64];
@@ -869,7 +868,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                         b->faces[i].material3 = strcmp(mat3_name, "null") == 0 ? nullptr : TextureManager_FindMaterial(mat3_name);
                         b->faces[i].material4 = strcmp(mat4_name, "null") == 0 ? nullptr : TextureManager_FindMaterial(mat4_name);
 
-                        b->faces[i].vertexIndices = static_cast<Int*>(malloc(b->faces[i].numVertexIndices * sizeof(Int)));
+                        b->faces[i].vertexIndices = new Int[b->faces[i].numVertexIndices];
 
                         Char* p = strchr(line, ':');
                         if (p) {
@@ -949,10 +948,10 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                     if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
                 else {
-                    Vec3* world_verts = static_cast<Vec3*>(malloc(b->numVertices * sizeof(Vec3)));
+                    Vec3* world_verts = new Vec3[b->numVertices];
                     for (Int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                     b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
-                    free(world_verts);
+                    delete[] world_verts;
                 }
             }
             b->current_angular_velocity = 0.0f;
@@ -966,10 +965,16 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
             scene->numBrushes++;
         }
-        else if (strcmp(keyword, "gltf_model") == 0) {
+       else if (strcmp(keyword, "gltf_model") == 0) {
             if (scene->numObjects >= MAX_MODELS) continue;
+            SceneObject* oldObjects = scene->objects;
+            Int oldNum = scene->numObjects;
             scene->numObjects++;
-            scene->objects = static_cast<SceneObject*>(realloc(scene->objects, scene->numObjects * sizeof(SceneObject)));
+            scene->objects = new SceneObject[scene->numObjects];
+            if (oldObjects) {
+               for (Int k = 0; k < oldNum; ++k) scene->objects[k] = oldObjects[k];
+               delete[] oldObjects;
+            }
             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
             memset(newObj, 0, sizeof(SceneObject));
             Char* p = line + strlen(keyword);
