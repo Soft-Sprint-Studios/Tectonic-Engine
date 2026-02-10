@@ -99,7 +99,7 @@ void main()
             float lightVisibility = 1.0;
             if (lights[l].shadowMapHandle.x > 0 || lights[l].shadowMapHandle.y > 0) {
                  if (lightType == 0) {
-                     lightVisibility = calculatePointShadow(lights[l].shadowMapHandle, currentPosition, lightPos, lights[l].params2.x, lights[l].params2.y, viewPos);
+                     lightVisibility = 1.0 - calculatePointShadow(lights[l].shadowMapHandle, currentPosition, lightPos, lights[l].params2.x, lights[l].params2.y, viewPos);
                  } else {
                      float angle_rad = acos(clamp(lights[l].params1.y, -1.0, 1.0));
                      if (angle_rad < 0.01) angle_rad = 0.01;
