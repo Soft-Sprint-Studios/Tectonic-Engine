@@ -376,8 +376,8 @@ namespace
                         Vec3 probe_pos = { x, y, z };
                         mt19937 validation_rng(generate_seed_from_pos(probe_pos));
 
-                        const Int validation_rays = 16;
-                        const Float validation_distance = 0.5f;
+                        constexpr Int validation_rays = 16;
+                        constexpr Float validation_distance = 0.5f;
                         Int hits = 0;
 
                         for (Int k = 0; k < validation_rays; ++k)
