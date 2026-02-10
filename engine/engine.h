@@ -53,6 +53,22 @@
     extern Bool g_restart_requested;
     extern Char g_screenshot_path[256];
     extern Bool g_is_editor_mode;
+    extern Uint g_flashlight_sound_buffer;
+    extern Uint g_footstep_sound_buffer;
+    extern Uint g_jump_sound_buffer;
+    extern Uint g_geiger_tick_sound_buffer;
+    extern Float g_geiger_timer;
+    extern Bool g_player_on_ladder;
+    extern Vec3 g_ladder_normal;
+    extern Float g_current_friction_modifier;
+    extern Bool g_sent_initial_ipc_data;
+    extern Int g_last_rawinput_cvar_state;
+    extern Int g_last_deactivation_cvar_state;
+    extern Int g_last_monitor_cvar_state;
+    extern Int g_current_reverb_zone_index;
+    extern Vec3 g_last_player_pos;
+    extern Float g_distance_walked;
+    extern Float FOOTSTEP_DISTANCE;
 
 
 #endif // ENGINE_H

@@ -90,7 +90,7 @@ set(ENGINE_SOURCES
     engine/discord_wrapper.cpp
     engine/editor/editor.cpp engine/editor/editor_windows.cpp engine/editor/editor_ui.cpp engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.cpp engine/editor/editor_render.cpp engine/editor/editor_undo.cpp engine/editor/editor_misc.cpp
     engine/game_data.cpp
-    engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/main_menu.cpp
+    engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/engine_game.cpp engine/main_menu.cpp
     engine/map.cpp engine/map_lighting.cpp engine/gl_particle_system.cpp
     engine/gl_video_player.cpp engine/weapons.cpp
     engine/sentry_wrapper.cpp
@@ -129,7 +129,7 @@ set(ENGINE_HEADERS
     engine/common/compat.h engine/common/datatypes.h engine/engine_api.h engine/discord_wrapper.h
     engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_windows.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_geometry_helpers.h engine/editor/editor_render.h engine/editor/editor_undo.h engine/editor/editor_misc.h
     engine/game_data.h
-    engine/engine.h
+    engine/engine.h engine/engine_game.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h engine/map_lighting.h
     engine/gl_particle_system.h
     engine/gl_video_player.h engine/weapons.h engine/sentry_wrapper.h
