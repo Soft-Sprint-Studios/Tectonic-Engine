@@ -1793,8 +1793,7 @@ void Editor_RenderGoToCoordinatesWindow(void) {
     UI_End();
 }
 
-void Editor_RenderStatusBar()
-{
+void Editor_RenderStatusBar() {
     constexpr Float STATUS_BAR_HEIGHT = 22.0f;
     Float screen_w, screen_h;
     UI_GetDisplaySize(&screen_w, &screen_h);
