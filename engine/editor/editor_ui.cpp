@@ -445,9 +445,32 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Separator();
         UI_InputText("Name", b->targetname, sizeof(b->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Name"); }
         UI_Separator(); Bool transform_changed = false;
-        UI_DragFloat3("Position", &b->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->pos.x = SnapValue(b->pos.x, g_EditorState.grid_size); b->pos.y = SnapValue(b->pos.y, g_EditorState.grid_size); b->pos.z = SnapValue(b->pos.z, g_EditorState.grid_size); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Move Brush"); }
-        UI_DragFloat3("Rotation", &b->rot.x, 1.0f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->rot.x = SnapValue(b->rot.x, 15.0f); b->rot.y = SnapValue(b->rot.y, 15.0f); b->rot.z = SnapValue(b->rot.z, 15.0f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Rotate Brush"); }
-        UI_DragFloat3("Scale", &b->scale.x, 0.01f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { b->scale.x = SnapValue(b->scale.x, 0.25f); b->scale.y = SnapValue(b->scale.y, 0.25f); b->scale.z = SnapValue(b->scale.z, 0.25f); } transform_changed = true; Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Scale Brush"); }
+        UI_DragFloat3("Position", &b->pos.x, 0.1f, 0, 0);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            transform_changed = true;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Move Brush");
+        }
+
+        UI_DragFloat3("Rotation", &b->rot.x, 1.0f, 0, 0);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            transform_changed = true;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Rotate Brush");
+        }
+
+        UI_DragFloat3("Scale", &b->scale.x, 0.01f, 0, 0);
+        if (UI_IsItemActivated()) {
+            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
+        }
+        if (UI_IsItemDeactivatedAfterEdit()) {
+            transform_changed = true;
+            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Scale Brush");
+        }
         if (UI_Checkbox("Use Vertex Lighting", &b->useVertexLighting)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
             if (b->useVertexLighting) {
@@ -762,11 +785,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
         }
         if (UI_IsItemDeactivatedAfterEdit()) {
-            if (g_EditorState.snap_to_grid) {
-                light->pos.x = SnapValue(light->pos.x, g_EditorState.grid_size);
-                light->pos.y = SnapValue(light->pos.y, g_EditorState.grid_size);
-                light->pos.z = SnapValue(light->pos.z, g_EditorState.grid_size);
-            }
             Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Move Light");
         }
 
@@ -776,11 +794,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Undo_BeginEntityModification(scene, ENTITY_LIGHT, primary->index);
             }
             if (UI_IsItemDeactivatedAfterEdit()) {
-                if (g_EditorState.snap_to_grid) {
-                    light->rot.x = SnapValue(light->rot.x, 15.0f);
-                    light->rot.y = SnapValue(light->rot.y, 15.0f);
-                    light->rot.z = SnapValue(light->rot.z, 15.0f);
-                }
                 Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Rotate Light");
             }
         }
