@@ -592,7 +592,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
             const Char** target_names = nullptr;
             if (num_targets > 0) {
-                const Char** target_names = new const Char* [num_targets];
+                target_names = new const Char * [num_targets];
                 Int idx = 0;
 
                 for (Int k = 0; k < scene->numObjects; ++k) if (strlen(scene->objects[k].targetname) > 0) target_names[idx++] = scene->objects[k].targetname;
@@ -667,7 +667,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_PopID();
             }
 
-            if (target_names) free(target_names);
+            delete[] target_names;
             RenderIOEditor(ENTITY_BRUSH, primary->index);
         }
         else {
