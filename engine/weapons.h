@@ -47,4 +47,4 @@
     void Weapons_TryFire(Engine* engine, Scene* scene);
 
 
-#endif
+#endif // WEAPONS_H

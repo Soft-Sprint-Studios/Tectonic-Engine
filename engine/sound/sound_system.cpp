@@ -193,17 +193,17 @@ static Uint internal_LoadMP3(const Char* path) {
 
     mp3dec_frame_info_t info;
     Short* pcm_buffer = nullptr;
-    size_t pcm_size = 0;
-    size_t pcm_capacity = 65536;
+    Usize pcm_size = 0;
+    Usize pcm_capacity = 65536;
     pcm_buffer = new Short[pcm_capacity];
 
     Int samples;
     Uchar* buf_ptr = file_buffer;
-    size_t bytes_left = file_size;
+    Usize bytes_left = file_size;
 
     while (bytes_left > 0 && (samples = mp3dec_decode_frame(&mp3d, buf_ptr, bytes_left, nullptr, &info)) > 0) {
-        if (pcm_size + (size_t)samples * info.channels > pcm_capacity) {
-            pcm_capacity = pcm_capacity * 2 + (size_t)samples * info.channels;
+        if (pcm_size + (Usize)samples * info.channels > pcm_capacity) {
+            pcm_capacity = pcm_capacity * 2 + (Usize)samples * info.channels;
             Short* new_pcm_buffer = new Short[pcm_capacity];
             memcpy(new_pcm_buffer, pcm_buffer, pcm_size * sizeof(Short));
             delete[] pcm_buffer;
@@ -225,13 +225,13 @@ static Uint internal_LoadMP3(const Char* path) {
     }
 
     Short* final_pcm_buffer = pcm_buffer;
-    size_t final_pcm_size_bytes = pcm_size * sizeof(Short);
+    Usize final_pcm_size_bytes = pcm_size * sizeof(Short);
     ALenum format = (info.channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 
     if (info.channels == 2) {
-        size_t mono_samples = pcm_size / 2;
+        Usize mono_samples = pcm_size / 2;
         Short* mono_buffer = new Short[mono_samples];
-        for (size_t i = 0; i < mono_samples; i++) {
+        for (Usize i = 0; i < mono_samples; i++) {
             mono_buffer[i] = (Short)(((Int)pcm_buffer[i * 2] + (Int)pcm_buffer[i * 2 + 1]) / 2);
         }
         delete[] pcm_buffer;

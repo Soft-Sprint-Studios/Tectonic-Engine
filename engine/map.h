@@ -615,21 +615,10 @@ constexpr int LIGHTMAPPADDING = 2;
         GameTextMessage active_messages[MAX_GAME_TEXT_MESSAGES];
     } Engine;
 
-    void Brush_UpdateMatrix(Brush* b);
-    void Brush_CreateRenderData(Brush* b);
-    void Brush_FreeData(Brush* b);
-    void Brush_DeepCopy(Brush* dest, const Brush* src);
-    Bool Brush_IsSolid(const Brush* b);
-    void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
-    void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
-    void Decal_UpdateMatrix(Decal* d);
-    void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
     void LogicSystem_Update(Scene* scene, Float deltaTime);
     void Scene_Clear(Scene* scene, Engine* engine);
     Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine* engine);
     Bool Scene_SaveMap(Scene* scene, Engine* engine, const Char* mapPath);
-    void SceneObject_UpdateMatrix(SceneObject* obj);
-    void Scene_LoadAmbientProbes(Scene* scene);
 
 
 #endif // MAP_H

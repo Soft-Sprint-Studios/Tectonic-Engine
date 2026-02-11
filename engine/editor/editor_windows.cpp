@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 #include "map_lighting.h"
+#include "map_misc.h"
 #include "editor_windows.h"
 #include "editor_undo.h"
 #include "editor_math.h"
@@ -1298,7 +1299,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
             const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
             const Char* dot = strrchr(map_filename, '.');
             if (dot) {
-                size_t len = dot - map_filename;
+                Usize len = dot - map_filename;
                 strncpy(map_name_sanitized, map_filename, len);
                 map_name_sanitized[len] = '\0';
             }
@@ -1413,7 +1414,7 @@ void Editor_RenderBuildCubemapsWindow(Renderer* renderer, Scene* scene, Engine* 
                 const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
                 const Char* dot_ptr = strrchr(map_filename, '.');
                 if (dot_ptr) {
-                    size_t len = dot_ptr - map_filename;
+                    Usize len = dot_ptr - map_filename;
                     strncpy(map_name_sanitized, map_filename, len);
                     map_name_sanitized[len] = '\0';
                 }

@@ -300,7 +300,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
     const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
     const Char* dot_ptr = strrchr(map_filename, '.');
     if (dot_ptr) {
-        size_t len = dot_ptr - map_filename;
+        Usize len = dot_ptr - map_filename;
         strncpy(map_name_sanitized, map_filename, len);
         map_name_sanitized[len] = '\0';
     }

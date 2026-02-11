@@ -27,6 +27,7 @@
 #include "editor_selection.h"
 #include "editor_misc.h"
 #include "sound_system.h"
+#include "map_misc.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

@@ -35,6 +35,7 @@
 #include "game_data.h"
 #include "commands.h"
 #include "cvar.h"
+#include "map_misc.h"
 
 void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     Int model_to_delete = -1, brush_to_delete = -1, light_to_delete = -1, decal_to_delete = -1, sound_to_delete = -1, particle_to_delete = -1, video_player_to_delete = -1, parallax_room_to_delete = -1;

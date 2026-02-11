@@ -117,8 +117,8 @@
     void UI_GetWindowSize(Float* w, Float* h) { ImVec2 size = ImGui::GetWindowSize(); *w = size.x; *h = size.y; }
     void UI_PushStyleVar_WindowPadding(Float val_x, Float val_y) { ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(val_x, val_y)); }
     void UI_PopStyleVar(Int count) { ImGui::PopStyleVar(count); }
-    void UI_InputText(const Char* label, Char* buf, size_t buf_size) { ImGui::InputText(label, buf, buf_size); }
-    Bool UI_InputText_Flags(const Char* label, Char* buf, size_t buf_size, Int flags) {
+    void UI_InputText(const Char* label, Char* buf, Usize buf_size) { ImGui::InputText(label, buf, buf_size); }
+    Bool UI_InputText_Flags(const Char* label, Char* buf, Usize buf_size, Int flags) {
         return ImGui::InputText(label, buf, buf_size, (ImGuiInputTextFlags)flags);
     }
     void UI_EndChild() { ImGui::EndChild(); }

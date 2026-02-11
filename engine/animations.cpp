@@ -44,7 +44,7 @@ void evaluate_animation(SceneObject* obj, Float time) {
 
     Mat4* local_transforms = new Mat4[num_nodes];
 
-    for (size_t i = 0; i < num_nodes; ++i) {
+    for (Usize i = 0; i < num_nodes; ++i) {
         cgltf_node* node = &nodes[i];
         Vec3 t = { node->translation[0], node->translation[1], node->translation[2] };
         Vec4 r = { node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3] };
@@ -59,8 +59,8 @@ void evaluate_animation(SceneObject* obj, Float time) {
 
         if (joint_index < 0 || joint_index >= num_nodes) continue;
 
-        size_t frame_idx = 0;
-        for (size_t k = 0; k < sampler->num_keyframes - 1; ++k) {
+        Usize frame_idx = 0;
+        for (Usize k = 0; k < sampler->num_keyframes - 1; ++k) {
             if (time >= sampler->timestamps[k] && time <= sampler->timestamps[k + 1]) {
                 frame_idx = k;
                 break;
@@ -88,7 +88,7 @@ void evaluate_animation(SceneObject* obj, Float time) {
 
     Mat4* global_transforms = new Mat4[num_nodes];
 
-    for (size_t i = 0; i < num_nodes; ++i) {
+    for (Usize i = 0; i < num_nodes; ++i) {
         cgltf_node* node = &nodes[i];
         if (node->parent) {
             Int parent_idx = node->parent - nodes;
@@ -162,8 +162,8 @@ void Scene_UpdateAnimations(Scene* scene, Float deltaTime) {
                     AnimationChannel* channel = &clip->channels[c];
                     AnimationSampler* sampler = &channel->sampler;
 
-                    size_t frame_idx = 0;
-                    for (size_t k = 0; k < sampler->num_keyframes - 1; ++k) {
+                    Usize frame_idx = 0;
+                    for (Usize k = 0; k < sampler->num_keyframes - 1; ++k) {
                         if (obj->animation_time >= sampler->timestamps[k] && obj->animation_time <= sampler->timestamps[k + 1]) {
                             frame_idx = k;
                             break;

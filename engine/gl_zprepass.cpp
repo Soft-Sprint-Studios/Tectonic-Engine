@@ -24,6 +24,7 @@
 #include "gl_zprepass.h"
 #include "gl_misc.h"
 #include "cvar.h"
+#include "map_misc.h"
 
 void Zprepass_Init(Renderer* renderer) {
     renderer->zPrepassShader = createShaderProgram("shaders/zprepass.vert", "shaders/zprepass.frag");

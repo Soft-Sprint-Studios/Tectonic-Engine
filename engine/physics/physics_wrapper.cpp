@@ -72,7 +72,7 @@ struct RigidBody {
             delete obj;
         }
 
-        for (size_t i = 0; i < world->collisionShapes.size(); i++) {
+        for (Usize i = 0; i < world->collisionShapes.size(); i++) {
             delete world->collisionShapes[i];
         }
         world->collisionShapes.clear();

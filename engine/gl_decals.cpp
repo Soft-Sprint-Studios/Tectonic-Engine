@@ -26,6 +26,7 @@
 #include "gl_geometry.h"
 #include "cvar.h"
 #include "texturemanager.h"
+#include "map_misc.h"
 
 static Float decalQuadVertices[] = {
     -0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 1.0f,      0.0f, -1.0f,  0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,   0.0f, 0.0f,    0.0f, 0.0f,    0.0f, 0.0f,
@@ -42,7 +43,7 @@ void Decals_Init(Renderer* renderer) {
     glBindVertexArray(renderer->decalVAO);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->decalVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(decalQuadVertices), &decalQuadVertices, GL_STATIC_DRAW);
-    size_t stride = 22 * sizeof(Float);
+    Usize stride = 22 * sizeof(Float);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(Float)));

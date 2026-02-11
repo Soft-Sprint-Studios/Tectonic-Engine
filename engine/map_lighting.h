@@ -35,6 +35,7 @@
     void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, const Char* mapPath);
     void SceneObject_LoadLightmaps(SceneObject* obj, Int index, const Char* mapPath);
     void Decal_LoadLightmaps(Decal* decal, const Char* map_name_sanitized, Int decal_index);
+    void Scene_LoadAmbientProbes(Scene* scene);
 
 
 #endif // MAP_LIGHTING_H

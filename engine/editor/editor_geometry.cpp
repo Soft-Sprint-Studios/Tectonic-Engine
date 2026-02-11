@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "map_misc.h"
 #include "editor_geometry.h"
 #include "editor_geometry_helpers.h"
 #include "editor_selection.h"

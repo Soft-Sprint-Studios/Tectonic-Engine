@@ -23,6 +23,7 @@
  */
 #include "gl_console.h"
 #include "editor_geometry_helpers.h"
+#include "map_misc.h"
 
 static Vec3 g_sort_normal;
 static Vec3 g_sort_centroid;

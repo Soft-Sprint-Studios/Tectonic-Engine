@@ -50,6 +50,7 @@
 #include "game_data.h"
 #include "cvar.h"
 #include "animations.h"
+#include "map_misc.h"
 
 EditorState g_EditorState;
 Scene* g_CurrentScene;
@@ -1975,7 +1976,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                             SceneObject* new_objects = new SceneObject[scene->numObjects];
 
-                            for (size_t i = 0; i < scene->numObjects - 1; ++i) {
+                            for (Usize i = 0; i < scene->numObjects - 1; ++i) {
                                 new_objects[i] = scene->objects[i];
                             }
 

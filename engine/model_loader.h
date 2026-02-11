@@ -43,7 +43,7 @@ constexpr int MAX_BONES_PER_MODEL = 128;
         Vec3* translations;
         Vec4* rotations;
         Vec3* scales;
-        size_t num_keyframes;
+        Usize num_keyframes;
     } AnimationSampler;
 
     typedef struct {
@@ -86,7 +86,7 @@ constexpr int MAX_BONES_PER_MODEL = 128;
         Uint* indexData;
         Uint vertexCount;
         Float* final_vbo_data;
-        size_t final_vbo_data_size;
+        Usize final_vbo_data_size;
     } Mesh;
 
     typedef struct {
@@ -105,7 +105,7 @@ constexpr int MAX_BONES_PER_MODEL = 128;
         Skin* skins;
         Int num_skins;
         void* nodes;
-        size_t num_nodes;
+        Usize num_nodes;
     } LoadedModel;
 
     LoadedModel* Model_Load(const Char* path);

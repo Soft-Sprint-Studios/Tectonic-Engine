@@ -35,6 +35,7 @@
 #include "gl_cables.h"
 #include "gl_glow.h"
 #include "gl_monitor.h"
+#include "map_misc.h"
 
 Int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
     for (Int i = 0; i < scene->numBrushes; ++i) {

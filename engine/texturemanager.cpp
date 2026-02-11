@@ -51,14 +51,14 @@ static Char* prependTexturePath(const Char* filename) {
     if (filename == nullptr || filename[0] == '\0') return nullptr;
 
     if (strncmp(filename, "textures/", 9) == 0 || strncmp(filename, "lightmaps/", 10) == 0) {
-        size_t len = strlen(filename) + 1;
+        Usize len = strlen(filename) + 1;
         Char* copy = new Char[len];
         strcpy(copy, filename);
         return copy;
     }
 
     const Char* baseFolder = "textures/";
-    size_t len = strlen(baseFolder) + strlen(filename) + 1;
+    Usize len = strlen(baseFolder) + strlen(filename) + 1;
 
     Char* fullPath = new Char[len];
     strcpy(fullPath, baseFolder);
@@ -410,7 +410,7 @@ static Char* strip_numeric_suffix(const Char* name) {
         }
 
         if (all_digits) {
-            size_t base_len = dot - name;
+            Usize base_len = dot - name;
             Char* base_name = new Char[base_len + 1];
             strncpy(base_name, name, base_len);
             base_name[base_len] = '\0';

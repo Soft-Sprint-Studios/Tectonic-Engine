@@ -21,26 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-// forked and modified from https://github.com/TheOverfloater/pathos-public/blob/main/pathos/sources/codesrc/common/datatypes.h
-
 #pragma once
-#ifndef DATATYPES_H
-#define DATATYPES_H
-typedef	char				Char;
-typedef	unsigned char		Uchar;
-typedef unsigned short		Ushort;
-typedef size_t				Usize;
-typedef short				Short;
-typedef int					Int;
-typedef unsigned int		Uint;
-typedef float				Float;
-typedef double				Double;
-typedef long				Long;
-typedef long long			LongLong;
+#ifndef MAP_MISC_H
+#define MAP_MISC_H
 
-// hack so that mikktspace doesnt break compile
-#ifdef __cplusplus
-typedef bool				Bool;
-#endif
+#include "map.h"
 
-#endif // DATATYPES_H
+	void SceneObject_UpdateMatrix(SceneObject* obj);
+	void ParallaxRoom_UpdateMatrix(ParallaxRoom* p);
+	void Decal_UpdateMatrix(Decal* d);
+	void Brush_UpdateMatrix(Brush* b);
+	void Brush_FreeData(Brush* b);
+	void Brush_DeepCopy(Brush* dest, const Brush* src);
+	Bool Brush_IsSolid(const Brush* b);
+	void Brush_GetLocalAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
+	void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max);
+	void CreateMapBackup(const Char* originalPath);
+	void Brush_CreateRenderData(Brush* b);
+
+
+#endif // MAP_MISC_H

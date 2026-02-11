@@ -32,6 +32,7 @@
 #include "commands.h"
 #include "gl_renderer.h"
 #include "map.h"
+#include "map_misc.h"
 #include "physics_wrapper.h"
 #include "editor.h"
 #include <stdlib.h>

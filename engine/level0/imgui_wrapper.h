@@ -77,8 +77,8 @@
     LEVEL0_API void UI_Image(void* user_texture_id, Float width, Float height);
     LEVEL0_API Bool UI_ImageButton(const Char* str_id, Uint user_texture_id, Float width, Float height);
     LEVEL0_API Bool UI_ImageButton_Flip(const Char* id, void* texture_id, Float width, Float height);
-    LEVEL0_API void UI_InputText(const Char* label, Char* buf, size_t buf_size);
-    LEVEL0_API Bool UI_InputText_Flags(const Char* label, Char* buf, size_t buf_size, Int flags);
+    LEVEL0_API void UI_InputText(const Char* label, Char* buf, Usize buf_size);
+    LEVEL0_API Bool UI_InputText_Flags(const Char* label, Char* buf, Usize buf_size, Int flags);
     LEVEL0_API Bool UI_Checkbox(const Char* label, Bool* v);
     LEVEL0_API Bool UI_RadioButton(const Char* label, Bool active);
     LEVEL0_API Bool UI_RadioButton_Int(const Char* label, Int* v, Int v_button);

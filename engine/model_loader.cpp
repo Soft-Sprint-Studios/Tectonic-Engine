@@ -149,14 +149,14 @@ LoadedModel* Model_Load(const Char* path) {
     if (data->skins_count > 0) {
         loadedModel->num_skins = data->skins_count;
         loadedModel->skins = new Skin[loadedModel->num_skins]{};
-        for (size_t s = 0; s < data->skins_count; ++s) {
+        for (Usize s = 0; s < data->skins_count; ++s) {
             cgltf_skin* skin_data = &data->skins[s];
             Skin* skin = &loadedModel->skins[s];
             strncpy(skin->name, skin_data->name ? skin_data->name : "", sizeof(skin->name) - 1);
             skin->num_joints = skin_data->joints_count;
             skin->joints = new SkinJoint[skin->num_joints]{};
 
-            for (size_t j = 0; j < skin_data->joints_count; ++j) {
+            for (Usize j = 0; j < skin_data->joints_count; ++j) {
                 skin->joints[j].joint_index = skin_data->joints[j] - data->nodes;
                 cgltf_accessor_read_float(skin_data->inverse_bind_matrices, j, skin->joints[j].inverse_bind_matrix.m, 16);
             }
@@ -166,7 +166,7 @@ LoadedModel* Model_Load(const Char* path) {
     if (data->animations_count > 0) {
         loadedModel->num_animations = data->animations_count;
         loadedModel->animations = new AnimationClip[loadedModel->num_animations]{};
-        for (size_t a = 0; a < data->animations_count; ++a) {
+        for (Usize a = 0; a < data->animations_count; ++a) {
             cgltf_animation* anim_data = &data->animations[a];
             AnimationClip* clip = &loadedModel->animations[a];
             strncpy(clip->name, anim_data->name ? anim_data->name : "", sizeof(clip->name) - 1);
@@ -174,7 +174,7 @@ LoadedModel* Model_Load(const Char* path) {
             clip->channels = new AnimationChannel[clip->num_channels]{};
             clip->duration = 0.0f;
 
-            for (size_t c = 0; c < anim_data->channels_count; ++c) {
+            for (Usize c = 0; c < anim_data->channels_count; ++c) {
                 cgltf_animation_channel* chan_data = &anim_data->channels[c];
                 AnimationChannel* channel = &clip->channels[c];
                 channel->target_joint = chan_data->target_node - data->nodes;
@@ -208,7 +208,7 @@ LoadedModel* Model_Load(const Char* path) {
     loadedModel->aabb_min = Vec3{ FLT_MAX, FLT_MAX, FLT_MAX };
     loadedModel->aabb_max = Vec3{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
     loadedModel->meshCount = 0;
-    for (size_t i = 0; i < data->meshes_count; ++i) {
+    for (Usize i = 0; i < data->meshes_count; ++i) {
         loadedModel->meshCount += data->meshes[i].primitives_count;
     }
 
@@ -220,9 +220,9 @@ LoadedModel* Model_Load(const Char* path) {
     }
 
     Int currentMeshIndex = 0;
-    for (size_t i = 0; i < data->meshes_count; ++i) {
+    for (Usize i = 0; i < data->meshes_count; ++i) {
         cgltf_mesh* mesh = &data->meshes[i];
-        for (size_t j = 0; j < mesh->primitives_count; ++j) {
+        for (Usize j = 0; j < mesh->primitives_count; ++j) {
             cgltf_primitive* primitive = &mesh->primitives[j];
             Mesh* newMesh = &loadedModel->meshes[currentMeshIndex];
             memset(newMesh, 0, sizeof(Mesh));
@@ -282,7 +282,7 @@ LoadedModel* Model_Load(const Char* path) {
                 continue;
             }
 
-            for (size_t k = 0; k < primitive->attributes_count; ++k) {
+            for (Usize k = 0; k < primitive->attributes_count; ++k) {
                 cgltf_attribute* attr = &primitive->attributes[k];
                 vertexCount = attr->data->count;
                 if (attr->type == cgltf_attribute_type_position) {
@@ -412,7 +412,7 @@ LoadedModel* Model_Load(const Char* path) {
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indexCount * sizeof(Uint), newMesh->indexData, GL_STATIC_DRAW);
             }
 
-            size_t offset = 0;
+            Usize offset = 0;
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MODEL_VERTEX_STRIDE_FLOATS * sizeof(Float), (void*)offset);
             glEnableVertexAttribArray(0);
             offset += 3 * sizeof(Float);
@@ -529,8 +529,8 @@ Bool Model_ApplyLMUV(LoadedModel* model, const Char* lmuv_path) {
         uint32_t* new_indices = new uint32_t[num_new_indices];
         fread(new_indices, sizeof(uint32_t), num_new_indices, f);
 
-        constexpr size_t stride_floats = 24;
-        size_t stride_bytes = stride_floats * sizeof(Float);
+        constexpr Usize stride_floats = 24;
+        Usize stride_bytes = stride_floats * sizeof(Float);
         Float* new_vbo_data = new Float[num_new_verts * stride_floats];
 
         for (uint32_t v = 0; v < num_new_verts; ++v) {

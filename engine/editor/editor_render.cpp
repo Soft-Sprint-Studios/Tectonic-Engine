@@ -35,6 +35,7 @@
 #include "game_data.h"
 #include "cvar.h"
 #include "io_system.h"
+#include "map_misc.h"
 
 void Editor_RenderGrid(ViewportType type, Float aspect) {
     glUseProgram(g_EditorState.grid_shader);

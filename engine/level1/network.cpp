@@ -45,7 +45,7 @@ typedef struct {
     Char* hostname;
 } PingArgs;
 
-static void parse_url(const Char* url, Char* host, size_t host_len, Char* path, size_t path_len) {
+static void parse_url(const Char* url, Char* host, Usize host_len, Char* path, Usize path_len) {
     const Char* scheme_end = strstr(url, "://");
     if (scheme_end) {
         host = strncpy(host, scheme_end + 3, host_len - 1);

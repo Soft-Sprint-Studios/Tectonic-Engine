@@ -26,8 +26,8 @@
 #include <SDL_image.h>
 #include "stb_image.h"
 
-static void sanitize_filename_map(const Char* input, Char* output, size_t max_len) {
-    size_t i = 0;
+static void sanitize_filename_map(const Char* input, Char* output, Usize max_len) {
+    Usize i = 0;
     while (i < max_len - 1 && input[i] != '\0') {
         if (isalnum((Uchar)input[i]) || input[i] == '_' || input[i] == '-') {
             output[i] = input[i];
@@ -48,7 +48,7 @@ void Brush_LoadVertexLighting(Brush* b, Int index, const Char* mapPath) {
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - map_filename_start;
+        Usize len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
@@ -92,7 +92,7 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, Int index, const Char* mapPat
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - map_filename_start;
+        Usize len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
@@ -135,7 +135,7 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, Int index, const Char* map
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - mapPath;
+        Usize len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
         map_name_sanitized[len] = '\0';
     }
@@ -183,7 +183,7 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, cons
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - mapPath;
+        Usize len = dot - mapPath;
         strncpy(map_name_sanitized, mapPath, len);
         map_name_sanitized[len] = '\0';
     }
@@ -229,7 +229,7 @@ void SceneObject_LoadLightmaps(SceneObject* obj, Int index, const Char* mapPath)
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - map_filename_start;
+        Usize len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
@@ -366,7 +366,7 @@ void Scene_LoadAmbientProbes(Scene* scene) {
 
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - map_filename_start;
+        Usize len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
@@ -433,7 +433,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index,
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        size_t len = dot - map_filename_start;
+        Usize len = dot - map_filename_start;
         strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }

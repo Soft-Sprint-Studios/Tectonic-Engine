@@ -27,6 +27,7 @@
 #include "lightmapper_internal.h"
 #include "gl_console.h"
 #include "math_lib.h"
+#include "map_misc.h"
 #include <vector>
 #include <string>
 #include <thread>
@@ -180,7 +181,7 @@ namespace
         OIDNDevice m_oidn_device;
 
         vector<JobPayload> m_jobs;
-        atomic<size_t> m_next_job_index{ 0 };
+        atomic<Usize> m_next_job_index{ 0 };
 
         vector<unique_ptr<Vec4[]>> m_model_color_buffers;
         vector<unique_ptr<Vec4[]>> m_model_direction_buffers;
@@ -276,8 +277,8 @@ namespace
             if (!obj.model || !obj.model->combinedIndexData) continue;
             for (Int mesh_idx = 0; mesh_idx < obj.model->meshCount; ++mesh_idx) {
                 const Mesh& mesh = obj.model->meshes[mesh_idx];
-                size_t num_primitives = mesh.indexCount / 3;
-                for (size_t k = 0; k < num_primitives; ++k) {
+                Usize num_primitives = mesh.indexCount / 3;
+                for (Usize k = 0; k < num_primitives; ++k) {
                     m_primID_to_material_map.push_back(mesh.material);
                 }
             }
@@ -430,7 +431,7 @@ namespace
         m_scene->num_ambient_probes = probe_positions.size();
         m_scene->ambient_probes = new AmbientProbe[m_scene->num_ambient_probes];
 
-        for (size_t i = 0; i < probe_positions.size(); ++i) {
+        for (Usize i = 0; i < probe_positions.size(); ++i) {
             m_scene->ambient_probes[i].position = probe_positions[i];
             Vec3 dominant_dir_total = { 0,0,0 };
             mt19937 lighting_rng(generate_seed_from_pos(probe_positions[i]));
@@ -694,8 +695,8 @@ namespace
 
         if (indirect_sum > BLACK_THRESHOLD)
         {
-            size_t pixelStride = sizeof(Float) * 3;
-            size_t rowStride = pixelStride * lightmap_width;
+            Usize pixelStride = sizeof(Float) * 3;
+            Usize rowStride = pixelStride * lightmap_width;
 
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
 
@@ -917,7 +918,7 @@ namespace
         }
 
         vector<Float> final_hdr_lightmap_data(lightmap_res * lightmap_res * 3);
-        for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
+        for (Usize i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
             Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
             Vec3 direct_sun_light = calculate_direct_sun_light_only(decal.pos, normal);
@@ -1215,7 +1216,7 @@ namespace
         apply_gaussian_blur(denoised_indirect, resolution, resolution, 3);
 
         vector<Float> final_hdr_lightmap_data(resolution * resolution * 3);
-        for (size_t i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
+        for (Usize i = 0; i < final_hdr_lightmap_data.size() / 3; ++i) {
             final_hdr_lightmap_data[i * 3 + 0] = direct_data[i * 3 + 0] + denoised_indirect[i * 3 + 0];
             final_hdr_lightmap_data[i * 3 + 1] = direct_data[i * 3 + 1] + denoised_indirect[i * 3 + 1];
             final_hdr_lightmap_data[i * 3 + 2] = direct_data[i * 3 + 2] + denoised_indirect[i * 3 + 2];
@@ -1266,7 +1267,7 @@ namespace
     {
         while (true)
         {
-            size_t job_index = m_next_job_index.fetch_add(1);
+            Usize job_index = m_next_job_index.fetch_add(1);
             if (job_index >= m_jobs.size())
             {
                 break;
@@ -1281,7 +1282,7 @@ namespace
         m_output_path = fs::path("lightmaps") / map_path.stem();
         fs::create_directories(m_output_path);
 
-        size_t total_brush_faces = 0;
+        Usize total_brush_faces = 0;
         for (Int i = 0; i < m_scene->numBrushes; ++i)
         {
             const Brush& b = m_scene->brushes[i];
@@ -1291,7 +1292,7 @@ namespace
             }
         }
 
-        size_t total_model_vertices = 0;
+        Usize total_model_vertices = 0;
         for (Int i = 0; i < m_scene->numObjects; ++i)
         {
             if (m_scene->objects[i].model)

@@ -298,7 +298,7 @@ void server_loop() {
             buffer[bytes_received] = '\0';
             line_buffer += buffer;
 
-            size_t pos;
+            Usize pos;
             while ((pos = line_buffer.find('\n')) != string::npos) {
                 string line = line_buffer.substr(0, pos);
                 if (!line.empty() && line.back() == '\r') {

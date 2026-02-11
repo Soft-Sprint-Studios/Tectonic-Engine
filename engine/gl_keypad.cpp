@@ -47,7 +47,7 @@ void Keypad_RenderUI(Scene* scene, Engine* engine) {
             }
 
             if (UI_Button(buttons[i])) {
-                size_t len = strlen(engine->keypad_input_buffer);
+                Usize len = strlen(engine->keypad_input_buffer);
                 if (strcmp(buttons[i], "C") == 0) {
                     memset(engine->keypad_input_buffer, 0, sizeof(engine->keypad_input_buffer));
                 } else if (strcmp(buttons[i], "E") == 0) {

@@ -29,6 +29,7 @@
 #include "editor_math.h"
 #include "editor_selection.h"
 #include "sound_system.h"
+#include "map_misc.h"
 
 void Editor_SetMapDirty(Bool is_dirty) {
     g_is_map_dirty = is_dirty;
@@ -58,7 +59,7 @@ void Editor_LoadRecentFiles() {
             delete[] g_EditorState.recent_map_files;
             g_EditorState.recent_map_files = new_files;
 
-            size_t len = strlen(line) + 1;
+            Usize len = strlen(line) + 1;
             g_EditorState.recent_map_files[g_EditorState.num_recent_map_files] = new Char[len];
             memcpy(g_EditorState.recent_map_files[g_EditorState.num_recent_map_files], line, len);
 

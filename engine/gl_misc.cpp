@@ -44,7 +44,7 @@ Char* load_shader_source(const Char* path) {
 
         buffer = new Char[length + 1];
         if (buffer) {
-            size_t read_bytes = fread(buffer, 1, length, f);
+            Usize read_bytes = fread(buffer, 1, length, f);
             buffer[read_bytes] = '\0';
         }
 
