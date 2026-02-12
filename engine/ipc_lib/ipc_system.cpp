@@ -136,7 +136,7 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
             *newline = '\0';
             
             Char* cmd_copy = _strdup(line_start);
-#define MAX_ARGS 16
+            constexpr int MAX_ARGS = 16;
             Int argc = 0;
             Char* argv[MAX_ARGS];
             
