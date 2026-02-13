@@ -670,41 +670,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (target_names) free(target_names);
             RenderIOEditor(ENTITY_BRUSH, primary->index);
         }
-        else {
-            UI_Separator();
-            UI_Text("Vertex Properties"); UI_DragInt("Selected Vertex", &primary->vertex_index, 1, 0, b->numVertices - 1);
-            if (primary->vertex_index >= 0 && primary->vertex_index < b->numVertices) {
-                BrushVertex* vert = &b->vertices[primary->vertex_index];
-
-                UI_DragFloat3("Local Position", &vert->pos.x, 0.1f, 0, 0);
-                if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
-                if (UI_IsItemDeactivatedAfterEdit()) {
-                    Brush_CreateRenderData(b);
-                    if (b->physicsBody) {
-                        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
-                        if (Brush_IsSolid(b) && b->numVertices > 0) {
-                            Vec3* world_verts = new Vec3[b->numVertices];
-                            for (Int i = 0; i < b->numVertices; ++i) {
-                                world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                            }
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
-                            delete[] world_verts;
-                        }
-                        else {
-                            b->physicsBody = nullptr;
-                        }
-                    }
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Edit Brush Vertex");
-                }
-
-                if (UI_IsItemActivated()) {
-                    Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-                }
-                if (UI_IsItemDeactivatedAfterEdit()) {
-                    Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Paint Vertex Color");
-                }
-            }
-        }
     }
     else if (primary && primary->type == ENTITY_PLAYERSTART) {
         UI_Text("Player Start"); UI_Separator(); UI_DragFloat3("Position", &scene->playerStart.pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PLAYERSTART, 0); } if (UI_IsItemDeactivatedAfterEdit()) { if (g_EditorState.snap_to_grid) { scene->playerStart.pos.x = SnapValue(scene->playerStart.pos.x, g_EditorState.grid_size); scene->playerStart.pos.y = SnapValue(scene->playerStart.pos.y, g_EditorState.grid_size); scene->playerStart.pos.z = SnapValue(scene->playerStart.pos.z, g_EditorState.grid_size); } Undo_EndEntityModification(scene, ENTITY_PLAYERSTART, 0, "Move Player Start"); }
