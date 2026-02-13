@@ -679,7 +679,7 @@ static void Engine_Cleanup() {
 #endif
 }
 
-ENGINE_API Int Engine_Main(Int argc, Char* argv[]) {
+ENGINE_API EngineReturn Engine_Main(Int argc, Char* argv[]) {
     g_argc_stored = argc;
     g_argv_stored = argv;
 
