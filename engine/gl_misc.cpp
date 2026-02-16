@@ -25,14 +25,6 @@
 #include "gl_console.h"
 #include <stdlib.h>
 
-void load_and_register_named_shader_string(const Char* name, const Char* path) {
-    Char* source = load_shader_source(path);
-    if (source) {
-        glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, -1, source);
-        delete[] source;
-    }
-}
-
 Char* load_shader_source(const Char* path) {
     Char* buffer = nullptr;
     Long length = 0;
@@ -54,6 +46,14 @@ Char* load_shader_source(const Char* path) {
         Console_Printf_Error("Could not open shader file %s\n", path);
     }
     return buffer;
+}
+
+void load_and_register_named_shader_string(const Char* name, const Char* path) {
+    Char* source = load_shader_source(path);
+    if (source) {
+        glNamedStringARB(GL_SHADER_INCLUDE_ARB, -1, name, -1, source);
+        delete[] source;
+    }
 }
 
 GLuint compileShader(GLenum type, const Char* src, const Char* pathHint) {
