@@ -487,8 +487,6 @@ void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index,
     Int atlas_rows = (Int)ceil((Double)valid_faces / atlas_cols);
     Int atlas_width = atlas_cols * max_width;
     Int atlas_height = atlas_rows * max_height;
-    b->lightmap_atlas_size.x = (Float)atlas_width;
-    b->lightmap_atlas_size.y = (Float)atlas_height;
 
     glGenTextures(1, &b->lightmapAtlas);
     glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);

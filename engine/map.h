@@ -338,7 +338,6 @@ constexpr int LIGHTMAPPADDING = 2;
         uint64_t lightmapAtlasHandle;
         GLuint directionalLightmapAtlas;
         uint64_t directionalLightmapAtlasHandle;
-        Vec2 lightmap_atlas_size;
         Int totalRenderVertexCount;
         RigidBodyHandle physicsBody;
         Float mass;

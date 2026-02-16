@@ -342,7 +342,7 @@ void main()
 	vec3 bakedRadiance = vec3(0.0);
 
     if (useLightmap) {
-        bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, u_lightmap_sampler_size).rgb : texture(lightmap, TexCoordsLightmap).rgb;
+        bakedRadiance = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb : texture(lightmap, TexCoordsLightmap).rgb;
         
         if (useDirectionalLightmap) {
             vec4 directionalData = texture(directionalLightmap, TexCoordsLightmap);
@@ -467,19 +467,15 @@ void main()
     vec3 finalColor = Lo + ambient + bakedDiffuse + bakedSpecular;
 	
     if (r_debug_lightmaps) {
-        if ((isBrush == 1 || isBrush == 0) && useLightmap) {
-            finalColor = r_lightmaps_bicubic ? texture_bicubic(lightmap, TexCoordsLightmap, u_lightmap_sampler_size).rgb : texture(lightmap, TexCoordsLightmap).rgb;
+        if (r_lightmaps_bicubic) {
+            finalColor = texture_bicubic(lightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
         } else {
-            finalColor = vec3(0.0);
+            finalColor = texture(lightmap, TexCoordsLightmap).rgb;
         }
-    }
+    } 
     else if (r_debug_lightmaps_directional) {
-        if ((isBrush == 1 || isBrush == 0) && useDirectionalLightmap) {
-            finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
-        } else {
-            finalColor = vec3(0.0);
-        }
-    }
+        finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+    } 
     else if (r_debug_vertex_light) {
         if ((isBrush == 0 && v_Color.a > 0.5 && !useLightmap) || (isBrush == 1 && useVertexLighting)) {
             finalColor = v_Color.rgb;

@@ -230,7 +230,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
     if (b->lightmapAtlasHandle != 0) {
         glUniform1i(glGetUniformLocation(shader, "useLightmap"), 1);
         glUniformHandleui64ARB(glGetUniformLocation(shader, "lightmap"), b->lightmapAtlasHandle);
-        glUniform2fv(glGetUniformLocation(shader, "u_lightmap_sampler_size"), 1, &b->lightmap_atlas_size.x);
     }
     else {
         glUniform1i(glGetUniformLocation(shader, "useLightmap"), 0);

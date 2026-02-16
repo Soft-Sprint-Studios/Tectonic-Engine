@@ -153,7 +153,6 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->directionalLightmapAtlas = 0;
     dest->lightmapAtlasHandle = 0;
     dest->directionalLightmapAtlasHandle = 0;
-    dest->lightmap_atlas_size = Vec2{ 0.0, 0.0 };
     dest->totalRenderVertexCount = 0;
     dest->physicsBody = nullptr;
     dest->mass = src->mass;
