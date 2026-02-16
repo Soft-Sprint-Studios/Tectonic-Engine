@@ -951,8 +951,17 @@ Char** IO_ScanDirectory(const Char* dir_path, const Char** extensions, Int num_e
         do {
             if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                 if (has_valid_extension(find_data.cFileName, extensions, num_extensions)) {
-                    list = (Char**)realloc(list, (count + 1) * sizeof(Char*));
-                    list[count] = _strdup(find_data.cFileName);
+                    Char** new_list = new Char * [count + 1];
+                    for (Int i = 0; i < count; ++i)
+                        new_list[i] = list[i];
+                    delete[] list;
+
+                    size_t len = strlen(find_data.cFileName);
+                    Char* str = new Char[len + 1];
+                    strcpy(str, find_data.cFileName);
+
+                    new_list[count] = str;
+                    list = new_list;
                     count++;
                 }
             }
@@ -966,8 +975,17 @@ Char** IO_ScanDirectory(const Char* dir_path, const Char** extensions, Int num_e
         while ((dir = readdir(d)) != nullptr) {
             if (dir->d_type == DT_REG || dir->d_type == DT_UNKNOWN) {
                 if (has_valid_extension(dir->d_name, extensions, num_extensions)) {
-                    list = (Char**)realloc(list, (count + 1) * sizeof(Char*));
-                    list[count] = strdup(dir->d_name);
+                    Char** new_list = new Char * [count + 1];
+                    for (Int i = 0; i < count; ++i)
+                        new_list[i] = list[i];
+                    delete[] list;
+
+                    size_t len = strlen(dir->d_name);
+                    Char* str = new Char[len + 1];
+                    strcpy(str, dir->d_name);
+
+                    new_list[count] = str;
+                    list = new_list;
                     count++;
                 }
             }
@@ -983,7 +1001,7 @@ Char** IO_ScanDirectory(const Char* dir_path, const Char** extensions, Int num_e
 void IO_FreeFileList(Char** list, Int count) {
     if (!list) return;
     for (Int i = 0; i < count; ++i) {
-        free(list[i]);
+        delete[] list[i];
     }
-    free(list);
+    delete[] list;
 }
