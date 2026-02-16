@@ -256,11 +256,6 @@ void MiscRender_SaveScreenshot(Engine* engine, const Char* filepath) {
 
     Int row_size = engine->width * 4;
     Uchar* temp_row = new Uchar[row_size];
-    if (!temp_row) {
-        Console_Printf_Error("Failed to allocate memory for screenshot row buffer.");
-        free(pixels);
-        return;
-    }
 
     for (Int y = 0; y < engine->height / 2; ++y) {
         Uchar* top = pixels + y * row_size;
