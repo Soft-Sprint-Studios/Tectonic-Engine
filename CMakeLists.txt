@@ -328,7 +328,6 @@ add_library(sound SHARED
 target_compile_definitions(sound PRIVATE
     $<$<BOOL:${WIN32}>:SOUND_DLL_EXPORTS>
     MINIMP3_IMPLEMENTATION
-    OGG_IMPL
     VORBIS_IMPL
 )
 

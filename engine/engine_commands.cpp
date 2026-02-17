@@ -296,7 +296,8 @@ void Cmd_Exec(Int argc, Char** argv) {
             continue;
         }
 
-        Char* cmd_copy = _strdup(trimmed_line);
+        Char* cmd_copy = new Char[strlen(trimmed_line) + 1];
+        strcpy(cmd_copy, trimmed_line);
         constexpr int MAX_ARGS = 32;
         Int exec_argc = 0;
         Char* exec_argv[MAX_ARGS];
@@ -310,7 +311,7 @@ void Cmd_Exec(Int argc, Char** argv) {
         if (exec_argc > 0) {
             Commands_Execute(exec_argc, exec_argv);
         }
-        free(cmd_copy);
+        delete[] cmd_copy;
     }
 
     fclose(file);

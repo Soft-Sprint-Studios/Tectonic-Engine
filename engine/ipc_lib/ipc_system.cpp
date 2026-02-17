@@ -135,7 +135,8 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
         while ((newline = strchr(line_start, '\n')) != nullptr) {
             *newline = '\0';
             
-            Char* cmd_copy = _strdup(line_start);
+            Char* cmd_copy = new Char[strlen(line_start) + 1];
+            strcpy(cmd_copy, line_start);
             constexpr int MAX_ARGS = 16;
             Int argc = 0;
             Char* argv[MAX_ARGS];
@@ -148,7 +149,7 @@ void IPC_ReceiveCommands(command_func_t command_handler) {
             if (argc > 0) {
                 command_handler(argc, argv);
             }
-            free(cmd_copy);
+            delete[] cmd_copy;
 
             line_start = newline + 1;
         }

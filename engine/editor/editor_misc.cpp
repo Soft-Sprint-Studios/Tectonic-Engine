@@ -436,7 +436,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.doc_files = nullptr;
     g_EditorState.num_doc_files = 0;
     g_EditorState.selected_doc_index = -1;
-    g_EditorState.current_doc_content = nullptr;
     g_EditorState.recent_map_files = nullptr;
     g_EditorState.num_recent_map_files = 0;
     g_EditorState.next_group_id = 1;
@@ -498,19 +497,14 @@ void Editor_Shutdown() {
     glDeleteTextures(1, &g_EditorState.arch_preview_texture);
     if (g_EditorState.recent_map_files) {
         for (Int i = 0; i < g_EditorState.num_recent_map_files; ++i) {
-            free(g_EditorState.recent_map_files[i]);
+            delete[] g_EditorState.recent_map_files[i];
         }
-        free(g_EditorState.recent_map_files);
+        delete[] g_EditorState.recent_map_files;
     }
-    FreeDocFileList();
-    if (g_EditorState.current_doc_content) {
-        free(g_EditorState.current_doc_content);
-        g_EditorState.current_doc_content = nullptr;
-    }
-    if (g_EditorState.selections) free(g_EditorState.selections);
-    if (g_EditorState.gizmo_drag_start_positions) free(g_EditorState.gizmo_drag_start_positions);
-    if (g_EditorState.gizmo_drag_start_rotations) free(g_EditorState.gizmo_drag_start_rotations);
-    if (g_EditorState.gizmo_drag_start_scales) free(g_EditorState.gizmo_drag_start_scales);
+    if (g_EditorState.selections) delete[] g_EditorState.selections;
+    if (g_EditorState.gizmo_drag_start_positions) delete[] g_EditorState.gizmo_drag_start_positions;
+    if (g_EditorState.gizmo_drag_start_rotations) delete[] g_EditorState.gizmo_drag_start_rotations;
+    if (g_EditorState.gizmo_drag_start_scales) delete[] g_EditorState.gizmo_drag_start_scales;
     if (g_EditorState.grid_vao != 0) { glDeleteVertexArrays(1, &g_EditorState.grid_vao); glDeleteBuffers(1, &g_EditorState.grid_vbo); }
     g_EditorState.initialized = false;
 }

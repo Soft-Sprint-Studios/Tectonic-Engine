@@ -29,12 +29,10 @@
 
 
 	void ScanModelFiles();
-	void ScanDocFiles();
 	void ScanSoundFiles();
 	void ScanMapFiles();
 	void ScanParticleFiles();
 	void FreeModelBrowserEntries();
-	void FreeDocFileList();
 	void FreeSoundFileList();
 	void FreeMapFileList();
 	void FreeParticleFileList();

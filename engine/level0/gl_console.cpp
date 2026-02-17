@@ -61,7 +61,7 @@ struct Console {
         ReclaimFocus = false;
     }
     ~Console() { ClearLog(); }
-    void ClearLog() { for (Int i = 0; i < Items.size(); i++) free(Items[i].text); Items.clear(); }
+    void ClearLog() { for (Int i = 0; i < Items.size(); i++) delete[] Items[i].text; Items.clear(); }
 
     void AddLog(ConsoleTextColor color, const Char* fmt, va_list args) {
         Char buf[1024];
@@ -76,7 +76,8 @@ struct Console {
         }
 
         ConsoleItem item;
-        item.text = _strdup(buf);
+        item.text = new Char[strlen(buf) + 1];
+        strcpy(item.text, buf);
         item.color = color;
         Items.push_back(item);
         ScrollToBottom = true;
@@ -233,10 +234,12 @@ struct Console {
     void ExecCommand(const Char* command_line) {
         Console_Printf("# %s", command_line);
         if (command_handler) {
-            Char* cmd_copy = _strdup(command_line); const Int MAX_ARGS = 16; Int argc = 0; Char* argv[MAX_ARGS];
+            Char* cmd_copy = new Char[strlen(command_line) + 1];
+            strcpy(cmd_copy, command_line);
+            const Int MAX_ARGS = 16; Int argc = 0; Char* argv[MAX_ARGS];
             Char* p = strtok(cmd_copy, " ");
             while (p != nullptr && argc < MAX_ARGS) { argv[argc++] = p; p = strtok(nullptr, " "); }
-            if (argc > 0) command_handler(argc, argv); free(cmd_copy);
+            if (argc > 0) command_handler(argc, argv); delete[] cmd_copy;
         }
     }
 };
@@ -472,14 +475,15 @@ static Console console_instance;
         draw_list->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32(0, 0, 0, 255));
 
         Float total_text_height = 0;
-        Char* text_copy = _strdup(text);
+        Char* text_copy = new Char[strlen(text) + 1];
+        strcpy(text_copy, text);
         Char* line = strtok(text_copy, "\n");
         while (line) {
             ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, line);
             total_text_height += text_size.y + 5.0f;
             line = strtok(nullptr, "\n");
         }
-        free(text_copy);
+        delete[] text_copy;
 
         Float progress = 0.0f;
         if (duration > 0.0f) {
@@ -491,7 +495,8 @@ static Console console_instance;
         Float end_y = -total_text_height;
         Float current_y = start_y + (end_y - start_y) * progress;
 
-        text_copy = _strdup(text);
+        text_copy = new Char[strlen(text) + 1];
+        strcpy(text_copy, text);
         line = strtok(text_copy, "\n");
         while (line) {
             ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, line);
@@ -504,7 +509,7 @@ static Console console_instance;
             current_y += text_size.y + 5.0f;
             line = strtok(nullptr, "\n");
         }
-        free(text_copy);
+        delete[] text_copy;
     }
     void UI_RenderDeveloperOverlay(void) {
         if (Cvar_GetInt("developer") == 0) {

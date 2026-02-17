@@ -430,7 +430,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                 else if (strcmp(inputName, "End") == 0) {
                     engine->credits_active = false;
                     if (engine->credits_text) {
-                        free(engine->credits_text);
+                        delete[] engine->credits_text;
                         engine->credits_text = nullptr;
                     }
                     engine->credits_entity_index = -1;

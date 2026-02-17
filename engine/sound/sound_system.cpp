@@ -88,7 +88,7 @@ Bool SoundSystem_Init() {
 
 void SoundSystem_Shutdown() {
     for (Int i = 0; i < g_buffer_count; i++) {
-        free(g_buffers[i].pcmData);
+        delete[](Uchar*)g_buffers[i].pcmData;
         alDeleteBuffers(1, &g_buffers[i].bufferID);
     }
     g_buffer_count = 0;
@@ -156,7 +156,7 @@ static Uint get_or_create_wet_buffer(Uint dryBufferID, ReverbPreset preset) {
     ALuint wetBufferID;
     alGenBuffers(1, &wetBufferID);
     alBufferData(wetBufferID, AL_FORMAT_MONO16, wet_audio.data, wet_audio.num_samples * sizeof(Short), dryBuffer->freq);
-    free(wet_audio.data);
+    delete[] wet_audio.data;
 
     if (alGetError() != AL_NO_ERROR) {
         alDeleteBuffers(1, &wetBufferID);
@@ -205,8 +205,10 @@ static Uint internal_LoadMP3(const Char* path) {
         if (pcm_size + (Usize)samples * info.channels > pcm_capacity) {
             pcm_capacity = pcm_capacity * 2 + (Usize)samples * info.channels;
             Short* new_pcm_buffer = new Short[pcm_capacity];
-            memcpy(new_pcm_buffer, pcm_buffer, pcm_size * sizeof(Short));
-            delete[] pcm_buffer;
+            if (pcm_buffer) {
+                memcpy(new_pcm_buffer, pcm_buffer, pcm_size * sizeof(Short));
+                delete[] pcm_buffer;
+            }
             pcm_buffer = new_pcm_buffer;
         }
 
@@ -517,7 +519,7 @@ void SoundSystem_DeleteBuffer(Uint bufferID) {
 
     BufferData* buf = find_buffer_data(bufferID);
     if (buf) {
-        free(buf->pcmData);
+        delete[](Uchar*)buf->pcmData;
         alDeleteBuffers(1, &bufferID);
 
         Int index = buf - g_buffers;

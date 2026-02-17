@@ -63,16 +63,25 @@ void RenderIOEditor(EntityType type, Int index) {
     UI_Text("Outputs");
 
     Int total_target_names = 0;
-    Char** all_target_names = nullptr;
+    for (Int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) total_target_names++;
+    for (Int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) total_target_names++;
 
-    for (Int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->objects[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->brushes[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->lights[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->soundEntities[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->particleEmitters[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->videoPlayers[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->sprites[i].targetname; }
-    for (Int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) { all_target_names = (Char**)realloc(all_target_names, ++total_target_names * sizeof(Char*)); all_target_names[total_target_names - 1] = g_CurrentScene->logicEntities[i].targetname; }
+    Char** all_target_names = new Char * [total_target_names];
+    Int current_name_index = 0;
+    for (Int i = 0; i < g_CurrentScene->numObjects; i++) if (strlen(g_CurrentScene->objects[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->objects[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numBrushes; i++) if (strlen(g_CurrentScene->brushes[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->brushes[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numActiveLights; i++) if (strlen(g_CurrentScene->lights[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->lights[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numSoundEntities; i++) if (strlen(g_CurrentScene->soundEntities[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->soundEntities[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numParticleEmitters; i++) if (strlen(g_CurrentScene->particleEmitters[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->particleEmitters[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numVideoPlayers; i++) if (strlen(g_CurrentScene->videoPlayers[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->videoPlayers[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numSprites; i++) if (strlen(g_CurrentScene->sprites[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->sprites[i].targetname;
+    for (Int i = 0; i < g_CurrentScene->numLogicEntities; i++) if (strlen(g_CurrentScene->logicEntities[i].targetname) > 0) all_target_names[current_name_index++] = g_CurrentScene->logicEntities[i].targetname;
 
     for (Int i = 0; i < def->num_outputs; ++i) {
         if (UI_CollapsingHeader(def->outputs[i].name, 1)) {
@@ -169,9 +178,7 @@ void RenderIOEditor(EntityType type, Int index) {
         }
     }
 
-    if (all_target_names) {
-        free(all_target_names);
-    }
+    delete[] all_target_names;
 }
 
 // scan stuff
@@ -179,12 +186,12 @@ void RenderIOEditor(EntityType type, Int index) {
 void FreeModelBrowserEntries() {
     if (g_EditorState.model_browser_entries) {
         for (Int i = 0; i < g_EditorState.num_model_files; ++i) {
-            free(g_EditorState.model_browser_entries[i].file_path);
+            delete[] g_EditorState.model_browser_entries[i].file_path;
             if (g_EditorState.model_browser_entries[i].thumbnail_texture != 0) {
                 glDeleteTextures(1, &g_EditorState.model_browser_entries[i].thumbnail_texture);
             }
         }
-        free(g_EditorState.model_browser_entries);
+        delete[] g_EditorState.model_browser_entries;
         g_EditorState.model_browser_entries = nullptr;
         g_EditorState.num_model_files = 0;
     }
@@ -209,29 +216,12 @@ void ScanModelFiles() {
     }
 }
 
-void FreeDocFileList() {
-    if (g_EditorState.doc_files) {
-        for (Int i = 0; i < g_EditorState.num_doc_files; ++i) {
-            free(g_EditorState.doc_files[i]);
-        }
-        free(g_EditorState.doc_files);
-        g_EditorState.doc_files = nullptr;
-        g_EditorState.num_doc_files = 0;
-    }
-}
-
-void ScanDocFiles() {
-    FreeDocFileList();
-    const Char* exts[] = { ".md" };
-    g_EditorState.doc_files = IO_ScanDirectory("docs/", exts, 1, &g_EditorState.num_doc_files);
-}
-
 void FreeSoundFileList() {
     if (g_EditorState.sound_file_list) {
         for (Int i = 0; i < g_EditorState.num_sound_files; ++i) {
-            free(g_EditorState.sound_file_list[i]);
+            delete[] g_EditorState.sound_file_list[i];
         }
-        free(g_EditorState.sound_file_list);
+        delete[] g_EditorState.sound_file_list;
         g_EditorState.sound_file_list = nullptr;
         g_EditorState.num_sound_files = 0;
     }
@@ -239,14 +229,14 @@ void FreeSoundFileList() {
 
 void ScanSoundFiles() {
     FreeSoundFileList();
-    const Char* exts[] = { ".wav", ".mp3", ".ogg" };
+    const Char* exts[] = { ".wav", ".mp3" };
     g_EditorState.sound_file_list = IO_ScanDirectory("sounds/", exts, 3, &g_EditorState.num_sound_files);
 }
 
 void FreeMapFileList() {
     if (g_EditorState.map_file_list) {
         for (Int i = 0; i < g_EditorState.num_map_files; ++i) {
-            free(g_EditorState.map_file_list[i]);
+            delete[] g_EditorState.map_file_list[i];
         }
         free(g_EditorState.map_file_list);
         g_EditorState.map_file_list = nullptr;
@@ -263,9 +253,9 @@ void ScanMapFiles() {
 void FreeParticleFileList() {
     if (g_EditorState.particle_file_list) {
         for (Int i = 0; i < g_EditorState.num_particle_files; ++i) {
-            free(g_EditorState.particle_file_list[i]);
+            delete[] g_EditorState.particle_file_list[i];
         }
-        free(g_EditorState.particle_file_list);
+        delete[] g_EditorState.particle_file_list;
         g_EditorState.particle_file_list = nullptr;
         g_EditorState.num_particle_files = 0;
     }
@@ -1167,7 +1157,7 @@ void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                         EditorSelection* sel = &g_EditorState.selections[i];
                         Brush* b = &scene->brushes[sel->index];
                         Undo_BeginEntityModification(scene, ENTITY_BRUSH, sel->index);
-                        free(b->faces[sel->face_index].vertexIndices);
+                        delete[] b->faces[sel->face_index].vertexIndices;
                         for (Int j = sel->face_index; j < b->numFaces - 1; ++j) {
                             b->faces[j] = b->faces[j + 1];
                         }
@@ -1310,8 +1300,8 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
             for (Int i = 0; i < scene->numBrushes; ++i) {
                 Brush* b = &scene->brushes[i];
                 if (b->useVertexLighting) {
-                    if (b->bakedVertexColors) { free(b->bakedVertexColors); b->bakedVertexColors = nullptr; }
-                    if (b->bakedVertexDirections) { free(b->bakedVertexDirections); b->bakedVertexDirections = nullptr; }
+                    if (b->bakedVertexColors) { delete[] b->bakedVertexColors; b->bakedVertexColors = nullptr; }
+                    if (b->bakedVertexDirections) { delete[] b->bakedVertexDirections; b->bakedVertexDirections = nullptr; }
                     Brush_LoadVertexLighting(b, i, scene->mapPath);
                     Brush_LoadVertexDirectionalLighting(b, i, scene->mapPath);
                 }
@@ -1332,8 +1322,8 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
             for (Int i = 0; i < scene->numObjects; ++i) {
                 SceneObject* obj = &scene->objects[i];
-                if (obj->bakedVertexColors) { free(obj->bakedVertexColors); obj->bakedVertexColors = nullptr; }
-                if (obj->bakedVertexDirections) { free(obj->bakedVertexDirections); obj->bakedVertexDirections = nullptr; }
+                if (obj->bakedVertexColors) { delete[] obj->bakedVertexColors; obj->bakedVertexColors = nullptr; }
+                if (obj->bakedVertexDirections) { delete[] obj->bakedVertexDirections; obj->bakedVertexDirections = nullptr; }
 
                 if (obj->useLightmap) {
                     if (obj->lightmapHandle) { glMakeTextureHandleNonResidentARB(obj->lightmapHandle); obj->lightmapHandle = 0; }

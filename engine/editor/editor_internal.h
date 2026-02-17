@@ -203,7 +203,6 @@ constexpr Int MAX_RECENT_FILES = 10;
         Char** doc_files;
         Int num_doc_files;
         Int selected_doc_index;
-        Char* current_doc_content;
         Char** recent_map_files;
         Int num_recent_map_files;
         Vec3 gizmo_selection_centroid;

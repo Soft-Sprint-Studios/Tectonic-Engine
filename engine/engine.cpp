@@ -263,7 +263,7 @@ void cleanup() {
         for (Int i = 0; i < g_scene.numObjects; ++i) {
             if (g_scene.objects[i].model) Model_Free(g_scene.objects[i].model);
         }
-        free(g_scene.objects);
+        delete[] g_scene.objects;
         g_scene.objects = nullptr;
     }
     Renderer_Shutdown(&g_renderer);

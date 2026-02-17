@@ -144,11 +144,11 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             }
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             if (obj->bakedVertexColors) {
-                free(obj->bakedVertexColors);
+                delete[] obj->bakedVertexColors;
                 obj->bakedVertexColors = nullptr;
             }
             if (obj->bakedVertexDirections) {
-                free(obj->bakedVertexDirections);
+                delete[] obj->bakedVertexDirections;
                 obj->bakedVertexDirections = nullptr;
             }
         }

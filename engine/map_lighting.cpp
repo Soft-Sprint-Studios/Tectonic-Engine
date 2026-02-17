@@ -350,7 +350,7 @@ void Decal_LoadLightmaps(Decal* decal, const Char* map_name_sanitized, Int decal
 
 void Scene_LoadAmbientProbes(Scene* scene) {
     if (scene->ambient_probes) {
-        free(scene->ambient_probes);
+        delete[] scene->ambient_probes;
         scene->ambient_probes = nullptr;
     }
     scene->num_ambient_probes = 0;
@@ -475,7 +475,7 @@ void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index,
             if (face_data[i].color_data) stbi_image_free(face_data[i].color_data);
             if (face_data[i].dir_surface) SDL_FreeSurface(face_data[i].dir_surface);
         }
-        free(face_data);
+        delete[] face_data;
         b->lightmapAtlas = 0;
         b->directionalLightmapAtlas = 0;
         return;

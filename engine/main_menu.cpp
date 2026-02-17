@@ -201,9 +201,9 @@ static void MainMenu_RenderOptionsMenu() {
 static void ScanSaveGames() {
     if (g_save_game_files) {
         for (Int i = 0; i < g_num_save_games; ++i) {
-            free(g_save_game_files[i]);
+            delete[] g_save_game_files[i];
         }
-        free(g_save_game_files);
+        delete[] g_save_game_files;
         g_save_game_files = nullptr;
     }
     g_num_save_games = 0;
