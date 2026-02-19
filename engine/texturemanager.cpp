@@ -478,13 +478,13 @@ Material* TextureManager_FindMaterial(const Char* name) {
     if (base_name) {
         for (Int i = 0; i < num_materials; ++i) {
             if (strcmp(materials[i].name, base_name) == 0) {
-                free(base_name);
+                delete[] base_name;
                 Material* mat = &materials[i];
                 if (!mat->isLoaded) TextureManager_LoadMaterialTextures(mat);
                 return mat;
             }
         }
-        free(base_name);
+        delete[] base_name;
     }
 
     return &g_MissingMaterial;

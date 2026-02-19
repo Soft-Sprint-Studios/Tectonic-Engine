@@ -473,12 +473,7 @@ void Editor_Shutdown() {
     if (g_EditorState.preview_model) Model_Free(g_EditorState.preview_model);
     if (g_EditorState.preview_sound_source != 0) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
     if (g_EditorState.preview_sound_buffer != 0) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
-    if (g_EditorState.sound_file_list) {
-        for (Int i = 0; i < g_EditorState.num_sound_files; ++i) {
-            free(g_EditorState.sound_file_list[i]);
-        }
-        free(g_EditorState.sound_file_list);
-    }
+    FreeSoundFileList();
     FreeModelBrowserEntries();
     FreeMapFileList();
     FreeParticleFileList();
