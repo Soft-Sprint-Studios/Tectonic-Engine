@@ -450,7 +450,7 @@ void Brush_CreateRenderData(Brush* b) {
         g_mikk_userdata.vertexNormals = temp_normals;
 
         SMikkTSpaceContext mikk_context = { 0 };
-        mikk_context.PInterface = &mikk_interface;
+        mikk_context.m_pInterface = &mikk_interface;
         mikk_context.m_pUserData = (void*)(final_vbo_data + vbo_vertex_offset * stride_floats);
         genTangSpaceDefault(&mikk_context);
 
