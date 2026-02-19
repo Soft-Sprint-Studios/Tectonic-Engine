@@ -39,10 +39,6 @@
     using namespace std;
 #endif
 
-#ifdef M_PI
-    #undef M_PI
-#endif
-
 //#define GAME_RELEASE 1
 
 //#define BRANCH_PUBLIC

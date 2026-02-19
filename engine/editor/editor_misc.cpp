@@ -222,9 +222,9 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
 void Editor_InitDebugRenderer() {
     g_EditorState.debug_shader = createShaderProgram("shaders/debug.vert", "shaders/debug.frag");
     Float radius = 0.25f; Float sphere_lines[24 * 3 * 2 * 3]; Int index = 0;
-    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
-    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::M_PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
-    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::M_PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::M_PI; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); sphere_lines[index++] = 0.0f; }
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::PI; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * sinf(a2); }
+    for (Int i = 0; i < 24; ++i) { Float a1 = (i / 24.0f) * 2.0f * Common::PI; Float a2 = ((i + 1) / 24.0f) * 2.0f * Common::PI; sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a1); sphere_lines[index++] = radius * sinf(a1); sphere_lines[index++] = 0.0f; sphere_lines[index++] = radius * cosf(a2); sphere_lines[index++] = radius * sinf(a2); }
     g_EditorState.light_gizmo_vertex_count = index / 3; GLuint vbo;
     glGenVertexArrays(1, &g_EditorState.light_gizmo_vao); glGenBuffers(1, &vbo);
     glBindVertexArray(g_EditorState.light_gizmo_vao); glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -251,8 +251,8 @@ void Editor_InitDebugRenderer() {
     Int segments = 16;
 
     for (Int i = 0; i < segments; ++i) {
-        Float angle1 = (i / (Float)segments) * 2.0f * Common::M_PI;
-        Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::M_PI;
+        Float angle1 = (i / (Float)segments) * 2.0f * Common::PI;
+        Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::PI;
 
         Float x1 = p_radius * cosf(angle1);
         Float z1 = p_radius * sinf(angle1);
@@ -273,8 +273,8 @@ void Editor_InitDebugRenderer() {
 
     Int arc_segments = 8;
     for (Int i = 0; i < arc_segments; ++i) {
-        Float angle1 = (i / (Float)arc_segments) * 0.5f * Common::M_PI;
-        Float angle2 = ((i + 1) / (Float)arc_segments) * 0.5f * Common::M_PI;
+        Float angle1 = (i / (Float)arc_segments) * 0.5f * Common::PI;
+        Float angle2 = ((i + 1) / (Float)arc_segments) * 0.5f * Common::PI;
 
         p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle1), top_center.z + p_radius * cosf(angle1) };
         p_verts[p_vert_count++] = Vec3{ top_center.x, top_center.y + p_radius * sinf(angle2), top_center.z + p_radius * cosf(angle2) };
@@ -323,7 +323,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     }
     else {
         g_EditorState.editor_camera.position = Vec3{ 0, 5, 15 };
-        g_EditorState.editor_camera.yaw = -Common::M_PI / 2.0f;
+        g_EditorState.editor_camera.yaw = -Common::PI / 2.0f;
         g_EditorState.editor_camera.pitch = -0.4f;
     }
     for (Int i = 0; i < VIEW_COUNT; i++) {

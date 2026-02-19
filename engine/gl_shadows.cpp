@@ -52,7 +52,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         if (light->type == LIGHT_POINT) {
             current_shader = renderer->pointDepthShader;
             glUseProgram(current_shader);
-            Mat4 shadowProj = mat4_perspective(90.0f * Common::M_PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Mat4 shadowProj = mat4_perspective(90.0f * Common::PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Mat4 shadowTransforms[6];
             shadowTransforms[0] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 1, 0, 0 }), Vec3{ 0, -1, 0 });
             shadowTransforms[1] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ -1, 0, 0 }), Vec3{ 0, -1, 0 });

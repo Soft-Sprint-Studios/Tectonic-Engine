@@ -722,8 +722,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Light_DestroyShadowMap(light);
                 light->type = LIGHT_SPOT;
                 if (light->cutOff <= 0.0f) {
-                    light->cutOff = cosf(12.5f * Common::M_PI / 180.0f);
-                    light->outerCutOff = cosf(17.5f * Common::M_PI / 180.0f);
+                    light->cutOff = cosf(12.5f * Common::PI / 180.0f);
+                    light->outerCutOff = cosf(17.5f * Common::PI / 180.0f);
                 }
                 Light_InitShadowMap(light);
                 Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type");

@@ -319,7 +319,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                         Mat4 view = mat4_lookAt(Vec3{ 1, 1, 1 }, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
-                        Mat4 proj = mat4_perspective(45.0f * (Common::M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
+                        Mat4 proj = mat4_perspective(45.0f * (Common::PI / 180.0f), 1.0f, 0.1f, 100.0f);
 
                         glUseProgram(renderer->mainShader);
                         Shader_Set(renderer->mainShader, "is_unlit", 1);
@@ -1458,8 +1458,8 @@ void Editor_UpdatePreviewBrushForArch() {
     if (inner_radius < 0.01f) inner_radius = 0.01f;
 
     Int num_sides = g_EditorState.arch_num_sides;
-    Float start_angle_rad = g_EditorState.arch_start_angle_degrees * (Common::M_PI / 180.0f);
-    Float arc_rad = g_EditorState.arch_arc_degrees * (Common::M_PI / 180.0f);
+    Float start_angle_rad = g_EditorState.arch_start_angle_degrees * (Common::PI / 180.0f);
+    Float arc_rad = g_EditorState.arch_arc_degrees * (Common::PI / 180.0f);
     Float angle_step = arc_rad / num_sides;
 
     Brush* b = &g_EditorState.preview_brush;
@@ -1925,8 +1925,8 @@ void Editor_RenderArchPreview() {
     if (inner_radius < 0) inner_radius = 0;
 
     Int num_sides = g_EditorState.arch_num_sides;
-    Float start_angle = g_EditorState.arch_start_angle_degrees * (Common::M_PI / 180.0f);
-    Float arc = g_EditorState.arch_arc_degrees * (Common::M_PI / 180.0f);
+    Float start_angle = g_EditorState.arch_start_angle_degrees * (Common::PI / 180.0f);
+    Float arc = g_EditorState.arch_arc_degrees * (Common::PI / 180.0f);
     Float angle_step = arc / num_sides;
 
     Vec3* lines = new Vec3[num_sides * 4 + 4]{};

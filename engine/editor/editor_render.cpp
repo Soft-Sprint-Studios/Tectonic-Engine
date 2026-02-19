@@ -150,7 +150,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_y);
         for (Int i = 0; i <= SEGMENTS; ++i) {
-            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::M_PI;
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, 0.0f, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -161,7 +161,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
-            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::M_PI;
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
             points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle) * radius, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -170,7 +170,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_z);
         for (Int i = 0; i <= SEGMENTS; ++i) {
-            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::M_PI;
+            Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, sinf(angle) * radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
@@ -196,7 +196,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         vec3_normalize(&f);
         Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
         g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, Vec3{ 0, 1, 0 });
-        g_proj_matrix[type] = mat4_perspective(45.0f * (Common::M_PI / 180.0f), aspect, 0.1f, 10000.0f);
+        g_proj_matrix[type] = mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 10000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode, false);
 
@@ -250,8 +250,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             const Int segments = 32;
             Vec3 circle_verts[64];
             for (Int i = 0; i < segments; ++i) {
-                Float angle1 = (i / (Float)segments) * 2.0f * Common::M_PI;
-                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::M_PI;
+                Float angle1 = (i / (Float)segments) * 2.0f * Common::PI;
+                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::PI;
                 Float x1 = g_EditorState.paint_brush_radius * cosf(angle1);
                 Float y1 = g_EditorState.paint_brush_radius * sinf(angle1);
                 Float x2 = g_EditorState.paint_brush_radius * cosf(angle2);
@@ -294,8 +294,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             const Int segments = 32;
             Vec3 circle_verts[64];
             for (Int i = 0; i < segments; ++i) {
-                Float angle1 = (i / (Float)segments) * 2.0f * Common::M_PI;
-                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::M_PI;
+                Float angle1 = (i / (Float)segments) * 2.0f * Common::PI;
+                Float angle2 = ((i + 1) / (Float)segments) * 2.0f * Common::PI;
                 Float x1 = g_EditorState.sculpt_brush_radius * cosf(angle1);
                 Float y1 = g_EditorState.sculpt_brush_radius * sinf(angle1);
                 Float x2 = g_EditorState.sculpt_brush_radius * cosf(angle2);
@@ -705,15 +705,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Int segments = 16;
                 Vec3 cone_verts[40]; Int vert_count = 0;
                 for (Int k = 0; k < 4; ++k) {
-                    Float theta = (k / 4.0f) * 2.0f * Common::M_PI;
+                    Float theta = (k / 4.0f) * 2.0f * Common::PI;
                     Vec3 p_on_circle = vec3_add(vec3_muls(right, cosf(theta) * radius), vec3_muls(up, sinf(theta) * radius));
                     Vec3 world_p = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
                     cone_verts[vert_count++] = light->pos;
                     cone_verts[vert_count++] = world_p;
                 }
                 for (Int k = 0; k < segments; ++k) {
-                    Float theta1 = (k / (Float)segments) * 2.0f * Common::M_PI;
-                    Float theta2 = ((k + 1) / (Float)segments) * 2.0f * Common::M_PI;
+                    Float theta1 = (k / (Float)segments) * 2.0f * Common::PI;
+                    Float theta2 = ((k + 1) / (Float)segments) * 2.0f * Common::PI;
                     Vec3 p1_on_circle = vec3_add(vec3_muls(right, cosf(theta1) * radius), vec3_muls(up, sinf(theta1) * radius));
                     Vec3 p2_on_circle = vec3_add(vec3_muls(right, cosf(theta2) * radius), vec3_muls(up, sinf(theta2) * radius));
                     cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
@@ -793,7 +793,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             if (fov <= 0.0f) fov = 90.0f;
 
             Float fLen = 2.0f;
-            Float halfW = fLen * tanf((fov * 0.5f) * (Float)(Common::M_PI / 180.0f));
+            Float halfW = fLen * tanf((fov * 0.5f) * (Float)(Common::PI / 180.0f));
             Float fW = halfW;
 
             Float zTip = 0.0f;
@@ -981,8 +981,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     if (radius > 0.0f) {
                         Vec3 circle_verts[RADIUS_GIZMO_SEGMENTS * 2];
                         for (Int k = 0; k < RADIUS_GIZMO_SEGMENTS; ++k) {
-                            Float angle1 = (k / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * Common::M_PI;
-                            Float angle2 = ((k + 1) / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * Common::M_PI;
+                            Float angle1 = (k / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * Common::PI;
+                            Float angle2 = ((k + 1) / (Float)RADIUS_GIZMO_SEGMENTS) * 2.0f * Common::PI;
                             Float x1 = radius * cosf(angle1);
                             Float y1 = radius * sinf(angle1);
                             Float x2 = radius * cosf(angle2);
@@ -1068,7 +1068,7 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         cam_pos.y = g_EditorState.model_preview_cam_dist * cosf(g_EditorState.model_preview_cam_angles.y);
         cam_pos.z = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * sinf(g_EditorState.model_preview_cam_angles.x);
         Mat4 view = mat4_lookAt(cam_pos, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
-        Mat4 proj = mat4_perspective(45.0f * (Common::M_PI / 180.0f), aspect, 0.1f, 1000.0f);
+        Mat4 proj = mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 1000.0f);
         glUseProgram(renderer->mainShader);
         Shader_Set(renderer->mainShader, "is_unlit", 1);
         Shader_Set(renderer->mainShader, "view", &view);

@@ -1165,14 +1165,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Float u_coord = vec3_dot(current_vec, u_axis);
                     Float v_coord = vec3_dot(current_vec, v_axis);
 
-                    Float angle = atan2f(v_coord, u_coord) * (180.0f / Common::M_PI);
+                    Float angle = atan2f(v_coord, u_coord) * (180.0f / Common::PI);
 
                     if (SDL_GetModState() & KMOD_CTRL) {
                         angle = SnapValue(angle, 15.0f);
                     }
                     rot_angle_delta = angle;
 
-                    Float angle_rad = rot_angle_delta * (Common::M_PI / 180.0f);
+                    Float angle_rad = rot_angle_delta * (Common::PI / 180.0f);
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) delta_rot_matrix = mat4_rotate_x(angle_rad);
                     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) delta_rot_matrix = mat4_rotate_y(angle_rad);
                     else delta_rot_matrix = mat4_rotate_z(angle_rad);
@@ -1576,9 +1576,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
 
                     Mat4 inv_rot_scale;
-                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (Common::M_PI / 180.0f));
-                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (Common::M_PI / 180.0f));
-                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (Common::M_PI / 180.0f));
+                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (Common::PI / 180.0f));
+                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (Common::PI / 180.0f));
+                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (Common::PI / 180.0f));
                     Mat4 scale_mat = mat4_scale(b->scale);
                     mat4_multiply(&inv_rot_scale, &rot_mat_y, &rot_mat_x);
                     mat4_multiply(&inv_rot_scale, &rot_mat_z, &inv_rot_scale);
@@ -1965,7 +1965,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                         vec3_normalize(&tangent);
                         Vec3 bitangent = vec3_cross(surface_normal, tangent);
 
-                        Float rand_angle = rand_float_range(0, 2.0f * Common::M_PI);
+                        Float rand_angle = rand_float_range(0, 2.0f * Common::PI);
                         Float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
 
                         Vec3 offset_on_plane = vec3_add(vec3_muls(tangent, cosf(rand_angle) * rand_dist), vec3_muls(bitangent, sinf(rand_angle) * rand_dist));

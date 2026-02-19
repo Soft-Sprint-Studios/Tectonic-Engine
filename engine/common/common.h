@@ -28,7 +28,7 @@
 #include "common_inline.h"
 
 namespace Common {
-    constexpr Double M_PI = 3.14159265358979323846;
+    constexpr Double PI = 3.14159265358979323846;
     constexpr Int LIGHTMAPPADDING = 2;
 
     constexpr Int MAX_LIGHTS = 256;

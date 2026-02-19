@@ -554,7 +554,7 @@ namespace
             v = world_pos.y;
         }
 
-        Float rad = face.uv_rotation * (Common::M_PI / 180.0f);
+        Float rad = face.uv_rotation * (Common::PI / 180.0f);
         Float cos_r = cosf(rad);
         Float sin_r = sinf(rad);
 
@@ -1655,7 +1655,7 @@ namespace
         Float u2 = dist(gen);
 
         Float r = sqrtf(u1);
-        Float theta = 2.0f * (Float)Common::M_PI * u2;
+        Float theta = 2.0f * (Float)Common::PI * u2;
 
         Float x = r * cosf(theta);
         Float y = r * sinf(theta);

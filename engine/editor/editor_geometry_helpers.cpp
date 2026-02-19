@@ -92,7 +92,7 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, Int num_sides) {
     b->vertices = new BrushVertex[b->numVertices];
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::PI;
         Float x = cosf(angle) * radius_x;
         Float z = sinf(angle) * radius_z;
 
@@ -200,7 +200,7 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, Int num_sides) {
     b->vertices[0].pos = Vec3{ 0, height / 2.0f, 0 };
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::PI;
         Float x = cosf(angle) * radius_x;
         Float z = sinf(angle) * radius_z;
         b->vertices[i + 1].pos = Vec3{ x, -height / 2.0f, z };
@@ -249,12 +249,12 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, Int sides) {
     Vec3 radius = vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
-        Float stack_angle = Common::M_PI / 2 - i * Common::M_PI / stacks;
+        Float stack_angle = Common::PI / 2 - i * Common::PI / stacks;
         Float xy = radius.x * cosf(stack_angle);
         Float z = radius.z * sinf(stack_angle);
 
         for (Int j = 0; j <= sides; j++) {
-            Float sector_angle = j * 2 * Common::M_PI / sides;
+            Float sector_angle = j * 2 * Common::PI / sides;
             Float x = xy * cosf(sector_angle);
             Float y = xy * sinf(sector_angle);
             b->vertices[i * (sides + 1) + j].pos = Vec3{ x, y, z };
@@ -299,12 +299,12 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, Int sides) {
     Vec3 radius = vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
-        Float stack_angle = Common::M_PI / 2 - i * (Common::M_PI / 2) / stacks;
+        Float stack_angle = Common::PI / 2 - i * (Common::PI / 2) / stacks;
         Float xy = radius.x * cosf(stack_angle);
         Float z = radius.z * sinf(stack_angle);
 
         for (Int j = 0; j <= sides; j++) {
-            Float sector_angle = j * 2 * Common::M_PI / sides;
+            Float sector_angle = j * 2 * Common::PI / sides;
             Float x = xy * cosf(sector_angle);
             Float y = xy * sinf(sector_angle);
             b->vertices[i * ring_vertices + j].pos = Vec3{ x, y, z };
@@ -383,7 +383,7 @@ void Brush_SetVerticesFromTube(Brush* b, Vec3 size, Int num_sides, Float wall_th
     b->vertices = new BrushVertex[b->numVertices];
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::PI;
         Float cos_a = cosf(angle);
         Float sin_a = sinf(angle);
 

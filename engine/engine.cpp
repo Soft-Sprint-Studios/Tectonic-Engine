@@ -444,11 +444,11 @@ static void Engine_RenderGame() {
     if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
 
     g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
-    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (Common::M_PI / 180.0f));
+    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (Common::PI / 180.0f));
     mat4_multiply(&view, &roll_mat, &view);
 
     Float fov_degrees = Cvar_GetFloat("fov_vertical");
-    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (Common::M_PI / 180.f),
+    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (Common::PI / 180.f),
         (Float)g_engine->width / (Float)g_engine->height, 0.1f, 1000.f);
 
     Mat4 sunLightSpaceMatrix;

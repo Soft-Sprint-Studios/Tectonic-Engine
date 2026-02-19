@@ -82,8 +82,6 @@ if(WIN32)
     endif()
 endif()
 
-add_compile_definitions(HAVE_M_PI=1)
-
 # Source files
 set(ENGINE_SOURCES
     engine/texturemanager.cpp

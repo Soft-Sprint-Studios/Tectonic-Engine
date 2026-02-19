@@ -123,8 +123,8 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         if (ent->monitor_fbo == 0) InitCameraFBO(ent);
         if (ent->monitor_render_once && ent->monitor_has_rendered) continue;
 
-        Float pitch = ent->rot.x * (Float)(Common::M_PI / 180.0f);
-        Float yaw = ent->rot.y * (Float)(Common::M_PI / 180.0f);
+        Float pitch = ent->rot.x * (Float)(Common::PI / 180.0f);
+        Float yaw = ent->rot.y * (Float)(Common::PI / 180.0f);
 
         Vec3 forward;
         forward.x = cosf(pitch) * sinf(yaw);
@@ -137,7 +137,7 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         if (fabs(forward.y) > 0.99f) up = Vec3{ 1.0f, 0.0f, 0.0f };
 
         Mat4 view = mat4_lookAt(ent->pos, target, up);
-        Mat4 projection = mat4_perspective(ent->monitor_fov * (Float)(Common::M_PI / 180.0f), 1.0f, 0.1f, 1000.0f);
+        Mat4 projection = mat4_perspective(ent->monitor_fov * (Float)(Common::PI / 180.0f), 1.0f, 0.1f, 1000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &view, &projection, sunLightSpaceMatrix, ent->pos, false, true);
 

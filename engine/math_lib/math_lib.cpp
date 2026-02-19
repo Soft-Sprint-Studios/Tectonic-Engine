@@ -381,9 +381,9 @@ Bool mat4_inverse(const Mat4* m, Mat4* out) {
 
 Mat4 create_trs_matrix(Vec3 pos, Vec3 rot_deg, Vec3 scale) {
     Mat4 trans_mat = mat4_translate(pos);
-    Mat4 rot_x_mat = mat4_rotate_x(rot_deg.x * (Common::M_PI / 180.0f));
-    Mat4 rot_y_mat = mat4_rotate_y(rot_deg.y * (Common::M_PI / 180.0f));
-    Mat4 rot_z_mat = mat4_rotate_z(rot_deg.z * (Common::M_PI / 180.0f));
+    Mat4 rot_x_mat = mat4_rotate_x(rot_deg.x * (Common::PI / 180.0f));
+    Mat4 rot_y_mat = mat4_rotate_y(rot_deg.y * (Common::PI / 180.0f));
+    Mat4 rot_z_mat = mat4_rotate_z(rot_deg.z * (Common::PI / 180.0f));
     Mat4 scale_mat = mat4_scale(scale);
 
     Mat4 rot_mat;
@@ -444,7 +444,7 @@ void mat4_decompose(const Mat4* matrix, Vec3* translation, Vec3* rotation, Vec3*
         z_rad = 0.0f;
     }
 
-    const Float rad_to_deg = 180.0f / Common::M_PI;
+    const Float rad_to_deg = 180.0f / Common::PI;
     rotation->x = x_rad * rad_to_deg;
     rotation->y = y_rad * rad_to_deg;
     rotation->z = z_rad * rad_to_deg;
