@@ -364,11 +364,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     mat4_multiply(&view_proj, projection, view);
     extract_frustum_planes(&view_proj, &frustum, true);
 
-    renderer->stats.modelsDrawn = 0;
-    renderer->stats.brushesDrawn = 0;
-    renderer->stats.totalModels = scene->numObjects;
-    renderer->stats.totalBrushes = scene->numBrushes;
-
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
     glViewport(0, 0, engine->width / Cvar_GetFloat("r_geometry_downsample"), engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
@@ -542,7 +537,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 continue;
             }
         }
-        renderer->stats.modelsDrawn++;
         render_object(renderer, scene, renderer->mainShader, &scene->objects[i], false, &frustum);
     }
 
@@ -564,7 +558,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 continue;
             }
         }
-        renderer->stats.brushesDrawn++;
         render_brush(renderer, scene, renderer->mainShader, &scene->brushes[i], false, &frustum);
     }
 

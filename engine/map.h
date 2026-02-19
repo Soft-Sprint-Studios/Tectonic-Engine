@@ -171,13 +171,6 @@ constexpr int LIGHTMAPPADDING = 2;
     } Camera;
 
     typedef struct {
-        Int modelsDrawn;
-        Int brushesDrawn;
-        Int totalModels;
-        Int totalBrushes;
-    } RenderStats;
-
-    typedef struct {
         GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
         GLuint zPrepassShader;
         GLuint zPrepassTessShader;
@@ -235,7 +228,6 @@ constexpr int LIGHTMAPPADDING = 2;
         GLuint reflectionDepthRBO;
         Float currentExposure;
         Mat4 prevViewProjection;
-        RenderStats stats;
     } Renderer;
 
     typedef struct {

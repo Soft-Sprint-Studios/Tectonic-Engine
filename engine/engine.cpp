@@ -545,9 +545,7 @@ static void Engine_RenderGame() {
     }
 
     if (Cvar_GetInt("g_drawhud")) {
-        UI_RenderGameHUD(g_renderer.stats.modelsDrawn, g_renderer.stats.totalModels,
-            g_renderer.stats.brushesDrawn, g_renderer.stats.totalBrushes,
-            g_fps_display, g_engine->camera.position.x,
+        UI_RenderGameHUD(g_fps_display, g_engine->camera.position.x,
             g_engine->camera.position.y, g_engine->camera.position.z,
             g_engine->camera.health, g_engine->canUse,
             g_engine->camera.radiation_level, g_engine->camera.rads_per_second,

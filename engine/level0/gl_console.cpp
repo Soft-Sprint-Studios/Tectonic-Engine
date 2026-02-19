@@ -353,7 +353,7 @@ static Console console_instance;
         }
     }
 
-    void UI_RenderGameHUD(Int modelsDrawn, Int totalModels, Int brushesDrawn, Int totalBrushes, Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size) {
+    void UI_RenderGameHUD(Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size) {
         Bool show_fps = Cvar_GetInt("show_fps");
         Bool show_pos = Cvar_GetInt("show_pos");
         Bool show_health = Cvar_GetInt("show_health");
@@ -394,21 +394,6 @@ static Console console_instance;
                     }
                 }
                 ImGui::PlotLines("##FPSGraph", fps_history, history_size, 0, nullptr, 0.0f, max_fps * 1.2f, ImVec2(ImGui::GetContentRegionAvail().x, 80));
-            }
-            ImGui::End();
-        }
-
-        if (Cvar_GetInt("r_speeds")) {
-            ImVec2 speed_pos = ImVec2(ImGui::GetIO().DisplaySize.x / 2.0f, DISTANCE);
-            ImVec2 speed_pos_pivot = ImVec2(0.5f, 0.0f);
-            ImGui::SetNextWindowPos(speed_pos, ImGuiCond_Always, speed_pos_pivot);
-            ImGui::SetNextWindowBgAlpha(0.35f);
-            if (ImGui::Begin("SpeedsDisplay", nullptr, window_flags)) {
-                ImGui::Text("Models: %d/%d", modelsDrawn, totalModels);
-                ImGui::SameLine();
-                ImGui::Text("  |  ");
-                ImGui::SameLine();
-                ImGui::Text("Brushes: %d/%d", brushesDrawn, totalBrushes);
             }
             ImGui::End();
         }

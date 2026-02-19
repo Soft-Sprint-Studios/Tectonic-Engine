@@ -53,7 +53,7 @@
     LEVEL0_API const ConsoleItem* Console_GetLogItems(Int* count);
 
     LEVEL0_API void UI_RenderGameText(Int num_messages, const Char* texts[4], const Float positions_x[4], const Float positions_y[4], const Vec4 colors[4], const Float alphas[4], const Int states[4], const Float scales[4]);
-    LEVEL0_API void UI_RenderGameHUD(Int modelsDrawn, Int totalModels, Int brushesDrawn, Int totalBrushes, Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size);
+    LEVEL0_API void UI_RenderGameHUD(Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size);
     LEVEL0_API void UI_RenderCredits(Bool active, const Char* text, Float timer, Float duration);
     LEVEL0_API void UI_RenderDeveloperOverlay(void);
 
