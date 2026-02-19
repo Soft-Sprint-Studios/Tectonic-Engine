@@ -363,11 +363,11 @@ int main(int argc, char** argv) {
     g_material_browser->callback(material_select_cb);
     g_material_browser->align(FL_ALIGN_BOTTOM);
 
-    const int x_box = 370;
-    const int input_w = 380;
-    const int h = 25;
-    const int step = 30;
-    const int bw = 30;
+    constexpr int x_box = 370;
+    constexpr int input_w = 380;
+    constexpr int h = 25;
+    constexpr int step = 30;
+    constexpr int bw = 30;
     int cur_y = 35;
 
     auto setup_input = [&](Fl_Input* in) {
