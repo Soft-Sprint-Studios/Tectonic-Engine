@@ -344,74 +344,101 @@ void browse_cb(Fl_Widget* w, void* data) {
     }
 }
 
+void on_about_cb(Fl_Widget*, void*) {
+    fl_message_title("About Tectonic Material Editor");
+    fl_message("A tool to edit materials for the Tectonic Engine.\n\nCopyright (c) 2025-2026 Soft Sprint Studios");
+}
+
 int main(int argc, char** argv) {
-    g_main_window = new Fl_Window(800, 600, "Tectonic Material Editor");
+    g_main_window = new Fl_Window(800, 490, "Tectonic Material Editor");
 
     Fl_Menu_Bar* menu = new Fl_Menu_Bar(0, 0, 800, 25);
     menu->add("&File/&Save", FL_CTRL + 's', save_cb);
     menu->add("&File/&Exit", FL_CTRL + 'q', exit_cb);
     menu->add("&Material/&New", FL_CTRL + 'n', new_cb);
     menu->add("&Material/&Delete", FL_Delete, delete_cb);
+    menu->add("Help/About", 0, on_about_cb);
 
-    g_material_browser = new Fl_Select_Browser(10, 35, 200, 555, "Materials");
+    g_material_browser = new Fl_Select_Browser(10, 35, 210, 435, "Materials");
     g_material_browser->callback(material_select_cb);
+    g_material_browser->align(FL_ALIGN_BOTTOM);
 
-    int x = 230, y = 35, w = 400, h = 25, btn_w = 25;
+    const int x_box = 370;
+    const int input_w = 380;
+    const int h = 25;
+    const int step = 30;
+    const int bw = 30;
+    int cur_y = 35;
 
-    g_name_input = new Fl_Input(x, y, w, h, "Name"); y += h + 5;
-    g_diffuse_input = new Fl_Input(x, y, w - btn_w, h, "Diffuse");
-    Fl_Button* browse_diffuse = new Fl_Button(x + w - btn_w, y, btn_w, h, "...");
-    browse_diffuse->callback(browse_cb, g_diffuse_input);
-    y += h + 5;
+    auto setup_input = [&](Fl_Input* in) {
+        in->align(FL_ALIGN_LEFT);
+        in->callback(input_changed_cb);
+        };
 
-    g_normal_input = new Fl_Input(x, y, w - btn_w, h, "Normal");
-    Fl_Button* browse_normal = new Fl_Button(x + w - btn_w, y, btn_w, h, "...");
-    browse_normal->callback(browse_cb, g_normal_input);
-    y += h + 5;
+    g_name_input = new Fl_Input(x_box, cur_y, input_w + bw + 5, h, "Material Name");
+    setup_input(g_name_input);
+    cur_y += step;
 
-    g_rma_input = new Fl_Input(x, y, w - btn_w, h, "RMA");
-    Fl_Button* browse_rma = new Fl_Button(x + w - btn_w, y, btn_w, h, "...");
-    browse_rma->callback(browse_cb, g_rma_input);
-    y += h + 5;
+    g_diffuse_input = new Fl_Input(x_box, cur_y, input_w, h, "Diffuse Map");
+    setup_input(g_diffuse_input);
+    Fl_Button* b_diff = new Fl_Button(x_box + input_w + 5, cur_y, bw, h, "...");
+    b_diff->callback(browse_cb, g_diffuse_input);
+    cur_y += step;
 
-    g_height_input = new Fl_Input(x, y, w - btn_w, h, "Height");
-    Fl_Button* browse_height = new Fl_Button(x + w - btn_w, y, btn_w, h, "...");
-    browse_height->callback(browse_cb, g_height_input);
-    y += h + 5;
+    g_normal_input = new Fl_Input(x_box, cur_y, input_w, h, "Normal Map");
+    setup_input(g_normal_input);
+    Fl_Button* b_norm = new Fl_Button(x_box + input_w + 5, cur_y, bw, h, "...");
+    b_norm->callback(browse_cb, g_normal_input);
+    cur_y += step;
 
-    g_detail_diffuse_input = new Fl_Input(x, y, w - btn_w, h, "Detail");
-    Fl_Button* browse_detail = new Fl_Button(x + w - btn_w, y, btn_w, h, "...");
-    browse_detail->callback(browse_cb, g_detail_diffuse_input);
-    y += h + 15;
+    g_rma_input = new Fl_Input(x_box, cur_y, input_w, h, "RMA (ARM) Map");
+    setup_input(g_rma_input);
+    Fl_Button* b_rma = new Fl_Button(x_box + input_w + 5, cur_y, bw, h, "...");
+    b_rma->callback(browse_cb, g_rma_input);
+    cur_y += step;
 
-    g_height_scale_input = new Fl_Float_Input(x, y, w, h, "Height Scale"); y += h + 5;
-    g_detail_scale_input = new Fl_Float_Input(x, y, w, h, "Detail Scale"); y += h + 5;
-    g_roughness_input = new Fl_Float_Input(x, y, w, h, "Roughness Override"); y += h + 5;
-    g_metalness_input = new Fl_Float_Input(x, y, w, h, "Metalness Override"); y += h + 15;
+    g_height_input = new Fl_Input(x_box, cur_y, input_w, h, "Height Map");
+    setup_input(g_height_input);
+    Fl_Button* b_height = new Fl_Button(x_box + input_w + 5, cur_y, bw, h, "...");
+    b_height->callback(browse_cb, g_height_input);
+    cur_y += step;
 
-    g_tess_check = new Fl_Check_Button(x, y, w, h, "Use Tesselation"); y += h + 5;
-    g_alpha_check = new Fl_Check_Button(x, y, w, h, "Alpha Test (Cutout)"); y += h + 5;
-    
-    g_name_input->callback(input_changed_cb);
-    g_diffuse_input->callback(input_changed_cb);
-    g_normal_input->callback(input_changed_cb);
-    g_rma_input->callback(input_changed_cb);
-    g_height_input->callback(input_changed_cb);
-    g_detail_diffuse_input->callback(input_changed_cb);
+    g_detail_diffuse_input = new Fl_Input(x_box, cur_y, input_w, h, "Detail Map");
+    setup_input(g_detail_diffuse_input);
+    Fl_Button* b_detail = new Fl_Button(x_box + input_w + 5, cur_y, bw, h, "...");
+    b_detail->callback(browse_cb, g_detail_diffuse_input);
+    cur_y += step + 10;
+
+    g_height_scale_input = new Fl_Float_Input(x_box, cur_y, input_w + bw + 5, h, "Height Scale");
     g_height_scale_input->callback(input_changed_cb);
+    cur_y += step;
+
+    g_detail_scale_input = new Fl_Float_Input(x_box, cur_y, input_w + bw + 5, h, "Detail Scale");
     g_detail_scale_input->callback(input_changed_cb);
+    cur_y += step;
+
+    g_roughness_input = new Fl_Float_Input(x_box, cur_y, input_w + bw + 5, h, "Roughness Override");
     g_roughness_input->callback(input_changed_cb);
+    cur_y += step;
+
+    g_metalness_input = new Fl_Float_Input(x_box, cur_y, input_w + bw + 5, h, "Metalness Override");
     g_metalness_input->callback(input_changed_cb);
+    cur_y += step + 10;
+
+    g_tess_check = new Fl_Check_Button(x_box, cur_y, 200, h, "Use Tesselation");
     g_tess_check->callback(input_changed_cb);
+    cur_y += step;
+
+    g_alpha_check = new Fl_Check_Button(x_box, cur_y, 200, h, "Alpha Test (Cutout)");
     g_alpha_check->callback(input_changed_cb);
-    
+
     g_main_window->end();
     g_main_window->callback(exit_cb);
-    
+
     load_materials(g_materials_file);
     populate_browser();
     update_ui_for_selection();
-    
+
     g_main_window->show(argc, argv);
     return Fl::run();
 }
