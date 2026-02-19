@@ -64,7 +64,7 @@ void GameData_Init(const Char* filepath) {
     TGD_EntityDef* current_def = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        Char* trimmed = trim(line);
+        Char* trimmed = Common::trim(line);
         if (strlen(trimmed) == 0 || strncmp(trimmed, "//", 2) == 0) continue;
 
         if (strncmp(trimmed, "@SolidClass", 11) == 0 || strncmp(trimmed, "@PointClass", 11) == 0) {
@@ -106,10 +106,10 @@ void GameData_Init(const Char* filepath) {
                     if (prop->type == TGD_PROP_CHOICES) {
                         Char next_line[256];
                         Long pos = ftell(file);
-                        if (fgets(next_line, sizeof(next_line), file) && trim(next_line)[0] == '[') {
-                            while (fgets(next_line, sizeof(next_line), file) && trim(next_line)[0] != ']') {
+                        if (fgets(next_line, sizeof(next_line), file) && Common::trim(next_line)[0] == '[') {
+                            while (fgets(next_line, sizeof(next_line), file) && Common::trim(next_line)[0] != ']') {
                                 TGD_Choice choice;
-                                if (sscanf(trim(next_line), "%63s : \"%127[^\"]\"", choice.value, choice.display_name) == 2) {
+                                if (sscanf(Common::trim(next_line), "%63s : \"%127[^\"]\"", choice.value, choice.display_name) == 2) {
                                     prop->num_choices++;
                                     TGD_Choice* new_choices = new TGD_Choice[prop->num_choices];
                                     if (prop->choices) {

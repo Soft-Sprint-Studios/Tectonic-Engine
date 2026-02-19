@@ -104,7 +104,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 UI_EndPopup();
             }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##light%d", i); if (UI_Button(del_label)) { light_to_delete = i; }
         }
-        if (UI_Button("Add Light")) { if (scene->numActiveLights < MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = Vec3{ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = Vec3{ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
+        if (UI_Button("Add Light")) { if (scene->numActiveLights < Common::MAX_LIGHTS) { Light* new_light = &scene->lights[scene->numActiveLights]; scene->numActiveLights++; memset(new_light, 0, sizeof(Light));  new_light->custom_style_string[0] = '\0'; sprintf(new_light->targetname, "Light_%d", scene->numActiveLights - 1); new_light->type = LIGHT_POINT; new_light->pos = g_EditorState.editor_camera.position; new_light->color = Vec3{ 1,1,1 }; new_light->intensity = 1.0f; new_light->direction = Vec3{ 0, -1, 0 }; new_light->shadowFarPlane = 25.0f; new_light->shadowBias = 0.05f; new_light->intensity = 1.0f; new_light->radius = 10.0f; new_light->base_intensity = 1.0f; new_light->is_on = true; Light_InitShadowMap(new_light); Undo_PushCreateEntity(scene, ENTITY_LIGHT, scene->numActiveLights - 1, "Create Light"); } }
     }
     if (light_to_delete != -1) { Undo_PushDeleteEntity(scene, ENTITY_LIGHT, light_to_delete, "Delete Light"); _raw_delete_light(scene, light_to_delete); Editor_RemoveFromSelection(ENTITY_LIGHT, light_to_delete); }
     if (UI_CollapsingHeader("Decals", 1)) {
@@ -125,7 +125,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             }UI_SameLine(); Char del_label[32]; sprintf(del_label, "[X]##decal%d", i); if (UI_Button(del_label)) { decal_to_delete = i; }
         }
         if (UI_Button("Add Decal")) {
-            if (scene->numDecals < MAX_DECALS) {
+            if (scene->numDecals < Common::MAX_DECALS) {
                 Decal* d = &scene->decals[scene->numDecals]; memset(d, 0, sizeof(Decal)); sprintf(d->targetname, "Decal_%d", scene->numDecals); d->pos = g_EditorState.editor_camera.position; d->size = Vec3{ 1, 1, 1 }; d->material = TextureManager_FindMaterial(TextureManager_GetMaterial(0)->name);
                 d->uv_scale = Vec2{ 1.0f, 1.0f }; d->uv_offset = Vec2{ 0.0f, 0.0f }; d->uv_rotation = 0.0f;
                 d->lightmap_scale = 1.0f;
@@ -201,7 +201,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Button(del_label)) { sprite_to_delete = i; }
         }
         if (UI_Button("Add Sprite")) {
-            if (scene->numSprites < MAX_SPRITES) {
+            if (scene->numSprites < Common::MAX_SPRITES) {
                 Sprite* s = &scene->sprites[scene->numSprites];
                 memset(s, 0, sizeof(Sprite));
                 sprintf(s->targetname, "Sprite_%d", scene->numSprites);
@@ -241,7 +241,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Button(del_label)) { video_player_to_delete = i; }
         }
         if (UI_Button("Add Video Player")) {
-            if (scene->numVideoPlayers < MAX_VIDEO_PLAYERS) {
+            if (scene->numVideoPlayers < Common::MAX_VIDEO_PLAYERS) {
                 VideoPlayer* vp = &scene->videoPlayers[scene->numVideoPlayers];
                 memset(vp, 0, sizeof(VideoPlayer));
                 sprintf(vp->targetname, "Video_%d", scene->numVideoPlayers);
@@ -279,7 +279,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Button(del_label)) { parallax_room_to_delete = i; }
         }
         if (UI_Button("Add Parallax Room")) {
-            if (scene->numParallaxRooms < MAX_PARALLAX_ROOMS) {
+            if (scene->numParallaxRooms < Common::MAX_PARALLAX_ROOMS) {
                 ParallaxRoom* p = &scene->parallaxRooms[scene->numParallaxRooms];
                 memset(p, 0, sizeof(ParallaxRoom));
                 sprintf(p->targetname, "Parallax_%d", scene->numParallaxRooms);
@@ -314,7 +314,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_Button(del_label)) { logic_entity_to_delete = i; }
         }
         if (UI_Button("Add Logic Entity")) {
-            if (scene->numLogicEntities < MAX_LOGIC_ENTITIES) {
+            if (scene->numLogicEntities < Common::MAX_LOGIC_ENTITIES) {
                 LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
                 memset(ent, 0, sizeof(LogicEntity));
 
@@ -722,8 +722,8 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Light_DestroyShadowMap(light);
                 light->type = LIGHT_SPOT;
                 if (light->cutOff <= 0.0f) {
-                    light->cutOff = cosf(12.5f * M_PI / 180.0f);
-                    light->outerCutOff = cosf(17.5f * M_PI / 180.0f);
+                    light->cutOff = cosf(12.5f * Common::M_PI / 180.0f);
+                    light->outerCutOff = cosf(17.5f * Common::M_PI / 180.0f);
                 }
                 Light_InitShadowMap(light);
                 Undo_EndEntityModification(scene, ENTITY_LIGHT, primary->index, "Change Light Type");

@@ -36,7 +36,7 @@ public:
 
         Char release_string[128];
         snprintf(release_string, sizeof(release_string),
-            "TectonicEngine@D.E.V-build%d-%s", Compat_GetBuildNumber(), ARCH_STRING);
+            "TectonicEngine@D.E.V-build%d-%s", Common::GetBuildNumber(), ARCH_STRING);
         sentry_options_set_release(options, release_string);
 
         sentry_options_set_debug(options, 1);

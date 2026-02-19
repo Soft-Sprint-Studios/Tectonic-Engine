@@ -192,9 +192,9 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
     if (fgets(version_line, sizeof(version_line), file) &&
         sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
 
-        if (map_file_version < MIN_MAP_VERSION || map_file_version > MAP_VERSION) {
+        if (map_file_version < Common::MIN_MAP_VERSION || map_file_version > Common::MAP_VERSION) {
             Console_Printf_Error("Map version unsupported! Map is v%d, supported range is v%d–v%d.",
-                map_file_version, MIN_MAP_VERSION, MAP_VERSION);
+                map_file_version, Common::MIN_MAP_VERSION, Common::MAP_VERSION);
             fclose(file);
             return false;
         }
@@ -294,7 +294,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "brush_begin") == 0) {
-            if (scene->numBrushes >= MAX_BRUSHES) continue;
+            if (scene->numBrushes >= Common::MAX_BRUSHES) continue;
             Brush* b = &scene->brushes[scene->numBrushes];
             memset(b, 0, sizeof(Brush));
             b->mass = 0.0f;
@@ -388,7 +388,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 else if (strstr(line, "properties")) {
                     b->numProperties = 0;
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
-                        if (b->numProperties < MAX_ENTITY_PROPERTIES) {
+                        if (b->numProperties < Common::MAX_ENTITY_PROPERTIES) {
                             if (sscanf(line, " \"%63[^\"]\" \"%1023[^\"]\"", b->properties[b->numProperties].key, b->properties[b->numProperties].value) == 2) {
                                 b->numProperties++;
                             }
@@ -462,7 +462,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             scene->numBrushes++;
         }
        else if (strcmp(keyword, "gltf_model") == 0) {
-            if (scene->numObjects >= MAX_MODELS) continue;
+            if (scene->numObjects >= Common::MAX_MODELS) continue;
             SceneObject* oldObjects = scene->objects;
             Int oldNum = scene->numObjects;
             scene->numObjects++;
@@ -529,7 +529,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
         }
         else if (strcmp(keyword, "light") == 0) {
-            if (scene->numActiveLights >= MAX_LIGHTS) continue;
+            if (scene->numActiveLights >= Common::MAX_LIGHTS) continue;
             Light* light = &scene->lights[scene->numActiveLights];
             memset(light, 0, sizeof(Light));
 
@@ -625,7 +625,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             scene->numActiveLights++;
             }
         else if (strcmp(keyword, "decal") == 0) {
-            if (scene->numDecals < MAX_DECALS) {
+            if (scene->numDecals < Common::MAX_DECALS) {
                 Decal* d = &scene->decals[scene->numDecals];
                 Char mat_name[64];
                 memset(d, 0, sizeof(Decal));
@@ -678,7 +678,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "sound_entity") == 0) {
-            if (scene->numSoundEntities < MAX_SOUNDS) {
+            if (scene->numSoundEntities < Common::MAX_SOUNDS) {
                 SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
                 memset(s, 0, sizeof(SoundEntity));
                 Int is_looping_int = 0, play_on_start_int = 0, is_global_int = 0;
@@ -712,7 +712,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "particle_emitter") == 0) {
-            if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) {
+            if (scene->numParticleEmitters < Common::MAX_PARTICLE_EMITTERS) {
                 ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters];
                 memset(emitter, 0, sizeof(ParticleEmitter));
                 Int on_default_int = 1;
@@ -730,7 +730,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "sprite") == 0) {
-            if (scene->numSprites < MAX_SPRITES) {
+            if (scene->numSprites < Common::MAX_SPRITES) {
                 Sprite* s = &scene->sprites[scene->numSprites];
                 memset(s, 0, sizeof(Sprite));
                 Char mat_name[64];
@@ -748,7 +748,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "video_player") == 0) {
-            if (scene->numVideoPlayers < MAX_VIDEO_PLAYERS) {
+            if (scene->numVideoPlayers < Common::MAX_VIDEO_PLAYERS) {
                 VideoPlayer* vp = &scene->videoPlayers[scene->numVideoPlayers];
                 memset(vp, 0, sizeof(VideoPlayer));
                 Int play_on_start_int = 0, loop_int = 0;
@@ -771,7 +771,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "parallax_room") == 0) {
-            if (scene->numParallaxRooms < MAX_PARALLAX_ROOMS) {
+            if (scene->numParallaxRooms < Common::MAX_PARALLAX_ROOMS) {
                 ParallaxRoom* p_room = &scene->parallaxRooms[scene->numParallaxRooms];
                 memset(p_room, 0, sizeof(ParallaxRoom));
                 Char* p = line + strlen(keyword);
@@ -795,7 +795,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
         }
         else if (strcmp(keyword, "logic_entity_begin") == 0) {
-            if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) continue;
+            if (scene->numLogicEntities >= Common::MAX_LOGIC_ENTITIES) continue;
             LogicEntity* ent = &scene->logicEntities[scene->numLogicEntities];
             memset(ent, 0, sizeof(LogicEntity));
             while (fgets(line, sizeof(line), file) && strncmp(line, "logic_entity_end", 16) != 0) {
@@ -815,7 +815,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 else if (sscanf(line, " runtime_float_b %f", &ent->runtime_float_b) == 1) {}
                 else if (strstr(line, "properties")) {
                     while (fgets(line, sizeof(line), file) && !strstr(line, "}")) {
-                        if (ent->numProperties < MAX_ENTITY_PROPERTIES) {
+                        if (ent->numProperties < Common::MAX_ENTITY_PROPERTIES) {
                             if (sscanf(line, " \"%63[^\"]\" \"%1023[^\"]\"", ent->properties[ent->numProperties].key, ent->properties[ent->numProperties].value) == 2) {
                                 ent->numProperties++;
                             }
@@ -883,7 +883,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
         scene->skybox_cubemap = loadCubemap(face_pointers);
     }
     else { scene->skybox_cubemap = 0; }
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, PLAYER_HEIGHT_NORMAL, 80.0f, scene->playerStart.pos);
+    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, Cvar_GetFloat("g_player_height"), 80.0f, scene->playerStart.pos);
     engine->camera.position = scene->playerStart.pos;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;
@@ -919,7 +919,7 @@ Bool Scene_SaveMap(Scene* scene, Engine* engine, const Char* mapPath) {
         Console_Printf_Error("Failed to open %s for writing.", mapPath);
         return false;
     }
-    fprintf(file, "MAP_VERSION %d\n\n", MAP_VERSION);
+    fprintf(file, "MAP_VERSION %d\n\n", Common::MAP_VERSION);
     fprintf(file, "original_map_path \"%s\"\n\n", scene->originalMapPath);
     fprintf(file, "lightmap_resolution %d\n", scene->lightmapResolution);
     if (engine) {

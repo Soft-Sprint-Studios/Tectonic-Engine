@@ -306,7 +306,7 @@ static void Renderer_InitBuffers(Renderer* renderer) {
 
     glGenBuffers(1, &renderer->lightSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderer->lightSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_LIGHTS * sizeof(ShaderLight), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, Common::MAX_LIGHTS * sizeof(ShaderLight), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, renderer->lightSSBO);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

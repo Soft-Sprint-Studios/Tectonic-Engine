@@ -155,32 +155,6 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     }
     SDL_ShowCursor(SDL_ENABLE);
     IPC_Init();
-    g_engine->camera = Camera{ {0,1,5}, 0,0, false, PLAYER_HEIGHT_NORMAL, nullptr, 100.0f };  g_engine->flashlight_on = false;
-    g_engine->flashlight_on = false;
-    g_engine->camera.radiation_level = 0.0f;
-    g_engine->camera.rads_per_second = 0.0f;
-    g_engine->active_camera_brush_index = -1;
-    g_player_input_disabled = false;
-    g_engine->keypad_active = false;
-    g_engine->active_keypad_entity_index = -1;
-    memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
-    g_engine->note_active = false;
-    g_engine->active_note_entity_index = -1;
-    memset(g_engine->note_title, 0, sizeof(g_engine->note_title));
-    memset(g_engine->note_content, 0, sizeof(g_engine->note_content));
-    g_engine->heldObject = nullptr;
-    g_engine->holdDistance = 0.0f;
-    g_engine->credits_active = false;
-    g_engine->credits_text = nullptr;
-    g_engine->credits_entity_index = -1;
-    for (Int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
-        g_engine->active_messages[i].state = TEXT_STATE_IDLE;
-    }
-    g_engine->prev_health = g_engine->camera.health;
-    g_engine->red_flash_intensity = 0.0f;
-    g_engine->prev_player_y_velocity = 0.0f;
-    g_engine->current_fov_offset = 0.0f;
-    g_engine->current_roll_angle = 0.0f;
     GameConfig_Init();
     UI_Init(window, context);
     SoundSystem_Init();
@@ -226,12 +200,39 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     LoadingScreen_Init(g_engine->width, g_engine->height);
     PrintSystemInfo();
     Console_Printf("Tectonic Engine initialized.\n");
-    Console_Printf("Build: %d (%s, %s) on %s\n", Compat_GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
+    Console_Printf("Build: %d (%s, %s) on %s\n", Common::GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
     Console_Printf("Engine branch: %s\n", BRANCH_NAME);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
 void init_scene() {
+    g_engine->camera = Camera{ {0,1,5}, 0,0, false, Cvar_GetFloat("g_player_height"), nullptr, 100.0f};  g_engine->flashlight_on = false;
+    g_engine->flashlight_on = false;
+    g_engine->camera.radiation_level = 0.0f;
+    g_engine->camera.rads_per_second = 0.0f;
+    g_engine->active_camera_brush_index = -1;
+    g_player_input_disabled = false;
+    g_engine->keypad_active = false;
+    g_engine->active_keypad_entity_index = -1;
+    memset(g_engine->keypad_input_buffer, 0, sizeof(g_engine->keypad_input_buffer));
+    g_engine->note_active = false;
+    g_engine->active_note_entity_index = -1;
+    memset(g_engine->note_title, 0, sizeof(g_engine->note_title));
+    memset(g_engine->note_content, 0, sizeof(g_engine->note_content));
+    g_engine->heldObject = nullptr;
+    g_engine->holdDistance = 0.0f;
+    g_engine->credits_active = false;
+    g_engine->credits_text = nullptr;
+    g_engine->credits_entity_index = -1;
+    for (Int i = 0; i < MAX_GAME_TEXT_MESSAGES; ++i) {
+        g_engine->active_messages[i].state = TEXT_STATE_IDLE;
+    }
+    g_engine->prev_health = g_engine->camera.health;
+    g_engine->red_flash_intensity = 0.0f;
+    g_engine->prev_player_y_velocity = 0.0f;
+    g_engine->current_fov_offset = 0.0f;
+    g_engine->current_roll_angle = 0.0f;
+
     memset(&g_scene, 0, sizeof(Scene));
     const GameConfig* config = GameConfig_Get();
     g_engine->camera.health = 100.0f;
@@ -443,11 +444,11 @@ static void Engine_RenderGame() {
     if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
 
     g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
-    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (M_PI / 180.0f));
+    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (Common::M_PI / 180.0f));
     mat4_multiply(&view, &roll_mat, &view);
 
     Float fov_degrees = Cvar_GetFloat("fov_vertical");
-    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (M_PI / 180.f),
+    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (Common::M_PI / 180.f),
         (Float)g_engine->width / (Float)g_engine->height, 0.1f, 1000.f);
 
     Mat4 sunLightSpaceMatrix;

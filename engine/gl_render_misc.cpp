@@ -351,7 +351,7 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
             engine->camera.position = b->pos;
             Vec3 target_pos = vec3_add(engine->camera.position, targets[face_idx]);
             Mat4 view = mat4_lookAt(engine->camera.position, target_pos, ups[face_idx]);
-            Mat4 projection = mat4_perspective(90.0f * (M_PI / 180.f), 1.0f, 0.1f, 1000.f);
+            Mat4 projection = mat4_perspective(90.0f * (Common::M_PI / 180.f), 1.0f, 0.1f, 1000.f);
 
             Shadows_RenderPointAndSpot(renderer, scene, engine);
             Mat4 sunLightSpaceMatrix;

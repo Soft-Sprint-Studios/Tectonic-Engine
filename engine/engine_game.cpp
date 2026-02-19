@@ -744,8 +744,8 @@ void update_state() {
             }
 
             g_engine->camera.position = vec3_lerp(g_engine->camera_original_pos, target_pos, t);
-            g_engine->camera.yaw = g_engine->camera_original_yaw + (target_angles.y * (M_PI / 180.0f) - g_engine->camera_original_yaw) * t;
-            g_engine->camera.pitch = g_engine->camera_original_pitch + (target_angles.x * (M_PI / 180.0f) - g_engine->camera_original_pitch) * t;
+            g_engine->camera.yaw = g_engine->camera_original_yaw + (target_angles.y * (Common::M_PI / 180.0f) - g_engine->camera_original_yaw) * t;
+            g_engine->camera.pitch = g_engine->camera_original_pitch + (target_angles.x * (Common::M_PI / 180.0f) - g_engine->camera_original_pitch) * t;
 
             if (t >= 1.0f) {
                 Float hold_time = atof(Brush_GetProperty(cam_brush, "holdtime", "5.0"));
@@ -893,8 +893,8 @@ void update_state() {
                         Physics_Teleport(g_engine->camera.physicsBody, target_pos);
                     }
                     g_engine->camera.position = target_pos;
-                    g_engine->camera.yaw = target_angles.y * (M_PI / 180.0f);
-                    g_engine->camera.pitch = target_angles.x * (M_PI / 180.0f);
+                    g_engine->camera.yaw = target_angles.y * (Common::M_PI / 180.0f);
+                    g_engine->camera.pitch = target_angles.x * (Common::M_PI / 180.0f);
                 }
             }
             else if (strcmp(b->classname, "trigger_camera") == 0) {
@@ -992,9 +992,9 @@ void update_state() {
         Float pitch, yaw, roll;
         sscanf(dir_str, "%f %f %f", &pitch, &yaw, &roll);
 
-        Float pitch_rad = pitch * (M_PI / 180.0f);
-        Float yaw_rad = yaw * (M_PI / 180.0f);
-        Float roll_rad = roll * (M_PI / 180.0f);
+        Float pitch_rad = pitch * (Common::M_PI / 180.0f);
+        Float yaw_rad = yaw * (Common::M_PI / 180.0f);
+        Float roll_rad = roll * (Common::M_PI / 180.0f);
 
         Mat4 rot_x_mat = mat4_rotate_x(pitch_rad);
         Mat4 rot_y_mat = mat4_rotate_y(yaw_rad);
@@ -1084,7 +1084,7 @@ void update_state() {
         g_engine->camera.position.x = p.x;
         g_engine->camera.position.z = p.z;
 
-        Float target_height = g_engine->camera.isCrouching ? Cvar_GetFloat("g_crouch_height") : PLAYER_HEIGHT_NORMAL;
+        Float target_height = g_engine->camera.isCrouching ? Cvar_GetFloat("g_crouch_height") : Cvar_GetFloat("g_player_height");
         Float crouch_speed = 10.0f;
 
         g_engine->camera.currentHeight += (target_height - g_engine->camera.currentHeight) * g_engine->deltaTime * crouch_speed;
@@ -1132,7 +1132,7 @@ void update_state() {
                     b->door_move_dir = Vec3{ 0, -1, 0 };
                 }
                 else {
-                    Float yaw_rad = move_angles.y * (M_PI / 180.0f);
+                    Float yaw_rad = move_angles.y * (Common::M_PI / 180.0f);
                     b->door_move_dir.x = cosf(yaw_rad);
                     b->door_move_dir.y = 0.0f;
                     b->door_move_dir.z = -sinf(yaw_rad);
@@ -1307,7 +1307,7 @@ void update_state() {
                 Float speed = atof(Brush_GetProperty(b, "speed", "1.0"));
                 Float distance = atof(Brush_GetProperty(b, "distance", "10.0"));
 
-                Float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * M_PI);
+                Float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * Common::M_PI);
                 Vec3 offset = vec3_muls(b->pendulum_swing_dir, sine_wave_pos * distance);
 
                 b->pos = vec3_add(b->pendulum_start_pos, offset);

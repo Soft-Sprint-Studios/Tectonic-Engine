@@ -70,7 +70,7 @@ void WaterManager_ParseWaters(const Char* filepath) {
     WaterDef* current_def = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        Char* trimmed_line = trim(line);
+        Char* trimmed_line = Common::trim(line);
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') continue;
 
         if (trimmed_line[0] == '"') {

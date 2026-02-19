@@ -295,7 +295,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
 
             for (Int i = 0; i < g_EditorState.num_model_files; ++i) {
                 ModelBrowserEntry* entry = &g_EditorState.model_browser_entries[i];
-                if (g_EditorState.model_search_filter[0] != '\0' && _stristr(entry->file_path, g_EditorState.model_search_filter) == nullptr) {
+                if (g_EditorState.model_search_filter[0] != '\0' && Common::_stristr(entry->file_path, g_EditorState.model_search_filter) == nullptr) {
                     continue;
                 }
 
@@ -319,7 +319,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                         Mat4 view = mat4_lookAt(Vec3{ 1, 1, 1 }, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
-                        Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
+                        Mat4 proj = mat4_perspective(45.0f * (Common::M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
 
                         glUseProgram(renderer->mainShader);
                         Shader_Set(renderer->mainShader, "is_unlit", 1);
@@ -349,7 +349,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         g_EditorState.show_add_model_popup = false;
                     }
                     else {
-                        if (scene->numObjects < MAX_MODELS) {
+                        if (scene->numObjects < Common::MAX_MODELS) {
                             scene->numObjects++;
                             scene->objects = new SceneObject[scene->numObjects];
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
@@ -412,7 +412,7 @@ void Editor_RenderSoundBrowser(Scene* scene) {
             if (g_EditorState.num_sound_files > 0) {
                 for (Int i = 0; i < g_EditorState.num_sound_files; ++i) {
                     const Char* sound_name = g_EditorState.sound_file_list[i];
-                    if (g_EditorState.sound_search_filter[0] == '\0' || _stristr(sound_name, g_EditorState.sound_search_filter) != nullptr) {
+                    if (g_EditorState.sound_search_filter[0] == '\0' || Common::_stristr(sound_name, g_EditorState.sound_search_filter) != nullptr) {
                         if (UI_Selectable(sound_name, g_EditorState.selected_sound_file_index == i)) {
                             g_EditorState.selected_sound_file_index = i;
                             if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
@@ -434,7 +434,7 @@ void Editor_RenderSoundBrowser(Scene* scene) {
 
         if (g_EditorState.selected_sound_file_index != -1) {
             if (UI_Button("Add to Scene")) {
-                if (scene->numSoundEntities < MAX_SOUNDS) {
+                if (scene->numSoundEntities < Common::MAX_SOUNDS) {
                     SoundEntity* s = &scene->soundEntities[scene->numSoundEntities];
                     memset(s, 0, sizeof(SoundEntity));
                     sprintf(s->targetname, "Sound_%d", scene->numSoundEntities);
@@ -532,7 +532,7 @@ void Editor_RenderVertexToolsWindow(Scene* scene) {
                 if (g_EditorState.num_selections > 0) {
                     Undo_BeginMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections);
 
-                    Bool modified_brushes[MAX_BRUSHES] = { false };
+                    Bool modified_brushes[Common::MAX_BRUSHES] = { false };
 
                     for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                         EditorSelection* sel = &g_EditorState.selections[i];
@@ -650,7 +650,7 @@ void Editor_RenderAboutWindow() {
     if (UI_Begin("About Tectonic Editor", &g_EditorState.show_about_window)) {
         UI_Text("Tectonic Editor");
         UI_Separator();
-        UI_Text("Version: D.E.V. (Build %d)", Compat_GetBuildNumber());
+        UI_Text("Version: D.E.V. (Build %d)", Common::GetBuildNumber());
         UI_Text("Build Date: %s, %s", __DATE__, __TIME__);
         UI_Text("Architecture: %s", ARCH_STRING);
         UI_Text("Engine branch: %s", BRANCH_NAME);
@@ -683,7 +683,7 @@ void Editor_RenderTextureBrowser(Scene* scene) {
             Material* mat = TextureManager_GetMaterial(i);
 
             if (g_EditorState.texture_search_filter[0] != '\0' &&
-                _stristr(mat->name, g_EditorState.texture_search_filter) == nullptr) {
+                Common::_stristr(mat->name, g_EditorState.texture_search_filter) == nullptr) {
                 continue;
             }
 
@@ -1458,8 +1458,8 @@ void Editor_UpdatePreviewBrushForArch() {
     if (inner_radius < 0.01f) inner_radius = 0.01f;
 
     Int num_sides = g_EditorState.arch_num_sides;
-    Float start_angle_rad = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
-    Float arc_rad = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
+    Float start_angle_rad = g_EditorState.arch_start_angle_degrees * (Common::M_PI / 180.0f);
+    Float arc_rad = g_EditorState.arch_arc_degrees * (Common::M_PI / 180.0f);
     Float angle_step = arc_rad / num_sides;
 
     Brush* b = &g_EditorState.preview_brush;
@@ -1925,8 +1925,8 @@ void Editor_RenderArchPreview() {
     if (inner_radius < 0) inner_radius = 0;
 
     Int num_sides = g_EditorState.arch_num_sides;
-    Float start_angle = g_EditorState.arch_start_angle_degrees * (M_PI / 180.0f);
-    Float arc = g_EditorState.arch_arc_degrees * (M_PI / 180.0f);
+    Float start_angle = g_EditorState.arch_start_angle_degrees * (Common::M_PI / 180.0f);
+    Float arc = g_EditorState.arch_arc_degrees * (Common::M_PI / 180.0f);
     Float angle_step = arc / num_sides;
 
     Vec3* lines = new Vec3[num_sides * 4 + 4]{};
@@ -1975,7 +1975,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
             if (g_EditorState.num_particle_files > 0) {
                 for (Int i = 0; i < g_EditorState.num_particle_files; ++i) {
                     const Char* fname = g_EditorState.particle_file_list[i];
-                    if (g_EditorState.particle_search_filter[0] == '\0' || _stristr(fname, g_EditorState.particle_search_filter) != nullptr) {
+                    if (g_EditorState.particle_search_filter[0] == '\0' || Common::_stristr(fname, g_EditorState.particle_search_filter) != nullptr) {
                         if (UI_Selectable(fname, g_EditorState.selected_particle_file_index == i)) {
                             g_EditorState.selected_particle_file_index = i;
                         }
@@ -1991,7 +1991,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
 
         if (g_EditorState.selected_particle_file_index != -1) {
             if (UI_Button("Create Emitter")) {
-                if (scene->numParticleEmitters < MAX_PARTICLE_EMITTERS) {
+                if (scene->numParticleEmitters < Common::MAX_PARTICLE_EMITTERS) {
                     ParticleEmitter* emitter = &scene->particleEmitters[scene->numParticleEmitters];
                     memset(emitter, 0, sizeof(ParticleEmitter));
 

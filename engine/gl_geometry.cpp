@@ -427,7 +427,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     Shader_Set(renderer->mainShader, "u_relief_min_steps", Cvar_GetFloat("r_relief_min_steps"));
     Shader_Set(renderer->mainShader, "u_relief_refine_steps", Cvar_GetInt("r_relief_refine_steps"));
 
-    ShaderLight dynamic_lights[MAX_LIGHTS];
+    ShaderLight dynamic_lights[Common::MAX_LIGHTS];
     Int num_dynamic_lights = 0;
 
     for (Int i = 0; i < scene->numActiveLights; ++i) {

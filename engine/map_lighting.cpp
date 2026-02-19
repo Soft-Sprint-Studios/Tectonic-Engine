@@ -519,8 +519,8 @@ void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index,
             b->faces[i].atlas_coords.z = (Float)w / atlas_width;
             b->faces[i].atlas_coords.w = (Float)h / atlas_height;
 
-            Float pad_x = (Float)LIGHTMAPPADDING / atlas_width;
-            Float pad_y = (Float)LIGHTMAPPADDING / atlas_height;
+            Float pad_x = (Float)Common::LIGHTMAPPADDING / atlas_width;
+            Float pad_y = (Float)Common::LIGHTMAPPADDING / atlas_height;
             b->faces[i].atlas_coords.x += pad_x;
             b->faces[i].atlas_coords.y += pad_y;
             b->faces[i].atlas_coords.z -= pad_x * 2.0f;

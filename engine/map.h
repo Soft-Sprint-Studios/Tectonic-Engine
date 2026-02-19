@@ -41,26 +41,6 @@
 #include <AL/al.h>
 
 
-constexpr int MAX_LIGHTS = 256;
-constexpr int MAX_BRUSHES = 8192;
-constexpr int MAX_MODELS = 8192;
-constexpr int MAX_DECALS = 8192;
-constexpr int MAX_SOUNDS = 2048;
-constexpr int MAX_PARTICLE_EMITTERS = 2048;
-constexpr int MAX_SPRITES = 8192;
-constexpr int MAX_VIDEO_PLAYERS = 32;
-constexpr int MAX_PARALLAX_ROOMS = 128;
-constexpr int MAX_BRUSH_VERTS = 32768;
-constexpr int MAX_BRUSH_FACES = 16384;
-constexpr int MAX_LOGIC_ENTITIES = 8192;
-constexpr int MAX_ENTITY_PROPERTIES = 32;
-
-constexpr int MIN_MAP_VERSION = 18;
-constexpr int MAP_VERSION = 22;
-
-constexpr float PLAYER_HEIGHT_NORMAL = 1.83f;
-
-constexpr int LIGHTMAPPADDING = 2;
 
     typedef enum {
         ENTITY_NONE, ENTITY_MODEL, ENTITY_BRUSH, ENTITY_LIGHT, ENTITY_PLAYERSTART, ENTITY_DECAL, ENTITY_SOUND, ENTITY_PARTICLE_EMITTER, ENTITY_VIDEO_PLAYER, ENTITY_PARALLAX_ROOM, ENTITY_LOGIC, ENTITY_SPRITE
@@ -339,7 +319,7 @@ constexpr int LIGHTMAPPADDING = 2;
         Bool isGrouped;
         Char groupName[64];
         Char classname[64];
-        KeyValue properties[MAX_ENTITY_PROPERTIES];
+        KeyValue properties[Common::MAX_ENTITY_PROPERTIES];
         Int numProperties;
 
         DoorState door_state;
@@ -482,7 +462,7 @@ constexpr int LIGHTMAPPADDING = 2;
         Vec3 pos;
         Vec3 rot;
 
-        KeyValue properties[MAX_ENTITY_PROPERTIES];
+        KeyValue properties[Common::MAX_ENTITY_PROPERTIES];
         Int numProperties;
 
         Bool runtime_active;
@@ -506,26 +486,26 @@ constexpr int LIGHTMAPPADDING = 2;
     typedef struct {
         Char mapPath[256];
         Char originalMapPath[256];
-        Light lights[MAX_LIGHTS];
+        Light lights[Common::MAX_LIGHTS];
         Int numActiveLights;
         SceneObject* objects;
         Int numObjects;
-        Brush brushes[MAX_BRUSHES];
+        Brush brushes[Common::MAX_BRUSHES];
         Int numBrushes;
         PlayerStart playerStart;
-        Decal decals[MAX_DECALS];
+        Decal decals[Common::MAX_DECALS];
         Int numDecals;
-        SoundEntity soundEntities[MAX_SOUNDS];
+        SoundEntity soundEntities[Common::MAX_SOUNDS];
         Int numSoundEntities;
-        ParticleEmitter particleEmitters[MAX_PARTICLE_EMITTERS];
+        ParticleEmitter particleEmitters[Common::MAX_PARTICLE_EMITTERS];
         Int numParticleEmitters;
-        Sprite sprites[MAX_SPRITES];
+        Sprite sprites[Common::MAX_SPRITES];
         Int numSprites;
-        LogicEntity logicEntities[MAX_LOGIC_ENTITIES];
+        LogicEntity logicEntities[Common::MAX_LOGIC_ENTITIES];
         Int numLogicEntities;
-        VideoPlayer videoPlayers[MAX_VIDEO_PLAYERS];
+        VideoPlayer videoPlayers[Common::MAX_VIDEO_PLAYERS];
         Int numVideoPlayers;
-        ParallaxRoom parallaxRooms[MAX_PARALLAX_ROOMS];
+        ParallaxRoom parallaxRooms[Common::MAX_PARALLAX_ROOMS];
         Int numParallaxRooms;
         PostProcessSettings post;
         Sun sun;

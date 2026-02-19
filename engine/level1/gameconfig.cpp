@@ -57,8 +57,8 @@ public:
             Char* value = strtok(nullptr, "=");
 
             if (key && value) {
-                key = trim(key);
-                value = trim(value);
+                key = Common::trim(key);
+                value = Common::trim(value);
 
                 if (_stricmp(key, "startmap") == 0) {
                     strncpy(config.startmap, value, sizeof(config.startmap) - 1);

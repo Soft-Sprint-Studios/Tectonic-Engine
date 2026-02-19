@@ -154,7 +154,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
 }
 
 void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview) {
-    if (scene->numBrushes >= MAX_BRUSHES) return;
+    if (scene->numBrushes >= Common::MAX_BRUSHES) return;
 
     Brush* b = &scene->brushes[scene->numBrushes];
     memset(b, 0, sizeof(Brush));

@@ -554,7 +554,7 @@ namespace
             v = world_pos.y;
         }
 
-        Float rad = face.uv_rotation * (M_PI / 180.0f);
+        Float rad = face.uv_rotation * (Common::M_PI / 180.0f);
         Float cos_r = cosf(rad);
         Float sin_r = sinf(rad);
 
@@ -791,14 +791,14 @@ namespace
 
         apply_gaussian_blur(final_hdr_lightmap_data, lightmap_width, lightmap_height, 3);
 
-        Int padded_width = lightmap_width + LIGHTMAPPADDING * 2;
-        Int padded_height = lightmap_height + LIGHTMAPPADDING * 2;
+        Int padded_width = lightmap_width + Common::LIGHTMAPPADDING * 2;
+        Int padded_height = lightmap_height + Common::LIGHTMAPPADDING * 2;
 
         vector<Float> padded_hdr_data(padded_width * padded_height * 3);
         for (Int y = 0; y < padded_height; ++y) {
             for (Int x = 0; x < padded_width; ++x) {
-                Int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                Int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                Int src_x = clamp(x - Common::LIGHTMAPPADDING, 0, lightmap_width - 1);
+                Int src_y = clamp(y - Common::LIGHTMAPPADDING, 0, lightmap_height - 1);
                 for (Int c = 0; c < 3; ++c) {
                     padded_hdr_data[(y * padded_width + x) * 3 + c] = final_hdr_lightmap_data[(src_y * lightmap_width + src_x) * 3 + c];
                 }
@@ -808,8 +808,8 @@ namespace
         vector<Uchar> padded_dir_data(padded_width * padded_height * 4);
         for (Int y = 0; y < padded_height; ++y) {
             for (Int x = 0; x < padded_width; ++x) {
-                Int src_x = clamp(x - LIGHTMAPPADDING, 0, lightmap_width - 1);
-                Int src_y = clamp(y - LIGHTMAPPADDING, 0, lightmap_height - 1);
+                Int src_x = clamp(x - Common::LIGHTMAPPADDING, 0, lightmap_width - 1);
+                Int src_y = clamp(y - Common::LIGHTMAPPADDING, 0, lightmap_height - 1);
                 for (Int c = 0; c < 4; ++c) {
                     padded_dir_data[(y * padded_width + x) * 4 + c] = dir_lightmap_data[(src_y * lightmap_width + src_x) * 4 + c];
                 }
@@ -1655,7 +1655,7 @@ namespace
         Float u2 = dist(gen);
 
         Float r = sqrtf(u1);
-        Float theta = 2.0f * (Float)M_PI * u2;
+        Float theta = 2.0f * (Float)Common::M_PI * u2;
 
         Float x = r * cosf(theta);
         Float y = r * sinf(theta);

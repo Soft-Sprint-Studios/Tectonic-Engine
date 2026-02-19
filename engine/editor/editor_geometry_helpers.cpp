@@ -92,7 +92,7 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, Int num_sides) {
     b->vertices = new BrushVertex[b->numVertices];
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
         Float x = cosf(angle) * radius_x;
         Float z = sinf(angle) * radius_z;
 
@@ -200,7 +200,7 @@ void Brush_SetVerticesFromSpike(Brush* b, Vec3 size, Int num_sides) {
     b->vertices[0].pos = Vec3{ 0, height / 2.0f, 0 };
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
         Float x = cosf(angle) * radius_x;
         Float z = sinf(angle) * radius_z;
         b->vertices[i + 1].pos = Vec3{ x, -height / 2.0f, z };
@@ -249,12 +249,12 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, Int sides) {
     Vec3 radius = vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
-        Float stack_angle = M_PI / 2 - i * M_PI / stacks;
+        Float stack_angle = Common::M_PI / 2 - i * Common::M_PI / stacks;
         Float xy = radius.x * cosf(stack_angle);
         Float z = radius.z * sinf(stack_angle);
 
         for (Int j = 0; j <= sides; j++) {
-            Float sector_angle = j * 2 * M_PI / sides;
+            Float sector_angle = j * 2 * Common::M_PI / sides;
             Float x = xy * cosf(sector_angle);
             Float y = xy * sinf(sector_angle);
             b->vertices[i * (sides + 1) + j].pos = Vec3{ x, y, z };
@@ -299,12 +299,12 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, Int sides) {
     Vec3 radius = vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
-        Float stack_angle = M_PI / 2 - i * (M_PI / 2) / stacks;
+        Float stack_angle = Common::M_PI / 2 - i * (Common::M_PI / 2) / stacks;
         Float xy = radius.x * cosf(stack_angle);
         Float z = radius.z * sinf(stack_angle);
 
         for (Int j = 0; j <= sides; j++) {
-            Float sector_angle = j * 2 * M_PI / sides;
+            Float sector_angle = j * 2 * Common::M_PI / sides;
             Float x = xy * cosf(sector_angle);
             Float y = xy * sinf(sector_angle);
             b->vertices[i * ring_vertices + j].pos = Vec3{ x, y, z };
@@ -383,7 +383,7 @@ void Brush_SetVerticesFromTube(Brush* b, Vec3 size, Int num_sides, Float wall_th
     b->vertices = new BrushVertex[b->numVertices];
 
     for (Int i = 0; i < num_sides; ++i) {
-        Float angle = (Float)i / (Float)num_sides * 2.0f * M_PI;
+        Float angle = (Float)i / (Float)num_sides * 2.0f * Common::M_PI;
         Float cos_a = cosf(angle);
         Float sin_a = sinf(angle);
 
@@ -524,18 +524,18 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         delete[] side;
     }
 
-    temp_new_verts = new BrushVertex[MAX_BRUSH_VERTS * 2];
-    temp_face_verts_idx = new Int[MAX_BRUSH_VERTS];
-    temp_cap_verts = new BrushVertex[MAX_BRUSH_FACES + 1];
-    new_face_list_array = new BrushFace[MAX_BRUSH_FACES];
+    temp_new_verts = new BrushVertex[Common::MAX_BRUSH_VERTS * 2];
+    temp_face_verts_idx = new Int[Common::MAX_BRUSH_VERTS];
+    temp_cap_verts = new BrushVertex[Common::MAX_BRUSH_FACES + 1];
+    new_face_list_array = new BrushFace[Common::MAX_BRUSH_FACES];
 
     Int new_vert_count = 0;
-    Int vert_map[MAX_BRUSH_VERTS];
+    Int vert_map[Common::MAX_BRUSH_VERTS];
     memset(vert_map, -1, sizeof(vert_map));
 
     for (Int i = 0; i < b->numVertices; ++i) {
         if (side[i] >= 0) {
-            if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
+            if (new_vert_count >= Common::MAX_BRUSH_VERTS * 2) {
                 Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
                 for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                 delete[] dists;
@@ -562,7 +562,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
             Int p2_idx = face->vertexIndices[(j + 1) % face->numVertexIndices];
 
             if (side[p1_idx] >= 0) {
-                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                if (face_verts_current_idx_count >= Common::MAX_BRUSH_VERTS) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
@@ -584,7 +584,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                 intersect_color.z = b->vertices[p1_idx].color.z + (b->vertices[p2_idx].color.z - b->vertices[p1_idx].color.z) * t;
                 intersect_color.w = b->vertices[p1_idx].color.w + (b->vertices[p2_idx].color.w - b->vertices[p1_idx].color.w) * t;
 
-                if (face_verts_current_idx_count >= MAX_BRUSH_VERTS) {
+                if (face_verts_current_idx_count >= Common::MAX_BRUSH_VERTS) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
@@ -594,7 +594,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                     delete[] temp_cap_verts;
                     delete[] new_face_list_array;
                 }
-                if (new_vert_count >= MAX_BRUSH_VERTS * 2) {
+                if (new_vert_count >= Common::MAX_BRUSH_VERTS * 2) {
                     Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
@@ -613,7 +613,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         }
 
         if (face_verts_current_idx_count >= 3) {
-            if (current_new_face_count >= MAX_BRUSH_FACES) {
+            if (current_new_face_count >= Common::MAX_BRUSH_FACES) {
                 Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
                 for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                 delete[] dists;
@@ -655,7 +655,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                     }
                 }
                 if (!is_duplicate) {
-                    if (cap_vert_count >= MAX_BRUSH_FACES + 1) {
+                    if (cap_vert_count >= Common::MAX_BRUSH_FACES + 1) {
                         Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
                         for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                         delete[] dists;
@@ -682,7 +682,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         g_sort_centroid = centroid;
         qsort(temp_cap_verts, cap_vert_count, sizeof(BrushVertex), compare_cap_verts);
 
-        if (current_new_face_count >= MAX_BRUSH_FACES) {
+        if (current_new_face_count >= Common::MAX_BRUSH_FACES) {
             Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
             for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
             delete[] dists;

@@ -437,7 +437,7 @@ static Console console_instance;
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.6f));
 
                 ImGui::Text("Tectonic Engine");
-                ImGui::Text("Build: %d", Compat_GetBuildNumber());
+                ImGui::Text("Build: %d", Common::GetBuildNumber());
                 ImGui::Text("Branch: %s", BRANCH_NAME);
                 ImGui::Text("Built on %s at %s", __DATE__, __TIME__);
 

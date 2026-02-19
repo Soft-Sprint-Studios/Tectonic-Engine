@@ -119,7 +119,7 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     strncpy(dest->classname, src->classname, sizeof(dest->classname) - 1);
     dest->classname[sizeof(dest->classname) - 1] = '\0';
     dest->numProperties = src->numProperties;
-    memcpy(dest->properties, src->properties, sizeof(KeyValue) * MAX_ENTITY_PROPERTIES);
+    memcpy(dest->properties, src->properties, sizeof(KeyValue) * Common::MAX_ENTITY_PROPERTIES);
     dest->numVertices = src->numVertices;
     if (src->numVertices > 0) {
         dest->vertices = new BrushVertex[src->numVertices];
@@ -310,7 +310,7 @@ static void getTexCoord(const SMikkTSpaceContext* pContext, Float fvTexcOut[], c
     else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
     else { u = pos.x; v = pos.y; }
 
-    Float rad = face->uv_rotation * (M_PI / 180.0f);
+    Float rad = face->uv_rotation * (Common::M_PI / 180.0f);
     Float cos_r = cosf(rad); Float sin_r = sinf(rad);
     fvTexcOut[0] = ((u * cos_r - v * sin_r) / face->uv_scale.x) + face->uv_offset.x;
     fvTexcOut[1] = ((u * sin_r + v * cos_r) / face->uv_scale.y) + face->uv_offset.y;
@@ -343,7 +343,7 @@ static Vec2 calculate_texture_uv_for_vertex(const Brush* b, Int face_index, Int 
     else if (dominant_axis == 1) { u = pos.x; v = pos.z; }
     else { u = pos.x; v = pos.y; }
 
-    Float rad = face->uv_rotation * (M_PI / 180.0f);
+    Float rad = face->uv_rotation * (Common::M_PI / 180.0f);
     Float cos_r = cosf(rad); Float sin_r = sinf(rad);
 
     Vec2 final_uv;
@@ -472,11 +472,11 @@ void Brush_CreateRenderData(Brush* b) {
             if (dominant_axis == 0) { u = vert.pos.y; v = vert.pos.z; }
             else if (dominant_axis == 1) { u = vert.pos.x; v = vert.pos.z; }
             else { u = vert.pos.x; v = vert.pos.y; }
-            Float rad2 = face->uv_rotation2 * (M_PI / 180.0f); Float cos_r2 = cosf(rad2); Float sin_r2 = sinf(rad2);
+            Float rad2 = face->uv_rotation2 * (Common::M_PI / 180.0f); Float cos_r2 = cosf(rad2); Float sin_r2 = sinf(rad2);
             uv2[0] = ((u * cos_r2 - v * sin_r2) / face->uv_scale2.x) + face->uv_offset2.x; uv2[1] = ((u * sin_r2 + v * cos_r2) / face->uv_scale2.y) + face->uv_offset2.y;
-            Float rad3 = face->uv_rotation3 * (M_PI / 180.0f); Float cos_r3 = cosf(rad3); Float sin_r3 = sinf(rad3);
+            Float rad3 = face->uv_rotation3 * (Common::M_PI / 180.0f); Float cos_r3 = cosf(rad3); Float sin_r3 = sinf(rad3);
             uv3[0] = ((u * cos_r3 - v * sin_r3) / face->uv_scale3.x) + face->uv_offset3.x; uv3[1] = ((u * sin_r3 + v * cos_r3) / face->uv_scale3.y) + face->uv_offset3.y;
-            Float rad4 = face->uv_rotation4 * (M_PI / 180.0f); Float cos_r4 = cosf(rad4); Float sin_r4 = sinf(rad4);
+            Float rad4 = face->uv_rotation4 * (Common::M_PI / 180.0f); Float cos_r4 = cosf(rad4); Float sin_r4 = sinf(rad4);
             uv4[0] = ((u * cos_r4 - v * sin_r4) / face->uv_scale4.x) + face->uv_offset4.x; uv4[1] = ((u * sin_r4 + v * cos_r4) / face->uv_scale4.y) + face->uv_offset4.y;
 
             Vec2 current_tex_uv = calculate_texture_uv_for_vertex(b, i, vertex_index);

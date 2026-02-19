@@ -41,7 +41,7 @@ void Glow_Init(void) {
     glGenBuffers(1, &g_glow_vbo);
     glBindVertexArray(g_glow_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_glow_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_LOGIC_ENTITIES * sizeof(GlowVertex), nullptr, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, Common::MAX_LOGIC_ENTITIES * sizeof(GlowVertex), nullptr, GL_STREAM_DRAW);
     
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GlowVertex), (void*)offsetof(GlowVertex, pos));
@@ -68,13 +68,13 @@ void Glow_Render(Scene* scene, Mat4 view, Mat4 projection) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-    GlowVertex vbo_data[MAX_LOGIC_ENTITIES];
+    GlowVertex vbo_data[Common::MAX_LOGIC_ENTITIES];
     Int glow_count = 0;
 
     for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_glow") == 0 && ent->runtime_active) {
-            if (glow_count >= MAX_LOGIC_ENTITIES) break;
+            if (glow_count >= Common::MAX_LOGIC_ENTITIES) break;
 
             vbo_data[glow_count].pos = ent->pos;
             vbo_data[glow_count].size = atof(LogicEntity_GetProperty(ent, "glow_size", "10.0"));

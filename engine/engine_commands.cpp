@@ -291,7 +291,7 @@ void Cmd_Exec(Int argc, Char** argv) {
     Console_Printf("Executing script: %s", filename);
     Char line[512];
     while (fgets(line, sizeof(line), file)) {
-        Char* trimmed_line = trim(line);
+        Char* trimmed_line = Common::trim(line);
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
             continue;
         }
@@ -319,7 +319,7 @@ void Cmd_Exec(Int argc, Char** argv) {
 }
 
 void Cmd_Version(Int argc, Char** argv) {
-    Console_Printf("Build: %d (%s, %s)", Compat_GetBuildNumber(), __DATE__, __TIME__);
+    Console_Printf("Build: %d (%s, %s)", Common::GetBuildNumber(), __DATE__, __TIME__);
 }
 
 void Cmd_SaveGame(Int argc, Char** argv) {
@@ -683,6 +683,7 @@ void init_cvars() {
     Cvar_Register("g_roll_angle", "0.5", "Maximum angle to roll view when strafing", CVAR_NONE);
     Cvar_Register("g_roll_speed", "8.0", "Speed of view rolling interpolation", CVAR_NONE);
     Cvar_Register("g_crouch_height", "1.37", "Player height when crouching", CVAR_NONE);
+    Cvar_Register("g_player_height", "1.83", "Player height", CVAR_NONE);
     Cvar_Register("g_sprint_fov", "10.0", "Additional FOV added when sprinting", CVAR_NONE);
     Cvar_Register("g_sprint_fov_speed", "5.0", "Speed of FOV interpolation", CVAR_NONE);
     Cvar_Register("g_zoom_fov", "20.0", "FOV when zoomed in (degrees).", CVAR_NONE);

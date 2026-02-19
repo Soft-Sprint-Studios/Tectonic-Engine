@@ -230,7 +230,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
     }
     case ENTITY_BRUSH: {
         if (is_creation) {
-            if (scene->numBrushes >= MAX_BRUSHES) return;
+            if (scene->numBrushes >= Common::MAX_BRUSHES) return;
             memmove(&scene->brushes[state->index + 1], &scene->brushes[state->index], (scene->numBrushes - state->index) * sizeof(Brush));
             scene->numBrushes++;
             memset(&scene->brushes[state->index], 0, sizeof(Brush));
@@ -262,7 +262,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
     }
     case ENTITY_LIGHT: {
         if (is_creation) {
-            if (scene->numActiveLights >= MAX_LIGHTS) return;
+            if (scene->numActiveLights >= Common::MAX_LIGHTS) return;
             memmove(&scene->lights[state->index + 1], &scene->lights[state->index], (scene->numActiveLights - state->index) * sizeof(Light));
             scene->numActiveLights++;
         }
@@ -273,7 +273,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
     }
     case ENTITY_DECAL:
         if (is_creation) {
-            if (scene->numDecals >= MAX_DECALS) return;
+            if (scene->numDecals >= Common::MAX_DECALS) return;
             memmove(&scene->decals[state->index + 1], &scene->decals[state->index], (scene->numDecals - state->index) * sizeof(Decal));
             scene->numDecals++;
         }
@@ -281,7 +281,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         break;
     case ENTITY_SOUND:
         if (is_creation) {
-            if (scene->numSoundEntities >= MAX_SOUNDS) return;
+            if (scene->numSoundEntities >= Common::MAX_SOUNDS) return;
             memmove(&scene->soundEntities[state->index + 1], &scene->soundEntities[state->index], (scene->numSoundEntities - state->index) * sizeof(SoundEntity));
             scene->numSoundEntities++;
         }
@@ -291,7 +291,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         break;
     case ENTITY_PARTICLE_EMITTER: {
         if (is_creation) {
-            if (scene->numParticleEmitters >= MAX_PARTICLE_EMITTERS) return;
+            if (scene->numParticleEmitters >= Common::MAX_PARTICLE_EMITTERS) return;
             memmove(&scene->particleEmitters[state->index + 1], &scene->particleEmitters[state->index], (scene->numParticleEmitters - state->index) * sizeof(ParticleEmitter));
             scene->numParticleEmitters++;
         }
@@ -306,7 +306,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
     }
     case ENTITY_SPRITE:
         if (is_creation) {
-            if (scene->numSprites >= MAX_SPRITES) return;
+            if (scene->numSprites >= Common::MAX_SPRITES) return;
             memmove(&scene->sprites[state->index + 1], &scene->sprites[state->index], (scene->numSprites - state->index) * sizeof(Sprite));
             scene->numSprites++;
         }
@@ -314,7 +314,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         break;
     case ENTITY_VIDEO_PLAYER:
         if (is_creation) {
-            if (scene->numVideoPlayers >= MAX_VIDEO_PLAYERS) return;
+            if (scene->numVideoPlayers >= Common::MAX_VIDEO_PLAYERS) return;
             memmove(&scene->videoPlayers[state->index + 1], &scene->videoPlayers[state->index], (scene->numVideoPlayers - state->index) * sizeof(VideoPlayer));
             scene->numVideoPlayers++;
         }
@@ -324,7 +324,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         break;
     case ENTITY_PARALLAX_ROOM:
         if (is_creation) {
-            if (scene->numParallaxRooms >= MAX_PARALLAX_ROOMS) return;
+            if (scene->numParallaxRooms >= Common::MAX_PARALLAX_ROOMS) return;
             memmove(&scene->parallaxRooms[state->index + 1], &scene->parallaxRooms[state->index], (scene->numParallaxRooms - state->index) * sizeof(ParallaxRoom));
             scene->numParallaxRooms++;
         }
@@ -333,7 +333,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         break;
     case ENTITY_LOGIC:
         if (is_creation) {
-            if (scene->numLogicEntities >= MAX_LOGIC_ENTITIES) return;
+            if (scene->numLogicEntities >= Common::MAX_LOGIC_ENTITIES) return;
             memmove(&scene->logicEntities[state->index + 1], &scene->logicEntities[state->index], (scene->numLogicEntities - state->index) * sizeof(LogicEntity));
             scene->numLogicEntities++;
         }

@@ -280,7 +280,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
 
 void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
     if (index < 0 || index >= scene->numObjects) return;
-    if (scene->numObjects >= MAX_MODELS) return;
+    if (scene->numObjects >= Common::MAX_MODELS) return;
 
     SceneObject* src_obj = &scene->objects[index];
 
@@ -313,7 +313,7 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
 }
 
 void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index) {
-    if (index < 0 || index >= scene->numBrushes || scene->numBrushes >= MAX_BRUSHES) return;
+    if (index < 0 || index >= scene->numBrushes || scene->numBrushes >= Common::MAX_BRUSHES) return;
 
     Brush* src_brush = &scene->brushes[index];
 
@@ -350,7 +350,7 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index) {
 }
 
 void Editor_DuplicateLight(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numActiveLights || scene->numActiveLights >= MAX_LIGHTS) return;
+    if (index < 0 || index >= scene->numActiveLights || scene->numActiveLights >= Common::MAX_LIGHTS) return;
     Light* src_light = &scene->lights[index];
     Light* new_light = &scene->lights[scene->numActiveLights];
     memcpy(new_light, src_light, sizeof(Light));
@@ -365,7 +365,7 @@ void Editor_DuplicateLight(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateDecal(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numDecals || scene->numDecals >= MAX_DECALS) return;
+    if (index < 0 || index >= scene->numDecals || scene->numDecals >= Common::MAX_DECALS) return;
     Decal* src_decal = &scene->decals[index];
     Decal* new_decal = &scene->decals[scene->numDecals];
     memcpy(new_decal, src_decal, sizeof(Decal));
@@ -379,7 +379,7 @@ void Editor_DuplicateDecal(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateSoundEntity(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numSoundEntities || scene->numSoundEntities >= MAX_SOUNDS) return;
+    if (index < 0 || index >= scene->numSoundEntities || scene->numSoundEntities >= Common::MAX_SOUNDS) return;
     SoundEntity* src_sound = &scene->soundEntities[index];
     SoundEntity* new_sound = &scene->soundEntities[scene->numSoundEntities];
     memcpy(new_sound, src_sound, sizeof(SoundEntity));
@@ -394,7 +394,7 @@ void Editor_DuplicateSoundEntity(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateParticleEmitter(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numParticleEmitters || scene->numParticleEmitters >= MAX_PARTICLE_EMITTERS) return;
+    if (index < 0 || index >= scene->numParticleEmitters || scene->numParticleEmitters >= Common::MAX_PARTICLE_EMITTERS) return;
     ParticleEmitter* src_emitter = &scene->particleEmitters[index];
     ParticleEmitter* new_emitter = &scene->particleEmitters[scene->numParticleEmitters];
     memcpy(new_emitter, src_emitter, sizeof(ParticleEmitter));
@@ -411,7 +411,7 @@ void Editor_DuplicateParticleEmitter(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateVideoPlayer(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numVideoPlayers || scene->numVideoPlayers >= MAX_VIDEO_PLAYERS) return;
+    if (index < 0 || index >= scene->numVideoPlayers || scene->numVideoPlayers >= Common::MAX_VIDEO_PLAYERS) return;
     VideoPlayer* src_vp = &scene->videoPlayers[index];
     VideoPlayer* new_vp = &scene->videoPlayers[scene->numVideoPlayers];
     memcpy(new_vp, src_vp, sizeof(VideoPlayer));
@@ -430,7 +430,7 @@ void Editor_DuplicateVideoPlayer(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateParallaxRoom(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numParallaxRooms || scene->numParallaxRooms >= MAX_PARALLAX_ROOMS) return;
+    if (index < 0 || index >= scene->numParallaxRooms || scene->numParallaxRooms >= Common::MAX_PARALLAX_ROOMS) return;
     ParallaxRoom* src_p = &scene->parallaxRooms[index];
     ParallaxRoom* new_p = &scene->parallaxRooms[scene->numParallaxRooms];
     memcpy(new_p, src_p, sizeof(ParallaxRoom));
@@ -453,7 +453,7 @@ void Editor_DuplicateParallaxRoom(Scene* scene, Int index) {
 }
 
 void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, Int index) {
-    if (index < 0 || index >= scene->numLogicEntities || scene->numLogicEntities >= MAX_LOGIC_ENTITIES) return;
+    if (index < 0 || index >= scene->numLogicEntities || scene->numLogicEntities >= Common::MAX_LOGIC_ENTITIES) return;
     LogicEntity* src_ent = &scene->logicEntities[index];
     LogicEntity* new_ent = &scene->logicEntities[scene->numLogicEntities];
     memcpy(new_ent, src_ent, sizeof(LogicEntity));
@@ -466,7 +466,7 @@ void Editor_DuplicateLogicEntity(Scene* scene, Engine* engine, Int index) {
 }
 
 void Editor_DuplicateSprite(Scene* scene, Int index) {
-    if (index < 0 || index >= scene->numSprites || scene->numSprites >= MAX_DECALS) return;
+    if (index < 0 || index >= scene->numSprites || scene->numSprites >= Common::MAX_DECALS) return;
     Sprite* src_sprite = &scene->sprites[index];
     Sprite* new_sprite = &scene->sprites[scene->numSprites];
     memcpy(new_sprite, src_sprite, sizeof(Sprite));

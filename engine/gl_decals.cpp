@@ -105,7 +105,7 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
         Shader_Set(shader_program, "heightScale", 0.0f);
         Shader_Set(shader_program, "u_uvScale", d->uv_scale);
         Shader_Set(shader_program, "u_uvOffset", d->uv_offset);
-        Shader_Set(shader_program, "u_uvRotation", d->uv_rotation * ((Float)M_PI / 180.0f));
+        Shader_Set(shader_program, "u_uvRotation", d->uv_rotation * ((Float)Common::M_PI / 180.0f));
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);

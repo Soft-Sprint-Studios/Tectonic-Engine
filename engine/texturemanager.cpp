@@ -519,7 +519,7 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
     Material* current_material = nullptr;
 
     while (fgets(line, sizeof(line), file)) {
-        Char* trimmed_line = trim(line);
+        Char* trimmed_line = Common::trim(line);
 
         if (strlen(trimmed_line) == 0 || trimmed_line[0] == '/' || trimmed_line[0] == '#') {
             continue;
