@@ -93,6 +93,14 @@ void on_launch_particle_editor_cb(Fl_Widget*, void*) {
 #endif
 }
 
+void launch_material_editor_cb(Fl_Widget* w, void* data) {
+#ifdef PLATFORM_WINDOWS
+    system("TectonicMaterialEditor.exe");
+#else
+    system("./TectonicMaterialEditor");
+#endif
+}
+
 void on_quit_cb(Fl_Widget* w, void*) {
     Fl_Window* win = (Fl_Window*)w->window();
     win->hide();
@@ -114,6 +122,9 @@ Int main(Int argc, Char** argv) {
 
     Fl_Button* btn_particle_editor = new Fl_Button(30, 120, win_w - 60, 30, "Particle Editor");
     btn_particle_editor->callback(on_launch_particle_editor_cb);
+
+    Fl_Button* material_button = new Fl_Button(10, 80, 180, 25, "Tectonic Material Editor");
+    material_button->callback(launch_material_editor_cb);
 
     Fl_Button* btn_quit = new Fl_Button(win_w - 90, win_h - 40, 80, 25, "Quit");
     btn_quit->callback(on_quit_cb);
