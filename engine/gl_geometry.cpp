@@ -369,8 +369,8 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
-    glDrawBuffers(7, attachments);
+    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
+    glDrawBuffers(6, attachments);
 
     if (Cvar_GetInt("r_faceculling")) {
         glEnable(GL_CULL_FACE);
@@ -562,7 +562,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
         for (Int i = 0; i < scene->numParticleEmitters; ++i) {
             ParticleEmitter_Render(&scene->particleEmitters[i], (void*)scene, (void*)engine, *view, *projection, renderer->gPosition, scrW, scrH);
         }
-        glDrawBuffers(7, attachments);
+        glDrawBuffers(6, attachments);
     }
     if (Cvar_GetInt("r_sprites")) {
         Sprites_Render(renderer, scene, view, projection);

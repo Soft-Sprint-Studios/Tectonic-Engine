@@ -124,8 +124,8 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
 void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
 
-    GLuint attachments[7] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6 };
-    glDrawBuffers(7, attachments);
+    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
+    glDrawBuffers(6, attachments);
 
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

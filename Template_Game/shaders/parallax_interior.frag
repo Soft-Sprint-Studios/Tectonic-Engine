@@ -26,7 +26,6 @@ layout (location = 1) out vec3 out_Position;
 layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
-layout (location = 5) out vec2 out_Velocity;
 
 in VS_OUT {
     vec3 FragPos_world;
@@ -81,6 +80,4 @@ void main() {
     out_AlbedoSpec = vec4(finalColor, 1.0); 
     
     out_PBRParams = vec4(0.0, 1.0, 1.0, 1.0); 
-    
-    out_Velocity = vec2(0.0);
 }

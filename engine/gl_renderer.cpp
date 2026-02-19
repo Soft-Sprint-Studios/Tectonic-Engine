@@ -110,25 +110,18 @@ static void Renderer_InitGBuffer(Renderer* renderer, Engine* engine) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, renderer->gPBRParams, 0);
 
-    glGenTextures(1, &renderer->gVelocity);
-    glBindTexture(GL_TEXTURE_2D, renderer->gVelocity);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RG, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, renderer->gVelocity, 0);
-
     glGenTextures(1, &renderer->gGeometryNormal);
     glBindTexture(GL_TEXTURE_2D, renderer->gGeometryNormal);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, LOW_RES_WIDTH, LOW_RES_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, renderer->gGeometryNormal, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, renderer->gGeometryNormal, 0);
 
-    GLuint attachments[7] = {
+    GLuint attachments[6] = {
         GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
-        GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6
+        GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5
     };
-    glDrawBuffers(7, attachments);
+    glDrawBuffers(6, attachments);
 
     GLuint rboDepth;
     glGenRenderbuffers(1, &rboDepth);
@@ -473,7 +466,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     glDeleteTextures(1, &renderer->gAlbedo);
     glDeleteTextures(1, &renderer->gGeometryNormal);
     glDeleteTextures(1, &renderer->gPBRParams);
-    glDeleteTextures(1, &renderer->gVelocity);
 
     glDeleteFramebuffers(1, &renderer->ssaoFBO);
     glDeleteFramebuffers(1, &renderer->ssaoBlurFBO);

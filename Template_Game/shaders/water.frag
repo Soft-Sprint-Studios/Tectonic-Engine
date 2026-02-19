@@ -26,8 +26,7 @@ layout (location = 1) out vec3 out_Position;
 layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
-layout (location = 5) out vec2 out_Velocity;
-layout (location = 6) out vec3 out_GeometryNormal;
+layout (location = 5) out vec3 out_GeometryNormal;
 
 in vec3 v_incident;
 in vec3 v_bitangent;
@@ -242,5 +241,4 @@ void main() {
     out_GeometryNormal = normalize(mat3(transpose(inverse(view))) * v_normal);
     out_AlbedoSpec = vec4(baseWaterColor, 1.0); 
     out_PBRParams = vec4(0.0, 0.1, 1.0, 0.95);
-    out_Velocity = vec2(0.0);
 }

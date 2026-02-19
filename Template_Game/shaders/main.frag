@@ -26,8 +26,7 @@ layout (location = 1) out vec3 out_Position;
 layout (location = 2) out vec3 out_Normal;
 layout (location = 3) out vec4 out_AlbedoSpec;
 layout (location = 4) out vec4 out_PBRParams;
-layout (location = 5) out vec2 out_Velocity;
-layout (location = 6) out vec3 out_GeometryNormal;
+layout (location = 5) out vec3 out_GeometryNormal;
 
 in vec3 FragPos_view;
 in vec3 Normal_view;
@@ -46,8 +45,6 @@ in vec4 v_Color3;
 in float fadeAlpha;
 
 flat in int isBrush;
-
-in vec2 Velocity;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -74,7 +71,6 @@ uniform sampler2D heightMap4;
 
 layout(bindless_sampler) uniform sampler2D lightmap;
 layout(bindless_sampler) uniform sampler2D directionalLightmap;
-uniform vec2 u_lightmap_sampler_size;
 uniform bool useLightmap;
 uniform bool useDirectionalLightmap;
 
@@ -334,8 +330,6 @@ void main()
             Lo += (diffuseContrib + specular * radiance * NdotL * attenuation);
         }
     }
-	
-    out_Velocity = Velocity;
 
     vec3 bakedDiffuse = vec3(0.0);
 	vec3 bakedSpecular = vec3(0.0);

@@ -187,7 +187,7 @@ constexpr int LIGHTMAPPADDING = 2;
         GLuint quadVAO, quadVBO;
         GLuint skyboxVAO, skyboxVBO;
         GLuint gBufferFBO;
-        GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams, gVelocity;
+        GLuint gPosition, gNormal, gLitColor, gAlbedo, gPBRParams;
         GLuint gGeometryNormal;
         GLuint spriteShader;
         GLuint spriteVAO, spriteVBO;
