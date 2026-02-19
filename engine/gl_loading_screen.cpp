@@ -139,8 +139,8 @@ static void render_quad(GLuint texture, Float x, Float y, Float w, Float h) {
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(glGetUniformLocation(g_shader, "u_texture"), 0);
-    glUniform4f(glGetUniformLocation(g_shader, "u_color_tint"), 1.0f, 1.0f, 1.0f, 1.0f);
+    Shader_Set(g_shader, "u_texture", 0);
+    Shader_Set(g_shader, "u_color_tint", Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
     
     Float vertices[] = {
         x,     y + h, 0.0f, 1.0f,
@@ -171,7 +171,7 @@ void LoadingScreen_Render() {
     
     glUseProgram(g_shader);
     Mat4 projection_matrix = mat4_ortho(0.0f, (Float)g_screen_width, (Float)g_screen_height, 0.0f, -1.0f, 1.0f);
-    glUniformMatrix4fv(glGetUniformLocation(g_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
+    Shader_Set(g_shader, "projection", &projection_matrix);
 
     if (g_background_texture) {
         render_quad(g_background_texture, 0, 0, (Float)g_screen_width, (Float)g_screen_height);

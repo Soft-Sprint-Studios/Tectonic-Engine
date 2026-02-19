@@ -24,6 +24,7 @@
 #include "cvar.h"
 #include "gl_ssao.h"
 #include "gl_renderer.h"
+#include "gl_misc.h"
 
 void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection) {
     const Int ssao_width = engine->width / Cvar_GetInt("r_ssao_downsample");
@@ -32,8 +33,8 @@ void SSAO_RenderPass(Renderer* renderer, Engine* engine, Mat4* projection) {
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->ssaoFBO);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(renderer->ssaoShader);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->ssaoShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform2f(glGetUniformLocation(renderer->ssaoShader, "screenSize"), (Float)ssao_width, (Float)ssao_height);
+    Shader_Set(renderer->ssaoShader, "projection", projection);
+    Shader_Set(renderer->ssaoShader, "screenSize", Vec2{ (Float)ssao_width, (Float)ssao_height });
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->gPosition);
     glActiveTexture(GL_TEXTURE1);

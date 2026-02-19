@@ -375,7 +375,6 @@ static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
     SDL_GLContext context = SDL_GL_CreateContext(window);
     glewExperimental = GL_TRUE;
     glewInit();
-    GL_InitDebugOutput();
     if (!GLEW_ARB_bindless_texture) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "GPU Feature Missing", "Your graphics card does not support bindless textures (GL_ARB_bindless_texture), which is required by this engine.", window);
         return nullptr;

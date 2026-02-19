@@ -52,9 +52,9 @@ void Beams_Shutdown(void) {
 
 void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Float time) {
     glUseProgram(g_beam_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_beam_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_beam_shader, "projection"), 1, GL_FALSE, projection.m);
-    glUniform1f(glGetUniformLocation(g_beam_shader, "u_time"), time);
+    Shader_Set(g_beam_shader, "view", &view);
+    Shader_Set(g_beam_shader, "projection", &projection);
+    Shader_Set(g_beam_shader, "u_time", time);
 
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
@@ -76,7 +76,7 @@ void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
                 Vec3 color;
                 sscanf(LogicEntity_GetProperty(ent, "color", "1.0 1.0 1.0"), "%f %f %f", &color.x, &color.y, &color.z);
 
-                glUniform3fv(glGetUniformLocation(g_beam_shader, "u_color"), 1, &color.x);
+                Shader_Set(g_beam_shader, "u_color", color);
 
                 Vec3 view_vec = vec3_sub(start_pos, cameraPos);
                 Vec3 beam_dir = vec3_sub(end_pos, start_pos);

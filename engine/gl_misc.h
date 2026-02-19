@@ -33,16 +33,26 @@
 #include <GL/glew.h>
 #include <SDL_opengl.h>
 #include <stdio.h>
+#include <math_lib.h>
 
 
 	void load_and_register_named_shader_string(const Char* name, const Char* path);
 	Char* load_shader_source(const Char* path);
+
 	GLuint compileShader(GLenum type, const Char* src, const Char* pathHint);
 	GLuint createShaderProgram(const Char* vertPath, const Char* fragPath);
-	GLuint createShaderProgramGeom(const Char* vertPath, const Char* geomPath, const Char* fragPath);
-	GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath);
-	GLuint createShaderProgramCompute(const Char* computePath);
-	void GL_InitDebugOutput(void);
+	GLuint createShaderProgram(const Char* vertPath, const Char* geomPath, const Char* fragPath);
+	GLuint createShaderProgram(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath);
+	GLuint createShaderProgram(const Char* computePath);
+
+	GLint Shader_GetUniformLocation(GLuint program, const Char* name);
+	void Shader_Set(GLuint program, const Char* name, Int value);
+	void Shader_Set(GLuint program, const Char* name, Float value);
+	void Shader_Set(GLuint program, const Char* name, Vec2 value);
+	void Shader_Set(GLuint program, const Char* name, Vec3 value);
+	void Shader_Set(GLuint program, const Char* name, Vec4 value);
+	void Shader_Set(GLuint program, const Char* name, const Mat4* value);
+	void Shader_Set(GLuint program, const Char* name, uint64_t handle);
 
 
 #endif // GL_MISC_H

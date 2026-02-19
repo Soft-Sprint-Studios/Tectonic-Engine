@@ -77,8 +77,8 @@ void Overlay_Render(Scene* scene, Engine* engine) {
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, mat->diffuseMap);
-            glUniform1i(glGetUniformLocation(g_overlay_shader, "overlayTexture"), 0);
-            glUniform1i(glGetUniformLocation(g_overlay_shader, "u_rendermode"), render_mode);
+            Shader_Set(g_overlay_shader, "overlayTexture", 0);
+            Shader_Set(g_overlay_shader, "u_rendermode", render_mode);
 
             glBindVertexArray(g_overlay_vao);
             glDrawArrays(GL_TRIANGLES, 0, 6);

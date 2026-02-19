@@ -60,8 +60,8 @@ static Vec3 get_bezier_point(Float t, Vec3 p0, Vec3 p1, Vec3 p2) {
 
 void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Float time) {
     glUseProgram(g_cable_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_cable_shader, "projection"), 1, GL_FALSE, projection.m);
+    Shader_Set(g_cable_shader, "view", &view);
+    Shader_Set(g_cable_shader, "projection", &projection);
 
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

@@ -26,6 +26,7 @@
 #include "gl_geometry.h"
 #include "gl_skybox.h"
 #include "gl_shadows.h"
+#include "gl_misc.h"
 #include "cvar.h"
 #include "io_system.h"
 #include <SDL_image.h>
@@ -40,14 +41,14 @@ void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine) {
     glUseProgram(renderer->histogramShader);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->gLitColor);
-    glUniform1i(glGetUniformLocation(renderer->histogramShader, "u_inputTexture"), 0);
+    Shader_Set(renderer->histogramShader, "u_inputTexture", 0);
     glDispatchCompute((GLuint)(engine->width / 16), (GLuint)(engine->height / 16), 1);
 
     glUseProgram(renderer->exposureShader);
-    glUniform1f(glGetUniformLocation(renderer->exposureShader, "u_autoexposure_key"), Cvar_GetFloat("r_autoexposure_key"));
-    glUniform1f(glGetUniformLocation(renderer->exposureShader, "u_autoexposure_speed"), Cvar_GetFloat("r_autoexposure_speed"));
-    glUniform1f(glGetUniformLocation(renderer->exposureShader, "u_deltaTime"), engine->deltaTime);
-    glUniform1i(glGetUniformLocation(renderer->exposureShader, "u_autoexposure_enabled"), auto_exposure_enabled);
+    Shader_Set(renderer->exposureShader, "u_autoexposure_key", Cvar_GetFloat("r_autoexposure_key"));
+    Shader_Set(renderer->exposureShader, "u_autoexposure_speed", Cvar_GetFloat("r_autoexposure_speed"));
+    Shader_Set(renderer->exposureShader, "u_deltaTime", engine->deltaTime);
+    Shader_Set(renderer->exposureShader, "u_autoexposure_enabled", (Int)auto_exposure_enabled);
 
     glDispatchCompute(1, 1, 1);
 
@@ -58,20 +59,20 @@ void MiscRender_AutoexposurePass(Renderer* renderer, Engine* engine) {
 
 void MiscRender_ParallaxRooms(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
     glUseProgram(renderer->parallaxInteriorShader);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->parallaxInteriorShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->parallaxInteriorShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform3fv(glGetUniformLocation(renderer->parallaxInteriorShader, "viewPos"), 1, &engine->camera.position.x);
+    Shader_Set(renderer->parallaxInteriorShader, "view", view);
+    Shader_Set(renderer->parallaxInteriorShader, "projection", projection);
+    Shader_Set(renderer->parallaxInteriorShader, "viewPos", engine->camera.position);
 
     for (Int i = 0; i < scene->numParallaxRooms; ++i) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
         if (p->cubemapTexture == 0) continue;
 
-        glUniformMatrix4fv(glGetUniformLocation(renderer->parallaxInteriorShader, "model"), 1, GL_FALSE, p->modelMatrix.m);
-        glUniform1f(glGetUniformLocation(renderer->parallaxInteriorShader, "roomDepth"), p->roomDepth);
+        Shader_Set(renderer->parallaxInteriorShader, "model", &p->modelMatrix);
+        Shader_Set(renderer->parallaxInteriorShader, "roomDepth", p->roomDepth);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, p->cubemapTexture);
-        glUniform1i(glGetUniformLocation(renderer->parallaxInteriorShader, "roomCubemap"), 0);
+        Shader_Set(renderer->parallaxInteriorShader, "roomCubemap", 0);
 
         glBindVertexArray(renderer->parallaxRoomVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -85,15 +86,14 @@ void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glUniformMatrix4fv(glGetUniformLocation(renderer->glassShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->glassShader, "projection"), 1, GL_FALSE, projection->m);
+    Shader_Set(renderer->glassShader, "view", view);
+    Shader_Set(renderer->glassShader, "projection", projection);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->finalRenderTexture);
-    glUniform1i(glGetUniformLocation(renderer->glassShader, "sceneTexture"), 0);
-
+    Shader_Set(renderer->glassShader, "sceneTexture", 0);
     glActiveTexture(GL_TEXTURE1);
-    glUniform1i(glGetUniformLocation(renderer->glassShader, "normalMap"), 1);
+    Shader_Set(renderer->glassShader, "normalMap", 1);
 
     for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
@@ -108,8 +108,8 @@ void MiscRender_RefractiveGlass(Renderer* renderer, Scene* scene, Engine* engine
             glBindTexture(GL_TEXTURE_2D, defaultNormalMapID);
         }
 
-        glUniform1f(glGetUniformLocation(renderer->glassShader, "refractionStrength"), atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
-        glUniformMatrix4fv(glGetUniformLocation(renderer->glassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        Shader_Set(renderer->glassShader, "refractionStrength", (Float)atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
+        Shader_Set(renderer->glassShader, "model", &b->modelMatrix);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }

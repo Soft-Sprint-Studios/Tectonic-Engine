@@ -173,13 +173,13 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
 
     glDepthFunc(GL_LEQUAL);
 
-    glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform3fv(glGetUniformLocation(renderer->monitorShader, "u_viewPos"), 1, &engine->camera.position.x);
+    Shader_Set(renderer->monitorShader, "view", view);
+    Shader_Set(renderer->monitorShader, "projection", projection);
+    Shader_Set(renderer->monitorShader, "u_viewPos", engine->camera.position);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, renderer->scanlineTexture);
-    glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_scanlineTexture"), 1);
+    Shader_Set(renderer->monitorShader, "u_scanlineTexture", 1);
 
     for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -200,12 +200,12 @@ void Monitor_RenderBrushes(Scene* scene, Renderer* renderer, Engine* engine, Mat
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, camEnt->monitor_texture);
-        glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_renderTexture"), 0);
+        Shader_Set(renderer->monitorShader, "u_renderTexture", 0);
 
         Bool grayscale = (atoi(Brush_GetProperty(b, "grayscale", "0")) == 1);
-        glUniform1i(glGetUniformLocation(renderer->monitorShader, "u_grayscale"), grayscale);
+        Shader_Set(renderer->monitorShader, "u_grayscale", (Int)grayscale);
 
-        glUniformMatrix4fv(glGetUniformLocation(renderer->monitorShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        Shader_Set(renderer->monitorShader, "model", &b->modelMatrix);
 
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);

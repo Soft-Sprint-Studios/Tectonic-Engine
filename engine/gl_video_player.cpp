@@ -207,21 +207,21 @@ void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
 
     vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
 
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "projection"), 1, GL_FALSE, projection->m);
+    Shader_Set(video_shader, "model", &vp->modelMatrix);
+    Shader_Set(video_shader, "view", view);
+    Shader_Set(video_shader, "projection", projection);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, vp->textureY);
-    glUniform1i(glGetUniformLocation(video_shader, "texY"), 0);
+    Shader_Set(video_shader, "texY", 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, vp->textureCb);
-    glUniform1i(glGetUniformLocation(video_shader, "texCb"), 1);
+    Shader_Set(video_shader, "texCb", 1);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, vp->textureCr);
-    glUniform1i(glGetUniformLocation(video_shader, "texCr"), 2);
+    Shader_Set(video_shader, "texCr", 2);
 
     glBindVertexArray(video_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -251,21 +251,21 @@ void VideoPlayer_Render2D(VideoPlayer* vp, Float x, Float y, Float w, Float h, I
     }
     );
 
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "model"), 1, GL_FALSE, model.m);
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(video_shader, "projection"), 1, GL_FALSE, projection.m);
+    Shader_Set(video_shader, "model", &model);
+    Shader_Set(video_shader, "view", &view);
+    Shader_Set(video_shader, "projection", &projection);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, vp->textureY);
-    glUniform1i(glGetUniformLocation(video_shader, "texY"), 0);
+    Shader_Set(video_shader, "texY", 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, vp->textureCb);
-    glUniform1i(glGetUniformLocation(video_shader, "texCb"), 1);
+    Shader_Set(video_shader, "texCb", 1);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, vp->textureCr);
-    glUniform1i(glGetUniformLocation(video_shader, "texCr"), 2);
+    Shader_Set(video_shader, "texCr", 2);
 
     glBindVertexArray(video_vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);

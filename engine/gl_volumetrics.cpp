@@ -24,6 +24,7 @@
 #include "cvar.h"
 #include "gl_volumetrics.h"
 #include "gl_renderer.h"
+#include "gl_misc.h"
 
 void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix) {
     Bool should_render_volumetrics = false;
@@ -52,15 +53,15 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(renderer->volumetricShader);
-    glUniform3fv(glGetUniformLocation(renderer->volumetricShader, "viewPos"), 1, &engine->camera.position.x);
+    Shader_Set(renderer->volumetricShader, "viewPos", engine->camera.position);
 
     Mat4 invView, invProj;
     mat4_inverse(view, &invView);
     mat4_inverse(projection, &invProj);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "invView"), 1, GL_FALSE, invView.m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "invProjection"), 1, GL_FALSE, invProj.m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "view"), 1, GL_FALSE, view->m);
+    Shader_Set(renderer->volumetricShader, "invView", &invView);
+    Shader_Set(renderer->volumetricShader, "invProjection", &invProj);
+    Shader_Set(renderer->volumetricShader, "projection", projection);
+    Shader_Set(renderer->volumetricShader, "view", view);
 
     Int num_dynamic_lights = 0;
     for (Int i = 0; i < scene->numActiveLights; ++i) {
@@ -69,19 +70,18 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
             num_dynamic_lights++;
         }
     }
-    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numActiveLights"), num_dynamic_lights);
-    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "numSteps"), Cvar_GetInt("r_volumetrics_steps"));
-
-    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "sun.enabled"), scene->sun.enabled);
+    Shader_Set(renderer->volumetricShader, "numActiveLights", num_dynamic_lights);
+    Shader_Set(renderer->volumetricShader, "numSteps", Cvar_GetInt("r_volumetrics_steps"));
+    Shader_Set(renderer->volumetricShader, "sun.enabled", (Int)scene->sun.enabled);
     if (scene->sun.enabled) {
         glActiveTexture(GL_TEXTURE15);
         glBindTexture(GL_TEXTURE_2D, renderer->sunShadowMap);
-        glUniform1i(glGetUniformLocation(renderer->volumetricShader, "sunShadowMap"), 15);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->volumetricShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
-        glUniform3fv(glGetUniformLocation(renderer->volumetricShader, "sun.direction"), 1, &scene->sun.direction.x);
-        glUniform3fv(glGetUniformLocation(renderer->volumetricShader, "sun.color"), 1, &scene->sun.color.x);
-        glUniform1f(glGetUniformLocation(renderer->volumetricShader, "sun.intensity"), scene->sun.intensity);
-        glUniform1f(glGetUniformLocation(renderer->volumetricShader, "sun.volumetricIntensity"), scene->sun.volumetricIntensity);
+        Shader_Set(renderer->volumetricShader, "sunShadowMap", 15);
+        Shader_Set(renderer->volumetricShader, "sunLightSpaceMatrix", sunLightSpaceMatrix);
+        Shader_Set(renderer->volumetricShader, "sun.direction", scene->sun.direction);
+        Shader_Set(renderer->volumetricShader, "sun.color", scene->sun.color);
+        Shader_Set(renderer->volumetricShader, "sun.intensity", scene->sun.intensity);
+        Shader_Set(renderer->volumetricShader, "sun.volumetricIntensity", scene->sun.volumetricIntensity);
     }
 
     glActiveTexture(GL_TEXTURE0);
@@ -95,7 +95,7 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     glUseProgram(renderer->volumetricBlurShader);
     for (Uint i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->volPingpongFBO[horizontal]);
-        glUniform1i(glGetUniformLocation(renderer->volumetricBlurShader, "horizontal"), horizontal);
+        Shader_Set(renderer->volumetricBlurShader, "horizontal", (Int)horizontal);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, first_iteration ? renderer->volumetricTexture : renderer->volPingpongTextures[!horizontal]);
         glBindVertexArray(renderer->quadVAO);

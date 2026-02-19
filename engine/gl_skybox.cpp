@@ -55,23 +55,23 @@ void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view,
     glDepthFunc(GL_LEQUAL);
     glUseProgram(renderer->skyboxShader);
     glCullFace(GL_FRONT);
-    glUniform1i(glGetUniformLocation(renderer->skyboxShader, "u_use_cubemap"), scene->use_cubemap_skybox);
+    Shader_Set(renderer->skyboxShader, "u_use_cubemap", (Int)scene->use_cubemap_skybox);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_CUBE_MAP, scene->skybox_cubemap);
-    glUniform1i(glGetUniformLocation(renderer->skyboxShader, "u_skybox_cubemap"), 1);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->skyboxShader, "projection"), 1, GL_FALSE, projection->m);
+    Shader_Set(renderer->skyboxShader, "u_skybox_cubemap", 1);
+    Shader_Set(renderer->skyboxShader, "view", view);
+    Shader_Set(renderer->skyboxShader, "projection", projection);
 
     Vec3 sunDirNormalized = scene->sun.direction;
     vec3_normalize(&sunDirNormalized);
 
-    glUniform3fv(glGetUniformLocation(renderer->skyboxShader, "sunDirection"), 1, &sunDirNormalized.x);
-    glUniform3fv(glGetUniformLocation(renderer->skyboxShader, "cameraPos"), 1, &engine->camera.position.x);
-    glUniform1i(glGetUniformLocation(renderer->skyboxShader, "cloudMap"), 0);
+    Shader_Set(renderer->skyboxShader, "sunDirection", sunDirNormalized);
+    Shader_Set(renderer->skyboxShader, "cameraPos", engine->camera.position);
+    Shader_Set(renderer->skyboxShader, "cloudMap", 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->cloudTexture);
 
-    glUniform1f(glGetUniformLocation(renderer->skyboxShader, "time"), engine->scaledTime);
+    Shader_Set(renderer->skyboxShader, "time", engine->scaledTime);
 
     glBindVertexArray(renderer->skyboxVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);

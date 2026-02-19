@@ -24,6 +24,7 @@
 #include "cvar.h"
 #include "gl_bloom.h"
 #include "gl_renderer.h"
+#include "gl_misc.h"
 
 void Bloom_RenderPass(Renderer* renderer, Engine* engine) {
     glUseProgram(renderer->bloomShader); 
@@ -40,7 +41,7 @@ void Bloom_RenderPass(Renderer* renderer, Engine* engine) {
     
     for (Uint i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, renderer->pingpongFBO[horizontal]); 
-        glUniform1i(glGetUniformLocation(renderer->bloomBlurShader, "horizontal"), horizontal);
+        Shader_Set(renderer->bloomBlurShader, "horizontal", (Int)horizontal);
         glActiveTexture(GL_TEXTURE0); 
         glBindTexture(GL_TEXTURE_2D, first_iteration ? renderer->bloomBrightnessTexture : renderer->pingpongColorbuffers[!horizontal]);
         glBindVertexArray(renderer->quadVAO); 

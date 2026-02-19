@@ -54,8 +54,8 @@ void Sprites_Shutdown(Renderer* renderer) {
 
 void Sprites_Render(Renderer* renderer, Scene* scene, Mat4* view, Mat4* projection) {
     glUseProgram(renderer->spriteShader);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->spriteShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->spriteShader, "projection"), 1, GL_FALSE, projection->m);
+    Shader_Set(renderer->spriteShader, "view", view);
+    Shader_Set(renderer->spriteShader, "projection", projection);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -67,12 +67,12 @@ void Sprites_Render(Renderer* renderer, Scene* scene, Mat4* view, Mat4* projecti
         Sprite* s = &scene->sprites[i];
         if (!s->visible) continue;
 
-        glUniform3fv(glGetUniformLocation(renderer->spriteShader, "spritePos"), 1, &s->pos.x);
-        glUniform1f(glGetUniformLocation(renderer->spriteShader, "spriteScale"), s->scale);
+        Shader_Set(renderer->spriteShader, "spritePos", s->pos);
+        Shader_Set(renderer->spriteShader, "spriteScale", s->scale);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, s->material->diffuseMap);
-        glUniform1i(glGetUniformLocation(renderer->spriteShader, "spriteTexture"), 0);
+        Shader_Set(renderer->spriteShader, "spriteTexture", 0);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }

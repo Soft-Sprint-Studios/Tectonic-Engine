@@ -50,12 +50,12 @@
 static Float quadVertices[] = { -1.0f,1.0f,0.0f,1.0f,-1.0f,-1.0f,0.0f,0.0f,1.0f,-1.0f,1.0f,0.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f,1.0f,1.0f };
 
 static void Renderer_InitShaders(Renderer* renderer) {
-    renderer->wireframeShader = createShaderProgramGeom("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
-    renderer->mainShader = createShaderProgramTess("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
+    renderer->wireframeShader = createShaderProgram("shaders/wireframe.vert", "shaders/wireframe.geom", "shaders/wireframe.frag");
+    renderer->mainShader = createShaderProgram("shaders/main.vert", "shaders/main.tcs", "shaders/main.tes", "shaders/main.frag");
     renderer->debugBufferShader = createShaderProgram("shaders/debug_buffer.vert", "shaders/debug_buffer.frag");
     renderer->postProcessShader = createShaderProgram("shaders/postprocess.vert", "shaders/postprocess.frag");
-    renderer->histogramShader = createShaderProgramCompute("shaders/histogram.comp");
-    renderer->exposureShader = createShaderProgramCompute("shaders/exposure.comp");
+    renderer->histogramShader = createShaderProgram("shaders/histogram.comp");
+    renderer->exposureShader = createShaderProgram("shaders/exposure.comp");
     renderer->bloomShader = createShaderProgram("shaders/bloom.vert", "shaders/bloom.frag");
     renderer->bloomBlurShader = createShaderProgram("shaders/bloom_blur.vert", "shaders/bloom_blur.frag");
     renderer->volumetricShader = createShaderProgram("shaders/volumetric.vert", "shaders/volumetric.frag");
@@ -315,57 +315,57 @@ static void Renderer_InitBuffers(Renderer* renderer) {
 
 static void Renderer_InitUniforms(Renderer* renderer) {
     glUseProgram(renderer->mainShader);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "diffuseMap"), 0);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "normalMap"), 1);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "rmaMap"), 2);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "heightMap"), 3);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "detailDiffuseMap"), 7);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "environmentMap"), 10);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "brdfLUT"), 16);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "diffuseMap2"), 12);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "normalMap2"), 13);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "rmaMap2"), 14);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "heightMap2"), 15);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "diffuseMap3"), 17);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "normalMap3"), 18);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "rmaMap3"), 19);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "heightMap3"), 20);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "diffuseMap4"), 21);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "normalMap4"), 22);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "rmaMap4"), 23);
-    glUniform1i(glGetUniformLocation(renderer->mainShader, "heightMap4"), 24);
+    Shader_Set(renderer->mainShader, "diffuseMap", 0);
+    Shader_Set(renderer->mainShader, "normalMap", 1);
+    Shader_Set(renderer->mainShader, "rmaMap", 2);
+    Shader_Set(renderer->mainShader, "heightMap", 3);
+    Shader_Set(renderer->mainShader, "detailDiffuseMap", 7);
+    Shader_Set(renderer->mainShader, "environmentMap", 10);
+    Shader_Set(renderer->mainShader, "brdfLUT", 16);
+    Shader_Set(renderer->mainShader, "diffuseMap2", 12);
+    Shader_Set(renderer->mainShader, "normalMap2", 13);
+    Shader_Set(renderer->mainShader, "rmaMap2", 14);
+    Shader_Set(renderer->mainShader, "heightMap2", 15);
+    Shader_Set(renderer->mainShader, "diffuseMap3", 17);
+    Shader_Set(renderer->mainShader, "normalMap3", 18);
+    Shader_Set(renderer->mainShader, "rmaMap3", 19);
+    Shader_Set(renderer->mainShader, "heightMap3", 20);
+    Shader_Set(renderer->mainShader, "diffuseMap4", 21);
+    Shader_Set(renderer->mainShader, "normalMap4", 22);
+    Shader_Set(renderer->mainShader, "rmaMap4", 23);
+    Shader_Set(renderer->mainShader, "heightMap4", 24);
 
     glUseProgram(renderer->volumetricShader);
-    glUniform1i(glGetUniformLocation(renderer->volumetricShader, "gPosition"), 0);
+    Shader_Set(renderer->volumetricShader, "gPosition", 0);
 
     glUseProgram(renderer->volumetricBlurShader);
-    glUniform1i(glGetUniformLocation(renderer->volumetricBlurShader, "image"), 0);
+    Shader_Set(renderer->volumetricBlurShader, "image", 0);
 
     glUseProgram(renderer->postProcessShader);
-    glUniform1i(glGetUniformLocation(renderer->postProcessShader, "sceneTexture"), 0);
-    glUniform1i(glGetUniformLocation(renderer->postProcessShader, "bloomBlur"), 1);
-    glUniform1i(glGetUniformLocation(renderer->postProcessShader, "gPosition"), 2);
-    glUniform1i(glGetUniformLocation(renderer->postProcessShader, "volumetricTexture"), 3);
-    glUniform1i(glGetUniformLocation(renderer->postProcessShader, "ssao"), 4);
+    Shader_Set(renderer->postProcessShader, "sceneTexture", 0);
+    Shader_Set(renderer->postProcessShader, "bloomBlur", 1);
+    Shader_Set(renderer->postProcessShader, "gPosition", 2);
+    Shader_Set(renderer->postProcessShader, "volumetricTexture", 3);
+    Shader_Set(renderer->postProcessShader, "ssao", 4);
 
     glUseProgram(renderer->bloomShader);
-    glUniform1i(glGetUniformLocation(renderer->bloomShader, "sceneTexture"), 0);
+    Shader_Set(renderer->bloomShader, "sceneTexture", 0);
 
     glUseProgram(renderer->bloomBlurShader);
-    glUniform1i(glGetUniformLocation(renderer->bloomBlurShader, "image"), 0);
+    Shader_Set(renderer->bloomBlurShader, "image", 0);
 
     glUseProgram(renderer->ssaoShader);
-    glUniform1i(glGetUniformLocation(renderer->ssaoShader, "gPosition"), 0);
-    glUniform1i(glGetUniformLocation(renderer->ssaoShader, "gGeometryNormal"), 1);
-    glUniform1i(glGetUniformLocation(renderer->ssaoShader, "texNoise"), 2);
+    Shader_Set(renderer->ssaoShader, "gPosition", 0);
+    Shader_Set(renderer->ssaoShader, "gGeometryNormal", 1);
+    Shader_Set(renderer->ssaoShader, "texNoise", 2);
 
     glUseProgram(renderer->ssaoBlurShader);
-    glUniform1i(glGetUniformLocation(renderer->ssaoBlurShader, "ssaoInput"), 0);
+    Shader_Set(renderer->ssaoBlurShader, "ssaoInput", 0);
 
     glUseProgram(renderer->waterShader);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "dudvMap"), 0);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "normalMap"), 1);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "reflectionMap"), 2);
+    Shader_Set(renderer->waterShader, "dudvMap", 0);
+    Shader_Set(renderer->waterShader, "normalMap", 1);
+    Shader_Set(renderer->waterShader, "reflectionMap", 2);
 
     glUseProgram(0);
 }
@@ -421,11 +421,11 @@ void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textu
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(renderer->debugBufferShader);
-    glUniform1i(glGetUniformLocation(renderer->debugBufferShader, "viewMode"), viewMode);
+    Shader_Set(renderer->debugBufferShader, "viewMode", viewMode);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glUniform1i(glGetUniformLocation(renderer->debugBufferShader, "debugTexture"), 0);
+    Shader_Set(renderer->debugBufferShader, "debugTexture", 0);
 
     glBindVertexArray(renderer->quadVAO);
     glDisable(GL_DEPTH_TEST);

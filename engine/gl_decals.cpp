@@ -77,40 +77,35 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
 
     glUseProgram(shader_program);
     
-    glUniform1i(glGetUniformLocation(shader_program, "isBrush"), 1);
-    glUniform1i(glGetUniformLocation(shader_program, "isDecal"), 1);
-    GLuint useEnvLoc = glGetUniformLocation(shader_program, "useEnvironmentMap");
-    GLuint probeMinLoc = glGetUniformLocation(shader_program, "probeBoxMin");
-    GLuint probeMaxLoc = glGetUniformLocation(shader_program, "probeBoxMax");
-    GLuint probePosLoc = glGetUniformLocation(shader_program, "probePosition");
+    Shader_Set(shader_program, "isBrush", 1);
+    Shader_Set(shader_program, "isDecal", 1);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
     for (Int i = 0; i < scene->numDecals; ++i) {
         Decal* d = &scene->decals[i];
 
-        glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, d->modelMatrix.m);
+        Shader_Set(shader_program, "model", &d->modelMatrix);
         Int probeIdx = FindReflectionProbeForPoint(scene, d->pos);
         if (probeIdx != -1 && Cvar_GetInt("r_cubemaps")) {
             Brush* probe = &scene->brushes[probeIdx];
-            glUniform1i(useEnvLoc, 1);
+            Shader_Set(shader_program, "useEnvironmentMap", 1);
             glActiveTexture(GL_TEXTURE10);
             glBindTexture(GL_TEXTURE_CUBE_MAP, probe->cubemapTexture);
 
             Vec3 min_aabb, max_aabb;
             Brush_GetWorldAABB(probe, &min_aabb, &max_aabb);
 
-            glUniform3fv(probeMinLoc, 1, &min_aabb.x);
-            glUniform3fv(probeMaxLoc, 1, &max_aabb.x);
-            glUniform3fv(probePosLoc, 1, &probe->pos.x);
+            Shader_Set(shader_program, "probeBoxMin", min_aabb);
+            Shader_Set(shader_program, "probeBoxMax", max_aabb);
+            Shader_Set(shader_program, "probePosition", probe->pos);
         }
         else {
-            glUniform1i(useEnvLoc, 0);
+            Shader_Set(shader_program, "useEnvironmentMap", 0);
         }
-        glUniform1f(glGetUniformLocation(shader_program, "heightScale"), 0.0f);
-
-        glUniform2f(glGetUniformLocation(shader_program, "u_uvScale"), d->uv_scale.x, d->uv_scale.y);
-        glUniform2f(glGetUniformLocation(shader_program, "u_uvOffset"), d->uv_offset.x, d->uv_offset.y);
-        glUniform1f(glGetUniformLocation(shader_program, "u_uvRotation"), d->uv_rotation * ((Float)M_PI / 180.0f));
+        Shader_Set(shader_program, "heightScale", 0.0f);
+        Shader_Set(shader_program, "u_uvScale", d->uv_scale);
+        Shader_Set(shader_program, "u_uvOffset", d->uv_offset);
+        Shader_Set(shader_program, "u_uvRotation", d->uv_rotation * ((Float)M_PI / 180.0f));
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, d->material->diffuseMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, d->material->normalMap);
@@ -119,29 +114,29 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
         glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, 0);
 
         Bool has_lightmap = d->lightmapAtlas != 0 && d->lightmapAtlas != missingTextureID;
-        glUniform1i(glGetUniformLocation(shader_program, "useLightmap"), has_lightmap);
+        Shader_Set(shader_program, "useLightmap", (Int)has_lightmap);
         if (has_lightmap) {
             glActiveTexture(GL_TEXTURE5);
             glBindTexture(GL_TEXTURE_2D, d->lightmapAtlas);
-            glUniform1i(glGetUniformLocation(shader_program, "lightmap"), 5);
+            Shader_Set(shader_program, "lightmap", 5);
         }
 
         Bool has_dir_lightmap = d->directionalLightmapAtlas != 0 && d->directionalLightmapAtlas != missingTextureID;
-        glUniform1i(glGetUniformLocation(shader_program, "useDirectionalLightmap"), has_dir_lightmap);
+        Shader_Set(shader_program, "useDirectionalLightmap", (Int)has_dir_lightmap);
         if (has_dir_lightmap) {
             glActiveTexture(GL_TEXTURE6);
             glBindTexture(GL_TEXTURE_2D, d->directionalLightmapAtlas);
-            glUniform1i(glGetUniformLocation(shader_program, "directionalLightmap"), 6);
+            Shader_Set(shader_program, "directionalLightmap", 6);
         }
 
         glBindVertexArray(renderer->decalVAO);
         glDrawArrays(GL_PATCHES, 0, 6);
     }
 
-    glUniform1i(glGetUniformLocation(shader_program, "isBrush"), 0);
-    glUniform1i(glGetUniformLocation(shader_program, "isDecal"), 0);
-    glUniform1i(glGetUniformLocation(shader_program, "useLightmap"), 0);
-    glUniform1i(glGetUniformLocation(shader_program, "useDirectionalLightmap"), 0);
+    Shader_Set(shader_program, "isBrush", 0);
+    Shader_Set(shader_program, "isDecal", 0);
+    Shader_Set(shader_program, "useLightmap", 0);
+    Shader_Set(shader_program, "useDirectionalLightmap", 0);
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);

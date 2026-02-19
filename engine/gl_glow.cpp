@@ -36,7 +36,7 @@ typedef struct {
 } GlowVertex;
 
 void Glow_Init(void) {
-    g_glow_shader = createShaderProgramGeom("shaders/glow.vert", "shaders/glow.geom", "shaders/glow.frag");
+    g_glow_shader = createShaderProgram("shaders/glow.vert", "shaders/glow.geom", "shaders/glow.frag");
     glGenVertexArrays(1, &g_glow_vao);
     glGenBuffers(1, &g_glow_vbo);
     glBindVertexArray(g_glow_vao);
@@ -61,8 +61,8 @@ void Glow_Shutdown(void) {
 
 void Glow_Render(Scene* scene, Mat4 view, Mat4 projection) {
     glUseProgram(g_glow_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_glow_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_glow_shader, "projection"), 1, GL_FALSE, projection.m);
+    Shader_Set(g_glow_shader, "view", &view);
+    Shader_Set(g_glow_shader, "projection", &projection);
 
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);

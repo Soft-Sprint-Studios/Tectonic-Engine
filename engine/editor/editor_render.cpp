@@ -32,6 +32,7 @@
 #include "gl_ssao.h"
 #include "gl_skybox.h"
 #include "gl_postprocess.h"
+#include "gl_misc.h"
 #include "game_data.h"
 #include "cvar.h"
 #include "io_system.h"
@@ -39,10 +40,10 @@
 
 void Editor_RenderGrid(ViewportType type, Float aspect) {
     glUseProgram(g_EditorState.grid_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+    Shader_Set(g_EditorState.grid_shader, "view", &g_view_matrix[type]);
+    Shader_Set(g_EditorState.grid_shader, "projection", &g_proj_matrix[type]);
     Mat4 model_ident; mat4_identity(&model_ident);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.grid_shader, "model"), 1, GL_FALSE, model_ident.m);
+    Shader_Set(g_EditorState.grid_shader, "model", &model_ident);
     Float grid_lines[2412]; Int line_count = 0;
     if (type == VIEW_PERSPECTIVE) {
         Float spacing = g_EditorState.grid_size; Int num_lines = 200; Float extent = (num_lines / 2.0f) * spacing;
@@ -79,7 +80,7 @@ void Editor_RenderGrid(ViewportType type, Float aspect) {
     glBufferData(GL_ARRAY_BUFFER, line_count * sizeof(Float), grid_lines, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
     glEnableVertexAttribArray(0); Float color[] = { 0.4f, 0.4f, 0.4f, 1.0f };
-    glUniform4fv(glGetUniformLocation(g_EditorState.grid_shader, "grid_color"), 1, color);
+    Shader_Set(g_EditorState.grid_shader, "grid_color", Vec4{ color[0], color[1], color[2], color[3] });
     glDrawArrays(GL_LINES, 0, line_count / 3); glBindVertexArray(0);
 }
 
@@ -99,8 +100,8 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     Vec3 object_pos = g_EditorState.gizmo_selection_centroid;
 
     glUseProgram(g_EditorState.gizmo_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "projection"), 1, GL_FALSE, projection.m);
+    Shader_Set(g_EditorState.gizmo_shader, "view", &view);
+    Shader_Set(g_EditorState.gizmo_shader, "projection", &projection);
 
     glDisable(GL_DEPTH_TEST);
     glLineWidth(4.0f);
@@ -122,32 +123,32 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glEnableVertexAttribArray(0);
 
         Mat4 model = mat4_translate(object_pos);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
+        Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         Vec3 color_x = { 1.0f, 0.2f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_x);
         glDrawArrays(GL_LINES, 0, 2);
 
         Vec3 color_y = { 0.2f, 1.0f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_y);
         glDrawArrays(GL_LINES, 2, 2);
 
         Vec3 color_z = { 0.2f, 0.2f, 1.0f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_z);
         glDrawArrays(GL_LINES, 4, 2);
         break;
     }
     case GIZMO_OP_ROTATE: {
         if (type != VIEW_PERSPECTIVE) break;
         Mat4 model; mat4_identity(&model);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
+        Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         constexpr int SEGMENTS = 32;
         const Float radius = 1.0f;
         Vec3 points[SEGMENTS + 1];
 
         Vec3 color_y = { 0,1,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_y);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, 0.0f, sinf(angle) * radius });
@@ -158,7 +159,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
 
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle) * radius, sinf(angle) * radius });
@@ -167,7 +168,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
 
         Vec3 color_z = { 0,0,1 }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_z);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * M_PI;
             points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, sinf(angle) * radius, 0.0f });
@@ -240,12 +241,11 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         if (g_EditorState.is_painting_mode_enabled && g_EditorState.is_viewport_hovered[type]) {
             Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[type], type);
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
             Mat4 identity_mat; mat4_identity(&identity_mat);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            Float color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
-            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+            Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
+            Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.8f });
 
             const Int segments = 32;
             Vec3 circle_verts[64];
@@ -285,12 +285,11 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         if (g_EditorState.is_sculpting_mode_enabled && g_EditorState.is_viewport_hovered[type]) {
             Vec3 mouse_world_pos = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[type], type);
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
             Mat4 identity_mat; mat4_identity(&identity_mat);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            Float color[] = { 0.0f, 1.0f, 1.0f, 0.8f };
-            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+            Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
+            Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 0.0f, 1.0f, 1.0f, 0.8f });
 
             const Int segments = 32;
             Vec3 circle_verts[64];
@@ -327,7 +326,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glBindVertexArray(0);
             glEnable(GL_DEPTH_TEST);
         }
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); Float color[] = { 0.8f, 0.8f, 0.8f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glEnable(GL_LINE_SMOOTH); glEnable(GL_POLYGON_OFFSET_LINE); glPolygonOffset(1.0, 1.0); glUseProgram(g_EditorState.debug_shader); Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 0.8f, 0.8f, 0.8f, 1.0f });
         for (Int i = 0; i < scene->numObjects; i++) { render_object(renderer, scene, g_EditorState.debug_shader, &scene->objects[i], false, nullptr); }
         for (Int i = 0; i < scene->numBrushes; i++) { if (strlen(scene->brushes[i].classname) == 0) render_brush(renderer, scene, g_EditorState.debug_shader, &scene->brushes[i], false, nullptr); }
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_LINE_SMOOTH); glDisable(GL_POLYGON_OFFSET_LINE);
@@ -335,8 +336,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        Float selected_fill_color[] = { 1.0f, 1.0f, 0.0f, 0.2f };
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, selected_fill_color);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.2f });
 
         for (Int i = 0; i < scene->numBrushes; i++) {
             if (Editor_IsSelected(ENTITY_BRUSH, i)) {
@@ -351,18 +351,27 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.viewport_fbo[type]);
     glViewport(0, 0, g_EditorState.viewport_width[type], g_EditorState.viewport_height[type]);
 
-    glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+    glUseProgram(g_EditorState.debug_shader);
+    Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+    Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
     for (Int i = 0; i < scene->numDecals; i++) {
-        Decal* d = &scene->decals[i]; glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, d->modelMatrix.m); Bool is_selected = Editor_IsSelected(ENTITY_DECAL, i); Float color[] = { 0.2f, 1.0f, 0.2f, 1.0f }; if (!is_selected) { color[3] = 0.5f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.decal_box_vao); glLineWidth(is_selected ? 2.0f : 1.0f); glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count); glLineWidth(1.0f);
+        Decal* d = &scene->decals[i];
+        Shader_Set(g_EditorState.debug_shader, "model", &d->modelMatrix);
+        Bool is_selected = Editor_IsSelected(ENTITY_DECAL, i);
+        Vec4 color = { 0.2f, 1.0f, 0.2f, is_selected ? 1.0f : 0.5f };
+        Shader_Set(g_EditorState.debug_shader, "color", color);
+        glBindVertexArray(g_EditorState.decal_box_vao);
+        glLineWidth(is_selected ? 2.0f : 1.0f);
+        glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
+        glLineWidth(1.0f);
     }
     for (Int i = 0; i < scene->numVideoPlayers; i++) {
         VideoPlayer* vp = &scene->videoPlayers[i];
         vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, vp->modelMatrix.m);
+        Shader_Set(g_EditorState.debug_shader, "model", &vp->modelMatrix);
         Bool is_selected = Editor_IsSelected(ENTITY_VIDEO_PLAYER, i);
-        Float color[] = { 1.0f, 0.0f, 1.0f, 1.0f };
-        if (!is_selected) { color[3] = 0.5f; }
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Vec4 color = { 1.0f, 0.0f, 1.0f, is_selected ? 1.0f : 0.5f };
+        Shader_Set(g_EditorState.debug_shader, "color", color);
         glBindVertexArray(g_EditorState.decal_box_vao);
         glLineWidth(is_selected ? 2.0f : 1.0f);
         glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
@@ -371,11 +380,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     for (Int i = 0; i < scene->numParallaxRooms; i++) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
         p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, p->roomDepth });
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, p->modelMatrix.m);
+        Shader_Set(g_EditorState.debug_shader, "model", &p->modelMatrix);
         Bool is_selected = Editor_IsSelected(ENTITY_PARALLAX_ROOM, i);
-        Float color[] = { 0.5f, 0.0f, 1.0f, 1.0f };
-        if (!is_selected) { color[3] = 0.5f; }
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Vec4 color = { 0.5f, 0.0f, 1.0f, is_selected ? 1.0f : 0.5f };
+        Shader_Set(g_EditorState.debug_shader, "color", color);
         glBindVertexArray(g_EditorState.decal_box_vao);
         glLineWidth(is_selected ? 2.0f : 1.0f);
         glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
@@ -388,23 +396,34 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         glUseProgram(g_EditorState.debug_shader);
         Mat4 modelMatrix = mat4_translate(s->pos);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-        Float color[] = { 0.8f, 0.2f, 1.0f, 1.0f };
-        if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; }
-        else if (!s->visible) { color[3] = 0.3f; }
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+        Vec4 color = { 0.8f, 0.2f, 1.0f, 1.0f };
+        if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
+        else if (!s->visible) { color.w = 0.3f; }
+        Shader_Set(g_EditorState.debug_shader, "color", color);
         glBindVertexArray(g_EditorState.light_gizmo_vao);
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
     }
     glDisable(GL_DEPTH_TEST); glLineWidth(2.0f);
     if (g_EditorState.is_in_brush_creation_mode || g_EditorState.is_dragging_for_creation) {
-        glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, g_EditorState.preview_brush.modelMatrix.m); Float color[] = { 1.0f, 1.0f, 0.0f, 0.5f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.preview_brush.vao); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); color[3] = 1.0f; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_BLEND);
+        glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(g_EditorState.debug_shader);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "model", &g_EditorState.preview_brush.modelMatrix);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.5f });
+        glBindVertexArray(g_EditorState.preview_brush.vao);
+        glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 1.0f });
+        glDrawArrays(GL_TRIANGLES, 0, g_EditorState.preview_brush.totalRenderVertexCount);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); glDisable(GL_BLEND);
         if (type != VIEW_PERSPECTIVE && g_EditorState.preview_brush.numVertices > 0) {
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
             Mat4 identity_mat; mat4_identity(&identity_mat);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
+            Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
 
             Float handle_screen_size = 8.0f;
             Float handle_world_size = handle_screen_size * (g_EditorState.ortho_cam_zoom[type - 1] / (Float)g_EditorState.viewport_height[type]);
@@ -439,7 +458,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     if ((PreviewBrushHandleType)i == g_EditorState.preview_brush_hovered_handle || (PreviewBrushHandleType)i == g_EditorState.preview_brush_active_handle) {
                         color_arr[0] = 1.0f; color_arr[1] = 1.0f; color_arr[2] = 0.0f;
                     }
-                    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color_arr);
+                    Shader_Set(g_EditorState.debug_shader, "color", Vec4{ color_arr[0], color_arr[1], color_arr[2], color_arr[3] });
                     glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_world[i], GL_DYNAMIC_DRAW);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
                     glDrawArrays(GL_POINTS, 0, 1);
@@ -454,9 +473,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Brush* b = &scene->brushes[primary->index];
         if (b->numVertices > 0) {
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "model", &b->modelMatrix);
 
             glPointSize(8.0f);
             glBindVertexArray(g_EditorState.vertex_points_vao);
@@ -498,8 +517,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 if (should_draw) {
                     Bool is_hovered = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_hovered_handle);
                     Bool is_active = ((PreviewBrushHandleType)i == g_EditorState.selected_brush_active_handle);
-                    Float color[] = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
-                    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                    Vec4 color = { is_hovered || is_active ? 1.0f : 0.0f, 1.0f, is_hovered || is_active ? 0.0f : 0.0f, 1.0f };
+                    Shader_Set(g_EditorState.debug_shader, "color", color);
                     glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &handle_positions_local[i], GL_DYNAMIC_DRAW);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3), (void*)0);
                     glDrawArrays(GL_POINTS, 0, 1);
@@ -511,7 +530,16 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (Int i = 0; i < g_EditorState.num_selections; ++i) {
         EditorSelection* sel = &g_EditorState.selections[i];
-        if (sel->type == ENTITY_MODEL) { SceneObject* obj = &scene->objects[sel->index]; glUseProgram(g_EditorState.debug_shader); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m); Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); render_object(renderer, scene, g_EditorState.debug_shader, obj, false, nullptr); glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+        if (sel->type == ENTITY_MODEL) {
+            SceneObject* obj = &scene->objects[sel->index];
+            glUseProgram(g_EditorState.debug_shader);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.5f, 0.0f, 1.0f });
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            render_object(renderer, scene, g_EditorState.debug_shader, obj, false, nullptr);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
     }
     for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -525,9 +553,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
 
         glUseProgram(g_EditorState.debug_shader);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "model", &b->modelMatrix);
 
         Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
         if (strncmp(b->classname, "trigger", 7) == 0) { color[0] = 1.0f; color[1] = 0.8f; color[2] = 0.2f; }
@@ -539,7 +567,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             color[3] = 0.3f;
         }
 
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ color[0], color[1], color[2], color[3] });
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
@@ -575,12 +603,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     glDepthMask(GL_FALSE);
                     glUseProgram(g_EditorState.debug_shader);
 
-                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
-                    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, b->modelMatrix.m);
-
-                    Float color[] = { 0.835f, 0.333f, 0.0f, 0.4f };
-                    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                    Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+                    Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
+                    Shader_Set(g_EditorState.debug_shader, "model", &b->modelMatrix);
+                    Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 0.835f, 0.333f, 0.0f, 0.4f });
 
                     glBindVertexArray(g_EditorState.selected_face_vao);
                     glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.selected_face_vbo);
@@ -599,20 +625,17 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
     }
     glUseProgram(g_EditorState.debug_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+    Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+    Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
     for (Int i = 0; i < scene->numActiveLights; ++i) {
         Light* light = &scene->lights[i];
         Bool is_selected = Editor_IsSelected(ENTITY_LIGHT, i);
 
         Mat4 modelMatrix = mat4_translate(light->pos);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-
-        Float color[] = { light->color.x, light->color.y, light->color.z, 1.0f };
-        if (is_selected) {
-            color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f;
-        }
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+        Vec4 color = { light->color.x, light->color.y, light->color.z, 1.0f };
+        if (is_selected) { color = Vec4{ 1.0f, 1.0f, 0.0f, 1.0f }; }
+        Shader_Set(g_EditorState.debug_shader, "color", color);
 
         glBindVertexArray(g_EditorState.light_gizmo_vao);
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
@@ -629,9 +652,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 mat4_multiply(&area_model_mat, &rot_mat, &scale_mat);
                 mat4_multiply(&area_model_mat, &modelMatrix, &area_model_mat);
 
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, area_model_mat.m);
-                Float area_color[] = { 1.0f, 1.0f, 0.0f, 0.8f };
-                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, area_color);
+                Shader_Set(g_EditorState.debug_shader, "model", &area_model_mat);
+                Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.8f });
 
                 glBindVertexArray(g_EditorState.decal_box_vao);
                 glDrawArrays(GL_LINES, 0, g_EditorState.decal_box_vertex_count);
@@ -642,9 +664,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Mat4 scaleMatrix = mat4_scale(Vec3{ light->radius, light->radius, light->radius });
                 Mat4 scaledModelMatrix;
                 mat4_multiply(&scaledModelMatrix, &modelMatrix, &scaleMatrix);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, scaledModelMatrix.m);
-                Float radius_color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
-                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, radius_color);
+                Shader_Set(g_EditorState.debug_shader, "model", &scaledModelMatrix);
+                Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.5f });
                 glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
@@ -660,10 +681,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
                 Mat4 identity_mat;
                 mat4_identity(&identity_mat);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-
-                Float line_color[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, line_color);
+                Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
+                Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 1.0f });
 
                 glBindVertexArray(g_EditorState.vertex_points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -701,7 +720,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                     cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p2_on_circle));
                 }
                 Mat4 identity_mat; mat4_identity(&identity_mat);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
+                Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
                 glBindVertexArray(g_EditorState.vertex_points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
                 glBufferData(GL_ARRAY_BUFFER, vert_count * sizeof(Vec3), cone_verts, GL_DYNAMIC_DRAW);
@@ -712,8 +731,12 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
     }
     glUseProgram(g_EditorState.debug_shader);
-    for (Int i = 0; i < scene->numSoundEntities; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); Float color[] = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
-    for (Int i = 0; i < scene->numParticleEmitters; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos); glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m); Float color[] = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color[0] = 1.0f; color[1] = 0.5f; color[2] = 0.0f; } glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
+    for (Int i = 0; i < scene->numSoundEntities; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+    Vec4 color = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
+    Shader_Set(g_EditorState.debug_shader, "color", color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+    Vec4 color = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
+    Shader_Set(g_EditorState.debug_shader, "color", color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
     glUseProgram(g_EditorState.debug_shader);
     for (Int i = 0; i < scene->numLogicEntities; ++i) {
         if (strcmp(scene->logicEntities[i].classname, "env_beam") == 0) {
@@ -724,12 +747,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             if (Editor_FindNamedEntityPosition(scene, target_name, &end_pos)) {
                 Mat4 identity;
                 mat4_identity(&identity);
-                glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity.m);
-
+                Shader_Set(g_EditorState.debug_shader, "model", &identity);
                 Float line_verts[6] = { ent->pos.x, ent->pos.y, ent->pos.z, end_pos.x, end_pos.y, end_pos.z };
-                Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
-
-                glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+                Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.5f, 0.0f, 1.0f });
 
                 glBindVertexArray(g_EditorState.vertex_points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -745,12 +765,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
         Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
         Mat4 modelMatrix = mat4_translate(scene->logicEntities[i].pos);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-        Float color[] = { 1.0f, 0.5f, 0.0f, 1.0f };
-        if (!is_selected) {
-            color[3] = 0.5f;
-        }
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+        Vec4 color = { 1.0f, 0.5f, 0.0f, is_selected ? 1.0f : 0.5f };
+        Shader_Set(g_EditorState.debug_shader, "color", color);
         glBindVertexArray(g_EditorState.light_gizmo_vao);
         glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
     }
@@ -758,16 +775,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "info_monitorcamera") == 0) {
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
             Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, Vec3{ 1, 1, 1 });
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, modelMatrix.m);
-
+            Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
             Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
-            Float color[] = { 0.0f, 1.0f, 1.0f, 1.0f };
-            if (is_selected) { color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f; }
-            glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+            Vec4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
+            if (is_selected) { color = Vec4{ 1.0f, 1.0f, 0.0f, 1.0f }; }
+            Shader_Set(g_EditorState.debug_shader, "color", color);
 
             glBindVertexArray(g_EditorState.light_gizmo_vao);
             glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
@@ -810,11 +826,11 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             Vec3 vertex_local_pos = b->vertices[primary->vertex_index].pos;
             Vec3 vertex_world_pos = mat4_mul_vec3(&b->modelMatrix, vertex_local_pos);
             glUseProgram(g_EditorState.debug_shader);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+            Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+            Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
             Mat4 identity_mat; mat4_identity(&identity_mat);
-            glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity_mat.m);
-            Float color[] = { 1.0f, 0.0f, 1.0f, 1.0f }; glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+            Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
+            Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.0f, 1.0f, 1.0f });
             glPointSize(10.0f); glBindVertexArray(g_EditorState.vertex_points_vao);
             glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
             glBufferData(GL_ARRAY_BUFFER, sizeof(Vec3), &vertex_world_pos, GL_DYNAMIC_DRAW);
@@ -826,17 +842,15 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glLineWidth(1.0f); glEnable(GL_DEPTH_TEST);
     if (g_EditorState.sprinkle_brush_hit_surface && g_EditorState.show_sprinkle_tool_window) {
         glUseProgram(g_EditorState.debug_shader);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
         Mat4 model_mat = mat4_translate(g_EditorState.sprinkle_brush_world_pos);
         Mat4 scale_mat = mat4_scale(Vec3{ g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
         mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
-
-        Float color[] = { 1.0f, 0.0f, 1.0f, 0.5f };
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "model", &model_mat);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.0f, 1.0f, 0.5f });
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_DEPTH_TEST);
@@ -848,18 +862,16 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     if (g_EditorState.paint_brush_hit_surface && (g_EditorState.is_painting_mode_enabled || g_EditorState.is_sculpting_mode_enabled)) {
         glUseProgram(g_EditorState.debug_shader);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
         Float radius = g_EditorState.is_painting_mode_enabled ? g_EditorState.paint_brush_radius : g_EditorState.sculpt_brush_radius;
         Mat4 model_mat = mat4_translate(g_EditorState.paint_brush_world_pos);
         Mat4 scale_mat = mat4_scale(Vec3{ radius, radius, radius });
         mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_mat.m);
-
-        Float color[] = { 1.0f, 1.0f, 0.0f, 0.5f };
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+        Shader_Set(g_EditorState.debug_shader, "model", &model_mat);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.5f });
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDisable(GL_DEPTH_TEST);
@@ -871,10 +883,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     if (g_EditorState.is_clipping && g_EditorState.clip_point_count > 0 && primary && primary->type == ENTITY_BRUSH) {
         glUseProgram(g_EditorState.debug_shader);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
         Mat4 identity; mat4_identity(&identity);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, identity.m);
+        Shader_Set(g_EditorState.debug_shader, "model", &identity);
         glDisable(GL_DEPTH_TEST);
         glLineWidth(2.0f);
 
@@ -893,8 +905,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             line_verts[1] = g_EditorState.clip_points[1];
         }
 
-        Float color_yellow[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color_yellow);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 1.0f });
 
         glBindVertexArray(g_EditorState.vertex_points_vao);
         glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -930,17 +941,17 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glBindVertexArray(0);
     }
     glUseProgram(g_EditorState.debug_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+    Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+    Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
     Mat4 player_model_matrix = mat4_translate(scene->playerStart.pos);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, player_model_matrix.m);
+    Shader_Set(g_EditorState.debug_shader, "model", &player_model_matrix);
 
     Bool is_selected = Editor_IsSelected(ENTITY_PLAYERSTART, 0);
-    Float player_color[] = { 0.2f, 0.2f, 1.0f, 1.0f };
+    Vec4 player_color = { 0.2f, 0.2f, 1.0f, 1.0f };
     if (is_selected) {
-        player_color[0] = 1.0f; player_color[1] = 0.5f; player_color[2] = 0.0f;
+        player_color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f };
     }
-    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, player_color);
+    Shader_Set(g_EditorState.debug_shader, "color", player_color);
 
     glBindVertexArray(g_EditorState.player_start_gizmo_vao);
     glLineWidth(is_selected ? 2.0f : 1.0f);
@@ -953,9 +964,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glUseProgram(g_EditorState.debug_shader);
         Mat4 model_ident;
         mat4_identity(&model_ident);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model_ident.m);
-        Float radius_color[] = { 1.0f, 0.65f, 0.0f, 0.7f };
-        glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, radius_color);
+        Shader_Set(g_EditorState.debug_shader, "model", &model_ident);
+        Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.65f, 0.0f, 0.7f });
         glLineWidth(1.0f);
         glDisable(GL_DEPTH_TEST);
 
@@ -1014,8 +1024,8 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Vec3 vertex_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
 
         glUseProgram(g_EditorState.gizmo_shader);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "view"), 1, GL_FALSE, g_view_matrix[type].m);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "projection"), 1, GL_FALSE, g_proj_matrix[type].m);
+        Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
+        Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
         glDisable(GL_DEPTH_TEST);
         glLineWidth(2.0f);
         glBindVertexArray(g_EditorState.gizmo_vao);
@@ -1024,18 +1034,18 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Mat4 trans = mat4_translate(vertex_world_pos);
         Mat4 model;
         mat4_multiply(&model, &trans, &scale);
-        glUniformMatrix4fv(glGetUniformLocation(g_EditorState.gizmo_shader, "model"), 1, GL_FALSE, model.m);
+        Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_x.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_x);
         glDrawArrays(GL_LINES, 0, 2);
 
         Vec3 color_y = { 0,1,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Y || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) color_y = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_y.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_y);
         glDrawArrays(GL_LINES, 2, 2);
 
         Vec3 color_z = { 0,0,1 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_Z || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) color_z = Vec3{ 1,1,0 };
-        glUniform3fv(glGetUniformLocation(g_EditorState.gizmo_shader, "gizmoColor"), 1, &color_z.x);
+        Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_z);
         glDrawArrays(GL_LINES, 4, 2);
 
         glBindVertexArray(0);
@@ -1060,10 +1070,10 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         Mat4 view = mat4_lookAt(cam_pos, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
         Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), aspect, 0.1f, 1000.0f);
         glUseProgram(renderer->mainShader);
-        glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 1);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view.m);
-        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "projection"), 1, GL_FALSE, proj.m);
-        glUniform1i(glGetUniformLocation(renderer->mainShader, "useEnvironmentMap"), 0);
+        Shader_Set(renderer->mainShader, "is_unlit", 1);
+        Shader_Set(renderer->mainShader, "view", &view);
+        Shader_Set(renderer->mainShader, "projection", &proj);
+        Shader_Set(renderer->mainShader, "useEnvironmentMap", 0);
         SceneObject temp_obj;
         memset(&temp_obj, 0, sizeof(SceneObject));
         temp_obj.model = g_EditorState.preview_model;

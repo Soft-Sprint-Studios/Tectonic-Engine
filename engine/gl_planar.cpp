@@ -92,7 +92,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, Vec3{ 0, 1, 0 });
 
     glUseProgram(renderer->mainShader);
-    glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, 1, 0, -reflection_plane_height + 0.1f);
+    Shader_Set(renderer->mainShader, "clipPlane", Vec4{ 0, 1, 0, -reflection_plane_height + 0.1f });
 
     glViewport(0, 0, reflection_width, reflection_height);
     Geometry_RenderPass(renderer, scene, engine, &reflection_view, projection, sunLightSpaceMatrix, reflection_camera.position, false, true);
@@ -116,7 +116,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
 
     glDisable(GL_CLIP_DISTANCE0);
     glUseProgram(renderer->mainShader);
-    glUniform4f(glGetUniformLocation(renderer->mainShader, "clipPlane"), 0, 0, 0, 0);
+    Shader_Set(renderer->mainShader, "clipPlane", Vec4{ 0, 0, 0, 0 });
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, engine->width, engine->height);
 }
@@ -133,40 +133,38 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
 
     glUseProgram(renderer->waterShader);
 
-    glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform3fv(glGetUniformLocation(renderer->waterShader, "viewPos"), 1, &engine->camera.position.x);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "u_debug_reflection"), Cvar_GetInt("r_debug_water_reflection"));
+    Shader_Set(renderer->waterShader, "view", view);
+    Shader_Set(renderer->waterShader, "projection", projection);
+    Shader_Set(renderer->waterShader, "viewPos", engine->camera.position);
+    Shader_Set(renderer->waterShader, "u_debug_reflection", Cvar_GetInt("r_debug_water_reflection"));
+    Shader_Set(renderer->waterShader, "sun.enabled", (Int)scene->sun.enabled);
+    Shader_Set(renderer->waterShader, "sun.direction", scene->sun.direction);
+    Shader_Set(renderer->waterShader, "sun.color", scene->sun.color);
+    Shader_Set(renderer->waterShader, "sun.intensity", scene->sun.intensity);
+    Shader_Set(renderer->waterShader, "sunLightSpaceMatrix", sunLightSpaceMatrix);
+    Shader_Set(renderer->waterShader, "numActiveLights", scene->numActiveLights);
+    Shader_Set(renderer->waterShader, "r_lightmaps_bicubic", Cvar_GetInt("r_lightmaps_bicubic"));
+    Shader_Set(renderer->waterShader, "r_debug_lightmaps", Cvar_GetInt("r_debug_lightmaps"));
+    Shader_Set(renderer->waterShader, "r_debug_lightmaps_directional", Cvar_GetInt("r_debug_lightmaps_directional"));
 
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "sun.enabled"), scene->sun.enabled);
-    glUniform3fv(glGetUniformLocation(renderer->waterShader, "sun.direction"), 1, &scene->sun.direction.x);
-    glUniform3fv(glGetUniformLocation(renderer->waterShader, "sun.color"), 1, &scene->sun.color.x);
-    glUniform1f(glGetUniformLocation(renderer->waterShader, "sun.intensity"), scene->sun.intensity);
-
-    glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "sunLightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "numActiveLights"), scene->numActiveLights);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "r_lightmaps_bicubic"), Cvar_GetInt("r_lightmaps_bicubic"));
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "r_debug_lightmaps"), Cvar_GetInt("r_debug_lightmaps"));
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "r_debug_lightmaps_directional"), Cvar_GetInt("r_debug_lightmaps_directional"));
-
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "flashlight.enabled"), engine->flashlight_on);
+    Shader_Set(renderer->waterShader, "flashlight.enabled", (Int)engine->flashlight_on);
     if (engine->flashlight_on) {
         Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
         vec3_normalize(&forward);
-        glUniform3fv(glGetUniformLocation(renderer->waterShader, "flashlight.position"), 1, &engine->camera.position.x);
-        glUniform3fv(glGetUniformLocation(renderer->waterShader, "flashlight.direction"), 1, &forward.x);
+        Shader_Set(renderer->waterShader, "flashlight.position", engine->camera.position);
+        Shader_Set(renderer->waterShader, "flashlight.direction", forward);
     }
 
-    glUniform3fv(glGetUniformLocation(renderer->waterShader, "cameraPosition"), 1, &engine->camera.position.x);
-    glUniform1f(glGetUniformLocation(renderer->waterShader, "time"), engine->scaledTime);
+    Shader_Set(renderer->waterShader, "cameraPosition", engine->camera.position);
+    Shader_Set(renderer->waterShader, "time", engine->scaledTime);
 
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, renderer->sunShadowMap);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "sunShadowMap"), 11);
+    Shader_Set(renderer->waterShader, "sunShadowMap", 11);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
-    glUniform1i(glGetUniformLocation(renderer->waterShader, "reflectionTexture"), 2);
+    Shader_Set(renderer->waterShader, "reflectionTexture", 2);
 
     for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
@@ -176,7 +174,7 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
         if (!water_def) continue;
 
         Float uv_scale = atof(Brush_GetProperty(b, "uv_scale", "0.0"));
-        glUniform1f(glGetUniformLocation(renderer->waterShader, "u_uv_scale"), uv_scale);
+        Shader_Set(renderer->waterShader, "u_uv_scale", uv_scale);
 
         Vec3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -190,45 +188,45 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
                 world_max.y = fmaxf(world_max.y, world_v.y);
                 world_max.z = fmaxf(world_max.z, world_v.z);
             }
-            glUniform3fv(glGetUniformLocation(renderer->waterShader, "u_waterAabbMin"), 1, &world_min.x);
-            glUniform3fv(glGetUniformLocation(renderer->waterShader, "u_waterAabbMax"), 1, &world_max.x);
+            Shader_Set(renderer->waterShader, "u_waterAabbMin", world_min);
+            Shader_Set(renderer->waterShader, "u_waterAabbMax", world_max);
         }
 
         glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, water_def->dudvMap);
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, water_def->normalMap);
 
         if (b->lightmapAtlas != 0) {
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useLightmap"), 1);
+            Shader_Set(renderer->waterShader, "useLightmap", 1);
             glActiveTexture(GL_TEXTURE12);
             glBindTexture(GL_TEXTURE_2D, b->lightmapAtlas);
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "lightmap"), 12);
+            Shader_Set(renderer->waterShader, "lightmap", 12);
         }
         else {
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useLightmap"), 0);
+            Shader_Set(renderer->waterShader, "useLightmap", 0);
         }
 
         if (b->directionalLightmapAtlas != 0) {
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useDirectionalLightmap"), 1);
+            Shader_Set(renderer->waterShader, "useDirectionalLightmap", 1);
             glActiveTexture(GL_TEXTURE13);
             glBindTexture(GL_TEXTURE_2D, b->directionalLightmapAtlas);
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "directionalLightmap"), 13);
+            Shader_Set(renderer->waterShader, "directionalLightmap", 13);
         }
         else {
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useDirectionalLightmap"), 0);
+            Shader_Set(renderer->waterShader, "useDirectionalLightmap", 0);
         }
 
         if (water_def->flowMap != 0) {
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, water_def->flowMap);
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "flowMap"), 3);
-            glUniform1f(glGetUniformLocation(renderer->waterShader, "flowSpeed"), water_def->flowSpeed);
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useFlowMap"), 1);
+            Shader_Set(renderer->waterShader, "flowMap", 3);
+            Shader_Set(renderer->waterShader, "flowSpeed", water_def->flowSpeed);
+            Shader_Set(renderer->waterShader, "useFlowMap", 1);
         }
         else {
-            glUniform1i(glGetUniformLocation(renderer->waterShader, "useFlowMap"), 0);
+            Shader_Set(renderer->waterShader, "useFlowMap", 0);
         }
 
-        glUniformMatrix4fv(glGetUniformLocation(renderer->waterShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
+        Shader_Set(renderer->waterShader, "model", &b->modelMatrix);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }
@@ -245,16 +243,16 @@ void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engi
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glUniformMatrix4fv(glGetUniformLocation(renderer->reflectiveGlassShader, "view"), 1, GL_FALSE, view->m);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->reflectiveGlassShader, "projection"), 1, GL_FALSE, projection->m);
-    glUniform3fv(glGetUniformLocation(renderer->reflectiveGlassShader, "viewPos"), 1, &engine->camera.position.x);
+    Shader_Set(renderer->reflectiveGlassShader, "view", view);
+    Shader_Set(renderer->reflectiveGlassShader, "projection", projection);
+    Shader_Set(renderer->reflectiveGlassShader, "viewPos", engine->camera.position);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
-    glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "reflectionTexture"), 0);
+    Shader_Set(renderer->reflectiveGlassShader, "reflectionTexture", 0);
 
     glActiveTexture(GL_TEXTURE2);
-    glUniform1i(glGetUniformLocation(renderer->reflectiveGlassShader, "normalMap"), 2);
+    Shader_Set(renderer->reflectiveGlassShader, "normalMap", 2);
 
     for (Int i = 0; i < scene->numBrushes; i++) {
         Brush* b = &scene->brushes[i];
@@ -264,9 +262,9 @@ void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engi
         Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
         glBindTexture(GL_TEXTURE_2D, (normal_mat && normal_mat != &g_MissingMaterial) ? normal_mat->normalMap : defaultNormalMapID);
 
-        glUniform1f(glGetUniformLocation(renderer->reflectiveGlassShader, "refractionStrength"), atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
+        Shader_Set(renderer->reflectiveGlassShader, "refractionStrength", (Float)atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
+        Shader_Set(renderer->reflectiveGlassShader, "model", &b->modelMatrix);
 
-        glUniformMatrix4fv(glGetUniformLocation(renderer->reflectiveGlassShader, "model"), 1, GL_FALSE, b->modelMatrix.m);
         glBindVertexArray(b->vao);
         glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
     }

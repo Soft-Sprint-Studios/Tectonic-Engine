@@ -64,10 +64,10 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
                 mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]);
                 Char uName[64];
                 sprintf(uName, "shadowMatrices[%d]", j);
-                glUniformMatrix4fv(glGetUniformLocation(current_shader, uName), 1, GL_FALSE, shadowTransforms[j].m);
+                Shader_Set(current_shader, uName, &shadowTransforms[j]);
             }
-            glUniform1f(glGetUniformLocation(current_shader, "far_plane"), light->shadowFarPlane);
-            glUniform3fv(glGetUniformLocation(current_shader, "lightPos"), 1, &light->pos.x);
+            Shader_Set(current_shader, "far_plane", light->shadowFarPlane);
+            Shader_Set(current_shader, "lightPos", light->pos);
         }
         else {
             current_shader = renderer->spotDepthShader;
@@ -77,7 +77,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             Vec3 up_vector = Vec3{ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = Vec3{ 1, 0, 0 }; }
             Mat4 lightView = mat4_lookAt(light->pos, vec3_add(light->pos, light->direction), up_vector);
             Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
-            glUniformMatrix4fv(glGetUniformLocation(current_shader, "lightSpaceMatrix"), 1, GL_FALSE, lightSpaceMatrix.m);
+            Shader_Set(current_shader, "lightSpaceMatrix", &lightSpaceMatrix);
         }
         for (Int j = 0; j < scene->numObjects; ++j) {
             if (!scene->objects[j].casts_shadows) continue;
@@ -103,7 +103,7 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(renderer->spotDepthShader);
-    glUniformMatrix4fv(glGetUniformLocation(renderer->spotDepthShader, "lightSpaceMatrix"), 1, GL_FALSE, sunLightSpaceMatrix->m);
+    Shader_Set(renderer->spotDepthShader, "lightSpaceMatrix", sunLightSpaceMatrix);
 
     for (Int j = 0; j < scene->numObjects; ++j) {
         if (!scene->objects[j].casts_shadows) continue;
@@ -124,7 +124,7 @@ void Shadows_RenderSun(Renderer* renderer, Scene* scene, const Mat4* sunLightSpa
 }
 
 void Shadows_Init(Renderer* renderer) {
-    renderer->pointDepthShader = createShaderProgramGeom("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
+    renderer->pointDepthShader = createShaderProgram("shaders/depth_point.vert", "shaders/depth_point.geom", "shaders/depth_point.frag");
     renderer->spotDepthShader = createShaderProgram("shaders/depth_spot.vert", "shaders/depth_spot.frag");
 }
 

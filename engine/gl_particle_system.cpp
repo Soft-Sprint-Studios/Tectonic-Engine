@@ -84,7 +84,7 @@ ParticleSystem* ParticleSystem_Load(const Char* path) {
     fclose(file);
 
     if (ps->maxParticles > MAX_PARTICLES_PER_SYSTEM) ps->maxParticles = MAX_PARTICLES_PER_SYSTEM;
-    ps->shader = createShaderProgramGeom("shaders/particle.vert", "shaders/particle.geom", "shaders/particle.frag");
+    ps->shader = createShaderProgram("shaders/particle.vert", "shaders/particle.geom", "shaders/particle.frag");
     return ps;
 }
 
@@ -196,25 +196,25 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
     ParticleSystem* ps = emitter->system;
 
     glUseProgram(ps->shader);
-    glUniformMatrix4fv(glGetUniformLocation(ps->shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(ps->shader, "projection"), 1, GL_FALSE, projection.m);
-    glUniform3fv(glGetUniformLocation(ps->shader, "viewPos"), 1, &engine->camera.position.x);
-    glUniform1i(glGetUniformLocation(ps->shader, "u_useLighting"), ps->useLighting);
+    Shader_Set(ps->shader, "view", &view);
+    Shader_Set(ps->shader, "projection", &projection);
+    Shader_Set(ps->shader, "viewPos", engine->camera.position);
+    Shader_Set(ps->shader, "u_useLighting", (Int)ps->useLighting);
 
-    glUniform1i(glGetUniformLocation(ps->shader, "sun.enabled"), scene->sun.enabled);
-    glUniform3fv(glGetUniformLocation(ps->shader, "sun.direction"), 1, &scene->sun.direction.x);
-    glUniform3fv(glGetUniformLocation(ps->shader, "sun.color"), 1, &scene->sun.color.x);
-    glUniform1f(glGetUniformLocation(ps->shader, "sun.intensity"), scene->sun.intensity);
+    Shader_Set(ps->shader, "sun.enabled", (Int)scene->sun.enabled);
+    Shader_Set(ps->shader, "sun.direction", scene->sun.direction);
+    Shader_Set(ps->shader, "sun.color", scene->sun.color);
+    Shader_Set(ps->shader, "sun.intensity", scene->sun.intensity);
 
-    glUniform1i(glGetUniformLocation(ps->shader, "flashlight.enabled"), engine->flashlight_on);
+    Shader_Set(ps->shader, "flashlight.enabled", (Int)engine->flashlight_on);
     if (engine->flashlight_on) {
         Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
         vec3_normalize(&forward);
-        glUniform3fv(glGetUniformLocation(ps->shader, "flashlight.position"), 1, &engine->camera.position.x);
-        glUniform3fv(glGetUniformLocation(ps->shader, "flashlight.direction"), 1, &forward.x);
+        Shader_Set(ps->shader, "flashlight.position", engine->camera.position);
+        Shader_Set(ps->shader, "flashlight.direction", forward);
     }
 
-    glUniform1i(glGetUniformLocation(ps->shader, "u_numAmbientProbes"), scene->num_ambient_probes);
+    Shader_Set(ps->shader, "u_numAmbientProbes", scene->num_ambient_probes);
     if (scene->num_ambient_probes > 0) {
         AmbientProbe* nearest_probes[8] = { nullptr };
         Float distances[8];
@@ -239,10 +239,10 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
             Char buf[64];
             if (nearest_probes[k]) {
                 sprintf(buf, "u_probes[%d].position", k);
-                glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->position.x);
+                Shader_Set(ps->shader, buf, nearest_probes[k]->position);
                 for (Int f = 0; f < 6; ++f) {
                     sprintf(buf, "u_probes[%d].colors[%d]", k, f);
-                    glUniform3fv(glGetUniformLocation(ps->shader, buf), 1, &nearest_probes[k]->colors[f].x);
+                    Shader_Set(ps->shader, buf, nearest_probes[k]->colors[f]);
                 }
             }
         }
@@ -250,20 +250,13 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ps->material->diffuseMap);
-    glUniform1i(glGetUniformLocation(ps->shader, "particleTexture"), 0);
+    Shader_Set(ps->shader, "particleTexture", 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gPosition);
-    glUniform1i(glGetUniformLocation(ps->shader, "gPosition"), 1);
-
-    glUniform2f(glGetUniformLocation(ps->shader, "screenSize"), screenWidth, screenHeight);
-
-    if (Cvar_GetInt("r_particles_soft")) {
-        glUniform1f(glGetUniformLocation(ps->shader, "softness"), ps->softness < 0.001f ? 0.001f : ps->softness);
-    }
-    else {
-        glUniform1f(glGetUniformLocation(ps->shader, "softness"), 0.001f);
-    }
+    Shader_Set(ps->shader, "gPosition", 1);
+    Shader_Set(ps->shader, "screenSize", Vec2{ screenWidth, screenHeight });
+    Shader_Set(ps->shader, "softness", (Cvar_GetInt("r_particles_soft") ? (ps->softness < 0.001f ? 0.001f : ps->softness) : 0.001f));
 
     glBlendFunc(ps->blend_sfactor, ps->blend_dfactor);
     glBindVertexArray(emitter->vao);

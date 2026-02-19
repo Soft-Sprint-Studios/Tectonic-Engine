@@ -284,8 +284,8 @@ static void render_textured_quad(GLuint texture, Float x, Float y, Float w, Floa
     glUseProgram(g_menu_shader);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(glGetUniformLocation(g_menu_shader, "u_texture"), 0);
-    glUniform4f(glGetUniformLocation(g_menu_shader, "u_color_tint"), (Float)color.r / 255.0f, (Float)color.g / 255.0f, (Float)color.b / 255.0f, (Float)color.a / 255.0f);
+    Shader_Set(g_menu_shader, "u_texture", 0);
+    Shader_Set(g_menu_shader, "u_color_tint", Vec4{ (Float)color.r / 255.0f, (Float)color.g / 255.0f, (Float)color.b / 255.0f, (Float)color.a / 255.0f });
 
     Float vertices[] = {
         x + current_offset_x, y + h,  0.0f, 1.0f,
@@ -460,7 +460,7 @@ void MainMenu_Render() {
 
     Mat4 projection_matrix = mat4_ortho(0.0f, (Float)g_screen_width, (Float)g_screen_height, 0.0f, -1.0f, 1.0f);
     glUseProgram(g_menu_shader);
-    glUniformMatrix4fv(glGetUniformLocation(g_menu_shader, "projection"), 1, GL_FALSE, projection_matrix.m);
+    Shader_Set(g_menu_shader, "projection", &projection_matrix);
 
     if (g_has_background_video) {
         VideoPlayer_Render2D(&g_background_video, 0, 0, (Float)g_screen_width, (Float)g_screen_height, g_screen_width, g_screen_height);

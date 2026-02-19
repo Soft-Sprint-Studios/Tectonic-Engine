@@ -24,6 +24,8 @@
 #include "gl_misc.h"
 #include "gl_console.h"
 #include <stdlib.h>
+#include <unordered_map>
+#include <string>
 
 Char* load_shader_source(const Char* path) {
     Char* buffer = nullptr;
@@ -88,19 +90,24 @@ GLuint compileShader(GLenum type, const Char* src, const Char* pathHint) {
 GLuint createShaderProgram(const Char* vertPath, const Char* fragPath) {
     Char* vertSrc = load_shader_source(vertPath);
     Char* fragSrc = load_shader_source(fragPath);
+
     if (!vertSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] fragSrc;
         return 0;
     }
+
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
+
     delete[] vertSrc;
     delete[] fragSrc;
+
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, frag);
     glLinkProgram(program);
+
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
@@ -108,32 +115,39 @@ GLuint createShaderProgram(const Char* vertPath, const Char* fragPath) {
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + FRAGMENT):\n%s\n", infoLog);
     }
+
     glDeleteShader(vert);
     glDeleteShader(frag);
+
     return program;
 }
 
-GLuint createShaderProgramGeom(const Char* vertPath, const Char* geomPath, const Char* fragPath) {
+GLuint createShaderProgram(const Char* vertPath, const Char* geomPath, const Char* fragPath) {
     Char* vertSrc = load_shader_source(vertPath);
     Char* geomSrc = load_shader_source(geomPath);
     Char* fragSrc = load_shader_source(fragPath);
+
     if (!vertSrc || !geomSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] geomSrc;
         delete[] fragSrc;
         return 0;
     }
+
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint geom = compileShader(GL_GEOMETRY_SHADER, geomSrc, geomPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
+
     delete[] vertSrc;
     delete[] geomSrc;
     delete[] fragSrc;
+
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, geom);
     glAttachShader(program, frag);
     glLinkProgram(program);
+
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
@@ -141,17 +155,20 @@ GLuint createShaderProgramGeom(const Char* vertPath, const Char* geomPath, const
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + GEOMETRY + FRAGMENT):\n%s\n", infoLog);
     }
+
     glDeleteShader(vert);
     glDeleteShader(geom);
     glDeleteShader(frag);
+
     return program;
 }
 
-GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath) {
+GLuint createShaderProgram(const Char* vertPath, const Char* tcsPath, const Char* tesPath, const Char* fragPath) {
     Char* vertSrc = load_shader_source(vertPath);
     Char* tcsSrc = load_shader_source(tcsPath);
     Char* tesSrc = load_shader_source(tesPath);
     Char* fragSrc = load_shader_source(fragPath);
+
     if (!vertSrc || !tcsSrc || !tesSrc || !fragSrc) {
         delete[] vertSrc;
         delete[] tcsSrc;
@@ -159,20 +176,24 @@ GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const 
         delete[] fragSrc;
         return 0;
     }
+
     GLuint vert = compileShader(GL_VERTEX_SHADER, vertSrc, vertPath);
     GLuint tcs = compileShader(GL_TESS_CONTROL_SHADER, tcsSrc, tcsPath);
     GLuint tes = compileShader(GL_TESS_EVALUATION_SHADER, tesSrc, tesPath);
     GLuint frag = compileShader(GL_FRAGMENT_SHADER, fragSrc, fragPath);
+
     delete[] vertSrc;
     delete[] tcsSrc;
     delete[] tesSrc;
     delete[] fragSrc;
+
     GLuint program = glCreateProgram();
     glAttachShader(program, vert);
     glAttachShader(program, tcs);
     glAttachShader(program, tes);
     glAttachShader(program, frag);
     glLinkProgram(program);
+
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
@@ -180,24 +201,30 @@ GLuint createShaderProgramTess(const Char* vertPath, const Char* tcsPath, const 
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (VERTEX + TESS + FRAGMENT):\n%s\n", infoLog);
     }
+
     glDeleteShader(vert);
     glDeleteShader(tcs);
     glDeleteShader(tes);
     glDeleteShader(frag);
+
     return program;
 }
 
-GLuint createShaderProgramCompute(const Char* computePath) {
+GLuint createShaderProgram(const Char* computePath) {
     Char* computeSrc = load_shader_source(computePath);
+
     if (!computeSrc) {
         delete[] computeSrc;
         return 0;
     }
+
     GLuint compute = compileShader(GL_COMPUTE_SHADER, computeSrc, computePath);
     delete[] computeSrc;
+
     GLuint program = glCreateProgram();
     glAttachShader(program, compute);
     glLinkProgram(program);
+
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
@@ -205,57 +232,50 @@ GLuint createShaderProgramCompute(const Char* computePath) {
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
         Console_Printf_Error("SHADER LINK ERROR (COMPUTE):\n%s\n", infoLog);
     }
+
     glDeleteShader(compute);
     return program;
 }
 
-void GLAPIENTRY
-GL_MessageCallback(GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLsizei length,
-    const GLchar* message,
-    const void* userParam)
-{
-    const Char* type_str = "Unknown";
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:               type_str = "Error"; break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_str = "Deprecated Behavior"; break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  type_str = "Undefined Behavior"; break;
-    case GL_DEBUG_TYPE_PORTABILITY:         type_str = "Portability"; break;
-    case GL_DEBUG_TYPE_PERFORMANCE:         type_str = "Performance"; break;
-    case GL_DEBUG_TYPE_MARKER:              type_str = "Marker"; break;
-    case GL_DEBUG_TYPE_OTHER:               type_str = "Other"; break;
-    }
+static unordered_map<GLuint, unordered_map<string_view, GLint>> g_uniform_cache;
 
-    switch (severity)
-    {
-    case GL_DEBUG_SEVERITY_HIGH:
-        Console_Printf_Error("[GL ERROR] type: %s, message: %s", type_str, message);
-        break;
-    case GL_DEBUG_SEVERITY_MEDIUM:
-        Console_Printf_Warning("[GL WARNING] type: %s, message: %s", type_str, message);
-        break;
-    case GL_DEBUG_SEVERITY_LOW:
-        Console_Printf("[GL INFO] type: %s, message: %s", type_str, message);
-        break;
-    case GL_DEBUG_SEVERITY_NOTIFICATION:
-        Console_Printf("[GL NOTIFICATION] type: %s, message: %s", type_str, message);
-        break;
-    }
+GLint Shader_GetUniformLocation(GLuint program, const char* name) {
+    auto& cache = g_uniform_cache[program];
+    string_view key(name);
+
+    auto it = cache.find(key);
+    if (it != cache.end())
+        return it->second;
+
+    GLint loc = glGetUniformLocation(program, name);
+    cache[key] = loc;
+    return loc;
 }
 
-void GL_InitDebugOutput(void) {
-#ifndef GAME_RELEASE
-    GLint flags;
-    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
-    {
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(GL_MessageCallback, 0);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
-    }
-#endif
+void Shader_Set(GLuint program, const Char* name, Int value) {
+    glUniform1i(Shader_GetUniformLocation(program, name), value);
+}
+
+void Shader_Set(GLuint program, const Char* name, Float value) {
+    glUniform1f(Shader_GetUniformLocation(program, name), value);
+}
+
+void Shader_Set(GLuint program, const Char* name, Vec2 value) {
+    glUniform2f(Shader_GetUniformLocation(program, name), value.x, value.y);
+}
+
+void Shader_Set(GLuint program, const Char* name, Vec3 value) {
+    glUniform3fv(Shader_GetUniformLocation(program, name), 1, &value.x);
+}
+
+void Shader_Set(GLuint program, const Char* name, Vec4 value) {
+    glUniform4fv(Shader_GetUniformLocation(program, name), 1, &value.x);
+}
+
+void Shader_Set(GLuint program, const Char* name, const Mat4* value) {
+    glUniformMatrix4fv(Shader_GetUniformLocation(program, name), 1, GL_FALSE, value->m);
+}
+
+void Shader_Set(GLuint program, const Char* name, uint64_t handle) {
+    glUniformHandleui64ARB(Shader_GetUniformLocation(program, name), handle);
 }

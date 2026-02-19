@@ -55,12 +55,12 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderer->postProcessTexture);
-    glUniform1i(glGetUniformLocation(renderer->blackholeShader, "screenTexture"), 0);
+    Shader_Set(renderer->blackholeShader, "screenTexture", 0);
 
     for (Int i = 0; i < scene->numLogicEntities; ++i) {
         LogicEntity* ent = &scene->logicEntities[i];
         if (strcmp(ent->classname, "env_blackhole") == 0 && ent->runtime_active) {
-            glUniform2f(glGetUniformLocation(renderer->blackholeShader, "screensize"), (Float)engine->width, (Float)engine->height);
+            Shader_Set(renderer->blackholeShader, "screensize", Vec2{ (Float)engine->width, (Float)engine->height });
 
             Mat4 view_proj;
             mat4_multiply(&view_proj, projection, view);
@@ -95,12 +95,12 @@ void Blackhole_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* vi
                 screen_pos.y - screen_radius < 1.0f;
 
             if (visible) {
-                glUniform2fv(glGetUniformLocation(renderer->blackholeShader, "screenpos"), 1, &screen_pos.x);
+                Shader_Set(renderer->blackholeShader, "screenpos", screen_pos);
 
                 Float distance_to_cam = vec3_length(vec3_sub(engine->camera.position, ent->pos));
-                glUniform1f(glGetUniformLocation(renderer->blackholeShader, "distance_uniform"), distance_to_cam);
-                glUniform1f(glGetUniformLocation(renderer->blackholeShader, "size"), scale);
-                glUniform1f(glGetUniformLocation(renderer->blackholeShader, "rotation_angle"), rotation_rad);
+                Shader_Set(renderer->blackholeShader, "distance_uniform", distance_to_cam);
+                Shader_Set(renderer->blackholeShader, "size", scale);
+                Shader_Set(renderer->blackholeShader, "rotation_angle", rotation_rad);
 
                 glBindVertexArray(renderer->quadVAO);
                 glDrawArrays(GL_TRIANGLES, 0, 6);

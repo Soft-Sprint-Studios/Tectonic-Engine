@@ -37,6 +37,7 @@
 #include "gl_render_misc.h"
 #include "gl_video_player.h"
 #include "gl_geometry.h"
+#include "gl_misc.h"
 #include "io_system.h"
 #include "game_data.h"
 #include <SDL_image.h>
@@ -321,9 +322,9 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         Mat4 proj = mat4_perspective(45.0f * (M_PI / 180.0f), 1.0f, 0.1f, 100.0f);
 
                         glUseProgram(renderer->mainShader);
-                        glUniform1i(glGetUniformLocation(renderer->mainShader, "is_unlit"), 1);
-                        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "view"), 1, GL_FALSE, view.m);
-                        glUniformMatrix4fv(glGetUniformLocation(renderer->mainShader, "projection"), 1, GL_FALSE, proj.m);
+                        Shader_Set(renderer->mainShader, "is_unlit", 1);
+                        Shader_Set(renderer->mainShader, "view", &view);
+                        Shader_Set(renderer->mainShader, "projection", &proj);
 
                         SceneObject temp_obj;
                         memset(&temp_obj, 0, sizeof(SceneObject));
@@ -1896,10 +1897,10 @@ void Editor_RenderArchPreview() {
     glUseProgram(g_EditorState.debug_shader);
     Mat4 projection = mat4_ortho(0, g_EditorState.arch_preview_width, 0, g_EditorState.arch_preview_height, -1, 1);
     Mat4 view; mat4_identity(&view);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "view"), 1, GL_FALSE, view.m);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "projection"), 1, GL_FALSE, projection.m);
+    Shader_Set(g_EditorState.debug_shader, "view", &view);
+    Shader_Set(g_EditorState.debug_shader, "projection", &projection);
     Mat4 model; mat4_identity(&model);
-    glUniformMatrix4fv(glGetUniformLocation(g_EditorState.debug_shader, "model"), 1, GL_FALSE, model.m);
+    Shader_Set(g_EditorState.debug_shader, "model", &model);
 
     Float world_width = 0.0f;
     if (g_EditorState.arch_creation_view == VIEW_TOP_XZ || g_EditorState.arch_creation_view == VIEW_FRONT_XY) {
@@ -1911,7 +1912,7 @@ void Editor_RenderArchPreview() {
     Float world_outer_radius = world_width / 2.0f;
 
     Float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glUniform4fv(glGetUniformLocation(g_EditorState.debug_shader, "color"), 1, color);
+    Shader_Set(g_EditorState.debug_shader, "color", Vec4{ color[0], color[1], color[2], color[3] });
 
     Float center_x = g_EditorState.arch_preview_width / 2.0f;
     Float center_y = 20.0f;
