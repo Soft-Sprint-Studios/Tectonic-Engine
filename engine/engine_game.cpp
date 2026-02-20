@@ -117,11 +117,11 @@ void process_input() {
             if (event.button.button == SDL_BUTTON_LEFT) {
                 if (g_engine->heldObject) {
                     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-                    vec3_normalize(&forward);
+                    Math::vec3_normalize(&forward);
 
-                    Physics_SetCcdEnabled(g_engine->heldObject, true, 1e-7f);
-                    Physics_SetGravityEnabled(g_engine->heldObject, true);
-                    Physics_ApplyCentralImpulse(g_engine->heldObject, vec3_muls(forward, 10.0f));
+                    Physics::SetCcdEnabled(g_engine->heldObject, true, 1e-7f);
+                    Physics::SetGravityEnabled(g_engine->heldObject, true);
+                    Physics::ApplyCentralImpulse(g_engine->heldObject, Math::vec3_muls(forward, 10.0f));
                     g_engine->heldObject = nullptr;
                     return;
                 }
@@ -173,14 +173,14 @@ void process_input() {
                     return;
                 }
                 if (g_engine->heldObject) {
-                    Physics_SetGravityEnabled(g_engine->heldObject, true);
+                    Physics::SetGravityEnabled(g_engine->heldObject, true);
                     g_engine->heldObject = nullptr;
                     return;
                 }
                 Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-                vec3_normalize(&forward);
+                Math::vec3_normalize(&forward);
 
-                Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
+                Vec3 ray_end = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(forward, 3.0f));
 
                 for (Int i = 0; i < g_scene.numBrushes; ++i) {
                     Brush* brush = &g_scene.brushes[i];
@@ -189,7 +189,7 @@ void process_input() {
                         Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                         Float t;
-                        if (RayIntersectsOBB(g_engine->camera.position, forward,
+                        if (Math::RayIntersectsOBB(g_engine->camera.position, forward,
                             &brush->modelMatrix,
                             brush_local_min,
                             brush_local_max,
@@ -211,7 +211,7 @@ void process_input() {
                             Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                             Float t;
-                            if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                            if (Math::RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                                 if (brush->door_state == DOOR_STATE_CLOSED || brush->door_state == DOOR_STATE_CLOSING) {
                                     brush->door_state = DOOR_STATE_OPENING;
                                 }
@@ -227,7 +227,7 @@ void process_input() {
                         Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                         Float t;
-                        if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                        if (Math::RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                             if (g_engine->camera.health < 100.0f) {
                                 const Char* heal_str = Brush_GetProperty(brush, "heal_amount", "25");
                                 Float heal_amount = atof(heal_str);
@@ -247,11 +247,11 @@ void process_input() {
                     LogicEntity* ent = &g_scene.logicEntities[i];
                     if (strcmp(ent->classname, "item_note") == 0) {
                         Float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
-                        Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                        Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(g_engine->camera.position, ent->pos));
 
-                        Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
-                        vec3_normalize(&to_ent);
-                        Float dot = vec3_dot(forward, to_ent);
+                        Vec3 to_ent = Math::vec3_sub(ent->pos, g_engine->camera.position);
+                        Math::vec3_normalize(&to_ent);
+                        Float dot = Math::vec3_dot(forward, to_ent);
 
                         if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
                             ExecuteInput(ent->targetname, "Use", "", &g_scene, g_engine);
@@ -261,12 +261,12 @@ void process_input() {
                 }
 
                 RaycastHitInfo hitInfo;
-                if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
-                    if (hitInfo.hitBody && Physics_GetMass(hitInfo.hitBody) < 2.0f && Physics_GetMass(hitInfo.hitBody) > 0.0f) {
+                if (Physics::Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
+                    if (hitInfo.hitBody && Physics::GetMass(hitInfo.hitBody) < 2.0f && Physics::GetMass(hitInfo.hitBody) > 0.0f) {
                         g_engine->heldObject = hitInfo.hitBody;
-                        g_engine->holdDistance = vec3_length(vec3_sub(hitInfo.point, g_engine->camera.position));
-                        Physics_SetGravityEnabled(g_engine->heldObject, false);
-                        Physics_SetCcdEnabled(g_engine->heldObject, false, 0.0f);
+                        g_engine->holdDistance = Math::vec3_length(Math::vec3_sub(hitInfo.point, g_engine->camera.position));
+                        Physics::SetGravityEnabled(g_engine->heldObject, false);
+                        Physics::SetCcdEnabled(g_engine->heldObject, false, 0.0f);
                     }
                 }
             }
@@ -315,7 +315,7 @@ void process_input() {
 #endif
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
-                SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
+                Sound::SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
             else {
                 if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
@@ -369,20 +369,20 @@ void process_input() {
         Float speed = (noclip ? Cvar_GetFloat("g_noclip_speed") : 5.0f) * (g_engine->camera.isCrouching ? 0.5f : 1.0f);
 
         if (g_player_input_disabled) {
-            if (!noclip) Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ 0, 0, 0 });
+            if (!noclip) Physics::SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ 0, 0, 0 });
             return;
         }
 
         if (noclip) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-            vec3_normalize(&forward);
-            Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 });
-            vec3_normalize(&right);
+            Math::vec3_normalize(&forward);
+            Vec3 right = Math::vec3_cross(forward, Vec3{ 0, 1, 0 });
+            Math::vec3_normalize(&right);
 
-            if (state[SDL_SCANCODE_W]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
-            if (state[SDL_SCANCODE_S]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(forward, speed * g_engine->deltaTime));
-            if (state[SDL_SCANCODE_D]) g_engine->camera.position = vec3_add(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
-            if (state[SDL_SCANCODE_A]) g_engine->camera.position = vec3_sub(g_engine->camera.position, vec3_muls(right, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_W]) g_engine->camera.position = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(forward, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_S]) g_engine->camera.position = Math::vec3_sub(g_engine->camera.position, Math::vec3_muls(forward, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_D]) g_engine->camera.position = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(right, speed * g_engine->deltaTime));
+            if (state[SDL_SCANCODE_A]) g_engine->camera.position = Math::vec3_sub(g_engine->camera.position, Math::vec3_muls(right, speed * g_engine->deltaTime));
             if (state[SDL_SCANCODE_SPACE]) g_engine->camera.position.y += speed * g_engine->deltaTime;
             if (state[SDL_SCANCODE_LCTRL]) g_engine->camera.position.y -= speed * g_engine->deltaTime;
         }
@@ -400,34 +400,34 @@ void process_input() {
             Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
             Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
             Vec3 strafe_move = { 0, 0, 0 };
-            if (state[SDL_SCANCODE_A]) strafe_move = vec3_add(strafe_move, r_flat);
-            if (state[SDL_SCANCODE_D]) strafe_move = vec3_sub(strafe_move, r_flat);
+            if (state[SDL_SCANCODE_A]) strafe_move = Math::vec3_add(strafe_move, r_flat);
+            if (state[SDL_SCANCODE_D]) strafe_move = Math::vec3_sub(strafe_move, r_flat);
 
-            vec3_normalize(&strafe_move);
+            Math::vec3_normalize(&strafe_move);
             wish_vel.x = strafe_move.x * ladder_speed;
             wish_vel.z = strafe_move.z * ladder_speed;
 
             Vec3 horizontal_vel = { wish_vel.x, 0, wish_vel.z };
-            horizontal_vel = vec3_sub(horizontal_vel, vec3_muls(g_ladder_normal, vec3_dot(horizontal_vel, g_ladder_normal)));
+            horizontal_vel = Math::vec3_sub(horizontal_vel, Math::vec3_muls(g_ladder_normal, Math::vec3_dot(horizontal_vel, g_ladder_normal)));
 
             Vec3 final_vel = { horizontal_vel.x, wish_vel.y, horizontal_vel.z };
 
-            final_vel = vec3_add(final_vel, vec3_muls(g_ladder_normal, -1.0f));
+            final_vel = Math::vec3_add(final_vel, Math::vec3_muls(g_ladder_normal, -1.0f));
 
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, final_vel);
-            Physics_Activate(g_engine->camera.physicsBody);
+            Physics::SetLinearVelocity(g_engine->camera.physicsBody, final_vel);
+            Physics::Activate(g_engine->camera.physicsBody);
         }
         else {
             Vec3 f_flat = { sinf(g_engine->camera.yaw), 0, -cosf(g_engine->camera.yaw) };
             Vec3 r_flat = { f_flat.z, 0, -f_flat.x };
             Vec3 move = { 0,0,0 };
 
-            if (state[SDL_SCANCODE_W]) move = vec3_add(move, f_flat);
-            if (state[SDL_SCANCODE_S]) move = vec3_sub(move, f_flat);
-            if (state[SDL_SCANCODE_A]) move = vec3_add(move, r_flat);
-            if (state[SDL_SCANCODE_D]) move = vec3_sub(move, r_flat);
+            if (state[SDL_SCANCODE_W]) move = Math::vec3_add(move, f_flat);
+            if (state[SDL_SCANCODE_S]) move = Math::vec3_sub(move, f_flat);
+            if (state[SDL_SCANCODE_A]) move = Math::vec3_add(move, r_flat);
+            if (state[SDL_SCANCODE_D]) move = Math::vec3_sub(move, r_flat);
 
-            vec3_normalize(&move);
+            Math::vec3_normalize(&move);
             Float max_wish_speed = Cvar_GetFloat("g_speed");
             if (state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching) {
                 max_wish_speed = Cvar_GetFloat("g_sprint_speed");
@@ -439,45 +439,45 @@ void process_input() {
             Float accel = Cvar_GetFloat("g_accel");
             Float friction = Cvar_GetFloat("g_friction") * g_current_friction_modifier;
 
-            Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+            Vec3 current_vel = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
             Vec3 current_vel_flat = { current_vel.x, 0, current_vel.z };
 
-            Vec3 wish_vel = vec3_muls(move, max_wish_speed);
+            Vec3 wish_vel = Math::vec3_muls(move, max_wish_speed);
 
-            Vec3 vel_delta = vec3_sub(wish_vel, current_vel_flat);
+            Vec3 vel_delta = Math::vec3_sub(wish_vel, current_vel_flat);
 
-            if (vec3_length_sq(vel_delta) > 0.0001f) {
-                Float delta_speed = vec3_length(vel_delta);
+            if (Math::vec3_length_sq(vel_delta) > 0.0001f) {
+                Float delta_speed = Math::vec3_length(vel_delta);
                 Float add_speed = delta_speed * accel * friction * g_engine->deltaTime;
 
                 if (add_speed > delta_speed) {
                     add_speed = delta_speed;
                 }
 
-                current_vel_flat = vec3_add(current_vel_flat, vec3_muls(vel_delta, add_speed / delta_speed));
+                current_vel_flat = Math::vec3_add(current_vel_flat, Math::vec3_muls(vel_delta, add_speed / delta_speed));
             }
 
-            if (vec3_length_sq(move) < 0.01f) {
-                Float speed = vec3_length(current_vel_flat);
+            if (Math::vec3_length_sq(move) < 0.01f) {
+                Float speed = Math::vec3_length(current_vel_flat);
                 if (speed > 0.001f) {
                     Float drop = speed * friction * g_engine->deltaTime;
                     Float new_speed = speed - drop;
                     if (new_speed < 0) new_speed = 0;
-                    current_vel_flat = vec3_muls(current_vel_flat, new_speed / speed);
+                    current_vel_flat = Math::vec3_muls(current_vel_flat, new_speed / speed);
                 }
                 else {
                     current_vel_flat = Vec3{ 0,0,0 };
                 }
             }
 
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ current_vel_flat.x, current_vel.y, current_vel_flat.z });
-            Physics_Activate(g_engine->camera.physicsBody);
+            Physics::SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ current_vel_flat.x, current_vel.y, current_vel_flat.z });
+            Physics::Activate(g_engine->camera.physicsBody);
 
             if (state[SDL_SCANCODE_SPACE]) {
-                Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-                if (current_vel.y <= 0.1f && Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f)) {
-                    Physics_ApplyCentralImpulse(g_engine->camera.physicsBody, Vec3{ 0, Cvar_GetFloat("g_jump_force"), 0 });
-                    SoundSystem_PlaySound(g_jump_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
+                Vec3 current_vel = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
+                if (current_vel.y <= 0.1f && Physics::CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f)) {
+                    Physics::ApplyCentralImpulse(g_engine->camera.physicsBody, Vec3{ 0, Cvar_GetFloat("g_jump_force"), 0 });
+                    Sound::SoundSystem_PlaySound(g_jump_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
                 }
             }
         }
@@ -548,7 +548,7 @@ void update_state() {
     Int deactivation_cvar = Cvar_GetInt("p_disable_deactivation");
     if (deactivation_cvar != g_last_deactivation_cvar_state) {
         if (g_engine->physicsWorld) {
-            Physics_SetDeactivationEnabled(g_engine->physicsWorld, deactivation_cvar == 0);
+            Physics::SetDeactivationEnabled(g_engine->physicsWorld, deactivation_cvar == 0);
         }
         g_last_deactivation_cvar_state = deactivation_cvar;
     }
@@ -575,10 +575,10 @@ void update_state() {
     }
     g_engine->running = Cvar_GetInt("engine_running");
     if (Cvar_GetInt("s_mute")) {
-        SoundSystem_SetMasterVolume(0.0f);
+        Sound::SoundSystem_SetMasterVolume(0.0f);
     }
     else {
-        SoundSystem_SetMasterVolume(Cvar_GetFloat("s_volume"));
+        Sound::SoundSystem_SetMasterVolume(Cvar_GetFloat("s_volume"));
     }
     g_engine->camera.rads_per_second = 0.0f;
     if (g_current_mode == MODE_GAME) {
@@ -588,7 +588,7 @@ void update_state() {
                 Float radius = atof(LogicEntity_GetProperty(ent, "radius", "500"));
                 Float rad_s = atof(LogicEntity_GetProperty(ent, "rad_s", "10.0"));
 
-                Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
+                Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(g_engine->camera.position, ent->pos));
                 if (dist_sq < radius * radius) {
                     g_engine->camera.rads_per_second += rad_s / fmaxf(1.0f, dist_sq);
                 }
@@ -620,9 +620,9 @@ void update_state() {
                 Float pitch = 1.0f + (g_engine->camera.rads_per_second / 50.0f);
                 pitch = fminf(pitch, 3.0f);
 
-                SoundSystem_PlaySound(g_geiger_tick_sound_buffer, g_engine->camera.position, 0.5f, pitch, 10.0f, false);
+                Sound::SoundSystem_PlaySound(g_geiger_tick_sound_buffer, g_engine->camera.position, 0.5f, pitch, 10.0f, false);
 
-                g_geiger_timer = interval + rand_float_range(0.0f, interval * 0.5f);
+                g_geiger_timer = interval + Math::rand_float_range(0.0f, interval * 0.5f);
             }
         }
     }
@@ -667,8 +667,8 @@ void update_state() {
     if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
         if (g_engine->heldObject == nullptr) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-            vec3_normalize(&forward);
-            Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 3.0f));
+            Math::vec3_normalize(&forward);
+            Vec3 ray_end = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(forward, 3.0f));
 
             for (Int i = 0; i < g_scene.numBrushes; ++i) {
                 Brush* brush = &g_scene.brushes[i];
@@ -690,7 +690,7 @@ void update_state() {
                     Brush_GetLocalAABB(brush, &brush_local_min, &brush_local_max);
 
                     Float t;
-                    if (RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
+                    if (Math::RayIntersectsOBB(g_engine->camera.position, forward, &brush->modelMatrix, brush_local_min, brush_local_max, &t) && t < 3.0f) {
                         g_engine->canUse = true;
                         break;
                     }
@@ -700,10 +700,10 @@ void update_state() {
                 LogicEntity* ent = &g_scene.logicEntities[i];
                 if (strcmp(ent->classname, "item_note") == 0) {
                     Float radius = atof(LogicEntity_GetProperty(ent, "radius", "1.0"));
-                    Float dist_sq = vec3_length_sq(vec3_sub(g_engine->camera.position, ent->pos));
-                    Vec3 to_ent = vec3_sub(ent->pos, g_engine->camera.position);
-                    vec3_normalize(&to_ent);
-                    Float dot = vec3_dot(forward, to_ent);
+                    Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(g_engine->camera.position, ent->pos));
+                    Vec3 to_ent = Math::vec3_sub(ent->pos, g_engine->camera.position);
+                    Math::vec3_normalize(&to_ent);
+                    Float dot = Math::vec3_dot(forward, to_ent);
 
                     if (dist_sq < (radius * radius) + 4.0f && dot > 0.9f) {
                         g_engine->canUse = true;
@@ -711,8 +711,8 @@ void update_state() {
                 }
             }
             RaycastHitInfo hitInfo;
-            if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
-                if (hitInfo.hitBody && Physics_GetMass(hitInfo.hitBody) < 2.0f && Physics_GetMass(hitInfo.hitBody) > 0.0f) {
+            if (Physics::Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hitInfo)) {
+                if (hitInfo.hitBody && Physics::GetMass(hitInfo.hitBody) < 2.0f && Physics::GetMass(hitInfo.hitBody) > 0.0f) {
                     g_engine->canUse = true;
                 }
             }
@@ -722,10 +722,10 @@ void update_state() {
     LogicSystem_Update(&g_scene, g_engine->deltaTime);
     if (g_engine->heldObject) {
         Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-        vec3_normalize(&forward);
-        Vec3 targetPos = vec3_add(g_engine->camera.position, vec3_muls(forward, g_engine->holdDistance));
+        Math::vec3_normalize(&forward);
+        Vec3 targetPos = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(forward, g_engine->holdDistance));
 
-        Physics_Teleport(g_engine->heldObject, targetPos);
+        Physics::Teleport(g_engine->heldObject, targetPos);
     }
     Scene_UpdateAnimations(&g_scene, g_engine->deltaTime);
     if (g_engine->active_camera_brush_index != -1) {
@@ -743,7 +743,7 @@ void update_state() {
                 t = fminf(g_engine->camera_transition_timer / moveto_time, 1.0f);
             }
 
-            g_engine->camera.position = vec3_lerp(g_engine->camera_original_pos, target_pos, t);
+            g_engine->camera.position = Math::vec3_lerp(g_engine->camera_original_pos, target_pos, t);
             g_engine->camera.yaw = g_engine->camera_original_yaw + (target_angles.y * (Common::PI / 180.0f) - g_engine->camera_original_yaw) * t;
             g_engine->camera.pitch = g_engine->camera_original_pitch + (target_angles.x * (Common::PI / 180.0f) - g_engine->camera_original_pitch) * t;
 
@@ -805,10 +805,10 @@ void update_state() {
         }
 
         if (light->type == LIGHT_SPOT) {
-            Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
+            Mat4 rot_mat = Math::create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
             Vec3 forward = { 0, 0, -1 };
-            light->direction = mat4_mul_vec3_dir(&rot_mat, forward);
-            vec3_normalize(&light->direction);
+            light->direction = Math::mat4_mul_vec3_dir(&rot_mat, forward);
+            Math::vec3_normalize(&light->direction);
         }
     }
     if (g_current_mode == MODE_MAINMENU || g_current_mode == MODE_INGAMEMENU) {
@@ -820,14 +820,14 @@ void update_state() {
         Float particle_cull_dist = Cvar_GetFloat("r_particles_cull_dist");
         Float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;
         for (Int i = 0; i < g_scene.numParticleEmitters; ++i) {
-            if (vec3_length_sq(vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
+            if (Math::vec3_length_sq(Math::vec3_sub(g_scene.particleEmitters[i].pos, g_engine->camera.position)) < particle_cull_dist_sq) {
                 ParticleEmitter_Update(&g_scene.particleEmitters[i], g_engine->deltaTime);
             }
         }
     }
     VideoPlayer_UpdateAll(&g_scene, g_engine->deltaTime);
     Vec3 playerPos;
-    Physics_GetPosition(g_engine->camera.physicsBody, &playerPos);
+    Physics::GetPosition(g_engine->camera.physicsBody, &playerPos);
 
     Int new_reverb_zone_index = -1;
     for (Int i = 0; i < g_scene.numBrushes; ++i) {
@@ -851,10 +851,10 @@ void update_state() {
         if (new_reverb_zone_index != -1) {
             Brush* b = &g_scene.brushes[new_reverb_zone_index];
             const Char* preset_str = Brush_GetProperty(b, "reverb_preset", "0");
-            SoundSystem_SetCurrentReverb((ReverbPreset)atoi(preset_str));
+            Sound::SoundSystem_SetCurrentReverb((ReverbPreset)atoi(preset_str));
         }
         else {
-            SoundSystem_SetCurrentReverb(REVERB_PRESET_NONE);
+            Sound::SoundSystem_SetCurrentReverb(REVERB_PRESET_NONE);
         }
     }
 
@@ -890,7 +890,7 @@ void update_state() {
                 Vec3 target_angles;
                 if (strlen(target_name) > 0 && IO_FindNamedEntity(&g_scene, target_name, &target_pos, &target_angles)) {
                     if (g_engine->camera.physicsBody) {
-                        Physics_Teleport(g_engine->camera.physicsBody, target_pos);
+                        Physics::Teleport(g_engine->camera.physicsBody, target_pos);
                     }
                     g_engine->camera.position = target_pos;
                     g_engine->camera.yaw = target_angles.y * (Common::PI / 180.0f);
@@ -938,11 +938,11 @@ void update_state() {
         }
     }
     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-    vec3_normalize(&forward); SoundSystem_UpdateListener(g_engine->camera.position, forward, Vec3{ 0, 1, 0 });
-    SoundSystem_Update();
+    Math::vec3_normalize(&forward); Sound::SoundSystem_UpdateListener(g_engine->camera.position, forward, Vec3{ 0, 1, 0 });
+    Sound::SoundSystem_Update();
     Bool noclip = Cvar_GetInt("noclip");
     if (!noclip) {
-        Vec3 vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+        Vec3 vel = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
         Bool on_ground = fabs(vel.y) < 0.1f;
 
         if (on_ground) {
@@ -951,7 +951,7 @@ void update_state() {
             g_distance_walked += sqrtf(dx * dx + dz * dz);
 
             if (g_distance_walked >= FOOTSTEP_DISTANCE) {
-                SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.5f, 1.0f, 50.0f, false);
+                Sound::SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.5f, 1.0f, 50.0f, false);
                 g_distance_walked = 0.0f;
             }
         }
@@ -966,7 +966,7 @@ void update_state() {
             Brush* b = &g_scene.brushes[i];
             // This causes some problems where the player floats in the air temporarily disable
             //if (strcmp(b->classname, "func_water") == 0 && b->numVertices > 0) {
-            //    Physics_ApplyBuoyancyInVolume(g_engine->physicsWorld, (const Float*)b->vertices, b->numVertices, &b->modelMatrix);
+            //    Physics::ApplyBuoyancyInVolume(g_engine->physicsWorld, (const Float*)b->vertices, b->numVertices, &b->modelMatrix);
             //}
         }
     }
@@ -996,21 +996,21 @@ void update_state() {
         Float yaw_rad = yaw * (Common::PI / 180.0f);
         Float roll_rad = roll * (Common::PI / 180.0f);
 
-        Mat4 rot_x_mat = mat4_rotate_x(pitch_rad);
-        Mat4 rot_y_mat = mat4_rotate_y(yaw_rad);
-        Mat4 rot_z_mat = mat4_rotate_z(roll_rad);
+        Mat4 rot_x_mat = Math::mat4_rotate_x(pitch_rad);
+        Mat4 rot_y_mat = Math::mat4_rotate_y(yaw_rad);
+        Mat4 rot_z_mat = Math::mat4_rotate_z(roll_rad);
         Mat4 rot_mat;
-        mat4_multiply(&rot_mat, &rot_y_mat, &rot_x_mat);
-        mat4_multiply(&rot_mat, &rot_z_mat, &rot_mat);
+        Math::mat4_multiply(&rot_mat, &rot_y_mat, &rot_x_mat);
+        Math::mat4_multiply(&rot_mat, &rot_z_mat, &rot_mat);
 
         Vec3 base_dir = { 1, 0, 0 };
-        Vec3 move_dir = mat4_mul_vec3_dir(&rot_mat, base_dir);
-        Vec3 conveyor_vel = vec3_muls(move_dir, speed);
+        Vec3 move_dir = Math::mat4_mul_vec3_dir(&rot_mat, base_dir);
+        Vec3 conveyor_vel = Math::vec3_muls(move_dir, speed);
 
         if (b->runtime_playerIsTouching) {
-            Vec3 player_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-            Physics_SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ conveyor_vel.x, player_vel.y, conveyor_vel.z });
-            Physics_Activate(g_engine->camera.physicsBody);
+            Vec3 player_vel = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
+            Physics::SetLinearVelocity(g_engine->camera.physicsBody, Vec3{ conveyor_vel.x, player_vel.y, conveyor_vel.z });
+            Physics::Activate(g_engine->camera.physicsBody);
         }
 
         Vec3 conveyor_min, conveyor_max;
@@ -1025,9 +1025,9 @@ void update_state() {
                         obj_pos.y > conveyor_min.y && obj_pos.y < conveyor_max.y + 1.0f &&
                         obj_pos.z > conveyor_min.z && obj_pos.z < conveyor_max.z)
                     {
-                        Vec3 obj_vel = Physics_GetLinearVelocity(obj->physicsBody);
-                        Physics_SetLinearVelocity(obj->physicsBody, Vec3{ conveyor_vel.x, obj_vel.y, conveyor_vel.z });
-                        Physics_Activate(obj->physicsBody);
+                        Vec3 obj_vel = Physics::GetLinearVelocity(obj->physicsBody);
+                        Physics::SetLinearVelocity(obj->physicsBody, Vec3{ conveyor_vel.x, obj_vel.y, conveyor_vel.z });
+                        Physics::Activate(obj->physicsBody);
                     }
                 }
             }
@@ -1038,10 +1038,10 @@ void update_state() {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_ladder") == 0 && b->runtime_playerIsTouching) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
-            vec3_normalize(&forward);
-            Vec3 ray_end = vec3_add(g_engine->camera.position, vec3_muls(forward, 2.0f));
+            Math::vec3_normalize(&forward);
+            Vec3 ray_end = Math::vec3_add(g_engine->camera.position, Math::vec3_muls(forward, 2.0f));
             RaycastHitInfo hit_info;
-            if (Physics_Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hit_info)) {
+            if (Physics::Raycast(g_engine->physicsWorld, g_engine->camera.position, ray_end, &hit_info)) {
                 g_player_on_ladder = true;
                 g_ladder_normal = hit_info.normal;
                 break;
@@ -1053,33 +1053,33 @@ void update_state() {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "trigger_gravity") == 0 && b->runtime_playerIsTouching) {
             Float gravity_val = atof(Brush_GetProperty(b, "gravity", "9.81"));
-            Physics_SetGravity(g_engine->physicsWorld, Vec3{ 0, -gravity_val, 0 });
+            Physics::SetGravity(g_engine->physicsWorld, Vec3{ 0, -gravity_val, 0 });
             in_gravity_zone = true;
             break;
         }
     }
 
     if (!in_gravity_zone) {
-        Physics_SetGravity(g_engine->physicsWorld, Vec3{ 0, -Cvar_GetFloat("gravity"), 0 });
+        Physics::SetGravity(g_engine->physicsWorld, Vec3{ 0, -Cvar_GetFloat("gravity"), 0 });
     }
     if (g_engine->camera.health <= 0.0f) {
         g_engine->camera.health = 100.0f;
         g_engine->prev_health = g_engine->camera.health;
-        Physics_Teleport(g_engine->camera.physicsBody, g_scene.playerStart.pos);
+        Physics::Teleport(g_engine->camera.physicsBody, g_scene.playerStart.pos);
     }
-    Physics_SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
+    Physics::SetGravityEnabled(g_engine->camera.physicsBody, !noclip);
     if (noclip) {
         Vec3 zeroVelocity = { 0, 0, 0 };
-        Physics_SetLinearVelocity(g_engine->camera.physicsBody, zeroVelocity);
+        Physics::SetLinearVelocity(g_engine->camera.physicsBody, zeroVelocity);
     }
 
     if (g_engine->physicsWorld) {
-        Physics_StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
+        Physics::StepSimulation(g_engine->physicsWorld, g_engine->deltaTime);
     }
 
     if (!noclip && !g_player_input_disabled) {
         Vec3 p;
-        Physics_GetPosition(g_engine->camera.physicsBody, &p);
+        Physics::GetPosition(g_engine->camera.physicsBody, &p);
 
         g_engine->camera.position.x = p.x;
         g_engine->camera.position.z = p.z;
@@ -1094,8 +1094,8 @@ void update_state() {
     }
 
     if (!noclip) {
-        Vec3 current_vel = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
-        Bool on_ground = Physics_CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
+        Vec3 current_vel = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
+        Bool on_ground = Physics::CheckGroundContact(g_engine->physicsWorld, g_engine->camera.physicsBody, 0.1f);
 
         if (on_ground && g_engine->prev_player_y_velocity < -1.0f) {
             Float fall_speed = -g_engine->prev_player_y_velocity;
@@ -1120,7 +1120,7 @@ void update_state() {
     for (Int i = 0; i < g_scene.numBrushes; ++i) {
         Brush* b = &g_scene.brushes[i];
         if (strcmp(b->classname, "func_door") == 0) {
-            if (vec3_length_sq(b->door_move_dir) < 0.001f) {
+            if (Math::vec3_length_sq(b->door_move_dir) < 0.001f) {
                 b->door_start_pos = b->pos;
                 Vec3 move_angles;
                 sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &move_angles.x, &move_angles.y, &move_angles.z);
@@ -1143,11 +1143,11 @@ void update_state() {
                 if (move_dist <= 0) {
                     Vec3 min_aabb_local, max_aabb_local;
                     Brush_GetLocalAABB(b, &min_aabb_local, &max_aabb_local);
-                    Vec3 size = vec3_sub(max_aabb_local, min_aabb_local);
+                    Vec3 size = Math::vec3_sub(max_aabb_local, min_aabb_local);
                     move_dist = fabsf(size.x * b->door_move_dir.x) + fabsf(size.y * b->door_move_dir.y) + fabsf(size.z * b->door_move_dir.z);
                 }
 
-                b->door_end_pos = vec3_add(b->door_start_pos, vec3_muls(b->door_move_dir, move_dist));
+                b->door_end_pos = Math::vec3_add(b->door_start_pos, Math::vec3_muls(b->door_move_dir, move_dist));
 
                 if (atoi(Brush_GetProperty(b, "StartOpen", "0")) == 1) {
                     b->pos = b->door_end_pos;
@@ -1157,13 +1157,13 @@ void update_state() {
                     b->door_state = DOOR_STATE_CLOSED;
                 }
                 Brush_UpdateMatrix(b);
-                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
 
             Float speed = atof(Brush_GetProperty(b, "speed", "100"));
             if (b->door_state == DOOR_STATE_OPENING) {
-                Vec3 to_end = vec3_sub(b->door_end_pos, b->pos);
-                Float dist_to_end = vec3_length(to_end);
+                Vec3 to_end = Math::vec3_sub(b->door_end_pos, b->pos);
+                Float dist_to_end = Math::vec3_length(to_end);
                 Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_end) {
@@ -1172,14 +1172,14 @@ void update_state() {
                     IO_FireOutput(ENTITY_BRUSH, i, "OnOpened", g_engine->lastFrame, nullptr);
                 }
                 else {
-                    b->pos = vec3_add(b->pos, vec3_muls(b->door_move_dir, move_dist));
+                    b->pos = Math::vec3_add(b->pos, Math::vec3_muls(b->door_move_dir, move_dist));
                 }
                 Brush_UpdateMatrix(b);
-                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
             else if (b->door_state == DOOR_STATE_CLOSING) {
-                Vec3 to_start = vec3_sub(b->door_start_pos, b->pos);
-                Float dist_to_start = vec3_length(to_start);
+                Vec3 to_start = Math::vec3_sub(b->door_start_pos, b->pos);
+                Float dist_to_start = Math::vec3_length(to_start);
                 Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_start) {
@@ -1188,17 +1188,17 @@ void update_state() {
                     IO_FireOutput(ENTITY_BRUSH, i, "OnClosed", g_engine->lastFrame, nullptr);
                 }
                 else {
-                    b->pos = vec3_add(b->pos, vec3_muls(vec3_muls(b->door_move_dir, -1.0f), move_dist));
+                    b->pos = Math::vec3_add(b->pos, Math::vec3_muls(Math::vec3_muls(b->door_move_dir, -1.0f), move_dist));
                 }
                 Brush_UpdateMatrix(b);
-                if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
         }
         if (strcmp(b->classname, "func_wall_toggle") == 0) {
             if (!b->runtime_hasFired) {
                 b->runtime_is_visible = (atoi(Brush_GetProperty(b, "StartON", "1")) != 0);
                 if (b->physicsBody) {
-                    Physics_ToggleCollision(g_engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
+                    Physics::ToggleCollision(g_engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
                 }
                 b->runtime_hasFired = true;
             }
@@ -1210,7 +1210,7 @@ void update_state() {
                 Float friction = atof(Brush_GetProperty(b, "fanfriction", "0"));
                 Float accel_factor = 1.0f - (friction / 100.0f);
                 Float lerp_speed = 2.0f + (accel_factor * 8.0f);
-                b->current_angular_velocity = vec3_lerp(Vec3{ b->current_angular_velocity, 0, 0 }, Vec3{ b->target_angular_velocity, 0, 0 }, g_engine->deltaTime * lerp_speed).x;
+                b->current_angular_velocity = Math::vec3_lerp(Vec3{ b->current_angular_velocity, 0, 0 }, Vec3{ b->target_angular_velocity, 0, 0 }, g_engine->deltaTime * lerp_speed).x;
             }
             else {
                 b->current_angular_velocity = b->target_angular_velocity;
@@ -1222,8 +1222,8 @@ void update_state() {
                 if (atoi(Brush_GetProperty(b, "YAxis", "0")) != 0) rotation_axis = Vec3{ 0, 1, 0 };
 
                 Float deg_per_sec = b->current_angular_velocity;
-                Vec3 delta_rot = vec3_muls(rotation_axis, deg_per_sec * g_engine->deltaTime);
-                b->rot = vec3_add(b->rot, delta_rot);
+                Vec3 delta_rot = Math::vec3_muls(rotation_axis, deg_per_sec * g_engine->deltaTime);
+                b->rot = Math::vec3_add(b->rot, delta_rot);
 
                 b->rot.x = fmodf(b->rot.x, 360.0f);
                 b->rot.y = fmodf(b->rot.y, 360.0f);
@@ -1231,7 +1231,7 @@ void update_state() {
 
                 Brush_UpdateMatrix(b);
                 if (b->physicsBody) {
-                    Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                    Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
                 }
             }
         }
@@ -1248,8 +1248,8 @@ void update_state() {
             }
 
             if (b->plat_state == PLAT_STATE_UP) {
-                Vec3 to_end = vec3_sub(b->end_pos, b->pos);
-                Float dist_to_end = vec3_length(to_end);
+                Vec3 to_end = Math::vec3_sub(b->end_pos, b->pos);
+                Float dist_to_end = Math::vec3_length(to_end);
                 Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_end) {
@@ -1258,12 +1258,12 @@ void update_state() {
                     b->wait_timer = wait;
                 }
                 else {
-                    b->pos = vec3_add(b->pos, vec3_muls(b->move_dir, move_dist));
+                    b->pos = Math::vec3_add(b->pos, Math::vec3_muls(b->move_dir, move_dist));
                 }
             }
             else if (b->plat_state == PLAT_STATE_DOWN) {
-                Vec3 to_start = vec3_sub(b->start_pos, b->pos);
-                Float dist_to_start = vec3_length(to_start);
+                Vec3 to_start = Math::vec3_sub(b->start_pos, b->pos);
+                Float dist_to_start = Math::vec3_length(to_start);
                 Float move_dist = speed * g_engine->deltaTime;
 
                 if (move_dist >= dist_to_start) {
@@ -1271,7 +1271,7 @@ void update_state() {
                     b->plat_state = PLAT_STATE_BOTTOM;
                 }
                 else {
-                    b->pos = vec3_add(b->pos, vec3_muls(vec3_muls(b->move_dir, -1.0f), move_dist));
+                    b->pos = Math::vec3_add(b->pos, Math::vec3_muls(Math::vec3_muls(b->move_dir, -1.0f), move_dist));
                 }
             }
             else if (b->plat_state == PLAT_STATE_TOP) {
@@ -1285,18 +1285,18 @@ void update_state() {
 
             Brush_UpdateMatrix(b);
             if (b->physicsBody) {
-                Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
             }
         }
         if (strcmp(b->classname, "func_pendulum") == 0) {
-            if (vec3_length_sq(b->pendulum_swing_dir) < 0.001f) {
+            if (Math::vec3_length_sq(b->pendulum_swing_dir) < 0.001f) {
                 b->pendulum_start_pos = b->pos;
                 Vec3 swing_angles;
                 sscanf(Brush_GetProperty(b, "direction", "0 90 0"), "%f %f %f", &swing_angles.x, &swing_angles.y, &swing_angles.z);
 
-                Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, swing_angles, Vec3{ 1, 1, 1 });
-                b->pendulum_swing_dir = mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
-                vec3_normalize(&b->pendulum_swing_dir);
+                Mat4 rot_mat = Math::create_trs_matrix(Vec3{ 0, 0, 0 }, swing_angles, Vec3{ 1, 1, 1 });
+                b->pendulum_swing_dir = Math::mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
+                Math::vec3_normalize(&b->pendulum_swing_dir);
 
                 if (atoi(Brush_GetProperty(b, "StartON", "1")) == 1) {
                     b->runtime_active = true;
@@ -1308,20 +1308,20 @@ void update_state() {
                 Float distance = atof(Brush_GetProperty(b, "distance", "10.0"));
 
                 Float sine_wave_pos = sinf(g_engine->scaledTime * speed * 2.0f * Common::PI);
-                Vec3 offset = vec3_muls(b->pendulum_swing_dir, sine_wave_pos * distance);
+                Vec3 offset = Math::vec3_muls(b->pendulum_swing_dir, sine_wave_pos * distance);
 
-                b->pos = vec3_add(b->pendulum_start_pos, offset);
+                b->pos = Math::vec3_add(b->pendulum_start_pos, offset);
 
                 Brush_UpdateMatrix(b);
                 if (b->physicsBody) {
-                    Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                    Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
                 }
             }
         }
         if (strcmp(b->classname, "func_weight_button") == 0) {
             if (b->physicsBody) {
                 Float required_weight = atof(Brush_GetProperty(b, "weight", "50"));
-                Float current_weight = Physics_GetTotalMassOnObject(g_engine->physicsWorld, b->physicsBody);
+                Float current_weight = Physics::GetTotalMassOnObject(g_engine->physicsWorld, b->physicsBody);
 
                 Bool is_pressed = current_weight >= required_weight;
 
@@ -1358,19 +1358,19 @@ void update_state() {
             SceneObject* obj = &g_scene.objects[i];
             if (obj->physicsBody && obj->mass > 0.0f) {
                 Float phys_matrix_data[16];
-                Physics_GetRigidBodyTransform(obj->physicsBody, phys_matrix_data);
+                Physics::GetRigidBodyTransform(obj->physicsBody, phys_matrix_data);
                 Mat4 physics_transform;
                 memcpy(&physics_transform, phys_matrix_data, sizeof(Mat4));
-                Mat4 scale_transform = mat4_scale(obj->scale);
-                mat4_multiply(&obj->modelMatrix, &physics_transform, &scale_transform);
-                mat4_decompose(&obj->modelMatrix, &obj->pos, &obj->rot, &obj->scale);
+                Mat4 scale_transform = Math::mat4_scale(obj->scale);
+                Math::mat4_multiply(&obj->modelMatrix, &physics_transform, &scale_transform);
+                Math::mat4_decompose(&obj->modelMatrix, &obj->pos, &obj->rot, &obj->scale);
             }
         }
         for (Int i = 0; i < g_scene.numBrushes; ++i) {
             Brush* b = &g_scene.brushes[i];
             if (b->physicsBody && b->mass > 0.0f) {
                 Float phys_matrix_data[16];
-                Physics_GetRigidBodyTransform(b->physicsBody, phys_matrix_data);
+                Physics::GetRigidBodyTransform(b->physicsBody, phys_matrix_data);
                 memcpy(&b->modelMatrix, phys_matrix_data, sizeof(Mat4));
             }
         }

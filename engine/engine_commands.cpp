@@ -82,7 +82,7 @@ void Cmd_SetPos(Int argc, Char** argv) {
         Float z = atof(argv[3]);
         Vec3 new_pos = { x, y, z };
         if (g_engine->camera.physicsBody) {
-            Physics_Teleport(g_engine->camera.physicsBody, new_pos);
+            Physics::Teleport(g_engine->camera.physicsBody, new_pos);
         }
         g_engine->camera.position = new_pos;
         Console_Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
@@ -98,7 +98,7 @@ void Cmd_Noclip(Int argc, Char** argv) {
         Bool currently_noclip = c->intValue;
         Cvar_Set("noclip", currently_noclip ? "0" : "1");
         if (currently_noclip) {
-            Physics_Teleport(g_engine->camera.physicsBody, g_engine->camera.position);
+            Physics::Teleport(g_engine->camera.physicsBody, g_engine->camera.position);
         }
     }
 }

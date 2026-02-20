@@ -99,7 +99,7 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
 
     Mat4 finalModelMatrix = obj->modelMatrix;
     if (obj->model && obj->model->num_animations > 0 && obj->model->num_skins == 0) {
-        mat4_multiply(&finalModelMatrix, &obj->modelMatrix, &obj->animated_local_transform);
+        Math::mat4_multiply(&finalModelMatrix, &obj->modelMatrix, &obj->animated_local_transform);
     }
 
     Shader_Set(shader, "model", &finalModelMatrix);
@@ -361,8 +361,8 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
 void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Vec3 cameraPos, Bool unlit, Bool is_reflection_pass) {
     Frustum frustum;
     Mat4 view_proj;
-    mat4_multiply(&view_proj, projection, view);
-    extract_frustum_planes(&view_proj, &frustum, true);
+    Math::mat4_multiply(&view_proj, projection, view);
+    Math::extract_frustum_planes(&view_proj, &frustum, true);
 
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
     glViewport(0, 0, engine->width / Cvar_GetFloat("r_geometry_downsample"), engine->height / Cvar_GetFloat("r_geometry_downsample"));
@@ -475,7 +475,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     Shader_Set(renderer->mainShader, "flashlight.enabled", (Int)engine->flashlight_on);
     if (engine->flashlight_on) {
         Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
-        vec3_normalize(&forward);
+        Math::vec3_normalize(&forward);
         Shader_Set(renderer->mainShader, "flashlight.position", engine->camera.position);
         Shader_Set(renderer->mainShader, "flashlight.direction", forward);
     }
@@ -489,7 +489,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 Float distances[8];
                 for (Int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
                 for (Int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
-                    Float d = vec3_length_sq(vec3_sub(obj->pos, scene->ambient_probes[p_idx].position));
+                    Float d = Math::vec3_length_sq(Math::vec3_sub(obj->pos, scene->ambient_probes[p_idx].position));
                     for (Int k = 0; k < 8; ++k) {
                         if (d < distances[k]) {
                             for (Int l = 7; l > k; --l) {
@@ -525,7 +525,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
             Vec3 world_aabb_min = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 world_aabb_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
             for (Int j = 0; j < 8; ++j) {
-                Vec3 transformed_corner = mat4_mul_vec3(&obj->modelMatrix, local_corners[j]);
+                Vec3 transformed_corner = Math::mat4_mul_vec3(&obj->modelMatrix, local_corners[j]);
                 world_aabb_min.x = fminf(world_aabb_min.x, transformed_corner.x);
                 world_aabb_min.y = fminf(world_aabb_min.y, transformed_corner.y);
                 world_aabb_min.z = fminf(world_aabb_min.z, transformed_corner.z);
@@ -533,7 +533,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
                 world_aabb_max.y = fmaxf(world_aabb_max.y, transformed_corner.y);
                 world_aabb_max.z = fmaxf(world_aabb_max.z, transformed_corner.z);
             }
-            if (!frustum_check_aabb(&frustum, world_aabb_min, world_aabb_max)) {
+            if (!Math::frustum_check_aabb(&frustum, world_aabb_min, world_aabb_max)) {
                 continue;
             }
         }
@@ -550,11 +550,11 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
             Vec3 min_v = { FLT_MAX, FLT_MAX, FLT_MAX };
             Vec3 max_v = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
             for (Int j = 0; j < b->numVertices; ++j) {
-                Vec3 p = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                Vec3 p = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
                 min_v.x = fminf(min_v.x, p.x); min_v.y = fminf(min_v.y, p.y); min_v.z = fminf(min_v.z, p.z);
                 max_v.x = fmaxf(max_v.x, p.x); max_v.y = fmaxf(max_v.y, p.y); max_v.z = fmaxf(max_v.z, p.z);
             }
-            if (!frustum_check_aabb(&frustum, min_v, max_v)) {
+            if (!Math::frustum_check_aabb(&frustum, min_v, max_v)) {
                 continue;
             }
         }

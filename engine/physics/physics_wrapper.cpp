@@ -43,7 +43,8 @@ struct RigidBody {
     btRigidBody* body;
 };
 
-    PhysicsWorldHandle Physics_CreateWorld(Float gravity_y) {
+namespace Physics {
+    PhysicsWorldHandle CreateWorld(Float gravity_y) {
         PhysicsWorld* world = new PhysicsWorld();
         world->collisionConfiguration = new btDefaultCollisionConfiguration();
         world->dispatcher = new btCollisionDispatcher(world->collisionConfiguration);
@@ -54,7 +55,7 @@ struct RigidBody {
         return world;
     }
 
-    void Physics_DestroyWorld(PhysicsWorldHandle handle) {
+    void DestroyWorld(PhysicsWorldHandle handle) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -86,13 +87,13 @@ struct RigidBody {
         delete world;
     }
 
-    void Physics_StepSimulation(PhysicsWorldHandle handle, Float deltaTime) {
+    void StepSimulation(PhysicsWorldHandle handle, Float deltaTime) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         world->dynamicsWorld->stepSimulation(deltaTime, 10, 1.0f / 60.0f);
     }
 
-    RigidBodyHandle Physics_CreatePlayerCapsule(PhysicsWorldHandle handle, Float radius, Float totalHeight, Float mass, Vec3 startPos) {
+    RigidBodyHandle CreatePlayerCapsule(PhysicsWorldHandle handle, Float radius, Float totalHeight, Float mass, Vec3 startPos) {
         if (!handle) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -132,7 +133,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateDynamicConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints, Float mass, Mat4 transform) {
+    RigidBodyHandle CreateDynamicConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints, Float mass, Mat4 transform) {
         if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -164,7 +165,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateDynamicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Int stride, Float mass, Mat4 transform) {
+    RigidBodyHandle CreateDynamicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Int stride, Float mass, Mat4 transform) {
         if (!handle || !vertices || numVertices == 0 || mass <= 0.0f) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -192,7 +193,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateStaticTriangleMesh(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Uint* indices, Int numIndices, Mat4 transform, Vec3 scale) {
+    RigidBodyHandle CreateStaticTriangleMesh(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Uint* indices, Int numIndices, Mat4 transform, Vec3 scale) {
         if (!handle || !vertices || numVertices == 0 || !indices || numIndices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -236,7 +237,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateStaticConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints) {
+    RigidBodyHandle CreateStaticConvexHull(PhysicsWorldHandle handle, const Float* points, Int numPoints) {
         if (!handle || !points || numPoints == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -259,7 +260,7 @@ struct RigidBody {
         return rb;
     }
 
-    RigidBodyHandle Physics_CreateKinematicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Mat4 transform) {
+    RigidBodyHandle CreateKinematicBrush(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, Mat4 transform) {
         if (!handle || !vertices || numVertices == 0) return nullptr;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -283,7 +284,7 @@ struct RigidBody {
         return rb;
     }
 
-    void Physics_RemoveRigidBody(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
+    void RemoveRigidBody(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
         if (!handle || !bodyHandle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -312,7 +313,7 @@ struct RigidBody {
         delete rb;
     }
 
-    void Physics_GetRigidBodyTransform(RigidBodyHandle bodyHandle, Float* transformMatrix) {
+    void GetRigidBodyTransform(RigidBodyHandle bodyHandle, Float* transformMatrix) {
         if (!bodyHandle || !transformMatrix) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         btTransform trans;
@@ -325,7 +326,7 @@ struct RigidBody {
         trans.getOpenGLMatrix(transformMatrix);
     }
 
-    void Physics_GetPosition(RigidBodyHandle bodyHandle, Vec3* position) {
+    void GetPosition(RigidBodyHandle bodyHandle, Vec3* position) {
         if (!bodyHandle || !position) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         const btVector3& pos = rb->body->getWorldTransform().getOrigin();
@@ -334,7 +335,7 @@ struct RigidBody {
         position->z = pos.z();
     }
 
-    void Physics_SetWorldTransform(RigidBodyHandle bodyHandle, Mat4 transform) {
+    void SetWorldTransform(RigidBodyHandle bodyHandle, Mat4 transform) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (rb->body) {
@@ -348,32 +349,32 @@ struct RigidBody {
         }
     }
 
-    void Physics_SetLinearVelocity(RigidBodyHandle bodyHandle, Vec3 velocity) {
+    void SetLinearVelocity(RigidBodyHandle bodyHandle, Vec3 velocity) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         rb->body->setLinearVelocity(btVector3(velocity.x, velocity.y, velocity.z));
     }
 
-    void Physics_ApplyCentralImpulse(RigidBodyHandle bodyHandle, Vec3 impulse) {
+    void ApplyCentralImpulse(RigidBodyHandle bodyHandle, Vec3 impulse) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         rb->body->applyCentralImpulse(btVector3(impulse.x, impulse.y, impulse.z));
     }
 
-    void Physics_Activate(RigidBodyHandle bodyHandle) {
+    void Activate(RigidBodyHandle bodyHandle) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         rb->body->activate(true);
     }
 
-    Vec3 Physics_GetLinearVelocity(RigidBodyHandle bodyHandle) {
+    Vec3 GetLinearVelocity(RigidBodyHandle bodyHandle) {
         if (!bodyHandle) return Vec3{ 0,0,0 };
         RigidBody* rb = (RigidBody*)bodyHandle;
         btVector3 vel = rb->body->getLinearVelocity();
         return Vec3{ vel.x(), vel.y(), vel.z() };
     }
 
-    void Physics_SetGravityEnabled(RigidBodyHandle bodyHandle, Bool enabled) {
+    void SetGravityEnabled(RigidBodyHandle bodyHandle, Bool enabled) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         Int flags = rb->body->getFlags();
@@ -386,7 +387,7 @@ struct RigidBody {
         rb->body->activate(true);
     }
 
-    void Physics_ToggleCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Bool enabled) {
+    void ToggleCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Bool enabled) {
         if (!handle || !bodyHandle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -410,7 +411,7 @@ struct RigidBody {
         }
     }
 
-    void Physics_Teleport(RigidBodyHandle bodyHandle, Vec3 position) {
+    void Teleport(RigidBodyHandle bodyHandle, Vec3 position) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         btTransform trans = rb->body->getWorldTransform();
@@ -422,7 +423,7 @@ struct RigidBody {
         rb->body->activate(true);
     }
 
-    void Physics_RecheckCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
+    void RecheckCollision(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
         if (!handle || !bodyHandle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -432,7 +433,7 @@ struct RigidBody {
         }
     }
 
-    Bool Physics_Raycast(PhysicsWorldHandle handle, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo) {
+    Bool Raycast(PhysicsWorldHandle handle, Vec3 start, Vec3 end, RaycastHitInfo* hitInfo) {
         if (!handle || !hitInfo) return false;
         PhysicsWorld* world = (PhysicsWorld*)handle;
 
@@ -464,7 +465,7 @@ struct RigidBody {
         return false;
     }
 
-    Float Physics_GetMass(RigidBodyHandle bodyHandle) {
+    Float GetMass(RigidBodyHandle bodyHandle) {
         if (!bodyHandle) return 0.0f;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (!rb->body) return 0.0f;
@@ -475,7 +476,7 @@ struct RigidBody {
         return 1.0f / invMass;
     }
 
-    void Physics_SetCcdEnabled(RigidBodyHandle bodyHandle, Bool enabled, Float motion_threshold) {
+    void SetCcdEnabled(RigidBodyHandle bodyHandle, Bool enabled, Float motion_threshold) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (!rb->body) return;
@@ -489,7 +490,7 @@ struct RigidBody {
         }
     }
 
-    void Physics_ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos) {
+    void ApplyImpulse(RigidBodyHandle bodyHandle, Vec3 impulse, Vec3 rel_pos) {
         if (!bodyHandle) return;
         RigidBody* rb = (RigidBody*)bodyHandle;
         if (rb->body && rb->body->getMass() > 0.0f) {
@@ -498,7 +499,7 @@ struct RigidBody {
         }
     }
 
-    void Physics_ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Mat4* transform) {
+    void ApplyBuoyancyInVolume(PhysicsWorldHandle handle, const Float* vertices, Int numVertices, const Mat4* transform) {
         if (!handle || !vertices || numVertices == 0) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         btDynamicsWorld* dynamicsWorld = world->dynamicsWorld;
@@ -543,7 +544,7 @@ struct RigidBody {
         }
     }
 
-    void Physics_SetDeactivationEnabled(PhysicsWorldHandle handle, Bool enabled) {
+    void SetDeactivationEnabled(PhysicsWorldHandle handle, Bool enabled) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         g_physics_deactivation_enabled = enabled;
@@ -564,7 +565,7 @@ struct RigidBody {
         }
     }
 
-    Bool Physics_CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Float groundCheckDistance) {
+    Bool CheckGroundContact(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle, Float groundCheckDistance) {
         if (!handle || !bodyHandle) return false;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -599,7 +600,7 @@ struct RigidBody {
         return false;
     }
 
-    Float Physics_GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
+    Float GetTotalMassOnObject(PhysicsWorldHandle handle, RigidBodyHandle bodyHandle) {
         if (!handle || !bodyHandle) return 0.0f;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         RigidBody* rb = (RigidBody*)bodyHandle;
@@ -637,7 +638,7 @@ struct RigidBody {
         return totalMass;
     }
 
-    void Physics_SetGravity(PhysicsWorldHandle handle, Vec3 gravity) {
+    void SetGravity(PhysicsWorldHandle handle, Vec3 gravity) {
         if (!handle) return;
         PhysicsWorld* world = (PhysicsWorld*)handle;
         world->dynamicsWorld->setGravity(btVector3(gravity.x, gravity.y, gravity.z));
@@ -650,3 +651,4 @@ struct RigidBody {
             }
         }
     }
+}

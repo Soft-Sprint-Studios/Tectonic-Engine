@@ -44,7 +44,7 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         }
         if (light->is_static == 1) continue;
         if (light->intensity <= 0.0f) continue;
-        if (vec3_length_sq(vec3_sub(light->pos, engine->camera.position)) > max_shadow_dist_sq) continue;
+        if (Math::vec3_length_sq(Math::vec3_sub(light->pos, engine->camera.position)) > max_shadow_dist_sq) continue;
         
         glBindFramebuffer(GL_FRAMEBUFFER, light->shadowFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -52,16 +52,16 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
         if (light->type == LIGHT_POINT) {
             current_shader = renderer->pointDepthShader;
             glUseProgram(current_shader);
-            Mat4 shadowProj = mat4_perspective(90.0f * Common::PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Mat4 shadowProj = Math::mat4_perspective(90.0f * Common::PI / 180.0f, 1.0f, 1.0f, light->shadowFarPlane);
             Mat4 shadowTransforms[6];
-            shadowTransforms[0] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 1, 0, 0 }), Vec3{ 0, -1, 0 });
-            shadowTransforms[1] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ -1, 0, 0 }), Vec3{ 0, -1, 0 });
-            shadowTransforms[2] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, 1, 0 }), Vec3{ 0, 0, 1 });
-            shadowTransforms[3] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, -1, 0 }), Vec3{ 0, 0, -1 });
-            shadowTransforms[4] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, 0, 1 }), Vec3{ 0, -1, 0 });
-            shadowTransforms[5] = mat4_lookAt(light->pos, vec3_add(light->pos, Vec3{ 0, 0, -1 }), Vec3{ 0, -1, 0 });
+            shadowTransforms[0] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ 1, 0, 0 }), Vec3{ 0, -1, 0 });
+            shadowTransforms[1] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ -1, 0, 0 }), Vec3{ 0, -1, 0 });
+            shadowTransforms[2] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ 0, 1, 0 }), Vec3{ 0, 0, 1 });
+            shadowTransforms[3] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ 0, -1, 0 }), Vec3{ 0, 0, -1 });
+            shadowTransforms[4] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ 0, 0, 1 }), Vec3{ 0, -1, 0 });
+            shadowTransforms[5] = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, Vec3{ 0, 0, -1 }), Vec3{ 0, -1, 0 });
             for (Int j = 0; j < 6; ++j) {
-                mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]);
+                Math::mat4_multiply(&shadowTransforms[j], &shadowProj, &shadowTransforms[j]);
                 Char uName[64];
                 sprintf(uName, "shadowMatrices[%d]", j);
                 Shader_Set(current_shader, uName, &shadowTransforms[j]);
@@ -73,10 +73,10 @@ void Shadows_RenderPointAndSpot(Renderer* renderer, Scene* scene, Engine* engine
             current_shader = renderer->spotDepthShader;
             glUseProgram(current_shader);
             Float angle_rad = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff))); if (angle_rad < 0.01f) angle_rad = 0.01f;
-            Mat4 lightProjection = mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
-            Vec3 up_vector = Vec3{ 0, 1, 0 }; if (fabs(vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = Vec3{ 1, 0, 0 }; }
-            Mat4 lightView = mat4_lookAt(light->pos, vec3_add(light->pos, light->direction), up_vector);
-            Mat4 lightSpaceMatrix; mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
+            Mat4 lightProjection = Math::mat4_perspective(angle_rad * 2.0f, 1.0f, 1.0f, light->shadowFarPlane);
+            Vec3 up_vector = Vec3{ 0, 1, 0 }; if (fabs(Math::vec3_dot(light->direction, up_vector)) > 0.99f) { up_vector = Vec3{ 1, 0, 0 }; }
+            Mat4 lightView = Math::mat4_lookAt(light->pos, Math::vec3_add(light->pos, light->direction), up_vector);
+            Mat4 lightSpaceMatrix; Math::mat4_multiply(&lightSpaceMatrix, &lightProjection, &lightView);
             Shader_Set(current_shader, "lightSpaceMatrix", &lightSpaceMatrix);
         }
         for (Int j = 0; j < scene->numObjects; ++j) {

@@ -92,32 +92,32 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec3 p1 = g_EditorState.clip_points[0];
                 Vec3 p2 = g_EditorState.clip_points[1];
                 Vec3 plane_normal;
-                Vec3 dir = vec3_sub(p2, p1);
+                Vec3 dir = Math::vec3_sub(p2, p1);
 
-                if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, Vec3{ 0, 1, 0 }); }
-                else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, Vec3{ 0, 0, 1 }); }
-                else { plane_normal = vec3_cross(dir, Vec3{ 1, 0, 0 }); }
-                vec3_normalize(&plane_normal);
+                if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = Math::vec3_cross(dir, Vec3{ 0, 1, 0 }); }
+                else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = Math::vec3_cross(dir, Vec3{ 0, 0, 1 }); }
+                else { plane_normal = Math::vec3_cross(dir, Vec3{ 1, 0, 0 }); }
+                Math::vec3_normalize(&plane_normal);
 
-                Float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
+                Float side_check = Math::vec3_dot(plane_normal, Math::vec3_sub(g_EditorState.clip_side_point, p1));
                 if (side_check < 0.0f) {
-                    plane_normal = vec3_muls(plane_normal, -1.0f);
+                    plane_normal = Math::vec3_muls(plane_normal, -1.0f);
                 }
 
-                Float plane_d_a = -vec3_dot(plane_normal, p1);
+                Float plane_d_a = -Math::vec3_dot(plane_normal, p1);
                 Float plane_d_b = -plane_d_a;
-                Vec3 plane_normal_b = vec3_muls(plane_normal, -1.0f);
+                Vec3 plane_normal_b = Math::vec3_muls(plane_normal, -1.0f);
 
                 Brush_Clip(original_brush, plane_normal, plane_d_a);
                 Brush_CreateRenderData(original_brush);
-                if (original_brush->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, original_brush->physicsBody);
+                if (original_brush->physicsBody) Physics::RemoveRigidBody(engine->physicsWorld, original_brush->physicsBody);
                 if (Brush_IsSolid(original_brush) && original_brush->numVertices > 0) {
                     Vec3* world_verts = new Vec3[original_brush->numVertices];
 
                     for (Int k = 0; k < original_brush->numVertices; ++k)
-                        world_verts[k] = mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
+                        world_verts[k] = Math::mat4_mul_vec3(&original_brush->modelMatrix, original_brush->vertices[k].pos);
 
-                    original_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), original_brush->numVertices);
+                    original_brush->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), original_brush->numVertices);
 
                     delete[] world_verts;
                 }
@@ -138,9 +138,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         Vec3* world_verts = new Vec3[new_b_ptr->numVertices];
 
                         for (Int k = 0; k < new_b_ptr->numVertices; ++k)
-                            world_verts[k] = mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
+                            world_verts[k] = Math::mat4_mul_vec3(&new_b_ptr->modelMatrix, new_b_ptr->vertices[k].pos);
 
-                        new_b_ptr->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_b_ptr->numVertices);
+                        new_b_ptr->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_b_ptr->numVertices);
 
                         delete[] world_verts;
                     }
@@ -309,24 +309,24 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
 
             Brush* b = &scene->brushes[primary->index];
-            g_EditorState.vertex_drag_start_pos_world = mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
+            g_EditorState.vertex_drag_start_pos_world = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
 
             Vec3 cam_forward = { g_view_matrix[VIEW_PERSPECTIVE].m[2], g_view_matrix[VIEW_PERSPECTIVE].m[6], g_view_matrix[VIEW_PERSPECTIVE].m[10] };
             Vec3 axis_dir = { 0 };
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            Float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
+            Float dot_product = fabsf(Math::vec3_dot(axis_dir, cam_forward));
             if (dot_product > 0.99f) { if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.vertex_gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
-            else { g_EditorState.vertex_gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
-            g_EditorState.vertex_gizmo_drag_plane_d = -vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
+            else { g_EditorState.vertex_gizmo_drag_plane_normal = Math::vec3_cross(axis_dir, cam_forward); Math::vec3_normalize(&g_EditorState.vertex_gizmo_drag_plane_normal); }
+            g_EditorState.vertex_gizmo_drag_plane_d = -Math::vec3_dot(g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_drag_start_pos_world);
 
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
             Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
             Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-            Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+            Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+            Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
             ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_gizmo_drag_plane_d, &g_EditorState.vertex_gizmo_drag_start_world);
             return;
         }
@@ -351,10 +351,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
                 default: pos = Vec3{ 0 }; break;
                 }
-                g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
+                g_EditorState.gizmo_selection_centroid = Math::vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }
             if (g_EditorState.num_selections > 0) {
-                g_EditorState.gizmo_selection_centroid = vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
+                g_EditorState.gizmo_selection_centroid = Math::vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
             }
             delete[] g_EditorState.gizmo_drag_start_positions;
             delete[] g_EditorState.gizmo_drag_start_rotations;
@@ -507,16 +507,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                     if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                    Float dot_product = fabsf(vec3_dot(axis_dir, cam_forward));
+                    Float dot_product = fabsf(Math::vec3_dot(axis_dir, cam_forward));
                     if (dot_product > 0.99f) { if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) { g_EditorState.gizmo_drag_plane_normal = Vec3{ 0, 1, 0 }; } else { g_EditorState.gizmo_drag_plane_normal = Vec3{ 1, 0, 0 }; } }
-                    else { g_EditorState.gizmo_drag_plane_normal = vec3_cross(axis_dir, cam_forward); vec3_normalize(&g_EditorState.gizmo_drag_plane_normal); }
-                    g_EditorState.gizmo_drag_plane_d = -vec3_dot(g_EditorState.gizmo_drag_plane_normal, drag_object_anchor_pos);
+                    else { g_EditorState.gizmo_drag_plane_normal = Math::vec3_cross(axis_dir, cam_forward); Math::vec3_normalize(&g_EditorState.gizmo_drag_plane_normal); }
+                    g_EditorState.gizmo_drag_plane_d = -Math::vec3_dot(g_EditorState.gizmo_drag_plane_normal, drag_object_anchor_pos);
                     Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
                     Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                     Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                    Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                    Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                    Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                    Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                    Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
                     ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &g_EditorState.gizmo_drag_start_world);
                 }
                 else {
@@ -533,13 +533,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
                 Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
                 Vec3 intersect_point;
-                if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, -vec3_dot(g_EditorState.gizmo_drag_plane_normal, object_pos_for_rotate_plane), &intersect_point)) {
-                    g_EditorState.gizmo_rotation_start_vec = vec3_sub(intersect_point, object_pos_for_rotate_plane);
-                    vec3_normalize(&g_EditorState.gizmo_rotation_start_vec);
+                if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, -Math::vec3_dot(g_EditorState.gizmo_drag_plane_normal, object_pos_for_rotate_plane), &intersect_point)) {
+                    g_EditorState.gizmo_rotation_start_vec = Math::vec3_sub(intersect_point, object_pos_for_rotate_plane);
+                    Math::vec3_normalize(&g_EditorState.gizmo_rotation_start_vec);
                 }
                 break;
             }
@@ -552,7 +552,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Float pick_dist_sq = (g_EditorState.ortho_cam_zoom[active_viewport - 1] * 0.05f);
             pick_dist_sq *= pick_dist_sq;
             for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                 Float dist_sq = 0;
                 if (active_viewport == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
                 if (active_viewport == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
@@ -625,13 +625,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         }
         else if (g_EditorState.is_dragging_preview_brush_body) {
             Vec3 current_mouse_world_unprojected = ScreenToWorld_Unsnapped_ForOrthoPicking(g_EditorState.mouse_pos_in_viewport[g_EditorState.preview_brush_drag_body_view], g_EditorState.preview_brush_drag_body_view);
-            Vec3 delta = vec3_sub(current_mouse_world_unprojected, g_EditorState.preview_brush_drag_body_start_mouse_world);
+            Vec3 delta = Math::vec3_sub(current_mouse_world_unprojected, g_EditorState.preview_brush_drag_body_start_mouse_world);
 
             Vec3 current_brush_min_before_move = g_EditorState.preview_brush_world_min;
             Vec3 current_brush_max_before_move = g_EditorState.preview_brush_world_max;
-            Vec3 brush_size = vec3_sub(current_brush_max_before_move, current_brush_min_before_move);
+            Vec3 brush_size = Math::vec3_sub(current_brush_max_before_move, current_brush_min_before_move);
 
-            Vec3 new_world_min = vec3_add(g_EditorState.preview_brush_drag_body_start_brush_world_min_at_drag_start, delta);
+            Vec3 new_world_min = Math::vec3_add(g_EditorState.preview_brush_drag_body_start_brush_world_min_at_drag_start, delta);
             Vec3 new_world_max;
 
             if (g_EditorState.snap_to_grid) {
@@ -654,7 +654,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     new_world_min.x = original_min_at_drag_start_for_fixed_axes.x;
                 }
             }
-            new_world_max = vec3_add(new_world_min, brush_size);
+            new_world_max = Math::vec3_add(new_world_min, brush_size);
 
             g_EditorState.preview_brush_world_min = new_world_min;
             g_EditorState.preview_brush_world_max = new_world_max;
@@ -691,7 +691,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
 
                     for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                        Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                         Float dist_sq = 0;
                         if (i == VIEW_TOP_XZ) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.z - mouse_world_pos.z) * (vert_world_pos.z - mouse_world_pos.z);
                         if (i == VIEW_FRONT_XY) dist_sq = (vert_world_pos.x - mouse_world_pos.x) * (vert_world_pos.x - mouse_world_pos.x) + (vert_world_pos.y - mouse_world_pos.y) * (vert_world_pos.y - mouse_world_pos.y);
@@ -742,22 +742,22 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     }
 
                     for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                        Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                         Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-                        Float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                        Float dist_sq_from_brush = Math::vec3_length_sq(Math::vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                         if (dist_sq_from_brush < radius_sq) {
                             Vec3 neighbor_sum = { 0,0,0 };
                             Int neighbor_count = 0;
                             for (Int n_idx = 0; n_idx < b->numVertices; ++n_idx) {
                                 if (v_idx == n_idx) continue;
-                                Float dist_sq_verts = vec3_length_sq(vec3_sub(b->vertices[v_idx].pos, b->vertices[n_idx].pos));
+                                Float dist_sq_verts = Math::vec3_length_sq(Math::vec3_sub(b->vertices[v_idx].pos, b->vertices[n_idx].pos));
                                 if (dist_sq_verts < (g_EditorState.grid_size * g_EditorState.grid_size * 2.0f)) {
-                                    neighbor_sum = vec3_add(neighbor_sum, b->vertices[n_idx].pos);
+                                    neighbor_sum = Math::vec3_add(neighbor_sum, b->vertices[n_idx].pos);
                                     neighbor_count++;
                                 }
                             }
-                            if (neighbor_count > 0) average_positions[v_idx] = vec3_muls(neighbor_sum, 1.0f / neighbor_count);
+                            if (neighbor_count > 0) average_positions[v_idx] = Math::vec3_muls(neighbor_sum, 1.0f / neighbor_count);
                             else average_positions[v_idx] = b->vertices[v_idx].pos;
                         }
                         else {
@@ -766,15 +766,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     }
 
                     for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                        Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                         Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
-                        Float dist_sq_from_brush = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                        Float dist_sq_from_brush = Math::vec3_length_sq(Math::vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                         if (dist_sq_from_brush < radius_sq) {
                             Float falloff = 1.0f - sqrtf(dist_sq_from_brush) / g_EditorState.sculpt_brush_radius;
                             Float smooth_strength = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 1.5f;
 
-                            Vec3 new_pos = vec3_add(vec3_muls(b->vertices[v_idx].pos, 1.0f - smooth_strength), vec3_muls(average_positions[v_idx], smooth_strength));
+                            Vec3 new_pos = Math::vec3_add(Math::vec3_muls(b->vertices[v_idx].pos, 1.0f - smooth_strength), Math::vec3_muls(average_positions[v_idx], smooth_strength));
 
                             new_pos.x = fmaxf(local_min.x, fminf(local_max.x, new_pos.x));
                             new_pos.y = fmaxf(local_min.y, fminf(local_max.y, new_pos.y));
@@ -790,15 +790,15 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             else {
                 Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
                 for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                    Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                    Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                    Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                    Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                     if (dist_sq < radius_sq) {
                         Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
                         Float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
                         if (SDL_GetModState() & KMOD_CTRL) sculpt_amount = -sculpt_amount;
 
-                        b->vertices[v_idx].pos = vec3_add(b->vertices[v_idx].pos, vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
+                        b->vertices[v_idx].pos = Math::vec3_add(b->vertices[v_idx].pos, Math::vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
                         needs_update = true;
                     }
                 }
@@ -807,12 +807,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (needs_update) {
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
-                    Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                    Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
                         for (Int k = 0; k < b->numVertices; ++k)
-                            world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                            world_verts[k] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -836,12 +836,12 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 current_mouse_world.z = SnapValue(current_mouse_world.z, g_EditorState.grid_size);
             }
 
-            Vec3 delta = vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
+            Vec3 delta = Math::vec3_sub(current_mouse_world, g_EditorState.selected_brush_drag_body_start_mouse_world);
 
             for (Int i = 0; i < g_EditorState.num_selections; ++i) {
                 EditorSelection* sel = &g_EditorState.selections[i];
                 Vec3 start_pos = g_EditorState.gizmo_drag_start_positions[i];
-                Vec3 new_pos = vec3_add(start_pos, delta);
+                Vec3 new_pos = Math::vec3_add(start_pos, delta);
 
                 if (sel->type == ENTITY_BRUSH) {
                     Brush* b = &scene->brushes[sel->index];
@@ -849,7 +849,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     b->pos = new_pos;
 
                     if (g_EditorState.texture_lock_enabled) {
-                        Vec3 frame_move = vec3_sub(new_pos, old_pos);
+                        Vec3 frame_move = Math::vec3_sub(new_pos, old_pos);
                         Float du = 0, dv = 0;
                         if (g_EditorState.selected_brush_drag_body_view == VIEW_TOP_XZ) { du = frame_move.x; dv = frame_move.z; }
                         else if (g_EditorState.selected_brush_drag_body_view == VIEW_FRONT_XY) { du = frame_move.x; dv = frame_move.y; }
@@ -862,17 +862,17 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         Brush_CreateRenderData(b);
                     }
                     Brush_UpdateMatrix(b);
-                    if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                    if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
                 }
                 else if (sel->type == ENTITY_MODEL) {
                     SceneObject* obj = &scene->objects[sel->index];
                     obj->pos = new_pos;
                     SceneObject_UpdateMatrix(obj);
-                    if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
+                    if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix);
                 }
                 else if (sel->type == ENTITY_LIGHT) scene->lights[sel->index].pos = new_pos;
                 else if (sel->type == ENTITY_DECAL) { scene->decals[sel->index].pos = new_pos; Decal_UpdateMatrix(&scene->decals[sel->index]); }
-                else if (sel->type == ENTITY_SOUND) { scene->soundEntities[sel->index].pos = new_pos; SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, new_pos); }
+                else if (sel->type == ENTITY_SOUND) { scene->soundEntities[sel->index].pos = new_pos; Sound::SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, new_pos); }
                 else if (sel->type == ENTITY_PARTICLE_EMITTER) scene->particleEmitters[sel->index].pos = new_pos;
                 else if (sel->type == ENTITY_SPRITE) scene->sprites[sel->index].pos = new_pos;
                 else if (sel->type == ENTITY_VIDEO_PLAYER) scene->videoPlayers[sel->index].pos = new_pos;
@@ -886,31 +886,31 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
             Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
             Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-            Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+            Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+            Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
             Vec3 current_intersect_point;
             if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.vertex_gizmo_drag_plane_normal, g_EditorState.vertex_gizmo_drag_plane_d, &current_intersect_point)) {
-                Vec3 delta = vec3_sub(current_intersect_point, g_EditorState.vertex_gizmo_drag_start_world);
+                Vec3 delta = Math::vec3_sub(current_intersect_point, g_EditorState.vertex_gizmo_drag_start_world);
                 Vec3 axis_dir = { 0 };
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                 if (g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                Float projection_len = vec3_dot(delta, axis_dir);
-                Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
-                Vec3 new_world_pos = vec3_add(g_EditorState.vertex_drag_start_pos_world, projected_delta);
+                Float projection_len = Math::vec3_dot(delta, axis_dir);
+                Vec3 projected_delta = Math::vec3_muls(axis_dir, projection_len);
+                Vec3 new_world_pos = Math::vec3_add(g_EditorState.vertex_drag_start_pos_world, projected_delta);
                 if (g_EditorState.snap_to_grid) { new_world_pos.x = SnapValue(new_world_pos.x, g_EditorState.grid_size); new_world_pos.y = SnapValue(new_world_pos.y, g_EditorState.grid_size); new_world_pos.z = SnapValue(new_world_pos.z, g_EditorState.grid_size); }
                 Mat4 inv_model;
-                mat4_inverse(&b->modelMatrix, &inv_model);
-                b->vertices[primary->vertex_index].pos = mat4_mul_vec3(&inv_model, new_world_pos);
+                Math::mat4_inverse(&b->modelMatrix, &inv_model);
+                b->vertices[primary->vertex_index].pos = Math::mat4_mul_vec3(&inv_model, new_world_pos);
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
-                    Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                    Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
                         for (Int i = 0; i < b->numVertices; ++i)
-                            world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                            world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -930,25 +930,25 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
                 Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
                 Vec3 current_intersect_point;
                 if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
-                    delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                    delta = Math::vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
                 }
             }
             else {
                 Vec3 current_point = ScreenToWorld(screen_pos, g_EditorState.gizmo_drag_view);
-                delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
+                delta = Math::vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
             }
 
             Vec3 axis_dir = { 0 };
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            Float projection_len = vec3_dot(delta, axis_dir);
-            Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+            Float projection_len = Math::vec3_dot(delta, axis_dir);
+            Vec3 projected_delta = Math::vec3_muls(axis_dir, projection_len);
 
             if (g_EditorState.snap_to_grid) {
                 projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
@@ -956,22 +956,22 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
             }
 
-            Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
+            Mat4 inv_model; Math::mat4_inverse(&b->modelMatrix, &inv_model);
             for (Int i = 0; i < face->numVertexIndices; ++i) {
                 Int vert_idx = face->vertexIndices[i];
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
-                Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
-                b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
+                Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
+                Vec3 new_world_pos = Math::vec3_add(vert_world_pos, projected_delta);
+                b->vertices[vert_idx].pos = Math::mat4_mul_vec3(&inv_model, new_world_pos);
             }
 
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
-                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
                     for (Int j = 0; j < b->numVertices; ++j)
-                        world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                        world_verts[j] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -979,7 +979,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
 
-            g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
+            g_EditorState.gizmo_drag_start_world = Math::vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
 
             return;
         }
@@ -988,20 +988,20 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec3 current_mouse_world = ScreenToWorld(g_EditorState.mouse_pos_in_viewport[g_EditorState.vertex_manipulation_view], g_EditorState.vertex_manipulation_view);
             Vec3* vert_local_pos = &b->vertices[g_EditorState.manipulated_vertex_index].pos;
             Mat4 inv_model;
-            mat4_inverse(&b->modelMatrix, &inv_model);
-            Vec3 vert_world = mat4_mul_vec3(&b->modelMatrix, *vert_local_pos);
+            Math::mat4_inverse(&b->modelMatrix, &inv_model);
+            Vec3 vert_world = Math::mat4_mul_vec3(&b->modelMatrix, *vert_local_pos);
             if (g_EditorState.vertex_manipulation_view == VIEW_TOP_XZ) { vert_world.x = current_mouse_world.x; vert_world.z = current_mouse_world.z; }
             if (g_EditorState.vertex_manipulation_view == VIEW_FRONT_XY) { vert_world.x = current_mouse_world.x; vert_world.y = current_mouse_world.y; }
             if (g_EditorState.vertex_manipulation_view == VIEW_SIDE_YZ) { vert_world.y = current_mouse_world.y; vert_world.z = current_mouse_world.z; }
-            *vert_local_pos = mat4_mul_vec3(&inv_model, vert_world);
+            *vert_local_pos = Math::mat4_mul_vec3(&inv_model, vert_world);
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
-                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
                     for (Int i = 0; i < b->numVertices; ++i)
-                        world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                        world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -1021,25 +1021,25 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
                 Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
                 Vec3 current_intersect_point;
                 if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
-                    delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                    delta = Math::vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
                 }
             }
             else {
                 Vec3 current_point = ScreenToWorld(screen_pos, g_EditorState.gizmo_drag_view);
-                delta = vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
+                delta = Math::vec3_sub(current_point, g_EditorState.gizmo_drag_start_world);
             }
 
             Vec3 axis_dir = { 0 };
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
             if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-            Float projection_len = vec3_dot(delta, axis_dir);
-            Vec3 projected_delta = vec3_muls(axis_dir, projection_len);
+            Float projection_len = Math::vec3_dot(delta, axis_dir);
+            Vec3 projected_delta = Math::vec3_muls(axis_dir, projection_len);
 
             if (g_EditorState.snap_to_grid) {
                 projected_delta.x = SnapValue(projected_delta.x, g_EditorState.grid_size);
@@ -1047,22 +1047,22 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 projected_delta.z = SnapValue(projected_delta.z, g_EditorState.grid_size);
             }
 
-            Mat4 inv_model; mat4_inverse(&b->modelMatrix, &inv_model);
+            Mat4 inv_model; Math::mat4_inverse(&b->modelMatrix, &inv_model);
             for (Int i = 0; i < face->numVertexIndices; ++i) {
                 Int vert_idx = face->vertexIndices[i];
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
-                Vec3 new_world_pos = vec3_add(vert_world_pos, projected_delta);
-                b->vertices[vert_idx].pos = mat4_mul_vec3(&inv_model, new_world_pos);
+                Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[vert_idx].pos);
+                Vec3 new_world_pos = Math::vec3_add(vert_world_pos, projected_delta);
+                b->vertices[vert_idx].pos = Math::mat4_mul_vec3(&inv_model, new_world_pos);
             }
 
             Brush_CreateRenderData(b);
             if (b->physicsBody) {
-                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 if (Brush_IsSolid(b) && b->numVertices > 0) {
                     Vec3* world_verts = new Vec3[b->numVertices];
                     for (Int j = 0; j < b->numVertices; ++j)
-                        world_verts[j] = mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                        world_verts[j] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[j].pos);
+                    b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                     delete[] world_verts;
                 }
                 else {
@@ -1070,7 +1070,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
             }
 
-            g_EditorState.gizmo_drag_start_world = vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
+            g_EditorState.gizmo_drag_start_world = Math::vec3_add(g_EditorState.gizmo_drag_start_world, projected_delta);
 
             return;
         }
@@ -1132,7 +1132,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             Vec3 scale_delta = { 0 };
             Float rot_angle_delta = 0.0f;
             Mat4 delta_rot_matrix;
-            mat4_identity(&delta_rot_matrix);
+            Math::mat4_identity(&delta_rot_matrix);
 
             Vec3 current_intersect_point;
             Bool intersection_found = false;
@@ -1141,9 +1141,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec2 screen_pos = g_EditorState.mouse_pos_in_viewport[VIEW_PERSPECTIVE];
                 Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
-                Mat4 inv_proj, inv_view; mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
-                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; vec3_normalize(&ray_dir);
+                Mat4 inv_proj, inv_view; Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj); Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f }; Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip); ray_eye.z = -1.0f; ray_eye.w = 0.0f;
+                Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye); Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z }; Math::vec3_normalize(&ray_dir);
 
                 if (ray_plane_intersect(g_EditorState.editor_camera.position, ray_dir, g_EditorState.gizmo_drag_plane_normal, g_EditorState.gizmo_drag_plane_d, &current_intersect_point)) {
                     intersection_found = true;
@@ -1157,13 +1157,13 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
             if (intersection_found) {
                 if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
                     Vec3 object_pos_for_rotate = g_EditorState.gizmo_selection_centroid;
-                    Vec3 current_vec = vec3_sub(current_intersect_point, object_pos_for_rotate);
-                    vec3_normalize(&current_vec);
+                    Vec3 current_vec = Math::vec3_sub(current_intersect_point, object_pos_for_rotate);
+                    Math::vec3_normalize(&current_vec);
                     Vec3 u_axis = g_EditorState.gizmo_rotation_start_vec;
-                    Vec3 v_axis = vec3_cross(g_EditorState.gizmo_drag_plane_normal, u_axis);
+                    Vec3 v_axis = Math::vec3_cross(g_EditorState.gizmo_drag_plane_normal, u_axis);
 
-                    Float u_coord = vec3_dot(current_vec, u_axis);
-                    Float v_coord = vec3_dot(current_vec, v_axis);
+                    Float u_coord = Math::vec3_dot(current_vec, u_axis);
+                    Float v_coord = Math::vec3_dot(current_vec, v_axis);
 
                     Float angle = atan2f(v_coord, u_coord) * (180.0f / Common::PI);
 
@@ -1173,27 +1173,27 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     rot_angle_delta = angle;
 
                     Float angle_rad = rot_angle_delta * (Common::PI / 180.0f);
-                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) delta_rot_matrix = mat4_rotate_x(angle_rad);
-                    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) delta_rot_matrix = mat4_rotate_y(angle_rad);
-                    else delta_rot_matrix = mat4_rotate_z(angle_rad);
+                    if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) delta_rot_matrix = Math::mat4_rotate_x(angle_rad);
+                    else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) delta_rot_matrix = Math::mat4_rotate_y(angle_rad);
+                    else delta_rot_matrix = Math::mat4_rotate_z(angle_rad);
                 }
                 else {
-                    Vec3 delta = vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
+                    Vec3 delta = Math::vec3_sub(current_intersect_point, g_EditorState.gizmo_drag_start_world);
 
                     if (g_EditorState.gizmo_drag_view == VIEW_PERSPECTIVE) {
                         Vec3 axis_dir = { 0 };
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) axis_dir.x = 1.0f;
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Y) axis_dir.y = 1.0f;
                         if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) axis_dir.z = 1.0f;
-                        Float projection_len = vec3_dot(delta, axis_dir);
+                        Float projection_len = Math::vec3_dot(delta, axis_dir);
 
                         if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
                             if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, g_EditorState.grid_size);
-                            pos_delta = vec3_muls(axis_dir, projection_len);
+                            pos_delta = Math::vec3_muls(axis_dir, projection_len);
                         }
                         else {
                             if (g_EditorState.snap_to_grid) projection_len = SnapValue(projection_len, 0.25f);
-                            scale_delta = vec3_muls(axis_dir, projection_len);
+                            scale_delta = Math::vec3_muls(axis_dir, projection_len);
                         }
                     }
                     else {
@@ -1236,10 +1236,10 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 Vec3 new_scale = start_scale;
 
                 if (g_EditorState.current_gizmo_operation == GIZMO_OP_TRANSLATE) {
-                    new_pos = vec3_add(start_pos, pos_delta);
+                    new_pos = Math::vec3_add(start_pos, pos_delta);
                 }
                 else if (g_EditorState.current_gizmo_operation == GIZMO_OP_SCALE) {
-                    new_scale = vec3_add(start_scale, scale_delta);
+                    new_scale = Math::vec3_add(start_scale, scale_delta);
                 }
                 else if (g_EditorState.current_gizmo_operation == GIZMO_OP_ROTATE) {
                     new_rot = start_rot_eulers;
@@ -1253,21 +1253,21 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     else if (g_EditorState.gizmo_active_axis == GIZMO_AXIS_Z) {
                         new_rot.z += rot_angle_delta;
                     }
-                    Vec3 relative_pos = vec3_sub(start_pos, centroid);
-                    Vec3 rotated_relative_pos = mat4_mul_vec3_dir(&delta_rot_matrix, relative_pos);
-                    new_pos = vec3_add(centroid, rotated_relative_pos);
+                    Vec3 relative_pos = Math::vec3_sub(start_pos, centroid);
+                    Vec3 rotated_relative_pos = Math::mat4_mul_vec3_dir(&delta_rot_matrix, relative_pos);
+                    new_pos = Math::vec3_add(centroid, rotated_relative_pos);
                 }
 
                 switch (sel->type) {
                 case ENTITY_MODEL: {
                     SceneObject* obj = &scene->objects[sel->index];
                     obj->pos = new_pos; obj->rot = new_rot; obj->scale = new_scale;
-                    SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); break;
+                    SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix); break;
                 }
                 case ENTITY_BRUSH: {
                     Brush* b = &scene->brushes[sel->index];
                     b->pos = new_pos; b->rot = new_rot; b->scale = new_scale;
-                    Brush_UpdateMatrix(b); if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); break;
+                    Brush_UpdateMatrix(b); if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix); break;
                 }
                 case ENTITY_LIGHT: {
                     Light* l = &scene->lights[sel->index];
@@ -1280,7 +1280,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 }
                 case ENTITY_SOUND: {
                     SoundEntity* s = &scene->soundEntities[sel->index];
-                    s->pos = new_pos; SoundSystem_SetSourcePosition(s->sourceID, s->pos); break;
+                    s->pos = new_pos; Sound::SoundSystem_SetSourcePosition(s->sourceID, s->pos); break;
                 }
                 case ENTITY_PARTICLE_EMITTER: {
                     ParticleEmitter* p = &scene->particleEmitters[sel->index];
@@ -1493,7 +1493,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_MODEL: {
                     SceneObject* obj = &scene->objects[primary->index];
                     target_pos = obj->pos;
-                    Vec3 size_vec = vec3_sub(obj->model->aabb_max, obj->model->aabb_min);
+                    Vec3 size_vec = Math::vec3_sub(obj->model->aabb_max, obj->model->aabb_min);
                     target_size = fmaxf(fmaxf(size_vec.x * obj->scale.x, size_vec.y * obj->scale.y), size_vec.z * obj->scale.z);
                     break;
                 }
@@ -1511,7 +1511,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                             local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
                             local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
                         }
-                        Vec3 size_vec = vec3_sub(local_max, local_min);
+                        Vec3 size_vec = Math::vec3_sub(local_max, local_min);
                         target_size = fmaxf(fmaxf(size_vec.x * b->scale.x, size_vec.y * b->scale.y), size_vec.z * b->scale.z);
                     }
                     break;
@@ -1531,16 +1531,16 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     sinf(g_EditorState.editor_camera.pitch),
                     -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw)
                 };
-                vec3_normalize(&cam_forward);
+                Math::vec3_normalize(&cam_forward);
 
                 Float distance_away = target_size * 2.0f;
                 if (distance_away < 2.0f) distance_away = 2.0f;
 
-                Vec3 new_cam_pos = vec3_sub(target_pos, vec3_muls(cam_forward, distance_away));
+                Vec3 new_cam_pos = Math::vec3_sub(target_pos, Math::vec3_muls(cam_forward, distance_away));
                 g_EditorState.editor_camera.position = new_cam_pos;
 
-                Vec3 new_forward = vec3_sub(target_pos, new_cam_pos);
-                vec3_normalize(&new_forward);
+                Vec3 new_forward = Math::vec3_sub(target_pos, new_cam_pos);
+                Math::vec3_normalize(&new_forward);
 
                 g_EditorState.editor_camera.pitch = asinf(new_forward.y);
                 g_EditorState.editor_camera.yaw = atan2f(new_forward.x, -new_forward.z);
@@ -1576,27 +1576,27 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
 
                     Mat4 inv_rot_scale;
-                    Mat4 rot_mat_x = mat4_rotate_x(b->rot.x * (Common::PI / 180.0f));
-                    Mat4 rot_mat_y = mat4_rotate_y(b->rot.y * (Common::PI / 180.0f));
-                    Mat4 rot_mat_z = mat4_rotate_z(b->rot.z * (Common::PI / 180.0f));
-                    Mat4 scale_mat = mat4_scale(b->scale);
-                    mat4_multiply(&inv_rot_scale, &rot_mat_y, &rot_mat_x);
-                    mat4_multiply(&inv_rot_scale, &rot_mat_z, &inv_rot_scale);
-                    mat4_multiply(&inv_rot_scale, &inv_rot_scale, &scale_mat);
-                    mat4_inverse(&inv_rot_scale, &inv_rot_scale);
+                    Mat4 rot_mat_x = Math::mat4_rotate_x(b->rot.x * (Common::PI / 180.0f));
+                    Mat4 rot_mat_y = Math::mat4_rotate_y(b->rot.y * (Common::PI / 180.0f));
+                    Mat4 rot_mat_z = Math::mat4_rotate_z(b->rot.z * (Common::PI / 180.0f));
+                    Mat4 scale_mat = Math::mat4_scale(b->scale);
+                    Math::mat4_multiply(&inv_rot_scale, &rot_mat_y, &rot_mat_x);
+                    Math::mat4_multiply(&inv_rot_scale, &rot_mat_z, &inv_rot_scale);
+                    Math::mat4_multiply(&inv_rot_scale, &inv_rot_scale, &scale_mat);
+                    Math::mat4_inverse(&inv_rot_scale, &inv_rot_scale);
 
-                    Vec3 local_move_delta = mat4_mul_vec3_dir(&inv_rot_scale, move_delta);
+                    Vec3 local_move_delta = Math::mat4_mul_vec3_dir(&inv_rot_scale, move_delta);
 
-                    b->vertices[primary->vertex_index].pos = vec3_add(b->vertices[primary->vertex_index].pos, local_move_delta);
+                    b->vertices[primary->vertex_index].pos = Math::vec3_add(b->vertices[primary->vertex_index].pos, local_move_delta);
                     Brush_CreateRenderData(b);
                     if (b->physicsBody) {
-                        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                        Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                         if (Brush_IsSolid(b) && b->numVertices > 0) {
                             Vec3* world_verts = new Vec3[b->numVertices];
                             for (Int i = 0; i < b->numVertices; ++i) {
-                                world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                                world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
                             }
-                            b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                            b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                             delete[] world_verts;
                         }
                         else {
@@ -1657,14 +1657,14 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Float ndc_x = (g_EditorState.mouse_pos_in_viewport[active_viewport].x / g_EditorState.viewport_width[active_viewport]) * 2.0f - 1.0f;
                     Float ndc_y = 1.0f - (g_EditorState.mouse_pos_in_viewport[active_viewport].y / g_EditorState.viewport_height[active_viewport]) * 2.0f;
                     Mat4 inv_proj, inv_view;
-                    mat4_inverse(&g_proj_matrix[active_viewport], &inv_proj);
-                    mat4_inverse(&g_view_matrix[active_viewport], &inv_view);
+                    Math::mat4_inverse(&g_proj_matrix[active_viewport], &inv_proj);
+                    Math::mat4_inverse(&g_view_matrix[active_viewport], &inv_view);
                     Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-                    Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+                    Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
                     ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+                    Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
                     Vec3 ray_dir_world = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-                    vec3_normalize(&ray_dir_world);
+                    Math::vec3_normalize(&ray_dir_world);
                     Vec3 ray_origin_world = g_EditorState.editor_camera.position;
 
                     Float closest_t = FLT_MAX;
@@ -1674,9 +1674,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     for (Int i = 0; i < g_CurrentScene->numBrushes; ++i) {
                         Brush* brush = &g_CurrentScene->brushes[i];
                         Mat4 inv_brush_model_matrix;
-                        if (!mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) continue;
-                        Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
-                        Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
+                        if (!Math::mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) continue;
+                        Vec3 ray_origin_local = Math::mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
+                        Vec3 ray_dir_local = Math::mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
 
                         for (Int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
                             BrushFace* face = &brush->faces[face_idx];
@@ -1687,7 +1687,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                                 Vec3 v1 = brush->vertices[face->vertexIndices[k + 1]].pos;
                                 Vec3 v2 = brush->vertices[face->vertexIndices[k + 2]].pos;
                                 Float t;
-                                if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0, v1, v2, &t) && t < closest_t) {
+                                if (Math::RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0, v1, v2, &t) && t < closest_t) {
                                     closest_t = t;
                                     hit_brush_index = i;
                                     hit_face_index = face_idx;
@@ -1744,11 +1744,11 @@ void Editor_Update(Engine* engine, Scene* scene) {
     if (can_move) {
         const Uint8* state = SDL_GetKeyboardState(nullptr); Float speed = g_EditorState.editor_camera_speed * engine->deltaTime * (state[SDL_SCANCODE_LSHIFT] ? 2.5f : 1.0f);
         Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-        vec3_normalize(&forward); Vec3 right = vec3_cross(forward, Vec3{ 0, 1, 0 }); vec3_normalize(&right);
-        if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
-        if (state[SDL_SCANCODE_S]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(forward, speed));
-        if (state[SDL_SCANCODE_D]) g_EditorState.editor_camera.position = vec3_add(g_EditorState.editor_camera.position, vec3_muls(right, speed));
-        if (state[SDL_SCANCODE_A]) g_EditorState.editor_camera.position = vec3_sub(g_EditorState.editor_camera.position, vec3_muls(right, speed));
+        Math::vec3_normalize(&forward); Vec3 right = Math::vec3_cross(forward, Vec3{ 0, 1, 0 }); Math::vec3_normalize(&right);
+        if (state[SDL_SCANCODE_W]) g_EditorState.editor_camera.position = Math::vec3_add(g_EditorState.editor_camera.position, Math::vec3_muls(forward, speed));
+        if (state[SDL_SCANCODE_S]) g_EditorState.editor_camera.position = Math::vec3_sub(g_EditorState.editor_camera.position, Math::vec3_muls(forward, speed));
+        if (state[SDL_SCANCODE_D]) g_EditorState.editor_camera.position = Math::vec3_add(g_EditorState.editor_camera.position, Math::vec3_muls(right, speed));
+        if (state[SDL_SCANCODE_A]) g_EditorState.editor_camera.position = Math::vec3_sub(g_EditorState.editor_camera.position, Math::vec3_muls(right, speed));
         if (state[SDL_SCANCODE_E]) g_EditorState.editor_camera.position.y += speed;
         if (state[SDL_SCANCODE_Q]) g_EditorState.editor_camera.position.y -= speed;
     }
@@ -1789,22 +1789,22 @@ void Editor_Update(Engine* engine, Scene* scene) {
         Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
         Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
         Mat4 inv_proj, inv_view;
-        mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
-        mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+        Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+        Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
 
         Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-        Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+        Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
         ray_eye.z = -1.0f; ray_eye.w = 0.0f;
 
-        Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+        Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
         Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-        vec3_normalize(&ray_dir);
+        Math::vec3_normalize(&ray_dir);
         Vec3 ray_origin = g_EditorState.editor_camera.position;
 
         Mat4 inv_brush_model_matrix;
-        if (mat4_inverse(&b->modelMatrix, &inv_brush_model_matrix)) {
-            Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin);
-            Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir);
+        if (Math::mat4_inverse(&b->modelMatrix, &inv_brush_model_matrix)) {
+            Vec3 ray_origin_local = Math::mat4_mul_vec3(&inv_brush_model_matrix, ray_origin);
+            Vec3 ray_dir_local = Math::mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir);
             Float closest_t = FLT_MAX;
 
             for (Int face_idx = 0; face_idx < b->numFaces; ++face_idx) {
@@ -1817,14 +1817,14 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     Vec3 v2_local = b->vertices[face->vertexIndices[k + 2]].pos;
 
                     Float t_triangle_local;
-                    if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
+                    if (Math::RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
                         if (t_triangle_local > 0.0f && t_triangle_local < closest_t) {
                             closest_t = t_triangle_local;
                             g_EditorState.paint_brush_hit_surface = true;
-                            g_EditorState.paint_brush_world_pos = vec3_add(ray_origin, vec3_muls(ray_dir, t_triangle_local));
-                            Vec3 face_normal_local = vec3_cross(vec3_sub(v1_local, v0_local), vec3_sub(v2_local, v0_local));
-                            g_EditorState.paint_brush_world_normal = mat4_mul_vec3_dir(&b->modelMatrix, face_normal_local);
-                            vec3_normalize(&g_EditorState.paint_brush_world_normal);
+                            g_EditorState.paint_brush_world_pos = Math::vec3_add(ray_origin, Math::vec3_muls(ray_dir, t_triangle_local));
+                            Vec3 face_normal_local = Math::vec3_cross(Math::vec3_sub(v1_local, v0_local), Math::vec3_sub(v2_local, v0_local));
+                            g_EditorState.paint_brush_world_normal = Math::mat4_mul_vec3_dir(&b->modelMatrix, face_normal_local);
+                            Math::vec3_normalize(&g_EditorState.paint_brush_world_normal);
                         }
                     }
                 }
@@ -1834,8 +1834,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
             Bool needs_update = false;
             Float radius_sq = g_EditorState.paint_brush_radius * g_EditorState.paint_brush_radius;
             for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                 if (dist_sq < radius_sq) {
                     Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.paint_brush_radius;
@@ -1859,27 +1859,27 @@ void Editor_Update(Engine* engine, Scene* scene) {
             Bool needs_update = false;
             Float radius_sq = g_EditorState.sculpt_brush_radius * g_EditorState.sculpt_brush_radius;
             for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
-                Float dist_sq = vec3_length_sq(vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
+                Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(vert_world_pos, g_EditorState.paint_brush_world_pos));
 
                 if (dist_sq < radius_sq) {
                     Float falloff = 1.0f - sqrtf(dist_sq) / g_EditorState.sculpt_brush_radius;
                     Float sculpt_amount = g_EditorState.sculpt_brush_strength * falloff * engine->unscaledDeltaTime * 10.0f;
                     if (SDL_GetModState() & KMOD_SHIFT) sculpt_amount = -sculpt_amount;
 
-                    b->vertices[v_idx].pos = vec3_add(b->vertices[v_idx].pos, vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
+                    b->vertices[v_idx].pos = Math::vec3_add(b->vertices[v_idx].pos, Math::vec3_muls(g_EditorState.paint_brush_world_normal, sculpt_amount));
                     needs_update = true;
                 }
             }
             if (needs_update) {
                 Brush_CreateRenderData(b);
                 if (b->physicsBody) {
-                    Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                    Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                     if (Brush_IsSolid(b) && b->numVertices > 0) {
                         Vec3* world_verts = new Vec3[b->numVertices];
                         for (Int k = 0; k < b->numVertices; ++k)
-                            world_verts[k] = mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
-                        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+                            world_verts[k] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[k].pos);
+                        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
                         delete[] world_verts;
                     }
                     else {
@@ -1895,18 +1895,18 @@ void Editor_Update(Engine* engine, Scene* scene) {
             Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
             Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
             Mat4 inv_proj, inv_view;
-            mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
-            mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+            Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+            Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
             Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-            Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+            Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
             ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-            Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+            Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
             Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-            vec3_normalize(&ray_dir);
+            Math::vec3_normalize(&ray_dir);
             Vec3 ray_origin = g_EditorState.editor_camera.position;
 
             Brush* b = &scene->brushes[primary->index];
-            Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
+            Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
 
             const Float pick_threshold = 0.1f;
             Float min_dist = FLT_MAX;
@@ -1933,18 +1933,18 @@ void Editor_Update(Engine* engine, Scene* scene) {
         Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
         Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
         Mat4 inv_proj, inv_view;
-        mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
-        mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+        Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+        Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
         Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-        Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+        Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
         ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-        Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+        Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
         Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-        vec3_normalize(&ray_dir);
+        Math::vec3_normalize(&ray_dir);
         Vec3 ray_origin = g_EditorState.editor_camera.position;
 
         RaycastHitInfo hit_info;
-        if (Physics_Raycast(engine->physicsWorld, ray_origin, vec3_add(ray_origin, vec3_muls(ray_dir, 1000.0f)), &hit_info)) {
+        if (Physics::Raycast(engine->physicsWorld, ray_origin, Math::vec3_add(ray_origin, Math::vec3_muls(ray_dir, 1000.0f)), &hit_info)) {
             g_EditorState.sprinkle_brush_hit_surface = true;
             g_EditorState.sprinkle_brush_world_pos = hit_info.point;
         }
@@ -1958,18 +1958,18 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     if (g_EditorState.sprinkle_mode == 0) {
                         Vec3 surface_normal = g_EditorState.paint_brush_world_normal;
 
-                        Vec3 tangent = vec3_cross(surface_normal, Vec3{ 0.0f, 1.0f, 0.0f });
-                        if (vec3_length_sq(tangent) < 0.001f) {
-                            tangent = vec3_cross(surface_normal, Vec3{ 1.0f, 0.0f, 0.0f });
+                        Vec3 tangent = Math::vec3_cross(surface_normal, Vec3{ 0.0f, 1.0f, 0.0f });
+                        if (Math::vec3_length_sq(tangent) < 0.001f) {
+                            tangent = Math::vec3_cross(surface_normal, Vec3{ 1.0f, 0.0f, 0.0f });
                         }
-                        vec3_normalize(&tangent);
-                        Vec3 bitangent = vec3_cross(surface_normal, tangent);
+                        Math::vec3_normalize(&tangent);
+                        Vec3 bitangent = Math::vec3_cross(surface_normal, tangent);
 
-                        Float rand_angle = rand_float_range(0, 2.0f * Common::PI);
-                        Float rand_dist = sqrtf(rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
+                        Float rand_angle = Math::rand_float_range(0, 2.0f * Common::PI);
+                        Float rand_dist = sqrtf(Math::rand_float_range(0, 1)) * g_EditorState.sprinkle_radius;
 
-                        Vec3 offset_on_plane = vec3_add(vec3_muls(tangent, cosf(rand_angle) * rand_dist), vec3_muls(bitangent, sinf(rand_angle) * rand_dist));
-                        Vec3 final_pos = vec3_add(g_EditorState.sprinkle_brush_world_pos, offset_on_plane);
+                        Vec3 offset_on_plane = Math::vec3_add(Math::vec3_muls(tangent, cosf(rand_angle) * rand_dist), Math::vec3_muls(bitangent, sinf(rand_angle) * rand_dist));
+                        Vec3 final_pos = Math::vec3_add(g_EditorState.sprinkle_brush_world_pos, offset_on_plane);
 
                         if (scene->numObjects < 8192) {
                             scene->numObjects++;
@@ -1986,20 +1986,20 @@ void Editor_Update(Engine* engine, Scene* scene) {
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
 
                             memset(newObj, 0, sizeof(SceneObject));
-                            mat4_identity(&newObj->animated_local_transform);
+                            Math::mat4_identity(&newObj->animated_local_transform);
 
                             strncpy(newObj->modelPath, g_EditorState.sprinkle_model_path, sizeof(newObj->modelPath) - 1);
                             newObj->pos = final_pos;
-                            Float scale = rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
+                            Float scale = Math::rand_float_range(g_EditorState.sprinkle_scale_min, g_EditorState.sprinkle_scale_max);
                             newObj->scale = Vec3{ scale, scale, scale };
                             newObj->rot = Vec3{ 0, 0, 0 };
 
                             if (g_EditorState.sprinkle_align_to_normal) {
                                 Vec3 obj_forward = surface_normal;
                                 Vec3 obj_up = (fabs(obj_forward.y) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
-                                Vec3 obj_right = vec3_cross(obj_up, obj_forward);
-                                vec3_normalize(&obj_right);
-                                obj_up = vec3_cross(obj_forward, obj_right);
+                                Vec3 obj_right = Math::vec3_cross(obj_up, obj_forward);
+                                Math::vec3_normalize(&obj_right);
+                                obj_up = Math::vec3_cross(obj_forward, obj_right);
 
                                 Mat4 rot_matrix{};
                                 rot_matrix.m[0] = obj_right.x;  rot_matrix.m[4] = obj_up.x;  rot_matrix.m[8] = obj_forward.x;  rot_matrix.m[12] = 0;
@@ -2009,11 +2009,11 @@ void Editor_Update(Engine* engine, Scene* scene) {
 
                                 Vec3 dummyScale{};
                                 Vec3 dummyTranslation{};
-                                mat4_decompose(&rot_matrix, &dummyTranslation, &newObj->rot, &dummyScale);
+                                Math::mat4_decompose(&rot_matrix, &dummyTranslation, &newObj->rot, &dummyScale);
                             }
 
                             if (g_EditorState.sprinkle_random_yaw) {
-                                newObj->rot.y = rand_float_range(0, 360.0f);
+                                newObj->rot.y = Math::rand_float_range(0, 360.0f);
                             }
 
                             SceneObject_UpdateMatrix(newObj);
@@ -2025,7 +2025,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     else {
                         for (Int i = scene->numObjects - 1; i >= 0; --i) {
                             if (strcmp(scene->objects[i].modelPath, g_EditorState.sprinkle_model_path) == 0) {
-                                Float dist_sq = vec3_length_sq(vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
+                                Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(scene->objects[i].pos, g_EditorState.sprinkle_brush_world_pos));
                                 if (dist_sq < g_EditorState.sprinkle_radius * g_EditorState.sprinkle_radius / 10.0) {
                                     Undo_PushDeleteEntity(scene, ENTITY_MODEL, i, "Erase Sprinkled Model");
                                     _raw_delete_model(scene, i, engine);
@@ -2060,7 +2060,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
             local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
             local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
         }
-        Vec3 local_center = vec3_muls(vec3_add(local_min, local_max), 0.5f);
+        Vec3 local_center = Math::vec3_muls(Math::vec3_add(local_min, local_max), 0.5f);
 
         for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
             if (g_EditorState.is_viewport_hovered[i]) {
@@ -2092,7 +2092,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                     }
 
                     if (is_handle_relevant_to_view) {
-                        Vec3 handle_world_pos = mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
+                        Vec3 handle_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, handle_local_positions[h_idx]);
                         Float dist_sq = 0.0f;
 
                         if (i == VIEW_TOP_XZ) {
@@ -2231,8 +2231,8 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y);
                 local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
             }
-            Vec3 world_min = mat4_mul_vec3(&b->modelMatrix, local_min);
-            Vec3 world_max = mat4_mul_vec3(&b->modelMatrix, local_max);
+            Vec3 world_min = Math::mat4_mul_vec3(&b->modelMatrix, local_min);
+            Vec3 world_max = Math::mat4_mul_vec3(&b->modelMatrix, local_max);
 
             for (Int i = VIEW_TOP_XZ; i <= VIEW_SIDE_YZ; ++i) {
                 if (g_EditorState.is_viewport_hovered[i]) {
@@ -2283,9 +2283,9 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
                 default: pos = Vec3{ 0 }; break;
                 }
-                g_EditorState.gizmo_selection_centroid = vec3_add(g_EditorState.gizmo_selection_centroid, pos);
+                g_EditorState.gizmo_selection_centroid = Math::vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }
-            g_EditorState.gizmo_selection_centroid = vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
+            g_EditorState.gizmo_selection_centroid = Math::vec3_muls(g_EditorState.gizmo_selection_centroid, 1.0f / g_EditorState.num_selections);
             gizmo_target_pos = g_EditorState.gizmo_selection_centroid;
             use_gizmo = true;
         }
@@ -2296,14 +2296,14 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[VIEW_PERSPECTIVE]) * 2.0f - 1.0f;
                 Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[VIEW_PERSPECTIVE]) * 2.0f;
                 Mat4 inv_proj, inv_view;
-                mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
-                mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
+                Math::mat4_inverse(&g_proj_matrix[VIEW_PERSPECTIVE], &inv_proj);
+                Math::mat4_inverse(&g_view_matrix[VIEW_PERSPECTIVE], &inv_view);
                 Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-                Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+                Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
                 ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-                Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+                Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
                 Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-                vec3_normalize(&ray_dir);
+                Math::vec3_normalize(&ray_dir);
                 Editor_UpdateGizmoHover(scene, g_EditorState.editor_camera.position, ray_dir);
             }
             if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_NONE) {

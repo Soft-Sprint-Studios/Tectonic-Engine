@@ -42,7 +42,7 @@ void Editor_RenderGrid(ViewportType type, Float aspect) {
     glUseProgram(g_EditorState.grid_shader);
     Shader_Set(g_EditorState.grid_shader, "view", &g_view_matrix[type]);
     Shader_Set(g_EditorState.grid_shader, "projection", &g_proj_matrix[type]);
-    Mat4 model_ident; mat4_identity(&model_ident);
+    Mat4 model_ident; Math::mat4_identity(&model_ident);
     Shader_Set(g_EditorState.grid_shader, "model", &model_ident);
     Float grid_lines[2412]; Int line_count = 0;
     if (type == VIEW_PERSPECTIVE) {
@@ -122,7 +122,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
         glEnableVertexAttribArray(0);
 
-        Mat4 model = mat4_translate(object_pos);
+        Mat4 model = Math::mat4_translate(object_pos);
         Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         Vec3 color_x = { 1.0f, 0.2f, 0.2f }; if (g_EditorState.gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
@@ -140,7 +140,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
     }
     case GIZMO_OP_ROTATE: {
         if (type != VIEW_PERSPECTIVE) break;
-        Mat4 model; mat4_identity(&model);
+        Mat4 model; Math::mat4_identity(&model);
         Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         constexpr int SEGMENTS = 32;
@@ -151,7 +151,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_y);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
-            points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, 0.0f, sinf(angle) * radius });
+            points[i] = Math::vec3_add(object_pos, Vec3{ cosf(angle) * radius, 0.0f, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(Float), (void*)0);
@@ -162,7 +162,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_x);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
-            points[i] = vec3_add(object_pos, Vec3{ 0.0f, cosf(angle) * radius, sinf(angle) * radius });
+            points[i] = Math::vec3_add(object_pos, Vec3{ 0.0f, cosf(angle) * radius, sinf(angle) * radius });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
@@ -171,7 +171,7 @@ void Editor_RenderGizmo(Mat4 view, Mat4 projection, ViewportType type) {
         Shader_Set(g_EditorState.gizmo_shader, "gizmoColor", color_z);
         for (Int i = 0; i <= SEGMENTS; ++i) {
             Float angle = (i / (Float)SEGMENTS) * 2.0f * Common::PI;
-            points[i] = vec3_add(object_pos, Vec3{ cosf(angle) * radius, sinf(angle) * radius, 0.0f });
+            points[i] = Math::vec3_add(object_pos, Vec3{ cosf(angle) * radius, sinf(angle) * radius, 0.0f });
         }
         glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_LINE_STRIP, 0, SEGMENTS + 1);
@@ -193,10 +193,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         Vec3 f = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-        vec3_normalize(&f);
-        Vec3 t = vec3_add(g_EditorState.editor_camera.position, f);
-        g_view_matrix[type] = mat4_lookAt(g_EditorState.editor_camera.position, t, Vec3{ 0, 1, 0 });
-        g_proj_matrix[type] = mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 10000.0f);
+        Math::vec3_normalize(&f);
+        Vec3 t = Math::vec3_add(g_EditorState.editor_camera.position, f);
+        g_view_matrix[type] = Math::mat4_lookAt(g_EditorState.editor_camera.position, t, Vec3{ 0, 1, 0 });
+        g_proj_matrix[type] = Math::mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 10000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &g_view_matrix[type], &g_proj_matrix[type], sunLightSpaceMatrix, g_EditorState.editor_camera.position, g_is_unlit_mode, false);
 
@@ -226,9 +226,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
         break;
     }
-    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
-    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
     }
 
     if (type != VIEW_PERSPECTIVE) {
@@ -243,7 +243,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUseProgram(g_EditorState.debug_shader);
             Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
             Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-            Mat4 identity_mat; mat4_identity(&identity_mat);
+            Mat4 identity_mat; Math::mat4_identity(&identity_mat);
             Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
             Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.8f });
 
@@ -287,7 +287,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUseProgram(g_EditorState.debug_shader);
             Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
             Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-            Mat4 identity_mat; mat4_identity(&identity_mat);
+            Mat4 identity_mat; Math::mat4_identity(&identity_mat);
             Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
             Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 0.0f, 1.0f, 1.0f, 0.8f });
 
@@ -367,7 +367,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (Int i = 0; i < scene->numVideoPlayers; i++) {
         VideoPlayer* vp = &scene->videoPlayers[i];
-        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
+        vp->modelMatrix = Math::create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
         Shader_Set(g_EditorState.debug_shader, "model", &vp->modelMatrix);
         Bool is_selected = Editor_IsSelected(ENTITY_VIDEO_PLAYER, i);
         Vec4 color = { 1.0f, 0.0f, 1.0f, is_selected ? 1.0f : 0.5f };
@@ -379,7 +379,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     }
     for (Int i = 0; i < scene->numParallaxRooms; i++) {
         ParallaxRoom* p = &scene->parallaxRooms[i];
-        p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, p->roomDepth });
+        p->modelMatrix = Math::create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, p->roomDepth });
         Shader_Set(g_EditorState.debug_shader, "model", &p->modelMatrix);
         Bool is_selected = Editor_IsSelected(ENTITY_PARALLAX_ROOM, i);
         Vec4 color = { 0.5f, 0.0f, 1.0f, is_selected ? 1.0f : 0.5f };
@@ -395,7 +395,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         if (!s->visible && !is_selected) continue;
 
         glUseProgram(g_EditorState.debug_shader);
-        Mat4 modelMatrix = mat4_translate(s->pos);
+        Mat4 modelMatrix = Math::mat4_translate(s->pos);
         Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
         Vec4 color = { 0.8f, 0.2f, 1.0f, 1.0f };
         if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
@@ -422,7 +422,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             glUseProgram(g_EditorState.debug_shader);
             Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
             Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-            Mat4 identity_mat; mat4_identity(&identity_mat);
+            Mat4 identity_mat; Math::mat4_identity(&identity_mat);
             Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
 
             Float handle_screen_size = 8.0f;
@@ -488,7 +488,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 local_min.x = fminf(local_min.x, b->vertices[i].pos.x); local_min.y = fminf(local_min.y, b->vertices[i].pos.y); local_min.z = fminf(local_min.z, b->vertices[i].pos.z);
                 local_max.x = fmaxf(local_max.x, b->vertices[i].pos.x); local_max.y = fmaxf(local_max.y, b->vertices[i].pos.y); local_max.z = fmaxf(local_max.z, b->vertices[i].pos.z);
             }
-            Vec3 local_center = vec3_muls(vec3_add(local_min, local_max), 0.5f);
+            Vec3 local_center = Math::vec3_muls(Math::vec3_add(local_min, local_max), 0.5f);
 
             Vec3 handle_positions_local[6] = {
                 {local_min.x, local_center.y, local_center.z}, {local_max.x, local_center.y, local_center.z},
@@ -631,7 +631,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Light* light = &scene->lights[i];
         Bool is_selected = Editor_IsSelected(ENTITY_LIGHT, i);
 
-        Mat4 modelMatrix = mat4_translate(light->pos);
+        Mat4 modelMatrix = Math::mat4_translate(light->pos);
         Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
         Vec4 color = { light->color.x, light->color.y, light->color.z, 1.0f };
         if (is_selected) { color = Vec4{ 1.0f, 1.0f, 0.0f, 1.0f }; }
@@ -646,11 +646,11 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Vec3 zero_vec = { 0.0f, 0.0f, 0.0f };
                 Vec3 one_vec = { 1.0f, 1.0f, 1.0f };
                 Vec3 scale_vec = { light->width, light->height, 0.01f };
-                Mat4 rot_mat = create_trs_matrix(zero_vec, light->rot, one_vec);
-                Mat4 scale_mat = mat4_scale(scale_vec);
+                Mat4 rot_mat = Math::create_trs_matrix(zero_vec, light->rot, one_vec);
+                Mat4 scale_mat = Math::mat4_scale(scale_vec);
                 Mat4 area_model_mat;
-                mat4_multiply(&area_model_mat, &rot_mat, &scale_mat);
-                mat4_multiply(&area_model_mat, &modelMatrix, &area_model_mat);
+                Math::mat4_multiply(&area_model_mat, &rot_mat, &scale_mat);
+                Math::mat4_multiply(&area_model_mat, &modelMatrix, &area_model_mat);
 
                 Shader_Set(g_EditorState.debug_shader, "model", &area_model_mat);
                 Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.8f });
@@ -661,26 +661,26 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             }
             if (light->type == LIGHT_POINT) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                Mat4 scaleMatrix = mat4_scale(Vec3{ light->radius, light->radius, light->radius });
+                Mat4 scaleMatrix = Math::mat4_scale(Vec3{ light->radius, light->radius, light->radius });
                 Mat4 scaledModelMatrix;
-                mat4_multiply(&scaledModelMatrix, &modelMatrix, &scaleMatrix);
+                Math::mat4_multiply(&scaledModelMatrix, &modelMatrix, &scaleMatrix);
                 Shader_Set(g_EditorState.debug_shader, "model", &scaledModelMatrix);
                 Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.5f });
                 glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             if (light->type == LIGHT_SPOT || light->type == LIGHT_AREA) {
-                Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
+                Mat4 rot_mat = Math::create_trs_matrix(Vec3{ 0, 0, 0 }, light->rot, Vec3{ 1, 1, 1 });
                 Vec3 forward = { 0, 0, -1 };
-                Vec3 world_dir = mat4_mul_vec3_dir(&rot_mat, forward);
-                vec3_normalize(&world_dir);
+                Vec3 world_dir = Math::mat4_mul_vec3_dir(&rot_mat, forward);
+                Math::vec3_normalize(&world_dir);
 
-                Vec3 line_end = vec3_add(light->pos, vec3_muls(world_dir, 2.0f));
+                Vec3 line_end = Math::vec3_add(light->pos, Math::vec3_muls(world_dir, 2.0f));
 
                 Vec3 line_verts[] = { light->pos, line_end };
 
                 Mat4 identity_mat;
-                mat4_identity(&identity_mat);
+                Math::mat4_identity(&identity_mat);
                 Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
                 Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 1.0f });
 
@@ -698,28 +698,28 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
                 Float far_plane = light->shadowFarPlane > 0 ? light->shadowFarPlane : 25.0f;
                 Float angle = acosf(fmaxf(-1.0f, fminf(1.0f, light->cutOff)));
                 Float radius = tanf(angle) * far_plane;
-                Vec3 dir = light->direction; vec3_normalize(&dir);
-                Vec3 up_ish = (fabsf(vec3_dot(dir, Vec3{ 0, 1, 0 })) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
-                Vec3 right = vec3_cross(dir, up_ish); vec3_normalize(&right);
-                Vec3 up = vec3_cross(right, dir);
+                Vec3 dir = light->direction; Math::vec3_normalize(&dir);
+                Vec3 up_ish = (fabsf(Math::vec3_dot(dir, Vec3{ 0, 1, 0 })) > 0.99f) ? Vec3{ 1, 0, 0 } : Vec3{ 0, 1, 0 };
+                Vec3 right = Math::vec3_cross(dir, up_ish); Math::vec3_normalize(&right);
+                Vec3 up = Math::vec3_cross(right, dir);
                 Int segments = 16;
                 Vec3 cone_verts[40]; Int vert_count = 0;
                 for (Int k = 0; k < 4; ++k) {
                     Float theta = (k / 4.0f) * 2.0f * Common::PI;
-                    Vec3 p_on_circle = vec3_add(vec3_muls(right, cosf(theta) * radius), vec3_muls(up, sinf(theta) * radius));
-                    Vec3 world_p = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p_on_circle));
+                    Vec3 p_on_circle = Math::vec3_add(Math::vec3_muls(right, cosf(theta) * radius), Math::vec3_muls(up, sinf(theta) * radius));
+                    Vec3 world_p = Math::vec3_add(light->pos, Math::vec3_add(Math::vec3_muls(dir, far_plane), p_on_circle));
                     cone_verts[vert_count++] = light->pos;
                     cone_verts[vert_count++] = world_p;
                 }
                 for (Int k = 0; k < segments; ++k) {
                     Float theta1 = (k / (Float)segments) * 2.0f * Common::PI;
                     Float theta2 = ((k + 1) / (Float)segments) * 2.0f * Common::PI;
-                    Vec3 p1_on_circle = vec3_add(vec3_muls(right, cosf(theta1) * radius), vec3_muls(up, sinf(theta1) * radius));
-                    Vec3 p2_on_circle = vec3_add(vec3_muls(right, cosf(theta2) * radius), vec3_muls(up, sinf(theta2) * radius));
-                    cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p1_on_circle));
-                    cone_verts[vert_count++] = vec3_add(light->pos, vec3_add(vec3_muls(dir, far_plane), p2_on_circle));
+                    Vec3 p1_on_circle = Math::vec3_add(Math::vec3_muls(right, cosf(theta1) * radius), Math::vec3_muls(up, sinf(theta1) * radius));
+                    Vec3 p2_on_circle = Math::vec3_add(Math::vec3_muls(right, cosf(theta2) * radius), Math::vec3_muls(up, sinf(theta2) * radius));
+                    cone_verts[vert_count++] = Math::vec3_add(light->pos, Math::vec3_add(Math::vec3_muls(dir, far_plane), p1_on_circle));
+                    cone_verts[vert_count++] = Math::vec3_add(light->pos, Math::vec3_add(Math::vec3_muls(dir, far_plane), p2_on_circle));
                 }
-                Mat4 identity_mat; mat4_identity(&identity_mat);
+                Mat4 identity_mat; Math::mat4_identity(&identity_mat);
                 Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
                 glBindVertexArray(g_EditorState.vertex_points_vao);
                 glBindBuffer(GL_ARRAY_BUFFER, g_EditorState.vertex_points_vbo);
@@ -731,10 +731,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         }
     }
     glUseProgram(g_EditorState.debug_shader);
-    for (Int i = 0; i < scene->numSoundEntities; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = mat4_translate(scene->soundEntities[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+    for (Int i = 0; i < scene->numSoundEntities; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_SOUND, i); Mat4 modelMatrix = Math::mat4_translate(scene->soundEntities[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
     Vec4 color = { 0.1f, 0.9f, 0.6f, 1.0f }; if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
     Shader_Set(g_EditorState.debug_shader, "color", color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
-    for (Int i = 0; i < scene->numParticleEmitters; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = mat4_translate(scene->particleEmitters[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
+    for (Int i = 0; i < scene->numParticleEmitters; ++i) { Bool is_selected = Editor_IsSelected(ENTITY_PARTICLE_EMITTER, i); Mat4 modelMatrix = Math::mat4_translate(scene->particleEmitters[i].pos);  Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
     Vec4 color = { 1.0f, 0.2f, 0.8f, 1.0f }; if (is_selected) { color = Vec4{ 1.0f, 0.5f, 0.0f, 1.0f }; }
     Shader_Set(g_EditorState.debug_shader, "color", color); glBindVertexArray(g_EditorState.light_gizmo_vao); glDrawArrays(GL_LINES, 0, g_EditorState.light_gizmo_vertex_count); }
     glUseProgram(g_EditorState.debug_shader);
@@ -746,7 +746,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
 
             if (Editor_FindNamedEntityPosition(scene, target_name, &end_pos)) {
                 Mat4 identity;
-                mat4_identity(&identity);
+                Math::mat4_identity(&identity);
                 Shader_Set(g_EditorState.debug_shader, "model", &identity);
                 Float line_verts[6] = { ent->pos.x, ent->pos.y, ent->pos.z, end_pos.x, end_pos.y, end_pos.z };
                 Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.5f, 0.0f, 1.0f });
@@ -764,7 +764,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             }
         }
         Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
-        Mat4 modelMatrix = mat4_translate(scene->logicEntities[i].pos);
+        Mat4 modelMatrix = Math::mat4_translate(scene->logicEntities[i].pos);
         Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
         Vec4 color = { 1.0f, 0.5f, 0.0f, is_selected ? 1.0f : 0.5f };
         Shader_Set(g_EditorState.debug_shader, "color", color);
@@ -778,7 +778,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
             Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
             Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
-            Mat4 modelMatrix = create_trs_matrix(ent->pos, ent->rot, Vec3{ 1, 1, 1 });
+            Mat4 modelMatrix = Math::create_trs_matrix(ent->pos, ent->rot, Vec3{ 1, 1, 1 });
             Shader_Set(g_EditorState.debug_shader, "model", &modelMatrix);
             Bool is_selected = Editor_IsSelected(ENTITY_LOGIC, i);
             Vec4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
@@ -824,11 +824,11 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Brush* b = &scene->brushes[primary->index];
         if (primary->vertex_index < b->numVertices) {
             Vec3 vertex_local_pos = b->vertices[primary->vertex_index].pos;
-            Vec3 vertex_world_pos = mat4_mul_vec3(&b->modelMatrix, vertex_local_pos);
+            Vec3 vertex_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, vertex_local_pos);
             glUseProgram(g_EditorState.debug_shader);
             Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
             Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-            Mat4 identity_mat; mat4_identity(&identity_mat);
+            Mat4 identity_mat; Math::mat4_identity(&identity_mat);
             Shader_Set(g_EditorState.debug_shader, "model", &identity_mat);
             Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.0f, 1.0f, 1.0f });
             glPointSize(10.0f); glBindVertexArray(g_EditorState.vertex_points_vao);
@@ -845,9 +845,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
         Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
-        Mat4 model_mat = mat4_translate(g_EditorState.sprinkle_brush_world_pos);
-        Mat4 scale_mat = mat4_scale(Vec3{ g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
-        mat4_multiply(&model_mat, &model_mat, &scale_mat);
+        Mat4 model_mat = Math::mat4_translate(g_EditorState.sprinkle_brush_world_pos);
+        Mat4 scale_mat = Math::mat4_scale(Vec3{ g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius, g_EditorState.sprinkle_radius });
+        Math::mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
         Shader_Set(g_EditorState.debug_shader, "model", &model_mat);
         Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.0f, 1.0f, 0.5f });
@@ -866,9 +866,9 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
 
         Float radius = g_EditorState.is_painting_mode_enabled ? g_EditorState.paint_brush_radius : g_EditorState.sculpt_brush_radius;
-        Mat4 model_mat = mat4_translate(g_EditorState.paint_brush_world_pos);
-        Mat4 scale_mat = mat4_scale(Vec3{ radius, radius, radius });
-        mat4_multiply(&model_mat, &model_mat, &scale_mat);
+        Mat4 model_mat = Math::mat4_translate(g_EditorState.paint_brush_world_pos);
+        Mat4 scale_mat = Math::mat4_scale(Vec3{ radius, radius, radius });
+        Math::mat4_multiply(&model_mat, &model_mat, &scale_mat);
 
         Shader_Set(g_EditorState.debug_shader, "model", &model_mat);
         Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 1.0f, 0.0f, 0.5f });
@@ -885,7 +885,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glUseProgram(g_EditorState.debug_shader);
         Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
         Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-        Mat4 identity; mat4_identity(&identity);
+        Mat4 identity; Math::mat4_identity(&identity);
         Shader_Set(g_EditorState.debug_shader, "model", &identity);
         glDisable(GL_DEPTH_TEST);
         glLineWidth(2.0f);
@@ -917,21 +917,21 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         if (g_EditorState.clip_point_count >= 2) {
             Vec3 p1 = g_EditorState.clip_points[0];
             Vec3 p2 = g_EditorState.clip_points[1];
-            Vec3 mid = vec3_muls(vec3_add(p1, p2), 0.5f);
+            Vec3 mid = Math::vec3_muls(Math::vec3_add(p1, p2), 0.5f);
             Vec3 plane_normal;
-            Vec3 dir = vec3_sub(p2, p1);
+            Vec3 dir = Math::vec3_sub(p2, p1);
 
-            if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = vec3_cross(dir, Vec3{ 0, 1, 0 }); }
-            else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = vec3_cross(dir, Vec3{ 0, 0, 1 }); }
-            else { plane_normal = vec3_cross(dir, Vec3{ 1, 0, 0 }); }
-            vec3_normalize(&plane_normal);
+            if (g_EditorState.clip_view == VIEW_TOP_XZ) { plane_normal = Math::vec3_cross(dir, Vec3{ 0, 1, 0 }); }
+            else if (g_EditorState.clip_view == VIEW_FRONT_XY) { plane_normal = Math::vec3_cross(dir, Vec3{ 0, 0, 1 }); }
+            else { plane_normal = Math::vec3_cross(dir, Vec3{ 1, 0, 0 }); }
+            Math::vec3_normalize(&plane_normal);
 
             if (g_EditorState.clip_side_point.x != 0 || g_EditorState.clip_side_point.y != 0 || g_EditorState.clip_side_point.z != 0) {
-                Float side_check = vec3_dot(plane_normal, vec3_sub(g_EditorState.clip_side_point, p1));
-                if (side_check < 0) plane_normal = vec3_muls(plane_normal, -1.0f);
+                Float side_check = Math::vec3_dot(plane_normal, Math::vec3_sub(g_EditorState.clip_side_point, p1));
+                if (side_check < 0) plane_normal = Math::vec3_muls(plane_normal, -1.0f);
             }
 
-            Vec3 indicator_verts[] = { mid, vec3_add(mid, plane_normal) };
+            Vec3 indicator_verts[] = { mid, Math::vec3_add(mid, plane_normal) };
             glBufferData(GL_ARRAY_BUFFER, sizeof(indicator_verts), indicator_verts, GL_DYNAMIC_DRAW);
             glDrawArrays(GL_LINES, 0, 2);
         }
@@ -943,7 +943,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     glUseProgram(g_EditorState.debug_shader);
     Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
     Shader_Set(g_EditorState.debug_shader, "projection", &g_proj_matrix[type]);
-    Mat4 player_model_matrix = mat4_translate(scene->playerStart.pos);
+    Mat4 player_model_matrix = Math::mat4_translate(scene->playerStart.pos);
     Shader_Set(g_EditorState.debug_shader, "model", &player_model_matrix);
 
     Bool is_selected = Editor_IsSelected(ENTITY_PLAYERSTART, 0);
@@ -963,7 +963,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         constexpr int RADIUS_GIZMO_SEGMENTS = 32;
         glUseProgram(g_EditorState.debug_shader);
         Mat4 model_ident;
-        mat4_identity(&model_ident);
+        Math::mat4_identity(&model_ident);
         Shader_Set(g_EditorState.debug_shader, "model", &model_ident);
         Shader_Set(g_EditorState.debug_shader, "color", Vec4{ 1.0f, 0.65f, 0.0f, 0.7f });
         glLineWidth(1.0f);
@@ -1021,7 +1021,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         !g_EditorState.is_manipulating_gizmo) {
 
         Brush* b = &scene->brushes[primary->index];
-        Vec3 vertex_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
+        Vec3 vertex_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[primary->vertex_index].pos);
 
         glUseProgram(g_EditorState.gizmo_shader);
         Shader_Set(g_EditorState.debug_shader, "view", &g_view_matrix[type]);
@@ -1030,10 +1030,10 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
         glLineWidth(2.0f);
         glBindVertexArray(g_EditorState.gizmo_vao);
 
-        Mat4 scale = mat4_scale(Vec3{ 0.5f, 0.5f, 0.5f });
-        Mat4 trans = mat4_translate(vertex_world_pos);
+        Mat4 scale = Math::mat4_scale(Vec3{ 0.5f, 0.5f, 0.5f });
+        Mat4 trans = Math::mat4_translate(vertex_world_pos);
         Mat4 model;
-        mat4_multiply(&model, &trans, &scale);
+        Math::mat4_multiply(&model, &trans, &scale);
         Shader_Set(g_EditorState.gizmo_shader, "model", &model);
 
         Vec3 color_x = { 1,0,0 }; if (g_EditorState.vertex_gizmo_hovered_axis == GIZMO_AXIS_X || g_EditorState.vertex_gizmo_active_axis == GIZMO_AXIS_X) color_x = Vec3{ 1,1,0 };
@@ -1067,8 +1067,8 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         cam_pos.x = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * cosf(g_EditorState.model_preview_cam_angles.x);
         cam_pos.y = g_EditorState.model_preview_cam_dist * cosf(g_EditorState.model_preview_cam_angles.y);
         cam_pos.z = g_EditorState.model_preview_cam_dist * sinf(g_EditorState.model_preview_cam_angles.y) * sinf(g_EditorState.model_preview_cam_angles.x);
-        Mat4 view = mat4_lookAt(cam_pos, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
-        Mat4 proj = mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 1000.0f);
+        Mat4 view = Math::mat4_lookAt(cam_pos, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
+        Mat4 proj = Math::mat4_perspective(45.0f * (Common::PI / 180.0f), aspect, 0.1f, 1000.0f);
         glUseProgram(renderer->mainShader);
         Shader_Set(renderer->mainShader, "is_unlit", 1);
         Shader_Set(renderer->mainShader, "view", &view);
@@ -1077,7 +1077,7 @@ void Editor_RenderModelPreviewerScene(Renderer* renderer) {
         SceneObject temp_obj;
         memset(&temp_obj, 0, sizeof(SceneObject));
         temp_obj.model = g_EditorState.preview_model;
-        mat4_identity(&temp_obj.modelMatrix);
+        Math::mat4_identity(&temp_obj.modelMatrix);
         render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, nullptr);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1092,7 +1092,7 @@ void Editor_RenderAllViewports(Engine* engine, Renderer* renderer, Scene* scene)
     Shadows_RenderPointAndSpot(renderer, scene, engine);
 
     Mat4 sunLightSpaceMatrix;
-    mat4_identity(&sunLightSpaceMatrix);
+    Math::mat4_identity(&sunLightSpaceMatrix);
     if (scene->sun.enabled) {
         Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &scene->sun, g_EditorState.editor_camera.position);
         Shadows_RenderSun(renderer, scene, &sunLightSpaceMatrix);

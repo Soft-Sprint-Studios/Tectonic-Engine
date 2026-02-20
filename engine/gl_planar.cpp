@@ -58,7 +58,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
         if (strcmp(b->classname, "func_water") == 0 || strcmp(b->classname, "func_reflective_glass") == 0) {
             Float max_y = -FLT_MAX;
             for (Int v = 0; v < b->numVertices; ++v) {
-                Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
+                Vec3 world_v = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v].pos);
                 if (world_v.y > max_y) {
                     max_y = world_v.y;
                 }
@@ -87,9 +87,9 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     reflection_camera.pitch = -reflection_camera.pitch;
 
     Vec3 f_refl = { cosf(reflection_camera.pitch) * sinf(reflection_camera.yaw), sinf(reflection_camera.pitch), -cosf(reflection_camera.pitch) * cosf(reflection_camera.yaw) };
-    vec3_normalize(&f_refl);
-    Vec3 t_refl = vec3_add(reflection_camera.position, f_refl);
-    Mat4 reflection_view = mat4_lookAt(reflection_camera.position, t_refl, Vec3{ 0, 1, 0 });
+    Math::vec3_normalize(&f_refl);
+    Vec3 t_refl = Math::vec3_add(reflection_camera.position, f_refl);
+    Mat4 reflection_view = Math::mat4_lookAt(reflection_camera.position, t_refl, Vec3{ 0, 1, 0 });
 
     glUseProgram(renderer->mainShader);
     Shader_Set(renderer->mainShader, "clipPlane", Vec4{ 0, 1, 0, -reflection_plane_height + 0.1f });
@@ -150,7 +150,7 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
     Shader_Set(renderer->waterShader, "flashlight.enabled", (Int)engine->flashlight_on);
     if (engine->flashlight_on) {
         Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
-        vec3_normalize(&forward);
+        Math::vec3_normalize(&forward);
         Shader_Set(renderer->waterShader, "flashlight.position", engine->camera.position);
         Shader_Set(renderer->waterShader, "flashlight.direction", forward);
     }
@@ -180,7 +180,7 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
         Vec3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
         if (b->numVertices > 0) {
             for (Int v_idx = 0; v_idx < b->numVertices; ++v_idx) {
-                Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
+                Vec3 world_v = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[v_idx].pos);
                 world_min.x = fminf(world_min.x, world_v.x);
                 world_min.y = fminf(world_min.y, world_v.y);
                 world_min.z = fminf(world_min.z, world_v.z);

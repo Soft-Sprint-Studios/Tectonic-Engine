@@ -258,9 +258,9 @@ namespace
                 for (Int k = 0; k < face.numVertexIndices - 2; ++k)
                 {
                     Uint base_index = static_cast<Uint>(all_vertices.size());
-                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos));
-                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos));
-                    all_vertices.push_back(mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos));
+                    all_vertices.push_back(Math::mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[0]].pos));
+                    all_vertices.push_back(Math::mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 1]].pos));
+                    all_vertices.push_back(Math::mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k + 2]].pos));
                     all_indices.push_back(base_index);
                     all_indices.push_back(base_index + 1);
                     all_indices.push_back(base_index + 2);
@@ -292,9 +292,9 @@ namespace
                 Vec3 v0 = { obj.model->combinedVertexData[i0 * 3 + 0], obj.model->combinedVertexData[i0 * 3 + 1], obj.model->combinedVertexData[i0 * 3 + 2] };
                 Vec3 v1 = { obj.model->combinedVertexData[i1 * 3 + 0], obj.model->combinedVertexData[i1 * 3 + 1], obj.model->combinedVertexData[i1 * 3 + 2] };
                 Vec3 v2 = { obj.model->combinedVertexData[i2 * 3 + 0], obj.model->combinedVertexData[i2 * 3 + 1], obj.model->combinedVertexData[i2 * 3 + 2] };
-                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v0));
-                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v1));
-                all_vertices.push_back(mat4_mul_vec3(&obj.modelMatrix, v2));
+                all_vertices.push_back(Math::mat4_mul_vec3(&obj.modelMatrix, v0));
+                all_vertices.push_back(Math::mat4_mul_vec3(&obj.modelMatrix, v1));
+                all_vertices.push_back(Math::mat4_mul_vec3(&obj.modelMatrix, v2));
                 all_indices.push_back(base_index);
                 all_indices.push_back(base_index + 1);
                 all_indices.push_back(base_index + 2);
@@ -385,7 +385,7 @@ namespace
                         {
                             uniform_real_distribution<Float> dist(-1.0f, 1.0f);
                             Vec3 ray_dir = { dist(validation_rng), dist(validation_rng), dist(validation_rng) };
-                            vec3_normalize(&ray_dir);
+                            Math::vec3_normalize(&ray_dir);
 
                             RTCRay ray;
                             ray.org_x = probe_pos.x;
@@ -441,12 +441,12 @@ namespace
                 Vec3 direct_dir, indirect_dir;
                 Vec3 direct_light = calculate_direct_light(probe_positions[i], directions[j], direct_dir, BAKE_ALL_FOR_BOUNCES);
                 Vec3 indirect_light = calculate_indirect_light(probe_positions[i], directions[j], lighting_rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES);
-                m_scene->ambient_probes[i].colors[j] = vec3_muls(vec3_add(direct_light, indirect_light), 2.2f);
-                dominant_dir_total = vec3_add(dominant_dir_total, vec3_add(direct_dir, indirect_dir));
+                m_scene->ambient_probes[i].colors[j] = Math::vec3_muls(Math::vec3_add(direct_light, indirect_light), 2.2f);
+                dominant_dir_total = Math::vec3_add(dominant_dir_total, Math::vec3_add(direct_dir, indirect_dir));
             }
 
-            if (vec3_length_sq(dominant_dir_total) > 0.001f) {
-                vec3_normalize(&dominant_dir_total);
+            if (Math::vec3_length_sq(dominant_dir_total) > 0.001f) {
+                Math::vec3_normalize(&dominant_dir_total);
             }
             m_scene->ambient_probes[i].dominant_direction = dominant_dir_total;
         }
@@ -472,10 +472,10 @@ namespace
     {
         if (!m_rtc_scene) return false;
 
-        Vec3 ray_dir = vec3_sub(end, start);
-        const Float max_dist = vec3_length(ray_dir);
+        Vec3 ray_dir = Math::vec3_sub(end, start);
+        const Float max_dist = Math::vec3_length(ray_dir);
         if (max_dist < SHADOW_BIAS) return false;
-        vec3_normalize(&ray_dir);
+        Math::vec3_normalize(&ray_dir);
 
         RTCRayHit rayhit;
         rayhit.ray.org_x = start.x;
@@ -527,13 +527,13 @@ namespace
         const BrushFace& face = b->faces[face_index];
         Vec3 local_pos = b->vertices[vertex_index].pos;
 
-        Vec3 world_pos = mat4_mul_vec3(&b->modelMatrix, local_pos);
+        Vec3 world_pos = Math::mat4_mul_vec3(&b->modelMatrix, local_pos);
 
-        Vec3 p0 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[0]].pos);
-        Vec3 p1 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[1]].pos);
-        Vec3 p2 = mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[2]].pos);
-        Vec3 world_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-        vec3_normalize(&world_normal);
+        Vec3 p0 = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[0]].pos);
+        Vec3 p1 = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[1]].pos);
+        Vec3 p2 = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[face.vertexIndices[2]].pos);
+        Vec3 world_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+        Math::vec3_normalize(&world_normal);
 
         Float absX = fabsf(world_normal.x);
         Float absY = fabsf(world_normal.y);
@@ -575,7 +575,7 @@ namespace
         Vec2 max_uv = { -FLT_MAX, -FLT_MAX };
         vector<Vec3> world_verts(face.numVertexIndices);
         for (Int k = 0; k < face.numVertexIndices; ++k) {
-            world_verts[k] = mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
+            world_verts[k] = Math::mat4_mul_vec3(&b.modelMatrix, b.vertices[face.vertexIndices[k]].pos);
             Vec2 uv = calculate_texture_uv_for_vertex(&b, data.face_index, face.vertexIndices[k]);
             min_uv.x = min(min_uv.x, uv.x);
             min_uv.y = min(min_uv.y, uv.y);
@@ -634,13 +634,13 @@ namespace
                     Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
                     Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
 
-                    Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
+                    Vec3 barycentric = Math::barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
 
                     if (barycentric.x >= -1e-4f && barycentric.y >= -1e-4f && barycentric.z >= -1e-4f) {
                         inside = true;
-                        world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
-                        Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                        vec3_normalize(&tri_normal);
+                        world_pos = Math::vec3_add(Math::vec3_muls(p0, barycentric.x), Math::vec3_add(Math::vec3_muls(p1, barycentric.y), Math::vec3_muls(p2, barycentric.z)));
+                        Vec3 tri_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+                        Math::vec3_normalize(&tri_normal);
                         point_normal = tri_normal;
                         break;
                     }
@@ -653,7 +653,7 @@ namespace
                     mt19937 rng(generate_seed_from_pos(world_pos));
                     direct_light_color = calculate_direct_light(world_pos, point_normal, accumulated_direction, BAKE_STATIC_DIRECT_ONLY);
                     indirect_light_color = calculate_indirect_light(world_pos, point_normal, rng, indirect_direction, INDIRECT_SAMPLES_PER_POINT_BRUSHES);
-                    accumulated_direction = vec3_add(accumulated_direction, indirect_direction);
+                    accumulated_direction = Math::vec3_add(accumulated_direction, indirect_direction);
                     normal_lightmap_data[hdr_idx + 0] = point_normal.x;
                     normal_lightmap_data[hdr_idx + 1] = point_normal.y;
                     normal_lightmap_data[hdr_idx + 2] = point_normal.z;
@@ -665,7 +665,7 @@ namespace
                     normal_lightmap_data[hdr_idx + 2] = 0.0f;
                 }
 
-                if (vec3_length_sq(accumulated_direction) > 0.0001f) vec3_normalize(&accumulated_direction);
+                if (Math::vec3_length_sq(accumulated_direction) > 0.0001f) Math::vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
                 direction_float_data[hdr_idx + 0] = accumulated_direction.x;
@@ -745,12 +745,12 @@ namespace
                     Vec2 uv1 = calculate_texture_uv_for_vertex(&b, data.face_index, idx1);
                     Vec2 uv2 = calculate_texture_uv_for_vertex(&b, data.face_index, idx2);
                     Vec3 p0 = world_verts[0], p1 = world_verts[k + 1], p2 = world_verts[k + 2];
-                    Vec3 barycentric = barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
+                    Vec3 barycentric = Math::barycentric_coords({ target_u, target_v }, uv0, uv1, uv2);
                     if (barycentric.x >= -1e-4f && barycentric.y >= -1e-4f && barycentric.z >= -1e-4f) {
                         inside = true;
-                        world_pos = vec3_add(vec3_muls(p0, barycentric.x), vec3_add(vec3_muls(p1, barycentric.y), vec3_muls(p2, barycentric.z)));
-                        Vec3 tri_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                        vec3_normalize(&tri_normal);
+                        world_pos = Math::vec3_add(Math::vec3_muls(p0, barycentric.x), Math::vec3_add(Math::vec3_muls(p1, barycentric.y), Math::vec3_muls(p2, barycentric.z)));
+                        Vec3 tri_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+                        Math::vec3_normalize(&tri_normal);
                         point_normal = tri_normal;
                         break;
                     }
@@ -761,8 +761,8 @@ namespace
                     direct_sun_light = calculate_direct_sun_light_only(world_pos, point_normal);
                 }
 
-                Vec3 final_light = vec3_add(direct_light, indirect_light);
-                final_light = vec3_add(final_light, direct_sun_light);
+                Vec3 final_light = Math::vec3_add(direct_light, indirect_light);
+                final_light = Math::vec3_add(final_light, direct_sun_light);
                 final_hdr_lightmap_data[idx] = final_light.x;
                 final_hdr_lightmap_data[idx + 1] = final_light.y;
                 final_hdr_lightmap_data[idx + 2] = final_light.z;
@@ -775,8 +775,8 @@ namespace
         for (Int i = 0; i < lightmap_width * lightmap_height; ++i) {
             Int idx3 = i * 3;
             Vec3 dir = { filtered_direction_data[idx3], filtered_direction_data[idx3 + 1], filtered_direction_data[idx3 + 2] };
-            if (vec3_length_sq(dir) > 0.0001f) {
-                vec3_normalize(&dir);
+            if (Math::vec3_length_sq(dir) > 0.0001f) {
+                Math::vec3_normalize(&dir);
             }
             else {
                 dir = { 0,0,0 };
@@ -833,12 +833,12 @@ namespace
         Float scale = (decal.lightmap_scale > 0.0f) ? decal.lightmap_scale : 1.0f;
         Int lightmap_res = clamp(static_cast<Int>(m_resolution / scale), 4, 4096);
 
-        Mat4 transform = create_trs_matrix(decal.pos, decal.rot, decal.size);
+        Mat4 transform = Math::create_trs_matrix(decal.pos, decal.rot, decal.size);
         Vec3 x_axis = { transform.m[0], transform.m[1], transform.m[2] };
         Vec3 y_axis = { transform.m[4], transform.m[5], transform.m[6] };
         Vec3 z_axis = { transform.m[8], transform.m[9], transform.m[10] };
         Vec3 normal = { transform.m[8], transform.m[9], transform.m[10] };
-        vec3_normalize(&normal);
+        Math::vec3_normalize(&normal);
 
         vector<Float> direct_lightmap_data(lightmap_res * lightmap_res * 3);
         vector<Float> indirect_lightmap_data(lightmap_res * lightmap_res * 3);
@@ -862,11 +862,11 @@ namespace
                 Float local_x = u - 0.5f;
                 Float local_y = 0.5f - v;
 
-                Vec3 local_pos_on_quad = vec3_add(vec3_muls(x_axis, local_x), vec3_muls(y_axis, local_y));
-                local_pos_on_quad = vec3_add(local_pos_on_quad, vec3_muls(z_axis, -0.5f));
-                Vec3 world_pos = vec3_add(decal.pos, local_pos_on_quad);
+                Vec3 local_pos_on_quad = Math::vec3_add(Math::vec3_muls(x_axis, local_x), Math::vec3_muls(y_axis, local_y));
+                local_pos_on_quad = Math::vec3_add(local_pos_on_quad, Math::vec3_muls(z_axis, -0.5f));
+                Vec3 world_pos = Math::vec3_add(decal.pos, local_pos_on_quad);
 
-                Vec3 sampling_pos = vec3_add(world_pos, vec3_muls(normal, SHADOW_BIAS));
+                Vec3 sampling_pos = Math::vec3_add(world_pos, Math::vec3_muls(normal, SHADOW_BIAS));
 
                 mt19937 rng(generate_seed_from_pos(world_pos));
                 Vec3 dominant_dir = { 0,0,0 }, indirect_dir = { 0,0,0 };
@@ -891,8 +891,8 @@ namespace
                 normal_lightmap_data[idx + 1] = normal.y;
                 normal_lightmap_data[idx + 2] = normal.z;
 
-                Vec3 total_dir = vec3_add(dominant_dir, indirect_dir);
-                if (vec3_length_sq(total_dir) > 0.0001f) vec3_normalize(&total_dir);
+                Vec3 total_dir = Math::vec3_add(dominant_dir, indirect_dir);
+                if (Math::vec3_length_sq(total_dir) > 0.0001f) Math::vec3_normalize(&total_dir);
                 direction_float_data[idx + 0] = total_dir.x;
                 direction_float_data[idx + 1] = total_dir.y;
                 direction_float_data[idx + 2] = total_dir.z;
@@ -922,7 +922,7 @@ namespace
             Vec3 direct_light = { direct_lightmap_data[i * 3], direct_lightmap_data[i * 3 + 1], direct_lightmap_data[i * 3 + 2] };
             Vec3 indirect_light = { denoised_indirect_data[i * 3], denoised_indirect_data[i * 3 + 1], denoised_indirect_data[i * 3 + 2] };
             Vec3 direct_sun_light = calculate_direct_sun_light_only(decal.pos, normal);
-            Vec3 final_light = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
+            Vec3 final_light = Math::vec3_add(Math::vec3_add(direct_light, direct_sun_light), indirect_light);
             final_hdr_lightmap_data[i * 3] = final_light.x;
             final_hdr_lightmap_data[i * 3 + 1] = final_light.y;
             final_hdr_lightmap_data[i * 3 + 2] = final_light.z;
@@ -934,7 +934,7 @@ namespace
         vector<Uchar> dir_data_u8(lightmap_res * lightmap_res * 4);
         for (Int i = 0; i < lightmap_res * lightmap_res; ++i) {
             Vec3 dir = { filtered_direction_data[i * 3], filtered_direction_data[i * 3 + 1], filtered_direction_data[i * 3 + 2] };
-            if (vec3_length_sq(dir) > 0.0001f) vec3_normalize(&dir); else dir = { 0,0,0 };
+            if (Math::vec3_length_sq(dir) > 0.0001f) Math::vec3_normalize(&dir); else dir = { 0,0,0 };
             dir_data_u8[i * 4 + 0] = static_cast<Uchar>((dir.x * 0.5f + 0.5f) * 255.0f);
             dir_data_u8[i * 4 + 1] = static_cast<Uchar>((dir.y * 0.5f + 0.5f) * 255.0f);
             dir_data_u8[i * 4 + 2] = static_cast<Uchar>((dir.z * 0.5f + 0.5f) * 255.0f);
@@ -970,20 +970,20 @@ namespace
                 Vec3 p0 = b.vertices[idx0].pos;
                 Vec3 p1 = b.vertices[idx1].pos;
                 Vec3 p2 = b.vertices[idx2].pos;
-                Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                temp_normals[idx0] = vec3_add(temp_normals[idx0], face_normal);
-                temp_normals[idx1] = vec3_add(temp_normals[idx1], face_normal);
-                temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
+                Vec3 face_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+                temp_normals[idx0] = Math::vec3_add(temp_normals[idx0], face_normal);
+                temp_normals[idx1] = Math::vec3_add(temp_normals[idx1], face_normal);
+                temp_normals[idx2] = Math::vec3_add(temp_normals[idx2], face_normal);
             }
         }
         for (Int i = 0; i < b.numVertices; ++i) {
-            vec3_normalize(&temp_normals[i]);
+            Math::vec3_normalize(&temp_normals[i]);
         }
         local_normal = temp_normals[v_idx];
 
-        Vec3 world_pos = mat4_mul_vec3(&b.modelMatrix, local_pos);
-        Vec3 world_normal = mat4_mul_vec3_dir(&b.modelMatrix, local_normal);
-        vec3_normalize(&world_normal);
+        Vec3 world_pos = Math::mat4_mul_vec3(&b.modelMatrix, local_pos);
+        Vec3 world_normal = Math::mat4_mul_vec3_dir(&b.modelMatrix, local_normal);
+        Math::vec3_normalize(&world_normal);
 
         mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
@@ -992,11 +992,11 @@ namespace
         Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
         Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
-        direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
+        Vec3 final_light_color = Math::vec3_add(Math::vec3_add(direct_light, direct_sun_light), indirect_light);
+        direction_accumulator = Math::vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
-        if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
+        if (Math::vec3_length_sq(direction_accumulator) > 0.0001f) Math::vec3_normalize(&direction_accumulator);
         else direction_accumulator = { 0,0,0 };
         data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
@@ -1009,9 +1009,9 @@ namespace
         Vec3 local_pos = { obj.model->combinedVertexData[v_idx * 3 + 0], obj.model->combinedVertexData[v_idx * 3 + 1], obj.model->combinedVertexData[v_idx * 3 + 2] };
         Vec3 local_normal = { obj.model->combinedNormalData[v_idx * 3 + 0], obj.model->combinedNormalData[v_idx * 3 + 1], obj.model->combinedNormalData[v_idx * 3 + 2] };
 
-        Vec3 world_pos = mat4_mul_vec3(&obj.modelMatrix, local_pos);
-        Vec3 world_normal = mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
-        vec3_normalize(&world_normal);
+        Vec3 world_pos = Math::mat4_mul_vec3(&obj.modelMatrix, local_pos);
+        Vec3 world_normal = Math::mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
+        Math::vec3_normalize(&world_normal);
 
         mt19937 rng(generate_seed_from_pos(world_pos));
         Vec3 direction_accumulator = { 0,0,0 };
@@ -1020,11 +1020,11 @@ namespace
         Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
         Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = vec3_add(vec3_add(direct_light, direct_sun_light), indirect_light);
-        direction_accumulator = vec3_add(direction_accumulator, indirect_dir);
+        Vec3 final_light_color = Math::vec3_add(Math::vec3_add(direct_light, direct_sun_light), indirect_light);
+        direction_accumulator = Math::vec3_add(direction_accumulator, indirect_dir);
         data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
 
-        if (vec3_length_sq(direction_accumulator) > 0.0001f) vec3_normalize(&direction_accumulator);
+        if (Math::vec3_length_sq(direction_accumulator) > 0.0001f) Math::vec3_normalize(&direction_accumulator);
         else direction_accumulator = { 0,0,0 };
         data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
     }
@@ -1068,7 +1068,7 @@ namespace
             }
         }
 
-        Float bounds_size = vec3_length(vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
+        Float bounds_size = Math::vec3_length(Math::vec3_sub(scene_obj.model->aabb_max, scene_obj.model->aabb_min));
         Float world_scale = fmaxf(scene_obj.scale.x, fmaxf(scene_obj.scale.y, scene_obj.scale.z));
         Int resolution = clamp((Int)(bounds_size * world_scale * scene_obj.lightmapScale * 32.0f), 32, 2048);
         resolution = pow(2, ceil(log(resolution) / log(2)));
@@ -1154,15 +1154,15 @@ namespace
                 for (Int y = min_y; y <= max_y; ++y) {
                     for (Int x = min_x; x <= max_x; ++x) {
                         Vec2 p = { (x + 0.5f) / resolution, (y + 0.5f) / resolution };
-                        Vec3 bary = barycentric_coords(p, uv0, uv1, uv2);
+                        Vec3 bary = Math::barycentric_coords(p, uv0, uv1, uv2);
 
                         if (bary.x >= 0 && bary.y >= 0 && bary.z >= 0) {
-                            Vec3 pos_local = vec3_add(vec3_muls(v0_local, bary.x), vec3_add(vec3_muls(v1_local, bary.y), vec3_muls(v2_local, bary.z)));
-                            Vec3 norm_local = vec3_add(vec3_muls(n0_local, bary.x), vec3_add(vec3_muls(n1_local, bary.y), vec3_muls(n2_local, bary.z)));
+                            Vec3 pos_local = Math::vec3_add(Math::vec3_muls(v0_local, bary.x), Math::vec3_add(Math::vec3_muls(v1_local, bary.y), Math::vec3_muls(v2_local, bary.z)));
+                            Vec3 norm_local = Math::vec3_add(Math::vec3_muls(n0_local, bary.x), Math::vec3_add(Math::vec3_muls(n1_local, bary.y), Math::vec3_muls(n2_local, bary.z)));
 
-                            Vec3 pos_world = mat4_mul_vec3(&scene_obj.modelMatrix, pos_local);
-                            Vec3 norm_world = mat4_mul_vec3_dir(&scene_obj.modelMatrix, norm_local);
-                            vec3_normalize(&norm_world);
+                            Vec3 pos_world = Math::mat4_mul_vec3(&scene_obj.modelMatrix, pos_local);
+                            Vec3 norm_world = Math::mat4_mul_vec3_dir(&scene_obj.modelMatrix, norm_local);
+                            Math::vec3_normalize(&norm_world);
 
                             Int idx = (y * resolution + x) * 3;
 
@@ -1181,8 +1181,8 @@ namespace
                             indirect_data[idx + 1] = indirect.y;
                             indirect_data[idx + 2] = indirect.z;
 
-                            Vec3 total_dir = vec3_add(dom_dir, ind_dir);
-                            if (vec3_length_sq(total_dir) > 0) vec3_normalize(&total_dir);
+                            Vec3 total_dir = Math::vec3_add(dom_dir, ind_dir);
+                            if (Math::vec3_length_sq(total_dir) > 0) Math::vec3_normalize(&total_dir);
 
                             dir_accum_data[idx] = total_dir.x;
                             dir_accum_data[idx + 1] = total_dir.y;
@@ -1231,7 +1231,7 @@ namespace
             Int idx = i * 3;
 
             Vec3 d = { filtered_direction_data[idx], filtered_direction_data[idx + 1], filtered_direction_data[idx + 2] };
-            if (vec3_length_sq(d) > 0.0001f) vec3_normalize(&d);
+            if (Math::vec3_length_sq(d) > 0.0001f) Math::vec3_normalize(&d);
             else d = { 0,0,0 };
 
             dir_data[i * 4 + 0] = (Uchar)((d.x * 0.5f + 0.5f) * 255.0f);
@@ -1467,9 +1467,9 @@ namespace
                 Vec4 avg_color = { 0.0f, 0.0f, 0.0f, 0.0f };
                 for (Int k = 0; k < face.numVertexIndices; ++k) {
                     Int vert_idx = face.vertexIndices[k];
-                    avg_color = vec4_add(avg_color, b.vertices[vert_idx].color);
+                    avg_color = Math::vec4_add(avg_color, b.vertices[vert_idx].color);
                 }
-                avg_color = vec4_muls(avg_color, 1.0f / face.numVertexIndices);
+                avg_color = Math::vec4_muls(avg_color, 1.0f / face.numVertexIndices);
 
                 Vec4 mat1_refl = m_material_reflectivity.count(face.material) ? m_material_reflectivity[face.material] : Vec4{ 0.5f, 0.5f, 0.5f, 1.0f };
                 Vec4 mat2_refl = face.material2 && m_material_reflectivity.count(face.material2) ? m_material_reflectivity[face.material2] : Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1502,13 +1502,13 @@ namespace
     Vec3 Lightmapper::calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const
     {
         if (m_scene->sun.enabled) {
-            Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
-            Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Vec3 point_to_light_check = Math::vec3_add(pos, Math::vec3_muls(normal, SHADOW_BIAS));
+            Vec3 light_dir = Math::vec3_muls(m_scene->sun.direction, -1.0f);
+            Float NdotL = max(0.0f, Math::vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
-                if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
-                    Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
-                    return vec3_muls(light_color, NdotL);
+                if (!is_in_shadow(point_to_light_check, Math::vec3_add(point_to_light_check, Math::vec3_muls(light_dir, 10000.0f)))) {
+                    Vec3 light_color = Math::vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
+                    return Math::vec3_muls(light_color, NdotL);
                 }
             }
         }
@@ -1519,19 +1519,19 @@ namespace
     {
         Vec3 direct_light = { 0,0,0 };
         out_dominant_dir = { 0,0,0 };
-        Vec3 point_to_light_check = vec3_add(pos, vec3_muls(normal, SHADOW_BIAS));
+        Vec3 point_to_light_check = Math::vec3_add(pos, Math::vec3_muls(normal, SHADOW_BIAS));
 
         if (m_scene->sun.enabled) {
-            Vec3 light_dir = vec3_muls(m_scene->sun.direction, -1.0f);
-            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Vec3 light_dir = Math::vec3_muls(m_scene->sun.direction, -1.0f);
+            Float NdotL = max(0.0f, Math::vec3_dot(normal, light_dir));
             if (NdotL > 0.0f) {
-                if (!is_in_shadow(point_to_light_check, vec3_add(point_to_light_check, vec3_muls(light_dir, 10000.0f)))) {
-                    Vec3 light_color = vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
-                    Vec3 light_contribution = vec3_muls(light_color, NdotL);
-                    direct_light = vec3_add(direct_light, light_contribution);
+                if (!is_in_shadow(point_to_light_check, Math::vec3_add(point_to_light_check, Math::vec3_muls(light_dir, 10000.0f)))) {
+                    Vec3 light_color = Math::vec3_muls(m_scene->sun.color, m_scene->sun.intensity);
+                    Vec3 light_contribution = Math::vec3_muls(light_color, NdotL);
+                    direct_light = Math::vec3_add(direct_light, light_contribution);
 
-                    Float contribution_magnitude = vec3_length(light_contribution);
-                    out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
+                    Float contribution_magnitude = Math::vec3_length(light_contribution);
+                    out_dominant_dir = Math::vec3_add(out_dominant_dir, Math::vec3_muls(light_dir, contribution_magnitude));
                 }
             }
         }
@@ -1548,12 +1548,12 @@ namespace
             if (light.type == LIGHT_AREA) {
                 if (light.width <= 0 || light.height <= 0) continue;
 
-                Mat4 light_transform = create_trs_matrix({ 0,0,0 }, light.rot, { 1,1,1 });
-                Vec3 light_right = mat4_mul_vec3_dir(&light_transform, { 1, 0, 0 });
-                Vec3 light_up = mat4_mul_vec3_dir(&light_transform, { 0, 1, 0 });
-                Vec3 light_forward = mat4_mul_vec3_dir(&light_transform, { 0, 0, -1 });
+                Mat4 light_transform = Math::create_trs_matrix({ 0,0,0 }, light.rot, { 1,1,1 });
+                Vec3 light_right = Math::mat4_mul_vec3_dir(&light_transform, { 1, 0, 0 });
+                Vec3 light_up = Math::mat4_mul_vec3_dir(&light_transform, { 0, 1, 0 });
+                Vec3 light_forward = Math::mat4_mul_vec3_dir(&light_transform, { 0, 0, -1 });
 
-                if (vec3_dot(normal, light_forward) >= 0) {
+                if (Math::vec3_dot(normal, light_forward) >= 0) {
                     continue;
                 }
 
@@ -1568,15 +1568,15 @@ namespace
                         Float u = ((Float)x + jitter_dist(rng)) / (Float)grid_size - 0.5f;
                         Float v = ((Float)y + jitter_dist(rng)) / (Float)grid_size - 0.5f;
 
-                        Vec3 sample_offset = vec3_add(vec3_muls(light_right, u * light.width), vec3_muls(light_up, v * light.height));
-                        Vec3 sample_pos = vec3_add(light.pos, sample_offset);
+                        Vec3 sample_offset = Math::vec3_add(Math::vec3_muls(light_right, u * light.width), Math::vec3_muls(light_up, v * light.height));
+                        Vec3 sample_pos = Math::vec3_add(light.pos, sample_offset);
 
-                        Vec3 light_dir = vec3_sub(sample_pos, pos);
-                        Float dist_sq = vec3_length_sq(light_dir);
+                        Vec3 light_dir = Math::vec3_sub(sample_pos, pos);
+                        Float dist_sq = Math::vec3_length_sq(light_dir);
                         if (dist_sq > light.radius * light.radius) continue;
 
-                        vec3_normalize(&light_dir);
-                        Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+                        Math::vec3_normalize(&light_dir);
+                        Float NdotL = max(0.0f, Math::vec3_dot(normal, light_dir));
                         if (NdotL <= 0.0f) continue;
 
                         if (is_in_shadow(point_to_light_check, sample_pos)) continue;
@@ -1586,28 +1586,28 @@ namespace
                         Float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
                         attenuation /= (dist * dist + 1.0f);
 
-                        Vec3 light_color = vec3_muls(light.color, light.intensity);
-                        accumulated_light = vec3_add(accumulated_light, vec3_muls(light_color, attenuation * NdotL));
+                        Vec3 light_color = Math::vec3_muls(light.color, light.intensity);
+                        accumulated_light = Math::vec3_add(accumulated_light, Math::vec3_muls(light_color, attenuation * NdotL));
                     }
                 }
 
                 if (samples_that_hit > 0) {
-                    Vec3 light_contribution = vec3_muls(accumulated_light, 1.0f / (Float)(grid_size * grid_size));
-                    direct_light = vec3_add(direct_light, light_contribution);
+                    Vec3 light_contribution = Math::vec3_muls(accumulated_light, 1.0f / (Float)(grid_size * grid_size));
+                    direct_light = Math::vec3_add(direct_light, light_contribution);
 
-                    Vec3 avg_light_dir = vec3_muls(light_forward, -1.0f);
-                    vec3_normalize(&avg_light_dir);
-                    out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(avg_light_dir, vec3_length(light_contribution)));
+                    Vec3 avg_light_dir = Math::vec3_muls(light_forward, -1.0f);
+                    Math::vec3_normalize(&avg_light_dir);
+                    out_dominant_dir = Math::vec3_add(out_dominant_dir, Math::vec3_muls(avg_light_dir, Math::vec3_length(light_contribution)));
                 }
                 continue;
             }
 
-            Vec3 light_dir = vec3_sub(light.pos, pos);
-            Float dist = vec3_length(light_dir);
-            vec3_normalize(&light_dir);
+            Vec3 light_dir = Math::vec3_sub(light.pos, pos);
+            Float dist = Math::vec3_length(light_dir);
+            Math::vec3_normalize(&light_dir);
             if (dist > light.radius) continue;
 
-            Float NdotL = max(0.0f, vec3_dot(normal, light_dir));
+            Float NdotL = max(0.0f, Math::vec3_dot(normal, light_dir));
             if (NdotL <= 0.0f) continue;
 
             if (is_in_shadow(point_to_light_check, light.pos)) continue;
@@ -1615,8 +1615,8 @@ namespace
             Float spotFactor = 1.0f;
             if (light.type == LIGHT_SPOT)
             {
-                Vec3 light_forward_vector = vec3_muls(light.direction, -1.0f);
-                Float theta = vec3_dot(light_dir, light_forward_vector);
+                Vec3 light_forward_vector = Math::vec3_muls(light.direction, -1.0f);
+                Float theta = Math::vec3_dot(light_dir, light_forward_vector);
                 Float inner_cone_cos = light.cutOff;
                 Float outer_cone_cos = light.outerCutOff;
 
@@ -1638,12 +1638,12 @@ namespace
             Float attenuation = powf(max(0.0f, 1.0f - dist / light.radius), 2.0f);
             attenuation /= (dist * dist + 1.0f);
             attenuation *= spotFactor;
-            Vec3 light_color = vec3_muls(light.color, light.intensity);
-            Vec3 light_contribution = vec3_muls(light_color, NdotL * attenuation);
-            direct_light = vec3_add(direct_light, light_contribution);
+            Vec3 light_color = Math::vec3_muls(light.color, light.intensity);
+            Vec3 light_contribution = Math::vec3_muls(light_color, NdotL * attenuation);
+            direct_light = Math::vec3_add(direct_light, light_contribution);
 
-            Float contribution_magnitude = vec3_length(light_contribution);
-            out_dominant_dir = vec3_add(out_dominant_dir, vec3_muls(light_dir, contribution_magnitude));
+            Float contribution_magnitude = Math::vec3_length(light_contribution);
+            out_dominant_dir = Math::vec3_add(out_dominant_dir, Math::vec3_muls(light_dir, contribution_magnitude));
         }
         return direct_light;
     }
@@ -1662,11 +1662,11 @@ namespace
         Float z = sqrtf(max(0.0f, 1.0f - u1));
 
         Vec3 up = fabsf(normal.z) < 0.999f ? Vec3{ 0,0,1 } : Vec3{ 1,0,0 };
-        Vec3 tangent = vec3_cross(up, normal);
-        vec3_normalize(&tangent);
-        Vec3 bitangent = vec3_cross(normal, tangent);
+        Vec3 tangent = Math::vec3_cross(up, normal);
+        Math::vec3_normalize(&tangent);
+        Vec3 bitangent = Math::vec3_cross(normal, tangent);
 
-        return vec3_add(vec3_muls(tangent, x), vec3_add(vec3_muls(bitangent, y), vec3_muls(normal, z)));
+        return Math::vec3_add(Math::vec3_muls(tangent, x), Math::vec3_add(Math::vec3_muls(bitangent, y), Math::vec3_muls(normal, z)));
     }
 
     Vec4 Lightmapper::get_reflectivity_at_hit(Uint primID) const
@@ -1736,7 +1736,7 @@ namespace
                 valid[k] = -1;
                 Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(normal, rng);
                 first_bounce_dirs[k] = bounce_dir;
-                Vec3 trace_origin = vec3_add(origin, vec3_muls(normal, SHADOW_BIAS));
+                Vec3 trace_origin = Math::vec3_add(origin, Math::vec3_muls(normal, SHADOW_BIAS));
 
                 rayhit16.ray.org_x[k] = trace_origin.x;
                 rayhit16.ray.org_y[k] = trace_origin.y;
@@ -1769,11 +1769,11 @@ namespace
                     rayhit16.ray.org_z[k] + rayhit16.ray.tfar[k] * rayhit16.ray.dir_z[k]
                 };
                 Vec3 current_normal = { rayhit16.hit.Ng_x[k], rayhit16.hit.Ng_y[k], rayhit16.hit.Ng_z[k] };
-                vec3_normalize(&current_normal);
+                Math::vec3_normalize(&current_normal);
 
                 Uint current_primID = rayhit16.hit.primID[k];
 
-                if (vec3_dot(first_bounce_dirs[k], current_normal) > 0.0f) {
+                if (Math::vec3_dot(first_bounce_dirs[k], current_normal) > 0.0f) {
                     continue;
                 }
 
@@ -1792,7 +1792,7 @@ namespace
                     if (hit_material) {
                         auto it = m_emissive_materials.find(hit_material);
                         if (it != m_emissive_materials.end()) {
-                            path_radiance = vec3_add(path_radiance, vec3_mul(vec3_muls(it->second.first, it->second.second), throughput));
+                            path_radiance = Math::vec3_add(path_radiance, Math::vec3_mul(Math::vec3_muls(it->second.first, it->second.second), throughput));
                             break;
                         }
                     }
@@ -1801,17 +1801,17 @@ namespace
                     Vec3 albedo = { reflectivity.x, reflectivity.y, reflectivity.z };
                     Vec3 dummy_dir;
                     Vec3 direct_light = calculate_direct_light(current_pos, current_normal, dummy_dir, BAKE_ALL_FOR_BOUNCES);
-                    path_radiance = vec3_add(path_radiance, vec3_mul(vec3_mul(direct_light, albedo), throughput));
+                    path_radiance = Math::vec3_add(path_radiance, Math::vec3_mul(Math::vec3_mul(direct_light, albedo), throughput));
 
-                    throughput = vec3_mul(throughput, albedo);
+                    throughput = Math::vec3_mul(throughput, albedo);
                     Float p = max({ throughput.x, throughput.y, throughput.z });
                     if (bounce == m_bounces || p < 0.001f || roulette_dist(rng) > p) {
                         break;
                     }
-                    throughput = vec3_muls(throughput, 1.0f / p);
+                    throughput = Math::vec3_muls(throughput, 1.0f / p);
 
                     Vec3 bounce_dir = cosine_weighted_direction_in_hemisphere(current_normal, rng);
-                    Vec3 trace_origin = vec3_add(current_pos, vec3_muls(current_normal, SHADOW_BIAS));
+                    Vec3 trace_origin = Math::vec3_add(current_pos, Math::vec3_muls(current_normal, SHADOW_BIAS));
 
                     RTCRayHit rayhit;
                     rayhit.ray.org_x = trace_origin.x; rayhit.ray.org_y = trace_origin.y; rayhit.ray.org_z = trace_origin.z;
@@ -1828,25 +1828,25 @@ namespace
 
                     current_pos = { trace_origin.x + rayhit.ray.tfar * bounce_dir.x, trace_origin.y + rayhit.ray.tfar * bounce_dir.y, trace_origin.z + rayhit.ray.tfar * bounce_dir.z };
                     current_normal = { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z };
-                    vec3_normalize(&current_normal);
+                    Math::vec3_normalize(&current_normal);
 
-                    if (vec3_dot(bounce_dir, current_normal) > 0.0f) {
+                    if (Math::vec3_dot(bounce_dir, current_normal) > 0.0f) {
                         break;
                     }
                     current_primID = rayhit.hit.primID;
                 }
 
-                accumulated_color = vec3_add(accumulated_color, path_radiance);
-                out_indirect_dir = vec3_add(out_indirect_dir, vec3_muls(first_bounce_dirs[k], vec3_length(path_radiance)));
+                accumulated_color = Math::vec3_add(accumulated_color, path_radiance);
+                out_indirect_dir = Math::vec3_add(out_indirect_dir, Math::vec3_muls(first_bounce_dirs[k], Math::vec3_length(path_radiance)));
             }
         }
 
-        if (vec3_length_sq(out_indirect_dir) > 0.0001f)
+        if (Math::vec3_length_sq(out_indirect_dir) > 0.0001f)
         {
-            vec3_normalize(&out_indirect_dir);
+            Math::vec3_normalize(&out_indirect_dir);
         }
 
-        return vec3_muls(accumulated_color, 1.0f / (Float)num_samples);
+        return Math::vec3_muls(accumulated_color, 1.0f / (Float)num_samples);
     }
 
     void Lightmapper::generate()

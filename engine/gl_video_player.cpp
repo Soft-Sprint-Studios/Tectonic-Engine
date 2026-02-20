@@ -205,7 +205,7 @@ void VideoPlayer_Render(VideoPlayer* vp, Mat4* view, Mat4* projection) {
 
     glUseProgram(video_shader);
 
-    vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
+    vp->modelMatrix = Math::create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 1.0f });
 
     Shader_Set(video_shader, "model", &vp->modelMatrix);
     Shader_Set(video_shader, "view", view);
@@ -235,11 +235,11 @@ void VideoPlayer_Render2D(VideoPlayer* vp, Float x, Float y, Float w, Float h, I
 
     glDisable(GL_DEPTH_TEST);
 
-    Mat4 projection = mat4_ortho(0.0f, (Float)screenW, (Float)screenH, 0.0f, -1.0f, 1.0f);
+    Mat4 projection = Math::mat4_ortho(0.0f, (Float)screenW, (Float)screenH, 0.0f, -1.0f, 1.0f);
     Mat4 view;
-    mat4_identity(&view);
+    Math::mat4_identity(&view);
 
-    Mat4 model = create_trs_matrix(
+    Mat4 model = Math::create_trs_matrix(
         Vec3{
         x + w * 0.5f, y + h * 0.5f, 0.0f
     },

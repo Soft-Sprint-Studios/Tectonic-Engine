@@ -389,7 +389,7 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     if (renderer->cloudTexture == 0) Console_Printf_Error("Failed to load clouds.png!");
 
     Renderer_InitUniforms(renderer);
-    mat4_identity(&renderer->prevViewProjection);
+    Math::mat4_identity(&renderer->prevViewProjection);
 
     WaterManager_Init();
     WaterManager_ParseWaters("waters.def");

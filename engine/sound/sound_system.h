@@ -36,15 +36,12 @@
 #include "sound_api.h"
 
 
-    typedef struct {
-        Uint bufferID;
-    } Sound;
+typedef struct {
+    Uint drySourceID;
+    Uint wetSourceID;
+} PlayingSound;
 
-    typedef struct {
-        Uint drySourceID;
-        Uint wetSourceID;
-    } PlayingSound;
-
+namespace Sound {
     SOUND_API Bool SoundSystem_Init();
     SOUND_API void SoundSystem_Shutdown();
     SOUND_API void SoundSystem_UpdateListener(Vec3 position, Vec3 forward, Vec3 up);
@@ -59,6 +56,7 @@
     SOUND_API void SoundSystem_DeleteSource(Uint sourceID);
     SOUND_API void SoundSystem_DeleteBuffer(Uint bufferID);
     SOUND_API void SoundSystem_Update(void);
+}
 
 
 #endif // SOUND_SYSTEM_H

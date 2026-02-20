@@ -35,9 +35,6 @@
 #include "sound_api.h"
 
 
-    SOUND_API void DSP_Reverb_Thread_Init(void);
-    SOUND_API void DSP_Reverb_Thread_Shutdown(void);
-
     typedef enum {
         REVERB_PRESET_NONE,
         REVERB_PRESET_SMALL_ROOM,
@@ -61,9 +58,12 @@
         Int num_samples;
     } ProcessedAudio;
 
-    SOUND_API ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
-
-    SOUND_API ProcessedAudio DSP_Reverb_Process(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only);
+    namespace Sound {
+        SOUND_API void DSP_Reverb_Thread_Init(void);
+        SOUND_API void DSP_Reverb_Thread_Shutdown(void);
+        SOUND_API ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset);
+        SOUND_API ProcessedAudio DSP_Reverb_Process(const Short* input, Int num_samples, Int sample_rate, const ReverbSettings* settings, Bool wet_only);
+    }
 
 
 #endif // DSP_REVERB_H

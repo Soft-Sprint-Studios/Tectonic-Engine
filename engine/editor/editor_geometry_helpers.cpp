@@ -32,7 +32,7 @@ void Brush_SetVerticesFromBox(Brush* b, Vec3 size) {
     Brush_FreeData(b);
     b->numVertices = 8;
     b->vertices = new BrushVertex[b->numVertices];
-    Vec3 half_size = vec3_muls(size, 0.5f);
+    Vec3 half_size = Math::vec3_muls(size, 0.5f);
     b->vertices[0].pos = Vec3{ -half_size.x, -half_size.y,  half_size.z };
     b->vertices[1].pos = Vec3{ half_size.x, -half_size.y,  half_size.z };
     b->vertices[2].pos = Vec3{ half_size.x,  half_size.y,  half_size.z };
@@ -143,7 +143,7 @@ void Brush_SetVerticesFromCylinder(Brush* b, Vec3 size, Int num_sides) {
 
 void Brush_SetVerticesFromWedge(Brush* b, Vec3 size) {
     Brush_FreeData(b);
-    Vec3 half_size = vec3_muls(size, 0.5f);
+    Vec3 half_size = Math::vec3_muls(size, 0.5f);
 
     b->numVertices = 6;
     b->vertices = new BrushVertex[b->numVertices];
@@ -246,7 +246,7 @@ void Brush_SetVerticesFromSphere(Brush* b, Vec3 size, Int sides) {
     b->numVertices = (sides + 1) * (stacks + 1);
     b->vertices = new BrushVertex[b->numVertices]();
 
-    Vec3 radius = vec3_muls(size, 0.5f);
+    Vec3 radius = Math::vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
         Float stack_angle = Common::PI / 2 - i * Common::PI / stacks;
@@ -296,7 +296,7 @@ void Brush_SetVerticesFromSemiSphere(Brush* b, Vec3 size, Int sides) {
     b->numVertices = num_dome_verts + 1;
     b->vertices = new BrushVertex[b->numVertices]();
 
-    Vec3 radius = vec3_muls(size, 0.5f);
+    Vec3 radius = Math::vec3_muls(size, 0.5f);
 
     for (Int i = 0; i <= stacks; i++) {
         Float stack_angle = Common::PI / 2 - i * (Common::PI / 2) / stacks;
@@ -465,18 +465,18 @@ static Int compare_cap_verts(const void* a, const void* b) {
     Vec3 va = *(const Vec3*)a;
     Vec3 vb = *(const Vec3*)b;
 
-    Vec3 dir_a = vec3_sub(va, g_sort_centroid);
-    Vec3 dir_b = vec3_sub(vb, g_sort_centroid);
+    Vec3 dir_a = Math::vec3_sub(va, g_sort_centroid);
+    Vec3 dir_b = Math::vec3_sub(vb, g_sort_centroid);
 
-    Vec3 u_axis = vec3_cross(g_sort_normal, Vec3{ 0, 0, 1 });
-    if (vec3_length_sq(u_axis) < 1e-6) u_axis = vec3_cross(g_sort_normal, Vec3{ 0, 1, 0 });
-    vec3_normalize(&u_axis);
-    Vec3 v_axis = vec3_cross(g_sort_normal, u_axis);
+    Vec3 u_axis = Math::vec3_cross(g_sort_normal, Vec3{ 0, 0, 1 });
+    if (Math::vec3_length_sq(u_axis) < 1e-6) u_axis = Math::vec3_cross(g_sort_normal, Vec3{ 0, 1, 0 });
+    Math::vec3_normalize(&u_axis);
+    Vec3 v_axis = Math::vec3_cross(g_sort_normal, u_axis);
 
-    Float a_u = vec3_dot(dir_a, u_axis);
-    Float a_v = vec3_dot(dir_a, v_axis);
-    Float b_u = vec3_dot(dir_b, u_axis);
-    Float b_v = vec3_dot(dir_b, v_axis);
+    Float a_u = Math::vec3_dot(dir_a, u_axis);
+    Float a_v = Math::vec3_dot(dir_a, v_axis);
+    Float b_u = Math::vec3_dot(dir_b, u_axis);
+    Float b_v = Math::vec3_dot(dir_b, v_axis);
 
     Float angle_a = atan2f(a_v, a_u);
     Float angle_b = atan2f(b_v, b_u);
@@ -503,8 +503,8 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
     Int positive_count = 0;
     Int negative_count = 0;
     for (Int i = 0; i < b->numVertices; ++i) {
-        Vec3 world_vertex_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-        dists[i] = vec3_dot(plane_normal, world_vertex_pos) + plane_d;
+        Vec3 world_vertex_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        dists[i] = Math::vec3_dot(plane_normal, world_vertex_pos) + plane_d;
         if (dists[i] > 1e-5) {
             side[i] = 1; positive_count++;
         }
@@ -577,7 +577,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
             if (side[p1_idx] * side[p2_idx] < 0) {
                 Float t = dists[p1_idx] / (dists[p1_idx] - dists[p2_idx]);
-                Vec3 intersect_pos = vec3_add(b->vertices[p1_idx].pos, vec3_muls(vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
+                Vec3 intersect_pos = Math::vec3_add(b->vertices[p1_idx].pos, Math::vec3_muls(Math::vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
                 Vec4 intersect_color;
                 intersect_color.x = b->vertices[p1_idx].color.x + (b->vertices[p2_idx].color.x - b->vertices[p1_idx].color.x) * t;
                 intersect_color.y = b->vertices[p1_idx].color.y + (b->vertices[p2_idx].color.y - b->vertices[p1_idx].color.y) * t;
@@ -640,7 +640,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
             if (side[p1_idx] * side[p2_idx] < 0) {
                 Float t = dists[p1_idx] / (dists[p1_idx] - dists[p2_idx]);
-                Vec3 intersect_pos = vec3_add(b->vertices[p1_idx].pos, vec3_muls(vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
+                Vec3 intersect_pos = Math::vec3_add(b->vertices[p1_idx].pos, Math::vec3_muls(Math::vec3_sub(b->vertices[p2_idx].pos, b->vertices[p1_idx].pos), t));
                 Vec4 intersect_color;
                 intersect_color.x = b->vertices[p1_idx].color.x + (b->vertices[p2_idx].color.x - b->vertices[p1_idx].color.x) * t;
                 intersect_color.y = b->vertices[p1_idx].color.y + (b->vertices[p2_idx].color.y - b->vertices[p1_idx].color.y) * t;
@@ -649,7 +649,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
                 Bool is_duplicate = false;
                 for (Int k = 0; k < cap_vert_count; ++k) {
-                    if (vec3_length_sq(vec3_sub(temp_cap_verts[k].pos, intersect_pos)) < 1e-6) {
+                    if (Math::vec3_length_sq(Math::vec3_sub(temp_cap_verts[k].pos, intersect_pos)) < 1e-6) {
                         is_duplicate = true;
                         break;
                     }
@@ -675,8 +675,8 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
     if (cap_vert_count >= 3) {
         Vec3 centroid = { 0,0,0 };
-        for (Int i = 0; i < cap_vert_count; ++i) centroid = vec3_add(centroid, temp_cap_verts[i].pos);
-        centroid = vec3_muls(centroid, 1.0f / cap_vert_count);
+        for (Int i = 0; i < cap_vert_count; ++i) centroid = Math::vec3_add(centroid, temp_cap_verts[i].pos);
+        centroid = Math::vec3_muls(centroid, 1.0f / cap_vert_count);
 
         g_sort_normal = plane_normal;
         g_sort_centroid = centroid;
@@ -717,7 +717,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         for (Int i = 0; i < cap_vert_count; ++i) {
             Int vert_idx = -1;
             for (Int k = 0; k < new_vert_count; ++k) {
-                if (vec3_length_sq(vec3_sub(temp_new_verts[k].pos, temp_cap_verts[i].pos)) < 1e-6) {
+                if (Math::vec3_length_sq(Math::vec3_sub(temp_new_verts[k].pos, temp_cap_verts[i].pos)) < 1e-6) {
                     vert_idx = k;
                     break;
                 }

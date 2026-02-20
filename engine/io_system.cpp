@@ -221,7 +221,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                     if (!ent->runtime_active) {
                         const Char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
                         const Char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
-                        ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
+                        ent->runtime_float_a = Math::rand_float_range(atof(min_time_str), atof(max_time_str));
                     }
                     ent->runtime_active = true;
                 }
@@ -349,7 +349,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
             else if (strcmp(ent->classname, "env_shake") == 0) {
                 Bool global_shake = atoi(LogicEntity_GetProperty(ent, "GlobalShake", "0"));
                 Float radius = atof(LogicEntity_GetProperty(ent, "radius", "500.0"));
-                Float dist_sq = vec3_length_sq(vec3_sub(engine->camera.position, ent->pos));
+                Float dist_sq = Math::vec3_length_sq(Math::vec3_sub(engine->camera.position, ent->pos));
 
                 if (strcmp(inputName, "StartShake") == 0) {
                     if (global_shake || dist_sq < (radius * radius)) {
@@ -525,11 +525,11 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
         if (strcmp(scene->objects[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "EnablePhysics") == 0) {
                 scene->objects[i].isPhysicsEnabled = true;
-                Physics_ToggleCollision(engine->physicsWorld, scene->objects[i].physicsBody, true);
+                Physics::ToggleCollision(engine->physicsWorld, scene->objects[i].physicsBody, true);
             }
             else if (strcmp(inputName, "DisablePhysics") == 0) {
                 scene->objects[i].isPhysicsEnabled = false;
-                Physics_ToggleCollision(engine->physicsWorld, scene->objects[i].physicsBody, false);
+                Physics::ToggleCollision(engine->physicsWorld, scene->objects[i].physicsBody, false);
             }
             SceneObject* obj = &scene->objects[i];
             if (strcmp(inputName, "PlayAnimation") == 0) {
@@ -579,7 +579,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         if (!b->runtime_active) {
                             b->runtime_active = true;
                             if (b->physicsBody) {
-                                Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, true);
+                                Physics::ToggleCollision(engine->physicsWorld, b->physicsBody, true);
                             }
                         }
                     }
@@ -587,7 +587,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         if (b->runtime_active) {
                             b->runtime_active = false;
                             if (b->physicsBody) {
-                                Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
+                                Physics::ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                             }
                         }
                     }
@@ -631,7 +631,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                     if (should_be_visible != b->runtime_is_visible) {
                         b->runtime_is_visible = should_be_visible;
                         if (b->physicsBody) {
-                            Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
+                            Physics::ToggleCollision(engine->physicsWorld, b->physicsBody, b->runtime_is_visible);
                         }
                     }
                 }
@@ -732,33 +732,33 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
         if (strcmp(scene->soundEntities[i].targetname, targetName) == 0) {
             if (strcmp(inputName, "PlaySound") == 0) {
                 if (scene->soundEntities[i].sourceID != 0) {
-                    SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
+                    Sound::SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
                 }
-                scene->soundEntities[i].sourceID = SoundSystem_PlaySound(scene->soundEntities[i].bufferID, scene->soundEntities[i].pos, scene->soundEntities[i].volume, scene->soundEntities[i].pitch, scene->soundEntities[i].maxDistance, scene->soundEntities[i].is_looping);
-                SoundSystem_SetSourceIsGlobal(scene->soundEntities[i].sourceID, scene->soundEntities[i].isGlobal);
+                scene->soundEntities[i].sourceID = Sound::SoundSystem_PlaySound(scene->soundEntities[i].bufferID, scene->soundEntities[i].pos, scene->soundEntities[i].volume, scene->soundEntities[i].pitch, scene->soundEntities[i].maxDistance, scene->soundEntities[i].is_looping);
+                Sound::SoundSystem_SetSourceIsGlobal(scene->soundEntities[i].sourceID, scene->soundEntities[i].isGlobal);
             }
             else if (strcmp(inputName, "StopSound") == 0) {
                 if (scene->soundEntities[i].sourceID != 0) {
-                    SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
+                    Sound::SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
                     scene->soundEntities[i].sourceID = 0;
                 }
             }
             else if (strcmp(inputName, "EnableLoop") == 0) {
                 scene->soundEntities[i].is_looping = true;
                 if (scene->soundEntities[i].sourceID != 0) {
-                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, true);
+                    Sound::SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, true);
                 }
             }
             else if (strcmp(inputName, "DisableLoop") == 0) {
                 scene->soundEntities[i].is_looping = false;
                 if (scene->soundEntities[i].sourceID != 0) {
-                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, false);
+                    Sound::SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, false);
                 }
             }
             else if (strcmp(inputName, "ToggleLoop") == 0) {
                 scene->soundEntities[i].is_looping = !scene->soundEntities[i].is_looping;
                 if (scene->soundEntities[i].sourceID != 0) {
-                    SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, scene->soundEntities[i].is_looping);
+                    Sound::SoundSystem_SetSourceLooping(scene->soundEntities[i].sourceID, scene->soundEntities[i].is_looping);
                 }
             }
         }
@@ -846,7 +846,7 @@ void LogicSystem_Update(Scene* scene, Float deltaTime) {
                     IO_FireOutput(ENTITY_LOGIC, i, "OnRandom", 0, nullptr);
                     const Char* min_time_str = LogicEntity_GetProperty(ent, "min_time", "0.0");
                     const Char* max_time_str = LogicEntity_GetProperty(ent, "max_time", "0.0");
-                    ent->runtime_float_a = rand_float_range(atof(min_time_str), atof(max_time_str));
+                    ent->runtime_float_a = Math::rand_float_range(atof(min_time_str), atof(max_time_str));
                 }
             }
         }

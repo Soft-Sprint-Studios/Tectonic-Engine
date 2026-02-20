@@ -92,7 +92,7 @@ void PostProcess_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     }
     Vec2 light_pos_on_screen = { -2.0, -2.0 }; Float flare_intensity = 0.0;
     if (scene->numActiveLights > 0) {
-        Vec3 light_world_pos = scene->lights[0].pos; Mat4 view_proj; mat4_multiply(&view_proj, projection, view); Float clip_space_pos[4]; Float w = 1.0f;
+        Vec3 light_world_pos = scene->lights[0].pos; Mat4 view_proj; Math::mat4_multiply(&view_proj, projection, view); Float clip_space_pos[4]; Float w = 1.0f;
         clip_space_pos[0] = view_proj.m[0] * light_world_pos.x + view_proj.m[4] * light_world_pos.y + view_proj.m[8] * light_world_pos.z + view_proj.m[12] * w;
         clip_space_pos[1] = view_proj.m[1] * light_world_pos.x + view_proj.m[5] * light_world_pos.y + view_proj.m[9] * light_world_pos.z + view_proj.m[13] * w;
         clip_space_pos[2] = view_proj.m[2] * light_world_pos.x + view_proj.m[6] * light_world_pos.y + view_proj.m[10] * light_world_pos.z + view_proj.m[14] * w;

@@ -51,19 +51,19 @@ typedef struct {
 static MikkTSpaceUserdata g_mikk_userdata;
 
 void SceneObject_UpdateMatrix(SceneObject* obj) {
-    obj->modelMatrix = create_trs_matrix(obj->pos, obj->rot, obj->scale);
+    obj->modelMatrix = Math::create_trs_matrix(obj->pos, obj->rot, obj->scale);
 }
 
 void Brush_UpdateMatrix(Brush* b) {
-    b->modelMatrix = create_trs_matrix(b->pos, b->rot, b->scale);
+    b->modelMatrix = Math::create_trs_matrix(b->pos, b->rot, b->scale);
 }
 
 void Decal_UpdateMatrix(Decal* d) {
-    d->modelMatrix = create_trs_matrix(d->pos, d->rot, d->size);
+    d->modelMatrix = Math::create_trs_matrix(d->pos, d->rot, d->size);
 }
 
 void ParallaxRoom_UpdateMatrix(ParallaxRoom* p) {
-    p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 1.0f });
+    p->modelMatrix = Math::create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 1.0f });
 }
 
 void Brush_FreeData(Brush* b) {
@@ -239,8 +239,8 @@ void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
     if (b->numVertices == 0) {
         Vec3 local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 local_max = { 0.5f,  0.5f,  0.5f };
-        *out_min = mat4_mul_vec3(&b->modelMatrix, local_min);
-        *out_max = mat4_mul_vec3(&b->modelMatrix, local_max);
+        *out_min = Math::mat4_mul_vec3(&b->modelMatrix, local_min);
+        *out_max = Math::mat4_mul_vec3(&b->modelMatrix, local_max);
         return;
     }
 
@@ -248,12 +248,12 @@ void Brush_GetWorldAABB(const Brush* b, Vec3* out_min, Vec3* out_max) {
         b->scale.x == 1.0f && b->scale.y == 1.0f && b->scale.z == 1.0f) {
         Vec3 local_min, local_max;
         Brush_GetLocalAABB(b, &local_min, &local_max);
-        *out_min = vec3_add(local_min, b->pos);
-        *out_max = vec3_add(local_max, b->pos);
+        *out_min = Math::vec3_add(local_min, b->pos);
+        *out_max = Math::vec3_add(local_max, b->pos);
     }
     else {
         for (Int i = 0; i < b->numVertices; ++i) {
-            Vec3 world_v = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+            Vec3 world_v = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
             out_min->x = fminf(out_min->x, world_v.x);
             out_min->y = fminf(out_min->y, world_v.y);
             out_min->z = fminf(out_min->z, world_v.z);
@@ -295,8 +295,8 @@ static void getTexCoord(const SMikkTSpaceContext* pContext, Float fvTexcOut[], c
     Vec3 p0 = g_mikk_userdata.brush->vertices[v_idx0].pos;
     Vec3 p1 = g_mikk_userdata.brush->vertices[v_idx1].pos;
     Vec3 p2 = g_mikk_userdata.brush->vertices[v_idx2].pos;
-    Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-    vec3_normalize(&normal_vec);
+    Vec3 normal_vec = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+    Math::vec3_normalize(&normal_vec);
 
     Int vertex_index = g_mikk_userdata.faceTriangles[iFace * 3 + iVert];
     Vec3 pos = g_mikk_userdata.brush->vertices[vertex_index].pos;
@@ -332,8 +332,8 @@ static Vec2 calculate_texture_uv_for_vertex(const Brush* b, Int face_index, Int 
     Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
     Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
     Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
-    Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-    vec3_normalize(&normal_vec);
+    Vec3 normal_vec = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+    Math::vec3_normalize(&normal_vec);
 
     Float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
     Int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
@@ -371,14 +371,14 @@ void Brush_CreateRenderData(Brush* b) {
             Vec3 p0 = b->vertices[idx0].pos;
             Vec3 p1 = b->vertices[idx1].pos;
             Vec3 p2 = b->vertices[idx2].pos;
-            Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-            temp_normals[idx0] = vec3_add(temp_normals[idx0], face_normal);
-            temp_normals[idx1] = vec3_add(temp_normals[idx1], face_normal);
-            temp_normals[idx2] = vec3_add(temp_normals[idx2], face_normal);
+            Vec3 face_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+            temp_normals[idx0] = Math::vec3_add(temp_normals[idx0], face_normal);
+            temp_normals[idx1] = Math::vec3_add(temp_normals[idx1], face_normal);
+            temp_normals[idx2] = Math::vec3_add(temp_normals[idx2], face_normal);
         }
     }
     for (Int i = 0; i < b->numVertices; ++i) {
-        vec3_normalize(&temp_normals[i]);
+        Math::vec3_normalize(&temp_normals[i]);
     }
 
     Int total_render_verts = 0;
@@ -465,7 +465,7 @@ void Brush_CreateRenderData(Brush* b) {
             Vec3 p0 = b->vertices[face_tri_indices[j - (j % 3) + 0]].pos;
             Vec3 p1 = b->vertices[face_tri_indices[j - (j % 3) + 1]].pos;
             Vec3 p2 = b->vertices[face_tri_indices[j - (j % 3) + 2]].pos;
-            Vec3 normal_vec = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0)); vec3_normalize(&normal_vec);
+            Vec3 normal_vec = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0)); Math::vec3_normalize(&normal_vec);
             Float absX = fabsf(normal_vec.x), absY = fabsf(normal_vec.y), absZ = fabsf(normal_vec.z);
             Int dominant_axis = (absY > absX && absY > absZ) ? 1 : ((absX > absZ) ? 0 : 2);
             Float u, v;

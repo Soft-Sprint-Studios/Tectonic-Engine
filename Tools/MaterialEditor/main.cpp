@@ -51,18 +51,18 @@ struct Material {
     string rmaPath;
     string heightPath;
     string detailDiffusePath;
-    float heightScale = 0.0f;
-    float detailScale = 1.0f;
-    float roughness = -1.0f;
-    float metalness = -1.0f;
-    bool useTesselation = false;
-    bool alpha = false;
+    Float heightScale = 0.0f;
+    Float detailScale = 1.0f;
+    Float roughness = -1.0f;
+    Float metalness = -1.0f;
+    Bool useTesselation = false;
+    Bool alpha = false;
 };
 
 vector<Material> g_materials;
-int g_selected_material_index = -1;
-bool g_is_dirty = false;
-const char* g_materials_file = "materials.def";
+Int g_selected_material_index = -1;
+Bool g_is_dirty = false;
+const Char* g_materials_file = "materials.def";
 
 Fl_Window* g_main_window;
 Fl_Select_Browser* g_material_browser;
@@ -80,9 +80,9 @@ Fl_Check_Button* g_tess_check;
 Fl_Check_Button* g_alpha_check;
 
 void update_ui_for_selection();
-void save_materials(const char* path);
+void save_materials(const Char* path);
 
-string get_relative_texture_path(const char* full_path) {
+string get_relative_texture_path(const Char* full_path) {
     if (!full_path) return "";
     filesystem::path p(full_path);
     auto it = find_if(p.begin(), p.end(), [](const filesystem::path& part) {
@@ -107,7 +107,7 @@ string get_relative_texture_path(const char* full_path) {
 }
 
 
-void load_materials(const char* path) {
+void load_materials(const Char* path) {
     g_materials.clear();
     ifstream file(path);
     if (!file.is_open()) {
@@ -117,7 +117,7 @@ void load_materials(const char* path) {
 
     string line;
     Material current_material;
-    bool in_material = false;
+    Bool in_material = false;
 
     while (getline(file, line)) {
         stringstream ss(line);
@@ -209,7 +209,7 @@ void material_select_cb(Fl_Widget* w, void*) {
 }
 
 void update_ui_for_selection() {
-    bool enabled = (g_selected_material_index != -1);
+    Bool enabled = (g_selected_material_index != -1);
     g_name_input->deactivate();
     g_diffuse_input->deactivate();
     g_normal_input->deactivate();
@@ -225,7 +225,7 @@ void update_ui_for_selection() {
 
     if (enabled) {
         const Material& mat = g_materials[g_selected_material_index];
-        char buffer[32];
+        Char buffer[32];
         g_name_input->value(mat.name.c_str());
         g_diffuse_input->value(mat.diffusePath.c_str());
         g_normal_input->value(mat.normalPath.c_str());
@@ -295,14 +295,14 @@ void save_cb(Fl_Widget* w, void*) {
 
 void exit_cb(Fl_Widget* w, void*) {
     if (g_is_dirty) {
-        int choice = fl_choice("You have unsaved changes. Save before exiting?", "Cancel", "Save", "Don't Save");
+        Int choice = fl_choice("You have unsaved changes. Save before exiting?", "Cancel", "Save", "Don't Save");
         if (choice == 0) return;
         if (choice == 1) save_materials(g_materials_file);
     }
     g_main_window->hide();
 }
 
-void save_materials(const char* path) {
+void save_materials(const Char* path) {
     ofstream file(path);
     if (!file.is_open()) {
         fl_alert("Failed to save to %s", path);
@@ -349,7 +349,7 @@ void on_about_cb(Fl_Widget*, void*) {
     fl_message("A tool to edit materials for the Tectonic Engine.\n\nCopyright (c) 2025-2026 Soft Sprint Studios");
 }
 
-int main(int argc, char** argv) {
+Int main(Int argc, Char** argv) {
     g_main_window = new Fl_Window(800, 490, "Tectonic Material Editor");
 
     Fl_Menu_Bar* menu = new Fl_Menu_Bar(0, 0, 800, 25);
@@ -363,12 +363,12 @@ int main(int argc, char** argv) {
     g_material_browser->callback(material_select_cb);
     g_material_browser->align(FL_ALIGN_BOTTOM);
 
-    constexpr int x_box = 370;
-    constexpr int input_w = 380;
-    constexpr int h = 25;
-    constexpr int step = 30;
-    constexpr int bw = 30;
-    int cur_y = 35;
+    constexpr Int x_box = 370;
+    constexpr Int input_w = 380;
+    constexpr Int h = 25;
+    constexpr Int step = 30;
+    constexpr Int bw = 30;
+    Int cur_y = 35;
 
     auto setup_input = [&](Fl_Input* in) {
         in->align(FL_ALIGN_LEFT);

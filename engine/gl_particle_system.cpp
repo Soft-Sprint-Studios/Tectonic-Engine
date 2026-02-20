@@ -103,14 +103,14 @@ static Int find_unused_particle(ParticleEmitter* emitter) {
 static void respawn_particle(ParticleEmitter* emitter, Particle* p) {
     ParticleSystem* ps = emitter->system;
     p->position = emitter->pos;
-    p->velocity.x = ps->startVelocity.x + rand_float_range(-ps->velocityVariation.x, ps->velocityVariation.x);
-    p->velocity.y = ps->startVelocity.y + rand_float_range(-ps->velocityVariation.y, ps->velocityVariation.y);
-    p->velocity.z = ps->startVelocity.z + rand_float_range(-ps->velocityVariation.z, ps->velocityVariation.z);
+    p->velocity.x = ps->startVelocity.x + Math::rand_float_range(-ps->velocityVariation.x, ps->velocityVariation.x);
+    p->velocity.y = ps->startVelocity.y + Math::rand_float_range(-ps->velocityVariation.y, ps->velocityVariation.y);
+    p->velocity.z = ps->startVelocity.z + Math::rand_float_range(-ps->velocityVariation.z, ps->velocityVariation.z);
     p->color = ps->startColor;
-    p->life = ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation);
+    p->life = ps->lifetime + Math::rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation);
     p->size = ps->startSize;
-    p->angle = ps->startAngle + rand_float_range(-ps->angleVariation, ps->angleVariation);
-    p->angularVelocity = ps->startAngularVelocity + rand_float_range(-ps->angularVelocityVariation, ps->angularVelocityVariation);
+    p->angle = ps->startAngle + Math::rand_float_range(-ps->angleVariation, ps->angleVariation);
+    p->angularVelocity = ps->startAngularVelocity + Math::rand_float_range(-ps->angularVelocityVariation, ps->angularVelocityVariation);
 }
 
 void ParticleEmitter_Init(ParticleEmitter* emitter, ParticleSystem* system, Vec3 position) {
@@ -161,10 +161,10 @@ void ParticleEmitter_Update(ParticleEmitter* emitter, Float deltaTime) {
         if (p->life > 0.0f) {
             p->life -= deltaTime;
             if (p->life > 0.0f) {
-                p->velocity = vec3_add(p->velocity, vec3_muls(ps->gravity, deltaTime));
-                p->position = vec3_add(p->position, vec3_muls(p->velocity, deltaTime));
+                p->velocity = Math::vec3_add(p->velocity, Math::vec3_muls(ps->gravity, deltaTime));
+                p->position = Math::vec3_add(p->position, Math::vec3_muls(p->velocity, deltaTime));
                 p->angle += p->angularVelocity * deltaTime;
-                Float lifeRatio = 1.0f - (p->life / (ps->lifetime + rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation)));
+                Float lifeRatio = 1.0f - (p->life / (ps->lifetime + Math::rand_float_range(-ps->lifetimeVariation, ps->lifetimeVariation)));
                 p->color.x = ps->startColor.x + (ps->endColor.x - ps->startColor.x) * lifeRatio;
                 p->color.y = ps->startColor.y + (ps->endColor.y - ps->startColor.y) * lifeRatio;
                 p->color.z = ps->startColor.z + (ps->endColor.z - ps->startColor.z) * lifeRatio;
@@ -209,7 +209,7 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
     Shader_Set(ps->shader, "flashlight.enabled", (Int)engine->flashlight_on);
     if (engine->flashlight_on) {
         Vec3 forward = { cosf(engine->camera.pitch) * sinf(engine->camera.yaw), sinf(engine->camera.pitch), -cosf(engine->camera.pitch) * cosf(engine->camera.yaw) };
-        vec3_normalize(&forward);
+        Math::vec3_normalize(&forward);
         Shader_Set(ps->shader, "flashlight.position", engine->camera.position);
         Shader_Set(ps->shader, "flashlight.direction", forward);
     }
@@ -221,7 +221,7 @@ void ParticleEmitter_Render(ParticleEmitter* emitter, void* scene_ptr, void* eng
         for (Int k = 0; k < 8; ++k) distances[k] = FLT_MAX;
 
         for (Int p_idx = 0; p_idx < scene->num_ambient_probes; ++p_idx) {
-            Float d = vec3_length_sq(vec3_sub(engine->camera.position, scene->ambient_probes[p_idx].position));
+            Float d = Math::vec3_length_sq(Math::vec3_sub(engine->camera.position, scene->ambient_probes[p_idx].position));
             for (Int k = 0; k < 8; ++k) {
                 if (d < distances[k]) {
                     for (Int l = 7; l > k; --l) {

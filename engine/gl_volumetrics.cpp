@@ -56,8 +56,8 @@ void Volumetrics_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Ma
     Shader_Set(renderer->volumetricShader, "viewPos", engine->camera.position);
 
     Mat4 invView, invProj;
-    mat4_inverse(view, &invView);
-    mat4_inverse(projection, &invProj);
+    Math::mat4_inverse(view, &invView);
+    Math::mat4_inverse(projection, &invProj);
     Shader_Set(renderer->volumetricShader, "invView", &invView);
     Shader_Set(renderer->volumetricShader, "invProjection", &invProj);
     Shader_Set(renderer->volumetricShader, "projection", projection);

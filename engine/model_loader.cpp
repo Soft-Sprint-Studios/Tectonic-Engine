@@ -41,8 +41,8 @@ static void EnsureErrorModelLoaded() {
     if (g_ErrorModel) {
         constexpr Float scale_factor = 0.05f;
 
-        g_ErrorModel->aabb_min = vec3_muls(g_ErrorModel->aabb_min, scale_factor);
-        g_ErrorModel->aabb_max = vec3_muls(g_ErrorModel->aabb_max, scale_factor);
+        g_ErrorModel->aabb_min = Math::vec3_muls(g_ErrorModel->aabb_min, scale_factor);
+        g_ErrorModel->aabb_max = Math::vec3_muls(g_ErrorModel->aabb_max, scale_factor);
 
         for (Int i = 0; i < g_ErrorModel->meshCount; ++i) {
             Mesh* mesh = &g_ErrorModel->meshes[i];

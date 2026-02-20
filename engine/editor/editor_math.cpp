@@ -114,8 +114,8 @@ Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
 
     Vec4 clip_pos = { world_pos.x, world_pos.y, world_pos.z, 1.0f };
 
-    clip_pos = mat4_mul_vec4(&g_view_matrix[viewport], clip_pos);
-    clip_pos = mat4_mul_vec4(&g_proj_matrix[viewport], clip_pos);
+    clip_pos = Math::mat4_mul_vec4(&g_view_matrix[viewport], clip_pos);
+    clip_pos = Math::mat4_mul_vec4(&g_proj_matrix[viewport], clip_pos);
 
     if (clip_pos.w != 0.0f) {
         clip_pos.x /= clip_pos.w;
@@ -129,28 +129,28 @@ Vec2 WorldToScreen(Vec3 world_pos, ViewportType viewport) {
 }
 
 Float dist_RaySegment(Vec3 ray_origin, Vec3 ray_dir, Vec3 seg_p0, Vec3 seg_p1, Float* t_ray, Float* t_seg) {
-    Vec3 seg_dir = vec3_sub(seg_p1, seg_p0);
-    Vec3 w0 = vec3_sub(ray_origin, seg_p0);
-    Float a = vec3_dot(ray_dir, ray_dir);
-    Float b = vec3_dot(ray_dir, seg_dir);
-    Float c = vec3_dot(seg_dir, seg_dir);
-    Float d = vec3_dot(ray_dir, w0);
-    Float e = vec3_dot(seg_dir, w0);
+    Vec3 seg_dir = Math::vec3_sub(seg_p1, seg_p0);
+    Vec3 w0 = Math::vec3_sub(ray_origin, seg_p0);
+    Float a = Math::vec3_dot(ray_dir, ray_dir);
+    Float b = Math::vec3_dot(ray_dir, seg_dir);
+    Float c = Math::vec3_dot(seg_dir, seg_dir);
+    Float d = Math::vec3_dot(ray_dir, w0);
+    Float e = Math::vec3_dot(seg_dir, w0);
     Float det = a * c - b * b;
     Float s, t;
     if (det < 1e-5f) { s = 0.0f; t = e / c; }
     else { s = (b * e - c * d) / det; t = (a * e - b * d) / det; }
     *t_ray = s; *t_seg = fmaxf(0.0f, fminf(1.0f, t));
-    Vec3 closest_point_on_ray = vec3_add(ray_origin, vec3_muls(ray_dir, *t_ray));
-    Vec3 closest_point_on_seg = vec3_add(seg_p0, vec3_muls(seg_dir, *t_seg));
-    return vec3_length(vec3_sub(closest_point_on_ray, closest_point_on_seg));
+    Vec3 closest_point_on_ray = Math::vec3_add(ray_origin, Math::vec3_muls(ray_dir, *t_ray));
+    Vec3 closest_point_on_seg = Math::vec3_add(seg_p0, Math::vec3_muls(seg_dir, *t_seg));
+    return Math::vec3_length(Math::vec3_sub(closest_point_on_ray, closest_point_on_seg));
 }
 
 Bool ray_plane_intersect(Vec3 ray_origin, Vec3 ray_dir, Vec3 plane_normal, Float plane_d, Vec3* intersect_point) {
-    Float denom = vec3_dot(plane_normal, ray_dir);
+    Float denom = Math::vec3_dot(plane_normal, ray_dir);
     if (fabs(denom) > 1e-6) {
-        Float t = -(vec3_dot(plane_normal, ray_origin) + plane_d) / denom;
-        if (t >= 0) { *intersect_point = vec3_add(ray_origin, vec3_muls(ray_dir, t)); return true; }
+        Float t = -(Math::vec3_dot(plane_normal, ray_origin) + plane_d) / denom;
+        if (t >= 0) { *intersect_point = Math::vec3_add(ray_origin, Math::vec3_muls(ray_dir, t)); return true; }
     }
     return false;
 }

@@ -52,9 +52,9 @@ static Vec3 get_bezier_point(Float t, Vec3 p0, Vec3 p1, Vec3 p2) {
     Float u = 1.0f - t;
     Float tt = t * t;
     Float uu = u * u;
-    Vec3 p = vec3_muls(p0, uu);
-    p = vec3_add(p, vec3_muls(p1, 2.0f * u * t));
-    p = vec3_add(p, vec3_muls(p2, tt));
+    Vec3 p = Math::vec3_muls(p0, uu);
+    p = Math::vec3_add(p, Math::vec3_muls(p1, 2.0f * u * t));
+    p = Math::vec3_add(p, Math::vec3_muls(p2, tt));
     return p;
 }
 
@@ -89,18 +89,18 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
                 Vec3 wind_angles;
                 sscanf(LogicEntity_GetProperty(ent, "WindDirection", "0 0 0"), "%f %f %f", &wind_angles.x, &wind_angles.y, &wind_angles.z);
 
-                Vec3 control_pos = vec3_muls(vec3_add(start_pos, end_pos), 0.5f);
+                Vec3 control_pos = Math::vec3_muls(Math::vec3_add(start_pos, end_pos), 0.5f);
                 control_pos.y -= depth;
 
                 if (wind_amount > 0.0f) {
-                    Mat4 rot_mat = create_trs_matrix(Vec3{ 0, 0, 0 }, wind_angles, Vec3{ 1, 1, 1 });
-                    Vec3 wind_dir = mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
-                    vec3_normalize(&wind_dir);
+                    Mat4 rot_mat = Math::create_trs_matrix(Vec3{ 0, 0, 0 }, wind_angles, Vec3{ 1, 1, 1 });
+                    Vec3 wind_dir = Math::mat4_mul_vec3_dir(&rot_mat, Vec3{ 1, 0, 0 });
+                    Math::vec3_normalize(&wind_dir);
 
                     Float sway1 = sin(time * wind_speed * 1.0f) * wind_amount * 0.6f;
                     Float sway2 = sin(time * wind_speed * 0.45f + 1.23f) * wind_amount * 0.4f;
-                    Vec3 wind_offset = vec3_muls(wind_dir, sway1 + sway2);
-                    control_pos = vec3_add(control_pos, wind_offset);
+                    Vec3 wind_offset = Math::vec3_muls(wind_dir, sway1 + sway2);
+                    control_pos = Math::vec3_add(control_pos, wind_offset);
                 }
 
                 Int num_vertices = (segments + 1) * 2;
@@ -114,22 +114,22 @@ void Cable_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
                     if (j == segments) {
                         Float t_prev = (Float)(j - 1) / (Float)segments;
                         Vec3 prev_p = get_bezier_point(t_prev, start_pos, control_pos, end_pos);
-                        next_p = vec3_add(p, vec3_sub(p, prev_p));
+                        next_p = Math::vec3_add(p, Math::vec3_sub(p, prev_p));
                     }
                     else {
                         Float t_next = (Float)(j + 1) / (Float)segments;
                         next_p = get_bezier_point(t_next, start_pos, control_pos, end_pos);
                     }
 
-                    Vec3 tangent = vec3_sub(next_p, p);
-                    vec3_normalize(&tangent);
-                    Vec3 view_vec = vec3_sub(p, cameraPos);
-                    Vec3 right = vec3_cross(tangent, view_vec);
-                    vec3_normalize(&right);
-                    right = vec3_muls(right, width * 0.5f);
+                    Vec3 tangent = Math::vec3_sub(next_p, p);
+                    Math::vec3_normalize(&tangent);
+                    Vec3 view_vec = Math::vec3_sub(p, cameraPos);
+                    Vec3 right = Math::vec3_cross(tangent, view_vec);
+                    Math::vec3_normalize(&right);
+                    right = Math::vec3_muls(right, width * 0.5f);
 
-                    vertices[j * 2] = vec3_sub(p, right);
-                    vertices[j * 2 + 1] = vec3_add(p, right);
+                    vertices[j * 2] = Math::vec3_sub(p, right);
+                    vertices[j * 2 + 1] = Math::vec3_add(p, right);
                 }
 
                 glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Vec3), vertices, GL_STREAM_DRAW);

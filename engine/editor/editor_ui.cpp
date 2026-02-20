@@ -355,15 +355,15 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_InputText("Name", obj->targetname, sizeof(obj->targetname));
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Edit Model Targetname"); }
-        if (UI_DragFloat3("Position", &obj->pos.x, 0.1f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_DragFloat3("Position", &obj->pos.x, 0.1f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Move Model"); }
 
-        if (UI_DragFloat3("Rotation", &obj->rot.x, 1.0f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_DragFloat3("Rotation", &obj->rot.x, 1.0f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Rotate Model"); }
 
-        if (UI_DragFloat3("Scale", &obj->scale.x, 0.01f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
+        if (UI_DragFloat3("Scale", &obj->scale.x, 0.01f, 0, 0)) { SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix); }
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Scale Model"); }
         UI_Separator();
@@ -375,7 +375,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
 
         if (UI_Checkbox("Physics Enabled", &obj->isPhysicsEnabled)) {
             Undo_BeginEntityModification(scene, ENTITY_MODEL, primary->index);
-            Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
+            Physics::ToggleCollision(engine->physicsWorld, obj->physicsBody, obj->isPhysicsEnabled);
             Undo_EndEntityModification(scene, ENTITY_MODEL, primary->index, "Toggle Model Physics");
         }
         UI_Separator();
@@ -483,26 +483,26 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Shadows");
         }
-        if (transform_changed) { Brush_UpdateMatrix(b); if (b->physicsBody) { Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); } }
+        if (transform_changed) { Brush_UpdateMatrix(b); if (b->physicsBody) { Physics::SetWorldTransform(b->physicsBody, b->modelMatrix); } }
         UI_Separator();
         UI_Text("Physics Properties");
         if (UI_DragFloat("Mass", &b->mass, 0.1f, 0.0f, 10000.0f)) {}
         if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index); }
         if (UI_IsItemDeactivatedAfterEdit()) {
             if (b->physicsBody) {
-                Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+                Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
                 b->physicsBody = nullptr;
             }
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (b->mass > 0.0f) {
-                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
+                    b->physicsBody = Physics::CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
                 }
                 else {
                     Vec3* world_verts = new Vec3[b->numVertices];
                     for (Int i = 0; i < b->numVertices; i++)
-                        world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                        world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
 
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
+                    b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                     delete[] world_verts;
                 }
             }
@@ -923,18 +923,18 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     else if (primary && primary->type == ENTITY_SOUND) {
         SoundEntity* s = &scene->soundEntities[primary->index]; UI_Text("Sound Entity Properties"); UI_Separator();
         UI_InputText("Name", s->targetname, sizeof(s->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Name"); } UI_InputText("Sound Path", s->soundPath, sizeof(s->soundPath)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Path"); } if (UI_Button("Load##Sound")) {
-            if (s->sourceID != 0) SoundSystem_DeleteSource(s->sourceID); if (s->bufferID != 0) SoundSystem_DeleteBuffer(s->bufferID);  s->bufferID = SoundSystem_LoadSound(s->soundPath);
-        } UI_DragFloat3("Position", &s->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourcePosition(s->sourceID, s->pos); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Move Sound"); } UI_DragFloat("Volume", &s->volume, 0.05f, 0.0f, 2.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Volume"); } UI_DragFloat("Pitch", &s->pitch, 0.05f, 0.1f, 4.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Pitch"); } UI_DragFloat("Max Distance", &s->maxDistance, 1.0f, 1.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Distance"); }
+            if (s->sourceID != 0) Sound::SoundSystem_DeleteSource(s->sourceID); if (s->bufferID != 0) Sound::SoundSystem_DeleteBuffer(s->bufferID);  s->bufferID = Sound::SoundSystem_LoadSound(s->soundPath);
+        } UI_DragFloat3("Position", &s->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Sound::SoundSystem_SetSourcePosition(s->sourceID, s->pos); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Move Sound"); } UI_DragFloat("Volume", &s->volume, 0.05f, 0.0f, 2.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Sound::SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Volume"); } UI_DragFloat("Pitch", &s->pitch, 0.05f, 0.1f, 4.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Sound::SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Pitch"); } UI_DragFloat("Max Distance", &s->maxDistance, 1.0f, 1.0f, 1000.0f); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Sound::SoundSystem_SetSourceProperties(s->sourceID, s->volume, s->pitch, s->maxDistance); Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Edit Sound Distance"); }
         if (UI_Checkbox("Looping", &s->is_looping)) {
             Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index);
-            if (s->sourceID != 0) SoundSystem_SetSourceLooping(s->sourceID, s->is_looping);
+            if (s->sourceID != 0) Sound::SoundSystem_SetSourceLooping(s->sourceID, s->is_looping);
             Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Toggle Sound Loop");
         }
         if (UI_Checkbox("Global Sound", &s->isGlobal)) {
             Undo_BeginEntityModification(scene, ENTITY_SOUND, primary->index);
-            SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
+            Sound::SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
             if (!s->isGlobal) {
-                SoundSystem_SetSourcePosition(s->sourceID, s->pos);
+                Sound::SoundSystem_SetSourcePosition(s->sourceID, s->pos);
             }
             Undo_EndEntityModification(scene, ENTITY_SOUND, primary->index, "Toggle Sound Global");
         }
@@ -1511,7 +1511,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         if (show_dims && type >= VIEW_TOP_XZ) {
             void* draw_list = UI_GetWindowDrawList();
             Uint text_color = UI_GetColorU32(255, 255, 255, 255);
-            Vec3 size = vec3_sub(b_max, b_min);
+            Vec3 size = Math::vec3_sub(b_max, b_min);
 
             Vec3 top_mid_world, left_mid_world;
             Char horizontal_text[32], vertical_text[32];

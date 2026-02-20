@@ -157,7 +157,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     IPC_Init();
     GameConfig_Init();
     UI_Init(window, context);
-    SoundSystem_Init();
+    Sound::SoundSystem_Init();
     Cvar_Init();
     Log_Init("logs.txt");
     Cvar_Init();
@@ -180,15 +180,15 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Console_Printf_Warning("autoexec.cfg not found, skipping.");
     }
     Network_Init();
-    g_flashlight_sound_buffer = SoundSystem_LoadSound("sounds/flashlight01.wav");
-    g_footstep_sound_buffer = SoundSystem_LoadSound("sounds/footstep.wav");
-    g_jump_sound_buffer = SoundSystem_LoadSound("sounds/jump.wav");
-    g_geiger_tick_sound_buffer = SoundSystem_LoadSound("sounds/geiger_tick.wav");
+    g_flashlight_sound_buffer = Sound::SoundSystem_LoadSound("sounds/flashlight01.wav");
+    g_footstep_sound_buffer = Sound::SoundSystem_LoadSound("sounds/footstep.wav");
+    g_jump_sound_buffer = Sound::SoundSystem_LoadSound("sounds/jump.wav");
+    g_geiger_tick_sound_buffer = Sound::SoundSystem_LoadSound("sounds/geiger_tick.wav");
     Console_SetCommandHandler(Commands_Execute);
     TextureManager_Init();
     TextureManager_ParseMaterialsFromFile("materials.def");
     Renderer_Init(&g_renderer, g_engine);
-    DSP_Reverb_Thread_Init();
+    Sound::DSP_Reverb_Thread_Init();
     init_scene();
     Discord_Init();
     Weapons_Init();
@@ -245,7 +245,7 @@ void init_scene() {
 }
 
 void cleanup() {
-    Physics_DestroyWorld(g_engine->physicsWorld);
+    Physics::DestroyWorld(g_engine->physicsWorld);
     for (Int i = 0; i < g_scene.numParticleEmitters; i++) {
         ParticleEmitter_Free(&g_scene.particleEmitters[i]);
         ParticleSystem_Free(g_scene.particleEmitters[i].system);
@@ -270,18 +270,18 @@ void cleanup() {
     Renderer_Shutdown(&g_renderer);
     WaterManager_Shutdown();
     LoadingScreen_Shutdown();
-    SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
-    SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
-    SoundSystem_DeleteBuffer(g_jump_sound_buffer);
-    SoundSystem_DeleteBuffer(g_geiger_tick_sound_buffer);
+    Sound::SoundSystem_DeleteBuffer(g_flashlight_sound_buffer);
+    Sound::SoundSystem_DeleteBuffer(g_footstep_sound_buffer);
+    Sound::SoundSystem_DeleteBuffer(g_jump_sound_buffer);
+    Sound::SoundSystem_DeleteBuffer(g_geiger_tick_sound_buffer);
     ModelLoader_Shutdown();
     TextureManager_Shutdown();
-    SoundSystem_Shutdown();
+    Sound::SoundSystem_Shutdown();
     IO_Shutdown();
     Binds_Shutdown();
     Commands_Shutdown();
     Cvar_Save("cvars.txt");
-    DSP_Reverb_Thread_Shutdown();
+    Sound::DSP_Reverb_Thread_Shutdown();
     Editor_Shutdown();
     GameData_Shutdown();
     Weapons_Shutdown();
@@ -397,29 +397,29 @@ static void Engine_RenderGame() {
         sinf(g_engine->camera.pitch),
         -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw)
     };
-    vec3_normalize(&forward);
-    Vec3 target = vec3_add(g_engine->camera.position, forward);
-    Mat4 view = mat4_lookAt(g_engine->camera.position, target, Vec3{ 0, 1, 0 });
+    Math::vec3_normalize(&forward);
+    Vec3 target = Math::vec3_add(g_engine->camera.position, forward);
+    Mat4 view = Math::mat4_lookAt(g_engine->camera.position, target, Vec3{ 0, 1, 0 });
 
     if (g_engine->shake_amplitude > 0.0f) {
-        Float shake_offset_x = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
-        Float shake_offset_y = rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
-        Mat4 shake_matrix = mat4_translate(Vec3{ shake_offset_x, shake_offset_y, 0.0f });
-        mat4_multiply(&view, &shake_matrix, &view);
+        Float shake_offset_x = Math::rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        Float shake_offset_y = Math::rand_float_range(-1.0f, 1.0f) * g_engine->shake_amplitude * 0.015f;
+        Mat4 shake_matrix = Math::mat4_translate(Vec3{ shake_offset_x, shake_offset_y, 0.0f });
+        Math::mat4_multiply(&view, &shake_matrix, &view);
     }
 
-    Vec3 velocity = Physics_GetLinearVelocity(g_engine->camera.physicsBody);
+    Vec3 velocity = Physics::GetLinearVelocity(g_engine->camera.physicsBody);
     Float speed = sqrtf(velocity.x * velocity.x + velocity.z * velocity.z);
     if (speed > 0.1f) {
         Float bob_cycle = g_engine->scaledTime * (Cvar_GetFloat("g_bobcycle") * 5.0f);
         Float bob_amt = Cvar_GetFloat("g_bob");
 
         Mat4 bob_matrix;
-        mat4_identity(&bob_matrix);
+        Math::mat4_identity(&bob_matrix);
         bob_matrix.m[13] = -fabs(sin(bob_cycle)) * bob_amt;
         bob_matrix.m[12] = cos(bob_cycle * 2.0f) * bob_amt * 0.5f;
 
-        mat4_multiply(&view, &view, &bob_matrix);
+        Math::mat4_multiply(&view, &view, &bob_matrix);
     }
 
     const Uint8* k_state = SDL_GetKeyboardState(nullptr);
@@ -444,15 +444,15 @@ static void Engine_RenderGame() {
     if (k_state[SDL_SCANCODE_D]) target_roll = -roll_max;
 
     g_engine->current_roll_angle += (target_roll - g_engine->current_roll_angle) * g_engine->deltaTime * roll_speed;
-    Mat4 roll_mat = mat4_rotate_z(g_engine->current_roll_angle * (Common::PI / 180.0f));
-    mat4_multiply(&view, &roll_mat, &view);
+    Mat4 roll_mat = Math::mat4_rotate_z(g_engine->current_roll_angle * (Common::PI / 180.0f));
+    Math::mat4_multiply(&view, &roll_mat, &view);
 
     Float fov_degrees = Cvar_GetFloat("fov_vertical");
-    Mat4 projection = mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (Common::PI / 180.f),
+    Mat4 projection = Math::mat4_perspective((fov_degrees + g_engine->current_fov_offset) * (Common::PI / 180.f),
         (Float)g_engine->width / (Float)g_engine->height, 0.1f, 1000.f);
 
     Mat4 sunLightSpaceMatrix;
-    mat4_identity(&sunLightSpaceMatrix);
+    Math::mat4_identity(&sunLightSpaceMatrix);
 
     if (Cvar_GetInt("r_shadows")) {
         if ((g_frame_counter % 2) == 0) 
@@ -524,7 +524,7 @@ static void Engine_RenderGame() {
     Overlay_Render(&g_scene, g_engine);
 
     Mat4 currentViewProjection;
-    mat4_multiply(&currentViewProjection, &projection, &view);
+    Math::mat4_multiply(&currentViewProjection, &projection, &view);
     g_renderer.prevViewProjection = currentViewProjection;
 
     const Char* texts[MAX_GAME_TEXT_MESSAGES];

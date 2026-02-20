@@ -187,8 +187,8 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         Float closest_dist = FLT_MAX;
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 1, 0 }, -object_pos.y, &intersect_point)) {
-            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
-            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+            Float dist_to_intersection = Math::vec3_length(Math::vec3_sub(intersect_point, ray_origin));
+            if (fabs(Math::vec3_length(Math::vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     closest_dist = dist_to_intersection;
                     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Y;
@@ -197,8 +197,8 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         }
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 1, 0, 0 }, -object_pos.x, &intersect_point)) {
-            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
-            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+            Float dist_to_intersection = Math::vec3_length(Math::vec3_sub(intersect_point, ray_origin));
+            if (fabs(Math::vec3_length(Math::vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     closest_dist = dist_to_intersection;
                     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_X;
@@ -207,8 +207,8 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         }
 
         if (ray_plane_intersect(ray_origin, ray_dir, Vec3{ 0, 0, 1 }, -object_pos.z, &intersect_point)) {
-            Float dist_to_intersection = vec3_length(vec3_sub(intersect_point, ray_origin));
-            if (fabs(vec3_length(vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
+            Float dist_to_intersection = Math::vec3_length(Math::vec3_sub(intersect_point, ray_origin));
+            if (fabs(Math::vec3_length(Math::vec3_sub(intersect_point, object_pos)) - radius) < pick_threshold) {
                 if (dist_to_intersection < closest_dist) {
                     g_EditorState.gizmo_hovered_axis = GIZMO_AXIS_Z;
                 }
@@ -471,8 +471,8 @@ void Editor_Shutdown() {
     glDeleteFramebuffers(1, &g_EditorState.model_preview_fbo); glDeleteTextures(1, &g_EditorState.model_preview_texture); glDeleteRenderbuffers(1, &g_EditorState.model_preview_rbo);
     glDeleteFramebuffers(1, &g_EditorState.model_thumb_fbo); glDeleteTextures(1, &g_EditorState.model_thumb_texture); glDeleteRenderbuffers(1, &g_EditorState.model_thumb_rbo);
     if (g_EditorState.preview_model) Model_Free(g_EditorState.preview_model);
-    if (g_EditorState.preview_sound_source != 0) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
-    if (g_EditorState.preview_sound_buffer != 0) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+    if (g_EditorState.preview_sound_source != 0) Sound::SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+    if (g_EditorState.preview_sound_buffer != 0) Sound::SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
     FreeSoundFileList();
     FreeModelBrowserEntries();
     FreeMapFileList();

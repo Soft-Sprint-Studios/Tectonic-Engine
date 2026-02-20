@@ -65,7 +65,7 @@ void _raw_delete_model(Scene* scene, Int index, Engine* engine) {
     SceneObject* obj_to_delete = &scene->objects[index];
     if (obj_to_delete->model) Model_Free(obj_to_delete->model);
     if (obj_to_delete->bone_matrices) delete[] obj_to_delete->bone_matrices;
-    if (obj_to_delete->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, obj_to_delete->physicsBody);
+    if (obj_to_delete->physicsBody) Physics::RemoveRigidBody(engine->physicsWorld, obj_to_delete->physicsBody);
     if (obj_to_delete->bakedVertexColors) delete[] obj_to_delete->bakedVertexColors;
     if (obj_to_delete->bakedVertexDirections) delete[] obj_to_delete->bakedVertexDirections;
 
@@ -92,7 +92,7 @@ void _raw_delete_brush(Scene* scene, Engine* engine, Int index) {
 
     Brush_FreeData(&scene->brushes[index]);
     if (scene->brushes[index].physicsBody) {
-        Physics_RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody);
+        Physics::RemoveRigidBody(engine->physicsWorld, scene->brushes[index].physicsBody);
         scene->brushes[index].physicsBody = nullptr;
     }
 
@@ -122,7 +122,7 @@ void _raw_delete_decal(Scene* scene, Int index) {
 
 void _raw_delete_sound_entity(Scene* scene, Int index) {
     if (index < 0 || index >= scene->numSoundEntities) return;
-    if (scene->soundEntities[index].sourceID != 0) SoundSystem_DeleteSource(scene->soundEntities[index].sourceID);
+    if (scene->soundEntities[index].sourceID != 0) Sound::SoundSystem_DeleteSource(scene->soundEntities[index].sourceID);
     for (Int i = index; i < scene->numSoundEntities - 1; ++i) scene->soundEntities[i] = scene->soundEntities[i + 1];
     scene->numSoundEntities--;
 }
@@ -213,7 +213,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         SceneObject* obj = &scene->objects[state->index];
         if (!is_creation) {
             if (obj->model) Model_Free(obj->model);
-            if (obj->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
+            if (obj->physicsBody) Physics::RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
             delete[] obj->bakedVertexColors;
         }
 
@@ -223,8 +223,8 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
         obj->physicsBody = nullptr;
 
         if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0) {
-            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
-            obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, obj->model->combinedVertexData, obj->model->totalVertexCount, obj->model->combinedIndexData, obj->model->totalIndexCount, physics_transform, obj->scale);
+            Mat4 physics_transform = Math::create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
+            obj->physicsBody = Physics::CreateStaticTriangleMesh(engine->physicsWorld, obj->model->combinedVertexData, obj->model->totalVertexCount, obj->model->combinedIndexData, obj->model->totalIndexCount, physics_transform, obj->scale);
         }
         break;
     }
@@ -238,7 +238,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
 
         Brush* b = &scene->brushes[state->index];
         if (!is_creation) {
-            if (b->physicsBody) Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+            if (b->physicsBody) Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
             Brush_FreeData(b);
         }
 
@@ -249,12 +249,12 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
 
         if (Brush_IsSolid(b) && b->numVertices > 0) {
             if (b->mass > 0.0f) {
-                b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
+                b->physicsBody = Physics::CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
             }
             else {
                 Vec3* world_verts = new Vec3[b->numVertices];
-                for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
+                for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                 delete[] world_verts;
             }
         }
@@ -285,9 +285,9 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
             memmove(&scene->soundEntities[state->index + 1], &scene->soundEntities[state->index], (scene->numSoundEntities - state->index) * sizeof(SoundEntity));
             scene->numSoundEntities++;
         }
-        if (!is_creation && scene->soundEntities[state->index].sourceID != 0) SoundSystem_DeleteSource(scene->soundEntities[state->index].sourceID);
+        if (!is_creation && scene->soundEntities[state->index].sourceID != 0) Sound::SoundSystem_DeleteSource(scene->soundEntities[state->index].sourceID);
         scene->soundEntities[state->index] = state->data.soundEntity;
-        scene->soundEntities[state->index].bufferID = SoundSystem_LoadSound(state->soundPath);
+        scene->soundEntities[state->index].bufferID = Sound::SoundSystem_LoadSound(state->soundPath);
         break;
     case ENTITY_PARTICLE_EMITTER: {
         if (is_creation) {

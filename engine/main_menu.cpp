@@ -458,7 +458,7 @@ void MainMenu_Render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    Mat4 projection_matrix = mat4_ortho(0.0f, (Float)g_screen_width, (Float)g_screen_height, 0.0f, -1.0f, 1.0f);
+    Mat4 projection_matrix = Math::mat4_ortho(0.0f, (Float)g_screen_width, (Float)g_screen_height, 0.0f, -1.0f, 1.0f);
     glUseProgram(g_menu_shader);
     Shader_Set(g_menu_shader, "projection", &projection_matrix);
 

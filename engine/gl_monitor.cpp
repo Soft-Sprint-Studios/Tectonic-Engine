@@ -130,14 +130,14 @@ void Monitor_RenderCameras(Scene* scene, Renderer* renderer, Engine* engine, con
         forward.x = cosf(pitch) * sinf(yaw);
         forward.y = sinf(pitch);
         forward.z = -cosf(pitch) * cosf(yaw);
-        vec3_normalize(&forward);
+        Math::vec3_normalize(&forward);
 
-        Vec3 target = vec3_add(ent->pos, forward);
+        Vec3 target = Math::vec3_add(ent->pos, forward);
         Vec3 up = { 0.0f, 1.0f, 0.0f };
         if (fabs(forward.y) > 0.99f) up = Vec3{ 1.0f, 0.0f, 0.0f };
 
-        Mat4 view = mat4_lookAt(ent->pos, target, up);
-        Mat4 projection = mat4_perspective(ent->monitor_fov * (Float)(Common::PI / 180.0f), 1.0f, 0.1f, 1000.0f);
+        Mat4 view = Math::mat4_lookAt(ent->pos, target, up);
+        Mat4 projection = Math::mat4_perspective(ent->monitor_fov * (Float)(Common::PI / 180.0f), 1.0f, 0.1f, 1000.0f);
 
         Geometry_RenderPass(renderer, scene, engine, &view, &projection, sunLightSpaceMatrix, ent->pos, false, true);
 

@@ -318,8 +318,8 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         glClearColor(0.2f, 0.2f, 0.25f, 1.0f);
                         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                        Mat4 view = mat4_lookAt(Vec3{ 1, 1, 1 }, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
-                        Mat4 proj = mat4_perspective(45.0f * (Common::PI / 180.0f), 1.0f, 0.1f, 100.0f);
+                        Mat4 view = Math::mat4_lookAt(Vec3{ 1, 1, 1 }, Vec3{ 0, 0, 0 }, Vec3{ 0, 1, 0 });
+                        Mat4 proj = Math::mat4_perspective(45.0f * (Common::PI / 180.0f), 1.0f, 0.1f, 100.0f);
 
                         glUseProgram(renderer->mainShader);
                         Shader_Set(renderer->mainShader, "is_unlit", 1);
@@ -329,7 +329,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                         SceneObject temp_obj;
                         memset(&temp_obj, 0, sizeof(SceneObject));
                         temp_obj.model = temp_model;
-                        mat4_identity(&temp_obj.modelMatrix);
+                        Math::mat4_identity(&temp_obj.modelMatrix);
                         render_object(renderer, g_CurrentScene, renderer->mainShader, &temp_obj, false, nullptr);
 
                         Model_Free(temp_model);
@@ -355,15 +355,15 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                             memset(newObj, 0, sizeof(SceneObject));
 
-                            mat4_identity(&newObj->animated_local_transform);
+                            Math::mat4_identity(&newObj->animated_local_transform);
 
                             Char full_model_path[256];
                             sprintf(full_model_path, "models/%s", g_EditorState.model_browser_entries[i].file_path);
                             strncpy(newObj->modelPath, full_model_path, sizeof(newObj->modelPath) - 1);
 
                             Vec3 forward = { cosf(g_EditorState.editor_camera.pitch) * sinf(g_EditorState.editor_camera.yaw), sinf(g_EditorState.editor_camera.pitch), -cosf(g_EditorState.editor_camera.pitch) * cosf(g_EditorState.editor_camera.yaw) };
-                            vec3_normalize(&forward);
-                            newObj->pos = vec3_add(g_EditorState.editor_camera.position, vec3_muls(forward, 10.0f));
+                            Math::vec3_normalize(&forward);
+                            newObj->pos = Math::vec3_add(g_EditorState.editor_camera.position, Math::vec3_muls(forward, 10.0f));
                             newObj->scale = Vec3{ 1,1,1 };
                             newObj->casts_shadows = true;
                             newObj->lightmapScale = 1.0f;
@@ -372,8 +372,8 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             newObj->model = Model_Load(newObj->modelPath);
 
                             if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) {
-                                Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1, 1, 1 });
-                                newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
+                                Mat4 physics_transform = Math::create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1, 1, 1 });
+                                newObj->physicsBody = Physics::CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale);
                             }
                             Undo_PushCreateEntity(scene, ENTITY_MODEL, scene->numObjects - 1, "Create Model");
                             g_EditorState.show_add_model_popup = false;
@@ -415,13 +415,13 @@ void Editor_RenderSoundBrowser(Scene* scene) {
                     if (g_EditorState.sound_search_filter[0] == '\0' || Common::_stristr(sound_name, g_EditorState.sound_search_filter) != nullptr) {
                         if (UI_Selectable(sound_name, g_EditorState.selected_sound_file_index == i)) {
                             g_EditorState.selected_sound_file_index = i;
-                            if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
-                            if (g_EditorState.preview_sound_buffer) SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+                            if (g_EditorState.preview_sound_source) Sound::SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+                            if (g_EditorState.preview_sound_buffer) Sound::SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
                             Char path_buffer[256];
                             sprintf(path_buffer, "sounds/%s", g_EditorState.sound_file_list[i]);
-                            g_EditorState.preview_sound_buffer = SoundSystem_LoadSound(path_buffer);
+                            g_EditorState.preview_sound_buffer = Sound::SoundSystem_LoadSound(path_buffer);
                             if (g_EditorState.preview_sound_buffer != 0) {
-                                g_EditorState.preview_sound_source = SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
+                                g_EditorState.preview_sound_source = Sound::SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
                             }
                         }
                     }
@@ -445,8 +445,8 @@ void Editor_RenderSoundBrowser(Scene* scene) {
                     s->volume = 1.0f;
                     s->pitch = 1.0f;
                     s->maxDistance = 50.0f;
-                    s->bufferID = SoundSystem_LoadSound(s->soundPath);
-                    SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
+                    s->bufferID = Sound::SoundSystem_LoadSound(s->soundPath);
+                    Sound::SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
                     scene->numSoundEntities++;
                     Undo_PushCreateEntity(scene, ENTITY_SOUND, scene->numSoundEntities - 1, "Create Sound");
                     g_EditorState.show_sound_browser_popup = false;
@@ -457,20 +457,20 @@ void Editor_RenderSoundBrowser(Scene* scene) {
             }
             UI_SameLine();
             if (UI_Button("Preview")) {
-                if (g_EditorState.preview_sound_source) SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+                if (g_EditorState.preview_sound_source) Sound::SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
                 if (g_EditorState.preview_sound_buffer) {
-                    g_EditorState.preview_sound_source = SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
+                    g_EditorState.preview_sound_source = Sound::SoundSystem_PlaySound(g_EditorState.preview_sound_buffer, g_EditorState.editor_camera.position, 10.0f, 1.0f, 1000.0f, false);
                 }
             }
         }
     }
     if (!g_EditorState.show_sound_browser_popup) {
         if (g_EditorState.preview_sound_source) {
-            SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
+            Sound::SoundSystem_DeleteSource(g_EditorState.preview_sound_source);
             g_EditorState.preview_sound_source = 0;
         }
         if (g_EditorState.preview_sound_buffer) {
-            SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
+            Sound::SoundSystem_DeleteBuffer(g_EditorState.preview_sound_buffer);
             g_EditorState.preview_sound_buffer = 0;
         }
     }
@@ -1090,17 +1090,17 @@ void Editor_RenderFaceEditSheet(Scene* scene, Engine* engine) {
                             Vec3 p0 = b->vertices[face->vertexIndices[0]].pos;
                             Vec3 p1 = b->vertices[face->vertexIndices[1]].pos;
                             Vec3 p2 = b->vertices[face->vertexIndices[2]].pos;
-                            Vec3 face_normal = vec3_cross(vec3_sub(p1, p0), vec3_sub(p2, p0));
-                            vec3_normalize(&face_normal);
-                            Vec3 u_axis = vec3_sub(p1, p0);
-                            vec3_normalize(&u_axis);
-                            Vec3 v_axis = vec3_cross(face_normal, u_axis);
+                            Vec3 face_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
+                            Math::vec3_normalize(&face_normal);
+                            Vec3 u_axis = Math::vec3_sub(p1, p0);
+                            Math::vec3_normalize(&u_axis);
+                            Vec3 v_axis = Math::vec3_cross(face_normal, u_axis);
                             Float min_u = FLT_MAX, max_u = -FLT_MAX;
                             Float min_v = FLT_MAX, max_v = -FLT_MAX;
                             for (Int j = 0; j < face->numVertexIndices; ++j) {
                                 Vec3 vert_pos = b->vertices[face->vertexIndices[j]].pos;
-                                Float u = vec3_dot(vert_pos, u_axis);
-                                Float v = vec3_dot(vert_pos, v_axis);
+                                Float u = Math::vec3_dot(vert_pos, u_axis);
+                                Float v = Math::vec3_dot(vert_pos, v_axis);
                                 if (u < min_u) min_u = u; if (u > max_u) max_u = u;
                                 if (v < min_v) min_v = v; if (v > max_v) max_v = v;
                             }
@@ -1334,7 +1334,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
                     if (obj->model) {
                         if (obj->physicsBody) {
-                            Physics_RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
+                            Physics::RemoveRigidBody(engine->physicsWorld, obj->physicsBody);
                             obj->physicsBody = nullptr;
                         }
 
@@ -1343,13 +1343,13 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
                         if (obj->model && obj->model->combinedVertexData && obj->model->totalIndexCount > 0 && obj->mass <= 0.0f) {
                             SceneObject_UpdateMatrix(obj);
-                            Mat4 physics_transform = create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
-                            obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld,
+                            Mat4 physics_transform = Math::create_trs_matrix(obj->pos, obj->rot, Vec3{ 1, 1, 1 });
+                            obj->physicsBody = Physics::CreateStaticTriangleMesh(engine->physicsWorld,
                                 obj->model->combinedVertexData, obj->model->totalVertexCount,
                                 obj->model->combinedIndexData, obj->model->totalIndexCount,
                                 physics_transform, obj->scale);
 
-                            if (!obj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, obj->physicsBody, false);
+                            if (!obj->isPhysicsEnabled) Physics::ToggleCollision(engine->physicsWorld, obj->physicsBody, false);
                         }
                     }
 
@@ -1662,56 +1662,56 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                     switch (sel->type) {
                     case ENTITY_MODEL: {
                         SceneObject* obj = &scene->objects[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) obj->pos = vec3_add(obj->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) obj->rot = vec3_add(obj->rot, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) obj->scale = vec3_mul(obj->scale, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) obj->pos = Math::vec3_add(obj->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) obj->rot = Math::vec3_add(obj->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) obj->scale = Math::vec3_mul(obj->scale, g_EditorState.transform_window_values);
                         SceneObject_UpdateMatrix(obj);
-                        if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix);
+                        if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix);
                         break;
                     }
                     case ENTITY_BRUSH: {
                         Brush* b = &scene->brushes[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) b->pos = vec3_add(b->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) b->rot = vec3_add(b->rot, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) b->scale = vec3_mul(b->scale, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) b->pos = Math::vec3_add(b->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) b->rot = Math::vec3_add(b->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) b->scale = Math::vec3_mul(b->scale, g_EditorState.transform_window_values);
                         Brush_UpdateMatrix(b);
-                        if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix);
+                        if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
                         break;
                     }
                     case ENTITY_LIGHT: {
                         Light* l = &scene->lights[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = vec3_add(l->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = vec3_add(l->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = Math::vec3_add(l->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = Math::vec3_add(l->rot, g_EditorState.transform_window_values);
                         break;
                     }
                     case ENTITY_DECAL: {
                         Decal* d = &scene->decals[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) d->pos = vec3_add(d->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) d->rot = vec3_add(d->rot, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) d->size = vec3_mul(d->size, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) d->pos = Math::vec3_add(d->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) d->rot = Math::vec3_add(d->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) d->size = Math::vec3_mul(d->size, g_EditorState.transform_window_values);
                         Decal_UpdateMatrix(d);
                         break;
                     }
                     case ENTITY_SOUND: {
                         SoundEntity* s = &scene->soundEntities[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = vec3_add(s->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = Math::vec3_add(s->pos, g_EditorState.transform_window_values);
                         break;
                     }
                     case ENTITY_PARTICLE_EMITTER: {
                         ParticleEmitter* p = &scene->particleEmitters[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = vec3_add(p->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = Math::vec3_add(p->pos, g_EditorState.transform_window_values);
                         break;
                     }
                     case ENTITY_SPRITE: {
                         Sprite* s = &scene->sprites[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = vec3_add(s->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) s->pos = Math::vec3_add(s->pos, g_EditorState.transform_window_values);
                         if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) s->scale *= g_EditorState.transform_window_values.x;
                         break;
                     }
                     case ENTITY_VIDEO_PLAYER: {
                         VideoPlayer* vp = &scene->videoPlayers[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) vp->pos = vec3_add(vp->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) vp->rot = vec3_add(vp->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) vp->pos = Math::vec3_add(vp->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) vp->rot = Math::vec3_add(vp->rot, g_EditorState.transform_window_values);
                         if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
                             vp->size.x *= g_EditorState.transform_window_values.x;
                             vp->size.y *= g_EditorState.transform_window_values.y;
@@ -1720,8 +1720,8 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                     }
                     case ENTITY_PARALLAX_ROOM: {
                         ParallaxRoom* p = &scene->parallaxRooms[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = vec3_add(p->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) p->rot = vec3_add(p->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) p->pos = Math::vec3_add(p->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) p->rot = Math::vec3_add(p->rot, g_EditorState.transform_window_values);
                         if (g_EditorState.transform_window_mode == TRANSFORM_MODE_SCALE) {
                             p->size.x *= g_EditorState.transform_window_values.x;
                             p->size.y *= g_EditorState.transform_window_values.y;
@@ -1732,12 +1732,12 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                     }
                     case ENTITY_LOGIC: {
                         LogicEntity* l = &scene->logicEntities[sel->index];
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = vec3_add(l->pos, g_EditorState.transform_window_values);
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = vec3_add(l->rot, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) l->pos = Math::vec3_add(l->pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_ROTATE) l->rot = Math::vec3_add(l->rot, g_EditorState.transform_window_values);
                         break;
                     }
                     case ENTITY_PLAYERSTART: {
-                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.pos = vec3_add(scene->playerStart.pos, g_EditorState.transform_window_values);
+                        if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.pos = Math::vec3_add(scene->playerStart.pos, g_EditorState.transform_window_values);
                         break;
                     }
                     default:
@@ -1895,11 +1895,11 @@ void Editor_RenderArchPreview() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(g_EditorState.debug_shader);
-    Mat4 projection = mat4_ortho(0, g_EditorState.arch_preview_width, 0, g_EditorState.arch_preview_height, -1, 1);
-    Mat4 view; mat4_identity(&view);
+    Mat4 projection = Math::mat4_ortho(0, g_EditorState.arch_preview_width, 0, g_EditorState.arch_preview_height, -1, 1);
+    Mat4 view; Math::mat4_identity(&view);
     Shader_Set(g_EditorState.debug_shader, "view", &view);
     Shader_Set(g_EditorState.debug_shader, "projection", &projection);
-    Mat4 model; mat4_identity(&model);
+    Mat4 model; Math::mat4_identity(&model);
     Shader_Set(g_EditorState.debug_shader, "model", &model);
 
     Float world_width = 0.0f;

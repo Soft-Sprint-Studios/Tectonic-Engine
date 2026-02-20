@@ -57,7 +57,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
             Float v_t = Float(v) / v_divs;
 
             BrushVertex p_u0{
-                vec3_add(vec3_muls(p00.pos, 1.0f - u_t), vec3_muls(p10.pos, u_t)),
+                Math::vec3_add(Math::vec3_muls(p00.pos, 1.0f - u_t), Math::vec3_muls(p10.pos, u_t)),
                 {
                     p00.color.x * (1.0f - u_t) + p10.color.x * u_t,
                     p00.color.y * (1.0f - u_t) + p10.color.y * u_t,
@@ -66,7 +66,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
                 }
             };
             BrushVertex p_u1{
-                vec3_add(vec3_muls(p01.pos, 1.0f - u_t), vec3_muls(p11.pos, u_t)),
+                Math::vec3_add(Math::vec3_muls(p01.pos, 1.0f - u_t), Math::vec3_muls(p11.pos, u_t)),
                 {
                     p01.color.x * (1.0f - u_t) + p11.color.x * u_t,
                     p01.color.y * (1.0f - u_t) + p11.color.y * u_t,
@@ -76,7 +76,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
             };
 
             Int index = v * (u_divs + 1) + u;
-            new_grid_verts[index].pos = vec3_add(vec3_muls(p_u0.pos, 1.0f - v_t), vec3_muls(p_u1.pos, v_t));
+            new_grid_verts[index].pos = Math::vec3_add(Math::vec3_muls(p_u0.pos, 1.0f - v_t), Math::vec3_muls(p_u1.pos, v_t));
             new_grid_verts[index].color = {
                 p_u0.color.x * (1.0f - v_t) + p_u1.color.x * v_t,
                 p_u0.color.y * (1.0f - v_t) + p_u1.color.y * v_t,
@@ -142,10 +142,10 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
 
     Brush_CreateRenderData(b);
     if (b->physicsBody) {
-        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+        Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
         Vec3* world_verts = new Vec3[b->numVertices];
-        for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+        for (Int i = 0; i < b->numVertices; ++i) world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
         delete[] world_verts;
     }
 
@@ -176,8 +176,8 @@ void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview)
 
     if (Brush_IsSolid(b) && b->numVertices > 0) {
         Vec3* world_verts = new Vec3[b->numVertices];
-        for (Int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+        for (Int i = 0; i < b->numVertices; i++) world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
         delete[] world_verts;
     }
 
@@ -197,20 +197,20 @@ void Editor_UpdatePreviewBrushFromWorldMinMax() {
     if (world_min.y > world_max.y) { Float t = world_min.y; world_min.y = world_max.y; world_max.y = t; }
     if (world_min.z > world_max.z) { Float t = world_min.z; world_min.z = world_max.z; world_max.z = t; }
 
-    Vec3 size = vec3_sub(world_max, world_min);
+    Vec3 size = Math::vec3_sub(world_max, world_min);
     const Float min_dim = 0.01f;
     if (size.x < min_dim) size.x = min_dim;
     if (size.y < min_dim) size.y = min_dim;
     if (size.z < min_dim) size.z = min_dim;
 
     g_EditorState.preview_brush_world_min = world_min;
-    g_EditorState.preview_brush_world_max = vec3_add(world_min, size);
+    g_EditorState.preview_brush_world_max = Math::vec3_add(world_min, size);
 
-    b->pos = vec3_muls(vec3_add(g_EditorState.preview_brush_world_min, g_EditorState.preview_brush_world_max), 0.5f);
+    b->pos = Math::vec3_muls(Math::vec3_add(g_EditorState.preview_brush_world_min, g_EditorState.preview_brush_world_max), 0.5f);
     b->rot = Vec3{ 0,0,0 };
     b->scale = Vec3{ 1,1,1 };
 
-    Vec3 local_size = vec3_sub(g_EditorState.preview_brush_world_max, g_EditorState.preview_brush_world_min);
+    Vec3 local_size = Math::vec3_sub(g_EditorState.preview_brush_world_max, g_EditorState.preview_brush_world_min);
     switch (g_EditorState.current_brush_shape) {
     case BRUSH_SHAPE_BLOCK:
         Brush_SetVerticesFromBox(b, local_size);
@@ -424,10 +424,10 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
     }
 
     Mat4 inv_model_matrix;
-    if (!mat4_inverse(&b->modelMatrix, &inv_model_matrix)) {
+    if (!Math::mat4_inverse(&b->modelMatrix, &inv_model_matrix)) {
         return;
     }
-    Vec3 new_local_pos = mat4_mul_vec3(&inv_model_matrix, mouse_world);
+    Vec3 new_local_pos = Math::mat4_mul_vec3(&inv_model_matrix, mouse_world);
 
     Vec3 local_min = { FLT_MAX, FLT_MAX, FLT_MAX };
     Vec3 local_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
@@ -501,14 +501,14 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
 
     Brush_CreateRenderData(b);
     if (b->physicsBody) {
-        Physics_RemoveRigidBody(engine->physicsWorld, b->physicsBody);
+        Physics::RemoveRigidBody(engine->physicsWorld, b->physicsBody);
 
         Vec3* world_verts = new Vec3[b->numVertices];
         for (Int i = 0; i < b->numVertices; ++i) {
-            world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+            world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
         }
 
-        b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
+        b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), b->numVertices);
 
         delete[] world_verts;
     }

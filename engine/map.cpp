@@ -88,8 +88,8 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     }
 
     for (Int i = 0; i < scene->numSoundEntities; ++i) {
-        SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
-        SoundSystem_DeleteBuffer(scene->soundEntities[i].bufferID);
+        Sound::SoundSystem_DeleteSource(scene->soundEntities[i].sourceID);
+        Sound::SoundSystem_DeleteBuffer(scene->soundEntities[i].bufferID);
     }
 
     for (Int i = 0; i < scene->numParticleEmitters; ++i) {
@@ -132,7 +132,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     }
 
     if (engine->physicsWorld) {
-        Physics_DestroyWorld(engine->physicsWorld);
+        Physics::DestroyWorld(engine->physicsWorld);
         engine->physicsWorld = nullptr;
     }
 
@@ -173,7 +173,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
     scene->num_ambient_probes = 0;
     scene->sun.enabled = true;
     scene->sun.direction = Vec3{ -0.5f, -1.0f, -0.5f };
-    vec3_normalize(&scene->sun.direction);
+    Math::vec3_normalize(&scene->sun.direction);
     scene->sun.color = Vec3{ 1.0f, 0.95f, 0.85f };
     scene->sun.intensity = 1.0f;
     scene->lightmapResolution = 128;
@@ -210,7 +210,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
     strncpy(scene->mapPath, mapPath, sizeof(scene->mapPath) - 1);
     scene->mapPath[sizeof(scene->mapPath) - 1] = '\0';
 
-    engine->physicsWorld = Physics_CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
+    engine->physicsWorld = Physics::CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
 
     Char line[2048];
     while (fgets(line, sizeof(line), file)) {
@@ -279,7 +279,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 &scene->sun.volumetricIntensity);
 
             scene->sun.enabled = (Bool)enabled_int;
-            vec3_normalize(&scene->sun.direction);
+            Math::vec3_normalize(&scene->sun.direction);
 
             if (args_count < 13) {
                 scene->sun.volumetricIntensity = 0.0f;
@@ -435,18 +435,18 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                     b->start_pos = b->pos;
                     Float height = atof(Brush_GetProperty(b, "height", "0"));
                     b->end_pos = Vec3{ b->pos.x, b->pos.y + height, b->pos.z };
-                    b->move_dir = vec3_sub(b->end_pos, b->start_pos);
-                    vec3_normalize(&b->move_dir);
-                    b->physicsBody = Physics_CreateKinematicBrush(engine->physicsWorld, (const Float*)b->vertices, b->numVertices, b->modelMatrix);
+                    b->move_dir = Math::vec3_sub(b->end_pos, b->start_pos);
+                    Math::vec3_normalize(&b->move_dir);
+                    b->physicsBody = Physics::CreateKinematicBrush(engine->physicsWorld, (const Float*)b->vertices, b->numVertices, b->modelMatrix);
                 }
                 else if (b->mass > 0.0f) {
-                    b->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
-                    if (!b->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, b->physicsBody, false);
+                    b->physicsBody = Physics::CreateDynamicBrush(engine->physicsWorld, (const Float*)&b->vertices->pos, b->numVertices, sizeof(BrushVertex), b->mass, b->modelMatrix);
+                    if (!b->isPhysicsEnabled) Physics::ToggleCollision(engine->physicsWorld, b->physicsBody, false);
                 }
                 else {
                     Vec3* world_verts = new Vec3[b->numVertices];
-                    for (Int i = 0; i < b->numVertices; i++) world_verts[i] = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
-                    b->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
+                    for (Int i = 0; i < b->numVertices; i++) world_verts[i] = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+                    b->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, b->numVertices);
                     delete[] world_verts;
                 }
             }
@@ -502,7 +502,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             newObj->current_animation = -1;
             newObj->animation_time = 0.0f;
             newObj->bone_matrices = nullptr;
-            mat4_identity(&newObj->animated_local_transform);
+            Math::mat4_identity(&newObj->animated_local_transform);
             Long current_pos = ftell(file); Char next_line[256];
             if (fgets(next_line, sizeof(next_line), file) && strstr(next_line, "is_grouped")) {
                 Int grouped_int;
@@ -525,8 +525,8 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 SceneObject_LoadVertexDirectionalLighting(newObj, scene->numObjects - 1, scene->originalMapPath);
             }
             if (!newObj->model) { scene->numObjects--; continue; }
-            if (newObj->mass > 0.0f) { newObj->physicsBody = Physics_CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics_ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
-            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
+            if (newObj->mass > 0.0f) { newObj->physicsBody = Physics::CreateDynamicConvexHull(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->mass, newObj->modelMatrix); if (!newObj->isPhysicsEnabled) Physics::ToggleCollision(engine->physicsWorld, newObj->physicsBody, false); }
+            else if (newObj->model && newObj->model->combinedVertexData && newObj->model->totalIndexCount > 0) { Mat4 physics_transform = Math::create_trs_matrix(newObj->pos, newObj->rot, Vec3{ 1.0f, 1.0f, 1.0f }); newObj->physicsBody = Physics::CreateStaticTriangleMesh(engine->physicsWorld, newObj->model->combinedVertexData, newObj->model->totalVertexCount, newObj->model->combinedIndexData, newObj->model->totalIndexCount, physics_transform, newObj->scale); }
         }
         else if (strcmp(keyword, "light") == 0) {
             if (scene->numActiveLights >= Common::MAX_LIGHTS) continue;
@@ -703,10 +703,10 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                     s->groupName[0] = '\0';
                     fseek(file, current_pos, SEEK_SET);
                 }
-                s->bufferID = SoundSystem_LoadSound(s->soundPath);
+                s->bufferID = Sound::SoundSystem_LoadSound(s->soundPath);
                 if (s->play_on_start) {
-                    s->sourceID = SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
-                    SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
+                    s->sourceID = Sound::SoundSystem_PlaySound(s->bufferID, s->pos, s->volume, s->pitch, s->maxDistance, s->is_looping);
+                    Sound::SoundSystem_SetSourceIsGlobal(s->sourceID, s->isGlobal);
                 }
                 scene->numSoundEntities++;
             }
@@ -883,7 +883,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
         scene->skybox_cubemap = loadCubemap(face_pointers);
     }
     else { scene->skybox_cubemap = 0; }
-    engine->camera.physicsBody = Physics_CreatePlayerCapsule(engine->physicsWorld, 0.4f, Cvar_GetFloat("g_player_height"), 80.0f, scene->playerStart.pos);
+    engine->camera.physicsBody = Physics::CreatePlayerCapsule(engine->physicsWorld, 0.4f, Cvar_GetFloat("g_player_height"), 80.0f, scene->playerStart.pos);
     engine->camera.position = scene->playerStart.pos;
     engine->camera.yaw = scene->playerStart.yaw;
     engine->camera.pitch = scene->playerStart.pitch;

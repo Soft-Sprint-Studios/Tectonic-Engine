@@ -78,11 +78,11 @@ void Beams_Render(Scene* scene, Mat4 view, Mat4 projection, Vec3 cameraPos, Floa
 
                 Shader_Set(g_beam_shader, "u_color", color);
 
-                Vec3 view_vec = vec3_sub(start_pos, cameraPos);
-                Vec3 beam_dir = vec3_sub(end_pos, start_pos);
-                Vec3 right = vec3_cross(beam_dir, view_vec);
-                vec3_normalize(&right);
-                right = vec3_muls(right, width * 0.5f);
+                Vec3 view_vec = Math::vec3_sub(start_pos, cameraPos);
+                Vec3 beam_dir = Math::vec3_sub(end_pos, start_pos);
+                Vec3 right = Math::vec3_cross(beam_dir, view_vec);
+                Math::vec3_normalize(&right);
+                right = Math::vec3_muls(right, width * 0.5f);
 
                 Float vertices[] = {
                     start_pos.x - right.x, start_pos.y - right.y, start_pos.z - right.z, 0.0f, 0.0f,

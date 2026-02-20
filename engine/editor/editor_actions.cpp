@@ -130,7 +130,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
         }
 
         if (pos) {
-            Vec3 relative_pos = vec3_sub(*pos, centroid);
+            Vec3 relative_pos = Math::vec3_sub(*pos, centroid);
             if (axis == 1) {
                 relative_pos.x *= -1.0f;
                 relative_pos.z *= -1.0f;
@@ -139,7 +139,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
                 relative_pos.y *= -1.0f;
                 relative_pos.z *= -1.0f;
             }
-            *pos = vec3_add(centroid, relative_pos);
+            *pos = Math::vec3_add(centroid, relative_pos);
         }
 
         if (rot) {
@@ -156,11 +156,11 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
         }
 
         switch (sel->type) {
-        case ENTITY_MODEL: { SceneObject* obj = &scene->objects[sel->index]; SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics_SetWorldTransform(obj->physicsBody, obj->modelMatrix); break; }
-        case ENTITY_BRUSH: { Brush* b = &scene->brushes[sel->index]; Brush_UpdateMatrix(b); if (b->physicsBody) Physics_SetWorldTransform(b->physicsBody, b->modelMatrix); break; }
+        case ENTITY_MODEL: { SceneObject* obj = &scene->objects[sel->index]; SceneObject_UpdateMatrix(obj); if (obj->physicsBody) Physics::SetWorldTransform(obj->physicsBody, obj->modelMatrix); break; }
+        case ENTITY_BRUSH: { Brush* b = &scene->brushes[sel->index]; Brush_UpdateMatrix(b); if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix); break; }
         case ENTITY_DECAL: Decal_UpdateMatrix(&scene->decals[sel->index]); break;
         case ENTITY_PARALLAX_ROOM: ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[sel->index]); break;
-        case ENTITY_SOUND: SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, scene->soundEntities[sel->index].pos); break;
+        case ENTITY_SOUND: Sound::SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, scene->soundEntities[sel->index].pos); break;
         default: break;
         }
     }
@@ -203,7 +203,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
     Brush* base_brush = &scene->brushes[base_brush_index];
 
     Mat4 base_inv_matrix;
-    mat4_inverse(&base_brush->modelMatrix, &base_inv_matrix);
+    Math::mat4_inverse(&base_brush->modelMatrix, &base_inv_matrix);
 
     for (Int i = 1; i < brush_count; i++) {
         Int source_brush_index = brush_selections[i].index;
@@ -212,7 +212,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         Int vertex_offset = base_brush->numVertices;
 
         Mat4 source_to_base_transform;
-        mat4_multiply(&source_to_base_transform, &base_inv_matrix, &source_brush->modelMatrix);
+        Math::mat4_multiply(&source_to_base_transform, &base_inv_matrix, &source_brush->modelMatrix);
 
         BrushVertex* new_vertices = new BrushVertex[base_brush->numVertices + source_brush->numVertices];
         if (base_brush->vertices) {
@@ -221,7 +221,7 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
         }
         base_brush->vertices = new_vertices;
         for (Int v = 0; v < source_brush->numVertices; v++) {
-            Vec3 transformed_pos = mat4_mul_vec3(&source_to_base_transform, source_brush->vertices[v].pos);
+            Vec3 transformed_pos = Math::mat4_mul_vec3(&source_to_base_transform, source_brush->vertices[v].pos);
             base_brush->vertices[vertex_offset + v] = source_brush->vertices[v];
             base_brush->vertices[vertex_offset + v].pos = transformed_pos;
         }
@@ -254,15 +254,15 @@ void Editor_MergeSelection(Scene* scene, Engine* engine) {
 
     Brush_CreateRenderData(base_brush);
     if (base_brush->physicsBody) {
-        Physics_RemoveRigidBody(engine->physicsWorld, base_brush->physicsBody);
+        Physics::RemoveRigidBody(engine->physicsWorld, base_brush->physicsBody);
         base_brush->physicsBody = nullptr;
     }
     if (Brush_IsSolid(base_brush) && base_brush->numVertices > 0) {
         Vec3* world_verts = new Vec3[base_brush->numVertices];
         for (Int i = 0; i < base_brush->numVertices; i++) {
-            world_verts[i] = mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
+            world_verts[i] = Math::mat4_mul_vec3(&base_brush->modelMatrix, base_brush->vertices[i].pos);
         }
-        base_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, base_brush->numVertices);
+        base_brush->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, (const Float*)world_verts, base_brush->numVertices);
         delete[] world_verts;
     }
 
@@ -296,7 +296,7 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
 
     sprintf(new_obj->targetname, "Model_%d", scene->numObjects - 1);
     new_obj->bone_matrices = nullptr;
-    mat4_identity(&new_obj->animated_local_transform);
+    Math::mat4_identity(&new_obj->animated_local_transform);
     new_obj->physicsBody = nullptr;
     new_obj->pos.x += 1.0f;
 
@@ -304,8 +304,8 @@ void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index) {
     new_obj->model = Model_Load(new_obj->modelPath);
 
     if (new_obj->model && new_obj->model->combinedVertexData && new_obj->model->totalIndexCount > 0) {
-        Mat4 physics_transform = create_trs_matrix(new_obj->pos, new_obj->rot, Vec3{ 1, 1, 1 });
-        new_obj->physicsBody = Physics_CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
+        Mat4 physics_transform = Math::create_trs_matrix(new_obj->pos, new_obj->rot, Vec3{ 1, 1, 1 });
+        new_obj->physicsBody = Physics::CreateStaticTriangleMesh(engine->physicsWorld, new_obj->model->combinedVertexData, new_obj->model->totalVertexCount, new_obj->model->combinedIndexData, new_obj->model->totalIndexCount, physics_transform, new_obj->scale);
     }
 
     Editor_AddToSelection(ENTITY_MODEL, scene->numObjects - 1, -1, -1);
@@ -329,17 +329,17 @@ void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index) {
 
     if (Brush_IsSolid(new_brush) && new_brush->numVertices > 0) {
         if (new_brush->mass > 0.0f) {
-            new_brush->physicsBody = Physics_CreateDynamicBrush(engine->physicsWorld, (const Float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
+            new_brush->physicsBody = Physics::CreateDynamicBrush(engine->physicsWorld, (const Float*)&new_brush->vertices->pos, new_brush->numVertices, sizeof(BrushVertex), new_brush->mass, new_brush->modelMatrix);
             if (!new_brush->isPhysicsEnabled) {
-                Physics_ToggleCollision(engine->physicsWorld, new_brush->physicsBody, false);
+                Physics::ToggleCollision(engine->physicsWorld, new_brush->physicsBody, false);
             }
         }
         else {
             Vec3* world_verts = new Vec3[new_brush->numVertices];
             for (Int i = 0; i < new_brush->numVertices; i++)
-                world_verts[i] = mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
+                world_verts[i] = Math::mat4_mul_vec3(&new_brush->modelMatrix, new_brush->vertices[i].pos);
 
-            new_brush->physicsBody = Physics_CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_brush->numVertices);
+            new_brush->physicsBody = Physics::CreateStaticConvexHull(engine->physicsWorld, reinterpret_cast<const Float*>(world_verts), new_brush->numVertices);
             delete[] world_verts;
         }
     }
@@ -386,7 +386,7 @@ void Editor_DuplicateSoundEntity(Scene* scene, Int index) {
     sprintf(new_sound->targetname, "Sound_%d", scene->numSoundEntities);
     new_sound->sourceID = 0; new_sound->bufferID = 0;
     new_sound->pos.x += 1.0f;
-    new_sound->bufferID = SoundSystem_LoadSound(new_sound->soundPath);
+    new_sound->bufferID = Sound::SoundSystem_LoadSound(new_sound->soundPath);
     Int new_sound_index = scene->numSoundEntities;
     scene->numSoundEntities++;
     Editor_AddToSelection(ENTITY_SOUND, new_sound_index, -1, -1);

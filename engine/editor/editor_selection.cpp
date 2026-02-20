@@ -96,14 +96,14 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
     Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
     Mat4 inv_proj, inv_view;
-    mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
-    mat4_inverse(&g_view_matrix[viewport], &inv_view);
+    Math::mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
+    Math::mat4_inverse(&g_view_matrix[viewport], &inv_view);
     Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-    Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+    Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
     ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+    Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
     Vec3 ray_dir_world = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-    vec3_normalize(&ray_dir_world);
+    Math::vec3_normalize(&ray_dir_world);
     Vec3 ray_origin_world = g_EditorState.editor_camera.position;
 
     Float closest_t = FLT_MAX;
@@ -116,7 +116,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         if (!obj->model) continue;
 
         Float t;
-        if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
+        if (Math::RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &obj->modelMatrix,
             obj->model->aabb_min,
             obj->model->aabb_max,
@@ -152,7 +152,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
 
         Float t_obb_dummy;
-        if (!RayIntersectsOBB(ray_origin_world, ray_dir_world,
+        if (!Math::RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &brush->modelMatrix,
             brush_local_min,
             brush_local_max,
@@ -161,11 +161,11 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         }
 
         Mat4 inv_brush_model_matrix;
-        if (!mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) {
+        if (!Math::mat4_inverse(&brush->modelMatrix, &inv_brush_model_matrix)) {
             continue;
         }
-        Vec3 ray_origin_local = mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
-        Vec3 ray_dir_local = mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
+        Vec3 ray_origin_local = Math::mat4_mul_vec3(&inv_brush_model_matrix, ray_origin_world);
+        Vec3 ray_dir_local = Math::mat4_mul_vec3_dir(&inv_brush_model_matrix, ray_dir_world);
 
         for (Int face_idx = 0; face_idx < brush->numFaces; ++face_idx) {
             BrushFace* face = &brush->faces[face_idx];
@@ -177,10 +177,10 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
                 Vec3 v2_local = brush->vertices[face->vertexIndices[k + 2]].pos;
 
                 Float t_triangle_local;
-                if (RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
-                    Vec3 hit_point_local = vec3_add(ray_origin_local, vec3_muls(ray_dir_local, t_triangle_local));
-                    Vec3 hit_point_world = mat4_mul_vec3(&brush->modelMatrix, hit_point_local);
-                    Float dist_to_hit_world = vec3_length(vec3_sub(hit_point_world, ray_origin_world));
+                if (Math::RayIntersectsTriangle(ray_origin_local, ray_dir_local, v0_local, v1_local, v2_local, &t_triangle_local)) {
+                    Vec3 hit_point_local = Math::vec3_add(ray_origin_local, Math::vec3_muls(ray_dir_local, t_triangle_local));
+                    Vec3 hit_point_world = Math::mat4_mul_vec3(&brush->modelMatrix, hit_point_local);
+                    Float dist_to_hit_world = Math::vec3_length(Math::vec3_sub(hit_point_world, ray_origin_world));
 
                     if (t_triangle_local > 0.0f && dist_to_hit_world < closest_t) {
                         closest_t = dist_to_hit_world;
@@ -196,9 +196,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (Int i = 0; i < g_CurrentScene->numActiveLights; ++i) {
         Light* light = &g_CurrentScene->lights[i];
         Float light_gizmo_radius = 0.5f;
-        Vec3 P = vec3_sub(light->pos, ray_origin_world);
-        Float b_dot = vec3_dot(P, ray_dir_world);
-        Float det = b_dot * b_dot - vec3_dot(P, P) + light_gizmo_radius * light_gizmo_radius;
+        Vec3 P = Math::vec3_sub(light->pos, ray_origin_world);
+        Float b_dot = Math::vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - Math::vec3_dot(P, P) + light_gizmo_radius * light_gizmo_radius;
         if (det < 0) continue;
         Float t_light = b_dot - sqrtf(det);
         if (t_light > 0 && t_light < closest_t) {
@@ -216,7 +216,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
         Vec3 decal_local_max = { 0.5f, 0.5f, 0.5f };
 
         Float t;
-        if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
+        if (Math::RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &decal->modelMatrix,
             decal_local_min,
             decal_local_max,
@@ -231,9 +231,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (Int i = 0; i < g_CurrentScene->numParticleEmitters; ++i) {
         ParticleEmitter* emitter = &g_CurrentScene->particleEmitters[i];
         Float emitter_gizmo_radius = 0.5f;
-        Vec3 P = vec3_sub(emitter->pos, ray_origin_world);
-        Float b_dot = vec3_dot(P, ray_dir_world);
-        Float det = b_dot * b_dot - vec3_dot(P, P) + emitter_gizmo_radius * emitter_gizmo_radius;
+        Vec3 P = Math::vec3_sub(emitter->pos, ray_origin_world);
+        Float b_dot = Math::vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - Math::vec3_dot(P, P) + emitter_gizmo_radius * emitter_gizmo_radius;
         if (det < 0) continue;
         Float t_emitter = b_dot - sqrtf(det);
         if (t_emitter > 0 && t_emitter < closest_t) {
@@ -247,9 +247,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (Int i = 0; i < g_CurrentScene->numSoundEntities; ++i) {
         SoundEntity* sound = &g_CurrentScene->soundEntities[i];
         Float sound_gizmo_radius = 0.5f;
-        Vec3 P = vec3_sub(sound->pos, ray_origin_world);
-        Float b_dot = vec3_dot(P, ray_dir_world);
-        Float det = b_dot * b_dot - vec3_dot(P, P) + sound_gizmo_radius * sound_gizmo_radius;
+        Vec3 P = Math::vec3_sub(sound->pos, ray_origin_world);
+        Float b_dot = Math::vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - Math::vec3_dot(P, P) + sound_gizmo_radius * sound_gizmo_radius;
         if (det < 0) continue;
         Float t_sound = b_dot - sqrtf(det);
         if (t_sound > 0 && t_sound < closest_t) {
@@ -263,9 +263,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (Int i = 0; i < g_CurrentScene->numLogicEntities; ++i) {
         LogicEntity* ent = &g_CurrentScene->logicEntities[i];
         Float logic_gizmo_radius = 0.5f;
-        Vec3 P = vec3_sub(ent->pos, ray_origin_world);
-        Float b_dot = vec3_dot(P, ray_dir_world);
-        Float det = b_dot * b_dot - vec3_dot(P, P) + logic_gizmo_radius * logic_gizmo_radius;
+        Vec3 P = Math::vec3_sub(ent->pos, ray_origin_world);
+        Float b_dot = Math::vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - Math::vec3_dot(P, P) + logic_gizmo_radius * logic_gizmo_radius;
         if (det < 0) continue;
         Float t_logic = b_dot - sqrtf(det);
         if (t_logic > 0 && t_logic < closest_t) {
@@ -277,9 +277,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     }
 
     Float player_start_radius = 1.0f;
-    Vec3 P = vec3_sub(g_CurrentScene->playerStart.pos, ray_origin_world);
-    Float b_dot = vec3_dot(P, ray_dir_world);
-    Float det = b_dot * b_dot - vec3_dot(P, P) + player_start_radius * player_start_radius;
+    Vec3 P = Math::vec3_sub(g_CurrentScene->playerStart.pos, ray_origin_world);
+    Float b_dot = Math::vec3_dot(P, ray_dir_world);
+    Float det = b_dot * b_dot - Math::vec3_dot(P, P) + player_start_radius * player_start_radius;
     if (det >= 0) {
         Float t_player = b_dot - sqrtf(det);
         if (t_player > 0 && t_player < closest_t) {
@@ -295,10 +295,10 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
 
         Vec3 vp_local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 vp_local_max = { 0.5f, 0.5f, 0.5f };
-        vp->modelMatrix = create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 0.01f });
+        vp->modelMatrix = Math::create_trs_matrix(vp->pos, vp->rot, Vec3{ vp->size.x, vp->size.y, 0.01f });
 
         Float t;
-        if (RayIntersectsOBB(ray_origin_world, ray_dir_world,
+        if (Math::RayIntersectsOBB(ray_origin_world, ray_dir_world,
             &vp->modelMatrix,
             vp_local_min,
             vp_local_max,
@@ -312,11 +312,11 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
 
     for (Int i = 0; i < g_CurrentScene->numParallaxRooms; ++i) {
         ParallaxRoom* p = &g_CurrentScene->parallaxRooms[i];
-        p->modelMatrix = create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 0.01f });
+        p->modelMatrix = Math::create_trs_matrix(p->pos, p->rot, Vec3{ p->size.x, p->size.y, 0.01f });
         Vec3 local_min = { -0.5f, -0.5f, -0.5f };
         Vec3 local_max = { 0.5f, 0.5f, 0.5f };
         Float t;
-        if (RayIntersectsOBB(ray_origin_world, ray_dir_world, &p->modelMatrix, local_min, local_max, &t) && t < closest_t) {
+        if (Math::RayIntersectsOBB(ray_origin_world, ray_dir_world, &p->modelMatrix, local_min, local_max, &t) && t < closest_t) {
             closest_t = t;
             selected_type = ENTITY_PARALLAX_ROOM;
             selected_index = i;
@@ -327,9 +327,9 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
     for (Int i = 0; i < g_CurrentScene->numSprites; ++i) {
         Sprite* s = &g_CurrentScene->sprites[i];
         Float sprite_gizmo_radius = s->scale * 0.5f;
-        Vec3 P = vec3_sub(s->pos, ray_origin_world);
-        Float b_dot = vec3_dot(P, ray_dir_world);
-        Float det = b_dot * b_dot - vec3_dot(P, P) + sprite_gizmo_radius * sprite_gizmo_radius;
+        Vec3 P = Math::vec3_sub(s->pos, ray_origin_world);
+        Float b_dot = Math::vec3_dot(P, ray_dir_world);
+        Float det = b_dot * b_dot - Math::vec3_dot(P, P) + sprite_gizmo_radius * sprite_gizmo_radius;
         if (det < 0) continue;
         Float t_sprite = b_dot - sqrtf(det);
         if (t_sprite > 0 && t_sprite < closest_t) {
@@ -458,14 +458,14 @@ Int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType vie
     Float ndc_x = (screen_pos.x / g_EditorState.viewport_width[viewport]) * 2.0f - 1.0f;
     Float ndc_y = 1.0f - (screen_pos.y / g_EditorState.viewport_height[viewport]) * 2.0f;
     Mat4 inv_proj, inv_view;
-    mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
-    mat4_inverse(&g_view_matrix[viewport], &inv_view);
+    Math::mat4_inverse(&g_proj_matrix[viewport], &inv_proj);
+    Math::mat4_inverse(&g_view_matrix[viewport], &inv_view);
     Vec4 ray_clip = { ndc_x, ndc_y, -1.0f, 1.0f };
-    Vec4 ray_eye = mat4_mul_vec4(&inv_proj, ray_clip);
+    Vec4 ray_eye = Math::mat4_mul_vec4(&inv_proj, ray_clip);
     ray_eye.z = -1.0f; ray_eye.w = 0.0f;
-    Vec4 ray_wor4 = mat4_mul_vec4(&inv_view, ray_eye);
+    Vec4 ray_wor4 = Math::mat4_mul_vec4(&inv_view, ray_eye);
     Vec3 ray_dir = { ray_wor4.x, ray_wor4.y, ray_wor4.z };
-    vec3_normalize(&ray_dir);
+    Math::vec3_normalize(&ray_dir);
     Vec3 ray_origin = g_EditorState.editor_camera.position;
 
     Brush* b = &scene->brushes[primary->index];
@@ -474,11 +474,11 @@ Int Editor_PickVertexAtScreenPos(Scene* scene, Vec2 screen_pos, ViewportType vie
     const Float pick_radius = 0.1f;
 
     for (Int i = 0; i < b->numVertices; ++i) {
-        Vec3 vert_world_pos = mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
+        Vec3 vert_world_pos = Math::mat4_mul_vec3(&b->modelMatrix, b->vertices[i].pos);
 
-        Vec3 oc = vec3_sub(ray_origin, vert_world_pos);
-        Float b_dot = vec3_dot(oc, ray_dir);
-        Float c = vec3_dot(oc, oc) - pick_radius * pick_radius;
+        Vec3 oc = Math::vec3_sub(ray_origin, vert_world_pos);
+        Float b_dot = Math::vec3_dot(oc, ray_dir);
+        Float c = Math::vec3_dot(oc, oc) - pick_radius * pick_radius;
         Float discriminant = b_dot * b_dot - c;
         if (discriminant > 0) {
             Float t = -b_dot - sqrtf(discriminant);

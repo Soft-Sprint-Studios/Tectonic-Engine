@@ -63,7 +63,7 @@ void Skybox_Render(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view,
     Shader_Set(renderer->skyboxShader, "projection", projection);
 
     Vec3 sunDirNormalized = scene->sun.direction;
-    vec3_normalize(&sunDirNormalized);
+    Math::vec3_normalize(&sunDirNormalized);
 
     Shader_Set(renderer->skyboxShader, "sunDirection", sunDirNormalized);
     Shader_Set(renderer->skyboxShader, "cameraPos", engine->camera.position);

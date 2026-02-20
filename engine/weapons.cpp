@@ -57,11 +57,11 @@ public:
 class Pistol : public Weapon {
 public:
     Pistol() : Weapon("Pistol", 25.0f, 1000.0f, 0.3f, 0) {
-        m_fireSound = SoundSystem_LoadSound("sounds/pistol_fire.mp3");
+        m_fireSound = Sound::SoundSystem_LoadSound("sounds/pistol_fire.mp3");
     }
     ~Pistol() {
         if (m_fireSound != 0) {
-            SoundSystem_DeleteBuffer(m_fireSound);
+            Sound::SoundSystem_DeleteBuffer(m_fireSound);
         }
     }
 
@@ -72,13 +72,13 @@ public:
             sinf(engine->camera.pitch),
             -cosf(engine->camera.pitch) * cosf(engine->camera.yaw)
         };
-        vec3_normalize(&forward);
-        Vec3 rayEnd = vec3_add(rayStart, vec3_muls(forward, m_range));
+        Math::vec3_normalize(&forward);
+        Vec3 rayEnd = Math::vec3_add(rayStart, Math::vec3_muls(forward, m_range));
 
         RaycastHitInfo hitInfo;
-        if (Physics_Raycast(engine->physicsWorld, rayStart, rayEnd, &hitInfo)) {
+        if (Physics::Raycast(engine->physicsWorld, rayStart, rayEnd, &hitInfo)) {
             if (hitInfo.hitBody) {
-                Physics_ApplyImpulse(hitInfo.hitBody, vec3_muls(forward, 1.0f), hitInfo.point);
+                Physics::ApplyImpulse(hitInfo.hitBody, Math::vec3_muls(forward, 1.0f), hitInfo.point);
             }
         }
     }
@@ -130,7 +130,7 @@ public:
 
         Uint fireSound = currentWeapon->GetFireSound();
         if (fireSound != 0) {
-            SoundSystem_PlaySound(fireSound, engine->camera.position, 1.0f, 1.0f, 100.0f, false);
+            Sound::SoundSystem_PlaySound(fireSound, engine->camera.position, 1.0f, 1.0f, 100.0f, false);
         }
 
         currentWeapon->Fire(engine, scene);

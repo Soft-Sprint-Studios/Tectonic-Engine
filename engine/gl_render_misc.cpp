@@ -171,15 +171,15 @@ void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 came
     Float far_plane = shadowOrthoSize * 4.0f;
 
     Vec3 lightFocusPos = cameraPosition;
-    Vec3 lightPos = vec3_sub(lightFocusPos, vec3_muls(sun->direction, far_plane * 0.5f));
+    Vec3 lightPos = Math::vec3_sub(lightFocusPos, Math::vec3_muls(sun->direction, far_plane * 0.5f));
 
-    Mat4 lightProjection = mat4_ortho(-shadowOrthoSize, shadowOrthoSize, -shadowOrthoSize, shadowOrthoSize, near_plane, far_plane);
-    Mat4 lightView = mat4_lookAt(lightPos, lightFocusPos, Vec3{ 0.0f, 1.0f, 0.0f });
+    Mat4 lightProjection = Math::mat4_ortho(-shadowOrthoSize, shadowOrthoSize, -shadowOrthoSize, shadowOrthoSize, near_plane, far_plane);
+    Mat4 lightView = Math::mat4_lookAt(lightPos, lightFocusPos, Vec3{ 0.0f, 1.0f, 0.0f });
 
     Mat4 initialLightSpaceMatrix;
-    mat4_multiply(&initialLightSpaceMatrix, &lightProjection, &lightView);
+    Math::mat4_multiply(&initialLightSpaceMatrix, &lightProjection, &lightView);
 
-    Vec4 shadowOrigin = mat4_mul_vec4(&initialLightSpaceMatrix, Vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+    Vec4 shadowOrigin = Math::mat4_mul_vec4(&initialLightSpaceMatrix, Vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
     shadowOrigin.x *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);
     shadowOrigin.y *= (SUN_SHADOW_MAP_SIZE_F / 2.0f);
@@ -195,7 +195,7 @@ void Calculate_Sun_Light_Space_Matrix(Mat4* outMatrix, const Sun* sun, Vec3 came
     lightProjection.m[12] += roundOffset.x;
     lightProjection.m[13] += roundOffset.y;
 
-    mat4_multiply(outMatrix, &lightProjection, &lightView);
+    Math::mat4_multiply(outMatrix, &lightProjection, &lightView);
 }
 
 void Light_DestroyShadowMap(Light* light) {
@@ -349,13 +349,13 @@ void MiscRender_BuildCubemaps(Renderer* renderer, Scene* scene, Engine* engine, 
 
         for (Int face_idx = 0; face_idx < 6; ++face_idx) {
             engine->camera.position = b->pos;
-            Vec3 target_pos = vec3_add(engine->camera.position, targets[face_idx]);
-            Mat4 view = mat4_lookAt(engine->camera.position, target_pos, ups[face_idx]);
-            Mat4 projection = mat4_perspective(90.0f * (Common::PI / 180.f), 1.0f, 0.1f, 1000.f);
+            Vec3 target_pos = Math::vec3_add(engine->camera.position, targets[face_idx]);
+            Mat4 view = Math::mat4_lookAt(engine->camera.position, target_pos, ups[face_idx]);
+            Mat4 projection = Math::mat4_perspective(90.0f * (Common::PI / 180.f), 1.0f, 0.1f, 1000.f);
 
             Shadows_RenderPointAndSpot(renderer, scene, engine);
             Mat4 sunLightSpaceMatrix;
-            mat4_identity(&sunLightSpaceMatrix);
+            Math::mat4_identity(&sunLightSpaceMatrix);
             if (scene->sun.enabled) {
                 Calculate_Sun_Light_Space_Matrix(&sunLightSpaceMatrix, &scene->sun, engine->camera.position);
                 Shadows_RenderSun(renderer, scene, &sunLightSpaceMatrix);
