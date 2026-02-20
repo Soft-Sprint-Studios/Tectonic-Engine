@@ -30,7 +30,6 @@
 //----------------------------------------//
 
 #include <GL/glew.h>
-#include <stdbool.h>
 
 
 constexpr int MAX_MATERIALS = 16384;

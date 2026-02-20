@@ -29,7 +29,6 @@
 // Brief: Networking, for now pining and download files only
 //----------------------------------------//
 
-#include <stdbool.h>
 #include "level1_api.h"
 
 

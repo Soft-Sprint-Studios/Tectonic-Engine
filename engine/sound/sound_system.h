@@ -31,7 +31,6 @@
 
 #include "math_lib.h"
 #include "gl_console.h"
-#include <stdbool.h>
 #include "dsp_reverb.h"
 #include "sound_api.h"
 

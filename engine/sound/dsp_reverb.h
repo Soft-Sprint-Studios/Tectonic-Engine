@@ -29,7 +29,6 @@
 // Brief: DSP Style reverbs
 //----------------------------------------//
 
-#include <stdbool.h>
 #include <SDL_thread.h>
 #include <SDL_mutex.h>
 #include "sound_api.h"

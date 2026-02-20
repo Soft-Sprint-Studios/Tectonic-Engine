@@ -29,7 +29,6 @@
 // Brief: console variables
 //----------------------------------------//
 
-#include <stdbool.h>
 #include "level0_api.h"
 
 

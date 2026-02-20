@@ -26,7 +26,6 @@
 #define GL_CONSOLE_H
 
 #include <SDL.h>
-#include <stdbool.h>
 #include "math_lib.h"
 #include "imgui_wrapper.h"
 #include "level0_api.h"

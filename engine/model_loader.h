@@ -30,7 +30,6 @@
 //----------------------------------------//
 
 #include <GL/glew.h>
-#include <stdbool.h>
 #include "texturemanager.h" 
 #include "math_lib.h"
 

@@ -30,7 +30,6 @@
 //----------------------------------------//
 
 #include "math_lib.h"
-#include <stdbool.h>
 #include "physics_api.h"
 
 
