@@ -30,13 +30,8 @@
 //----------------------------------------//
 
 #include <stdio.h>
-#include "datatypes.h"
 #ifdef __cplusplus
-    #include "common.h"
-#endif
-
-#ifdef __cplusplus
-    using namespace std;
+    #include "includes.h"
 #endif
 
 //#define GAME_RELEASE 1
@@ -50,12 +45,6 @@
     #define BRANCH_NAME "Nocturne Descent"
 #else
     #define BRANCH_NAME "???"
-#endif
-
-#ifdef __cplusplus
-    #include <cctype>
-#else
-    #include <ctype.h>
 #endif
 
 #if defined(_WIN32)

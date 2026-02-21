@@ -21,22 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-// forked and modified from https://github.com/TheOverfloater/pathos-public/blob/main/pathos/sources/codesrc/common/datatypes.h
+ // forked and modified from https://github.com/TheOverfloater/pathos-public/blob/main/pathos/sources/codesrc/shared/includes.h
 
-#pragma once
-#ifndef DATATYPES_H
-#define DATATYPES_H
-typedef	char				Char;
-typedef	unsigned char		Uchar;
-typedef unsigned short		Ushort;
-typedef size_t				Usize;
-typedef short				Short;
-typedef int					Int;
-typedef unsigned int		Uint;
-typedef float				Float;
-typedef double				Double;
-typedef long				Long;
-typedef long long			LongLong;
-typedef bool				Bool;
+#ifndef INCLUDES_H
+#define INCLUDES_H
 
-#endif // DATATYPES_H
+#include "datatypes.h"
+#include "common.h"
+
+using namespace std;
+
+#endif // INCLUDES_H
