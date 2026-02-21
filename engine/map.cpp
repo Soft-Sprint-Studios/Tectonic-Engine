@@ -210,6 +210,16 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
     strncpy(scene->mapPath, mapPath, sizeof(scene->mapPath) - 1);
     scene->mapPath[sizeof(scene->mapPath) - 1] = '\0';
 
+#ifdef BRANCH_NOCTURNE
+    // hack to avoid static at geometry on level4
+    if (strstr(mapPath, "level4.map") != nullptr) {
+        Cvar_Set("r_skybox", "0");
+    }
+    else {
+        Cvar_Set("r_skybox", "1");
+    }
+#endif
+
     engine->physicsWorld = Physics::CreateWorld(Cvar_GetFloat("gravity") * -1.0f);
 
     Char line[2048];
