@@ -232,44 +232,4 @@ void Planar_RenderWater(Renderer* renderer, Scene* scene, Engine* engine, Mat4* 
     }
     glBindVertexArray(0);
     glDepthMask(GL_TRUE);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-}
-
-void Planar_RenderReflectiveGlass(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection) {
-    if (!Cvar_GetInt("r_planar")) return;
-
-    glUseProgram(renderer->reflectiveGlassShader);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-
-    Shader_Set(renderer->reflectiveGlassShader, "view", view);
-    Shader_Set(renderer->reflectiveGlassShader, "projection", projection);
-    Shader_Set(renderer->reflectiveGlassShader, "viewPos", engine->camera.position);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderer->reflectionTexture);
-    Shader_Set(renderer->reflectiveGlassShader, "reflectionTexture", 0);
-
-    glActiveTexture(GL_TEXTURE2);
-    Shader_Set(renderer->reflectiveGlassShader, "normalMap", 2);
-
-    for (Int i = 0; i < scene->numBrushes; i++) {
-        Brush* b = &scene->brushes[i];
-        if (strcmp(b->classname, "func_reflective_glass") != 0) continue;
-
-        const Char* normal_map_name = Brush_GetProperty(b, "normal_map", "null");
-        Material* normal_mat = TextureManager_FindMaterial(normal_map_name);
-        glBindTexture(GL_TEXTURE_2D, (normal_mat && normal_mat != &g_MissingMaterial) ? normal_mat->normalMap : defaultNormalMapID);
-
-        Shader_Set(renderer->reflectiveGlassShader, "refractionStrength", (Float)atof(Brush_GetProperty(b, "refraction_strength", "0.01")));
-        Shader_Set(renderer->reflectiveGlassShader, "model", &b->modelMatrix);
-
-        glBindVertexArray(b->vao);
-        glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
-    }
-
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-    glBindVertexArray(0);
 }

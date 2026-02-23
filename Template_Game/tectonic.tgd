@@ -49,14 +49,6 @@
 )
 
 // ==================================================================
-// SELECTABLE POINT ENTITIES
-// ==================================================================
-
-@PointClass = info_target
-[
-]
-
-// ==================================================================
 // Brush Entities
 // ==================================================================
 
@@ -201,11 +193,17 @@
     uv_scale(float) : "Texture Scale (0 for auto)" = "0.0"
 ]
 
-@SolidClass = func_reflective_glass
+@SolidClass = func_monitor
 [
-    refraction_strength(float) : "Distortion Strength" = "0.01"
-    normal_map(texture) : "Normal Map" = "NULL"
+    target(entities) : "Camera Entity" = ""
+    grayscale(checkbox) : "Grayscale" = "0"
+    starton(checkbox) : "Start On" = "1"
 ]
+(
+    input TurnOn "Turn monitor on."
+    input TurnOff "Turn monitor off."
+    input Toggle "Toggle monitor."
+)
 
 @SolidClass = env_glass
 [
@@ -581,3 +579,19 @@
     input Use "Read the note."
     output OnRead "Fires when the player closes the note."
 )
+
+@PointClass = info_target
+[
+]
+
+@PointClass = info_monitorcamera
+[
+    resolution(choices) : "Resolution" = "512"
+    [
+        256 : "256x256"
+        512 : "512x512"
+        1024 : "1024x1024"
+    ]
+    fov(float) : "FOV" = "90"
+    render_once(checkbox) : "Render Static (Once)" = "0"
+]

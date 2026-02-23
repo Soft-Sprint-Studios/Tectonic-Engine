@@ -497,7 +497,6 @@ static void Engine_RenderGame() {
         Skybox_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
 
     Blackhole_Render(&g_renderer, &g_scene, g_engine, &view, &projection);
-    Planar_RenderReflectiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
     MiscRender_RefractiveGlass(&g_renderer, &g_scene, g_engine, &view, &projection);
     Monitor_RenderBrushes(&g_scene, &g_renderer, g_engine, &view, &projection);
 

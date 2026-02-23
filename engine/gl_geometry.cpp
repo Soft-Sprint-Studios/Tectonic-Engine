@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 #include "gl_geometry.h"
+#include "gl_wireframe.h"
 #include "gl_misc.h"
-#include "gl_zprepass.h"
 #include "gl_render_misc.h"
 #include "gl_sprites.h"
 #include "gl_video_player.h"
@@ -109,10 +109,6 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
         if (obj->useLightmap && obj->lightmapHandle) {
             Shader_Set(shader, "useLightmap", 1);
             Shader_Set(shader, "lightmap", obj->lightmapHandle);
-
-            if (obj->lightmapWidth > 0 && obj->lightmapHeight > 0) {
-                Shader_Set(shader, "u_lightmap_sampler_size", Vec2{ (Float)obj->lightmapWidth, (Float)obj->lightmapHeight });
-            }
 
             if (obj->dirLightmapHandle) {
                 Shader_Set(shader, "useDirectionalLightmap", 1);
@@ -367,17 +363,10 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
     glViewport(0, 0, engine->width / Cvar_GetFloat("r_geometry_downsample"), engine->height / Cvar_GetFloat("r_geometry_downsample"));
 
-    if (Cvar_GetInt("r_zprepass") && !is_reflection_pass) {
-        Zprepass_Render(renderer, scene, engine, view, projection);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
-    else {
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
     glDrawBuffers(6, attachments);
@@ -592,9 +581,6 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     if (Cvar_GetInt("r_faceculling")) {
         glDisable(GL_CULL_FACE);
     }
-    if (Cvar_GetInt("r_zprepass") && !is_reflection_pass) {
-        glDepthFunc(GL_LESS);
-    }
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glBindVertexArray(0);
@@ -602,39 +588,7 @@ void Geometry_RenderPass(Renderer* renderer, Scene* scene, Engine* engine, Mat4*
     Beams_Render(scene, *view, *projection, cameraPos, engine->scaledTime);
     Cable_Render(scene, *view, *projection, cameraPos, engine->scaledTime);
     Glow_Render(scene, *view, *projection);
-
-    if (Cvar_GetInt("r_wireframe")) {
-        glUseProgram(renderer->wireframeShader);
-        Shader_Set(renderer->wireframeShader, "view", view);
-        Shader_Set(renderer->wireframeShader, "projection", projection);
-        Shader_Set(renderer->wireframeShader, "wireframeColor", Vec4{ 0.0f, 0.5f, 1.0f, 1.0f });
-
-        glDisable(GL_DEPTH_TEST);
-        for (Int i = 0; i < scene->numObjects; i++) {
-            SceneObject* obj = &scene->objects[i];
-            Shader_Set(renderer->wireframeShader, "model", &obj->modelMatrix);
-            if (obj->model) {
-                for (Int meshIdx = 0; meshIdx < obj->model->meshCount; ++meshIdx) {
-                    Mesh* mesh = &obj->model->meshes[meshIdx];
-                    glBindVertexArray(mesh->VAO);
-                    if (mesh->useEBO) {
-                        glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
-                    }
-                    else {
-                        glDrawArrays(GL_TRIANGLES, 0, mesh->indexCount);
-                    }
-                }
-            }
-        }
-        for (Int i = 0; i < scene->numBrushes; i++) {
-            Brush* b = &scene->brushes[i];
-            if (!Brush_IsSolid(b)) continue;
-            Shader_Set(renderer->wireframeShader, "model", &b->modelMatrix);
-            glBindVertexArray(b->vao);
-            glDrawArrays(GL_TRIANGLES, 0, b->totalRenderVertexCount);
-        }
-        glEnable(GL_DEPTH_TEST);
-    }
+    Wireframe_Render(renderer, scene, view, projection);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

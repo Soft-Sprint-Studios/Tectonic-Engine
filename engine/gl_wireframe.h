@@ -21,31 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-layout (vertices = 3) out;
+#pragma once
+#ifndef GL_WIREFRAME_H
+#define GL_WIREFRAME_H
 
-in VS_OUT {
-    vec3 worldPos;
-    vec2 texCoords;
-	vec2 lightmapTexCoords;
-    vec4 color;
-} tcs_in[];
+#include "map.h"
 
-out TCS_OUT {
-    vec3 worldPos;
-    vec2 texCoords;
-	vec2 lightmapTexCoords;
-    vec4 color;
-} tcs_out[];
 
-void main()
-{
-    tcs_out[gl_InvocationID].worldPos = tcs_in[gl_InvocationID].worldPos;
-    tcs_out[gl_InvocationID].texCoords = tcs_in[gl_InvocationID].texCoords;
-	tcs_out[gl_InvocationID].lightmapTexCoords = tcs_in[gl_InvocationID].lightmapTexCoords;
-    tcs_out[gl_InvocationID].color = tcs_in[gl_InvocationID].color;
+	void Wireframe_Render(Renderer* renderer, Scene* scene, Mat4* view, Mat4* projection);
 
-    gl_TessLevelOuter[0] = 64.0;
-    gl_TessLevelOuter[1] = 64.0;
-    gl_TessLevelOuter[2] = 64.0;
-    gl_TessLevelInner[0] = 64.0;
-}
+
+#endif

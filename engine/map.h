@@ -152,8 +152,6 @@
 
     typedef struct {
         GLuint mainShader, pointDepthShader, spotDepthShader, skyboxShader;
-        GLuint zPrepassShader;
-        GLuint zPrepassTessShader;
         GLuint wireframeShader;
         GLuint lightingCompositeShader;
         GLuint postProcessShader;
@@ -195,7 +193,6 @@
         GLuint histogramSSBO;
         GLuint exposureSSBO;
         GLuint waterShader;
-        GLuint reflectiveGlassShader;
         GLuint parallaxInteriorShader;
         GLuint monitorShader;
         GLuint scanlineTexture;

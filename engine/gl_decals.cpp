@@ -71,11 +71,17 @@ void Decals_Shutdown(Renderer* renderer) {
 }
 
 void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderer->gBufferFBO);
+
+    GLuint attachments[6] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5 };
+    glDrawBuffers(6, attachments);
+
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LEQUAL);
 
     glUseProgram(shader_program);
+    Shader_Set(shader_program, "u_useAlphaTest", 1);
     
     Shader_Set(shader_program, "isBrush", 1);
     Shader_Set(shader_program, "isDecal", 1);
@@ -138,7 +144,7 @@ void Decals_Render(Scene* scene, Renderer* renderer, GLuint shader_program) {
     Shader_Set(shader_program, "useLightmap", 0);
     Shader_Set(shader_program, "useDirectionalLightmap", 0);
 
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
+    Shader_Set(shader_program, "u_useAlphaTest", 0);
+    glDepthFunc(GL_LESS);
     glBindVertexArray(0);
 }

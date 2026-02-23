@@ -100,7 +100,7 @@ set(ENGINE_SOURCES
     engine/gl_glow.cpp
     engine/gl_decals.cpp
     engine/gl_sprites.cpp
-    engine/gl_zprepass.cpp
+    engine/gl_wireframe.cpp
     engine/gl_shadows.cpp
     engine/gl_blackholes.cpp
     engine/gl_geometry.cpp
@@ -138,9 +138,9 @@ set(ENGINE_HEADERS
     engine/gl_overlay.h
     engine/gl_glow.h
     engine/gl_decals.h
-    engine/gl_zprepass.h
     engine/gl_shadows.h
     engine/gl_sprites.h
+    engine/gl_wireframe.h
     engine/gl_blackholes.h
     engine/gl_geometry.h
     engine/gl_planar.h

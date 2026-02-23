@@ -34,7 +34,6 @@
 #include "gl_skybox.h"
 #include "gl_sprites.h"
 #include "gl_blackholes.h"
-#include "gl_zprepass.h"
 #include "gl_shadows.h"
 #include "gl_geometry.h"
 #include "gl_planar.h"
@@ -64,7 +63,6 @@ static void Renderer_InitShaders(Renderer* renderer) {
     renderer->ssaoBlurShader = createShaderProgram("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     renderer->glassShader = createShaderProgram("shaders/glass.vert", "shaders/glass.frag");
     renderer->waterShader = createShaderProgram("shaders/water.vert", "shaders/water.frag");
-    renderer->reflectiveGlassShader = createShaderProgram("shaders/reflective_glass.vert", "shaders/reflective_glass.frag");
     renderer->parallaxInteriorShader = createShaderProgram("shaders/parallax_interior.vert", "shaders/parallax_interior.frag");
 }
 
@@ -400,7 +398,6 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Decals_Init(renderer);
     Skybox_Init(renderer);
     Blackhole_Init(renderer);
-    Zprepass_Init(renderer);
     Shadows_Init(renderer);
     Sprites_Init(renderer);
     Monitor_Init(renderer);
@@ -511,7 +508,6 @@ void Renderer_Shutdown(Renderer* renderer) {
     Glow_Shutdown();
     Decals_Shutdown(renderer);
     Skybox_Shutdown(renderer);
-    Zprepass_Shutdown(renderer);
     Shadows_Shutdown(renderer);
     Blackhole_Shutdown(renderer);
     Sprites_Shutdown(renderer);
