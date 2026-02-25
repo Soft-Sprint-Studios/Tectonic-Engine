@@ -31,7 +31,6 @@
 	void Editor_GroupSelection();
 	void Editor_UngroupSelection();
 	void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis);
-	void Editor_MergeSelection(Scene* scene, Engine* engine);
 
 	void Editor_DuplicateModel(Scene* scene, Engine* engine, Int index);
 	void Editor_DuplicateBrush(Scene* scene, Engine* engine, Int index);

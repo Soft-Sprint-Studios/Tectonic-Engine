@@ -1323,9 +1323,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                     }
                 }
             }
-            if (UI_MenuItem("Merge", nullptr, false, can_merge)) {
-                Editor_MergeSelection(scene, engine);
-            }
             UI_Separator();
             if (UI_MenuItem("Flip Horizontal", "Ctrl+L", false, g_EditorState.num_selections > 0)) {
                 Editor_FlipSelection(scene, engine, 1);
