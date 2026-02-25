@@ -528,6 +528,7 @@ Bool Editor_FindNamedEntityPosition(Scene* scene, const Char* name, Vec3* out_po
         case ENTITY_VIDEO_PLAYER: *out_pos = scene->videoPlayers[index].pos; return true;
         case ENTITY_SPRITE: *out_pos = scene->sprites[index].pos; return true;
         case ENTITY_LOGIC: *out_pos = scene->logicEntities[index].pos; return true;
+        case ENTITY_PLAYERSTART: *out_pos = scene->playerStart.pos; return true;
         default: return false;
         }
     }

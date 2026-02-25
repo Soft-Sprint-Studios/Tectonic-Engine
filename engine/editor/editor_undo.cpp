@@ -447,6 +447,7 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, action->after_states[i].index); break;
         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, action->after_states[i].index); break;
         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, action->after_states[i].index); break;
+        case ENTITY_PLAYERSTART: break;
         default: UNREACHABLE(); break;
         }
     } break;
@@ -484,6 +485,7 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, action->before_states[i].index); break;
         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, action->before_states[i].index); break;
         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, action->before_states[i].index); break;
+        case ENTITY_PLAYERSTART: break;
         default: UNREACHABLE(); break;
         }
     } break;

@@ -59,6 +59,7 @@ void Editor_GroupSelection() {
         case ENTITY_VIDEO_PLAYER: g_CurrentScene->videoPlayers[sel->index].isGrouped = true; strncpy(g_CurrentScene->videoPlayers[sel->index].groupName, group_name, 63); break;
         case ENTITY_PARALLAX_ROOM: g_CurrentScene->parallaxRooms[sel->index].isGrouped = true; strncpy(g_CurrentScene->parallaxRooms[sel->index].groupName, group_name, 63); break;
         case ENTITY_LOGIC: g_CurrentScene->logicEntities[sel->index].isGrouped = true; strncpy(g_CurrentScene->logicEntities[sel->index].groupName, group_name, 63); break;
+        case ENTITY_PLAYERSTART: break;
         default: UNREACHABLE();  break;
         }
     }
@@ -93,6 +94,7 @@ void Editor_UngroupSelection() {
         case ENTITY_VIDEO_PLAYER: g_CurrentScene->videoPlayers[sel->index].isGrouped = false; g_CurrentScene->videoPlayers[sel->index].groupName[0] = '\0'; break;
         case ENTITY_PARALLAX_ROOM: g_CurrentScene->parallaxRooms[sel->index].isGrouped = false; g_CurrentScene->parallaxRooms[sel->index].groupName[0] = '\0'; break;
         case ENTITY_LOGIC: g_CurrentScene->logicEntities[sel->index].isGrouped = false; g_CurrentScene->logicEntities[sel->index].groupName[0] = '\0'; break;
+        case ENTITY_PLAYERSTART: break;
         default: UNREACHABLE();  break;
         }
     }
@@ -161,6 +163,7 @@ void Editor_FlipSelection(Scene* scene, Engine* engine, Int axis) {
         case ENTITY_DECAL: Decal_UpdateMatrix(&scene->decals[sel->index]); break;
         case ENTITY_PARALLAX_ROOM: ParallaxRoom_UpdateMatrix(&scene->parallaxRooms[sel->index]); break;
         case ENTITY_SOUND: Sound::SoundSystem_SetSourcePosition(scene->soundEntities[sel->index].sourceID, scene->soundEntities[sel->index].pos); break;
+        case ENTITY_PLAYERSTART: break;
         default: UNREACHABLE();  break;
         }
     }

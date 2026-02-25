@@ -1093,7 +1093,8 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, sel->index); break;
                         case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, sel->index); break;
                         case ENTITY_SPRITE: Editor_DuplicateSprite(scene, sel->index); break;
-                        default: UNREACHABLE();  break;
+                        case ENTITY_PLAYERSTART: break;
+                        default: UNREACHABLE(); break;
                         }
                     }
                     delete[] original_selections;
@@ -1423,7 +1424,9 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     case ENTITY_VIDEO_PLAYER: Editor_DuplicateVideoPlayer(scene, sel->index); break;
                     case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, sel->index); break;
                     case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, sel->index); break;
-                    default: Console_Printf("Duplication not implemented for this entity type yet."); break;
+                    case ENTITY_SPRITE: Editor_DuplicateSprite(scene, sel->index); break;
+                    case ENTITY_PLAYERSTART: break;
+                    default: UNREACHABLE(); break;
                     }
                 }
                 delete[] original_selections;
@@ -1628,6 +1631,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, sel->index); break;
                         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, sel->index); break;
                         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, sel->index); break;
+                        case ENTITY_PLAYERSTART: break;
                         default: UNREACHABLE();  break;
                         }
                     }
