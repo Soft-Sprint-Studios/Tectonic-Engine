@@ -106,6 +106,12 @@
     #define _mkdir(path) mkdir(path, 0755)
 #endif
 
+#ifdef COMPILER_MSVC
+    #define UNREACHABLE() __assume(0)
+#else
+    #define UNREACHABLE() __builtin_unreachable()
+#endif
+
 #ifdef PLATFORM_WINDOWS
     #pragma comment(lib, "ws2_32.lib")
 #endif

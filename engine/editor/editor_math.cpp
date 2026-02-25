@@ -47,7 +47,7 @@ Vec3 ScreenToWorld(Vec2 screen_pos, ViewportType viewport) {
     case VIEW_TOP_XZ: world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.z = cam_pos.z - ndc_y * zoom; world_pos.y = 0; break;
     case VIEW_FRONT_XY: world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.y = cam_pos.y + ndc_y * zoom; world_pos.z = 0; break;
     case VIEW_SIDE_YZ: world_pos.z = cam_pos.z - ndc_x * zoom * aspect; world_pos.y = cam_pos.y + ndc_y * zoom; world_pos.x = 0; break;
-    default: break;
+    default: UNREACHABLE(); break;
     }
     if (g_EditorState.snap_to_grid) { world_pos.x = SnapValue(world_pos.x, g_EditorState.grid_size); world_pos.y = SnapValue(world_pos.y, g_EditorState.grid_size); world_pos.z = SnapValue(world_pos.z, g_EditorState.grid_size); }
     return world_pos;
@@ -83,8 +83,7 @@ Vec3 ScreenToWorld_Unsnapped_ForOrthoPicking(Vec2 screen_pos, ViewportType viewp
         world_pos.y = cam_center_on_plane.y + ndc_y * zoom;
         world_pos.x = 0;
         break;
-    default:
-        break;
+    default: UNREACHABLE();  break;
     }
     return world_pos;
 }
@@ -99,7 +98,7 @@ Vec3 ScreenToWorld_Clip(Vec2 screen_pos, ViewportType viewport) {
     case VIEW_TOP_XZ:   world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.z = cam_pos.z - ndc_y * zoom; world_pos.y = g_EditorState.clip_plane_depth; break;
     case VIEW_FRONT_XY: world_pos.x = cam_pos.x + ndc_x * zoom * aspect; world_pos.y = cam_pos.y + ndc_y * zoom; world_pos.z = g_EditorState.clip_plane_depth; break;
     case VIEW_SIDE_YZ:  world_pos.z = cam_pos.z - ndc_x * zoom * aspect; world_pos.y = cam_pos.y + ndc_y * zoom; world_pos.x = g_EditorState.clip_plane_depth; break;
-    default: break;
+    default: UNREACHABLE();  break;
     }
     if (g_EditorState.snap_to_grid) {
         world_pos.x = SnapValue(world_pos.x, g_EditorState.grid_size);

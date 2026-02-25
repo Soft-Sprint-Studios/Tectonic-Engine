@@ -190,7 +190,7 @@ void capture_state(EntityState* state, Scene* scene, EntityType type, Int index)
     case ENTITY_PARALLAX_ROOM: state->data.parallaxRoom = scene->parallaxRooms[index]; break;
     case ENTITY_PLAYERSTART: state->data.playerStart = scene->playerStart; break;
     case ENTITY_LOGIC: state->data.logicEntity = scene->logicEntities[index]; break;
-    default: break;
+    default: UNREACHABLE(); break;
     }
 }
 
@@ -342,7 +342,7 @@ static void apply_state(Scene* scene, Engine* engine, EntityState* state, Bool i
     case ENTITY_PLAYERSTART:
         scene->playerStart = state->data.playerStart;
         break;
-    default: break;
+    default: UNREACHABLE(); break;
     }
 }
 
@@ -447,11 +447,11 @@ void Undo_PerformUndo(Scene* scene, Engine* engine) {
         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, action->after_states[i].index); break;
         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, action->after_states[i].index); break;
         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, action->after_states[i].index); break;
-        default: break;
+        default: UNREACHABLE(); break;
         }
     } break;
     case ACTION_DELETE_ENTITY: for (Int i = 0; i < action->num_before_states; ++i) apply_state(scene, engine, &action->before_states[i], true); break;
-    default: break;
+    default: UNREACHABLE(); break;
     }
 }
 
@@ -484,10 +484,10 @@ void Undo_PerformRedo(Scene* scene, Engine* engine) {
         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, action->before_states[i].index); break;
         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, action->before_states[i].index); break;
         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, action->before_states[i].index); break;
-        default: break;
+        default: UNREACHABLE(); break;
         }
     } break;
-    default: break;
+    default: UNREACHABLE(); break;
     }
 }
 

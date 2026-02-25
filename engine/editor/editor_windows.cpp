@@ -124,7 +124,7 @@ void RenderIOEditor(EntityType type, Int index) {
                             case ENTITY_SPRITE: base_classname = "_sprite_base"; break;
                             case ENTITY_BRUSH: classname = g_CurrentScene->brushes[target_index].classname; break;
                             case ENTITY_LOGIC: classname = g_CurrentScene->logicEntities[target_index].classname; break;
-                            default: break;
+                            default: UNREACHABLE();  break;
                             }
 
                             if (classname && classname[0] != '\0') {
@@ -1740,8 +1740,7 @@ void Editor_RenderTransformWindow(Scene* scene, Engine* engine) {
                         if (g_EditorState.transform_window_mode == TRANSFORM_MODE_MOVE) scene->playerStart.pos = Math::vec3_add(scene->playerStart.pos, g_EditorState.transform_window_values);
                         break;
                     }
-                    default:
-                        break;
+                    default: UNREACHABLE();  break;
                     }
                 }
                 Undo_EndMultiEntityModification(scene, g_EditorState.selections, g_EditorState.num_selections, "Transform Selection");
@@ -1812,7 +1811,7 @@ void Editor_RenderStatusBar() {
             case ENTITY_VIDEO_PLAYER: type_name = "Video Player"; break;
             case ENTITY_PARALLAX_ROOM: type_name = "Parallax Room"; break;
             case ENTITY_LOGIC: type_name = "Logic Entity"; break;
-            default: break;
+            default: UNREACHABLE();  break;
             }
             sprintf(selection_text, "1 %s selected.", type_name);
         }
@@ -1845,7 +1844,7 @@ void Editor_RenderStatusBar() {
         case VIEW_TOP_XZ: UI_Text("@%.0f, %.0f", mouse_world.x, mouse_world.z); break;
         case VIEW_FRONT_XY: UI_Text("@%.0f, %.0f", mouse_world.x, mouse_world.y); break;
         case VIEW_SIDE_YZ: UI_Text("@%.0f, %.0f", mouse_world.z, mouse_world.y); break;
-        default: break;
+        default: UNREACHABLE();  break;
         }
     }
 

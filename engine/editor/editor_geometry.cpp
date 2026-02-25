@@ -340,8 +340,7 @@ void Editor_AdjustPreviewBrushByHandle(Vec2 mouse_pos_in_viewport, ViewportType 
             g_EditorState.preview_brush_world_max.z = mouse_world_snapped.z;
         }
         break;
-    default:
-        break;
+    default: UNREACHABLE();  break;
     }
 
     Vec3 temp_min = g_EditorState.preview_brush_world_min;
@@ -496,7 +495,7 @@ void Editor_AdjustSelectedBrushByHandle(Scene* scene, Engine* engine, Vec2 mouse
         }
         break;
     }
-    default: break;
+    default: UNREACHABLE();  break;
     }
 
     Brush_CreateRenderData(b);

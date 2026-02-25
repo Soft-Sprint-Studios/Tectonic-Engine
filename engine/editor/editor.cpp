@@ -215,7 +215,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                                 case VIEW_TOP_XZ:   g_EditorState.clip_plane_depth = b->pos.y; break;
                                 case VIEW_FRONT_XY: g_EditorState.clip_plane_depth = b->pos.z; break;
                                 case VIEW_SIDE_YZ:  g_EditorState.clip_plane_depth = b->pos.x; break;
-                                default: g_EditorState.clip_plane_depth = 0.0f; break;
+                                default: UNREACHABLE();  break;
                                 }
                             }
                             else {
@@ -349,7 +349,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
-                default: pos = Vec3{ 0 }; break;
+                default: UNREACHABLE();  break;
                 }
                 g_EditorState.gizmo_selection_centroid = Math::vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }
@@ -422,11 +422,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
                     g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
                     break;
-                default:
-                    g_EditorState.gizmo_drag_start_positions[i] = Vec3{ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 };
-                    g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 };
-                    break;
+                default: UNREACHABLE();  break;
                 }
             }
             g_EditorState.gizmo_active_axis = g_EditorState.gizmo_hovered_axis;
@@ -492,7 +488,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         g_EditorState.gizmo_drag_object_start_rot = scene->parallaxRooms[primary->index].rot;
                         g_EditorState.gizmo_drag_object_start_scale = Vec3{ scene->parallaxRooms[primary->index].size.x, scene->parallaxRooms[primary->index].size.y, 1.0f };
                         break;
-                    default: break;
+                    default: UNREACHABLE();  break;
                     }
                 }
             }
@@ -1097,7 +1093,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_PARALLAX_ROOM: Editor_DuplicateParallaxRoom(scene, sel->index); break;
                         case ENTITY_LOGIC: Editor_DuplicateLogicEntity(scene, engine, sel->index); break;
                         case ENTITY_SPRITE: Editor_DuplicateSprite(scene, sel->index); break;
-                        default: break;
+                        default: UNREACHABLE();  break;
                         }
                     }
                     delete[] original_selections;
@@ -1123,7 +1119,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_PARALLAX_ROOM: g_EditorState.gizmo_drag_start_positions[i] = scene->parallaxRooms[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->parallaxRooms[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ scene->parallaxRooms[sel->index].size.x, scene->parallaxRooms[sel->index].size.y, 1.0f }; break;
                         case ENTITY_LOGIC: g_EditorState.gizmo_drag_start_positions[i] = scene->logicEntities[sel->index].pos; g_EditorState.gizmo_drag_start_rotations[i] = scene->logicEntities[sel->index].rot; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
                         case ENTITY_PLAYERSTART: g_EditorState.gizmo_drag_start_positions[i] = scene->playerStart.pos; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
-                        default: g_EditorState.gizmo_drag_start_positions[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_rotations[i] = Vec3{ 0,0,0 }; g_EditorState.gizmo_drag_start_scales[i] = Vec3{ 1,1,1 }; break;
+                        default: UNREACHABLE();  break;
                         }
                     }
                 }
@@ -1204,7 +1200,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case VIEW_TOP_XZ:   pos_delta.y = 0; scale_delta.y = 0; break;
                         case VIEW_FRONT_XY: pos_delta.z = 0; scale_delta.z = 0; break;
                         case VIEW_SIDE_YZ:  pos_delta.x = 0; scale_delta.x = 0; break;
-                        default: break;
+                        default: UNREACHABLE();  break;
                         }
 
                         if (g_EditorState.snap_to_grid) {
@@ -1306,7 +1302,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                 case ENTITY_PLAYERSTART: {
                     scene->playerStart.pos = new_pos; break;
                 }
-                default: break;
+                default: UNREACHABLE();  break;
                 }
             }
         }
@@ -1632,7 +1628,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                         case ENTITY_VIDEO_PLAYER: _raw_delete_video_player(scene, sel->index); break;
                         case ENTITY_PARALLAX_ROOM: _raw_delete_parallax_room(scene, sel->index); break;
                         case ENTITY_LOGIC: _raw_delete_logic_entity(scene, sel->index); break;
-                        default: break;
+                        default: UNREACHABLE();  break;
                         }
                     }
 
@@ -2281,7 +2277,7 @@ void Editor_Update(Engine* engine, Scene* scene) {
                 case ENTITY_VIDEO_PLAYER: pos = scene->videoPlayers[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_PARALLAX_ROOM: pos = scene->parallaxRooms[g_EditorState.selections[i].index].pos; break;
                 case ENTITY_LOGIC: pos = scene->logicEntities[g_EditorState.selections[i].index].pos; break;
-                default: pos = Vec3{ 0 }; break;
+                default: UNREACHABLE();  break;
                 }
                 g_EditorState.gizmo_selection_centroid = Math::vec3_add(g_EditorState.gizmo_selection_centroid, pos);
             }

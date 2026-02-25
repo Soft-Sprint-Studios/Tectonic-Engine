@@ -397,7 +397,7 @@ void Editor_PickObjectAtScreenPos(Vec2 screen_pos, ViewportType viewport) {
             case ENTITY_VIDEO_PLAYER: is_grouped = g_CurrentScene->videoPlayers[selected_index].isGrouped; group_name = g_CurrentScene->videoPlayers[selected_index].groupName; break;
             case ENTITY_PARALLAX_ROOM: is_grouped = g_CurrentScene->parallaxRooms[selected_index].isGrouped; group_name = g_CurrentScene->parallaxRooms[selected_index].groupName; break;
             case ENTITY_LOGIC: is_grouped = g_CurrentScene->logicEntities[selected_index].isGrouped; group_name = g_CurrentScene->logicEntities[selected_index].groupName; break;
-            default: break;
+            default: UNREACHABLE(); break;
             }
         }
 

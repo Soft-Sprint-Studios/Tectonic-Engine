@@ -631,6 +631,7 @@ static void Engine_RunLoop(SDL_Window* window) {
             break;
 
         default:
+            UNREACHABLE();
             break;
         }
 

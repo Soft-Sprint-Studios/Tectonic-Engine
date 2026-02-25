@@ -229,6 +229,7 @@ void Editor_RenderSceneInternal(ViewportType type, Engine* engine, Renderer* ren
     case VIEW_TOP_XZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ p.x, 1000.0f, p.z }, Vec3{ p.x, 0.0f, p.z }, Vec3{ 0, 0, -1 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
     case VIEW_FRONT_XY: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ p.x, p.y, 1000.0f }, Vec3{ p.x, p.y, 0.0f }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
     case VIEW_SIDE_YZ: { Vec3 p = g_EditorState.ortho_cam_pos[type - 1]; Float z = g_EditorState.ortho_cam_zoom[type - 1]; g_view_matrix[type] = Math::mat4_lookAt(Vec3{ 1000.0f, p.y, p.z }, Vec3{ 0.0f, p.y, p.z }, Vec3{ 0, 1, 0 }); g_proj_matrix[type] = Math::mat4_ortho(-z * aspect, z * aspect, -z, z, 0.1f, 2000.0f); break; }
+    default: UNREACHABLE(); break;
     }
 
     if (type != VIEW_PERSPECTIVE) {

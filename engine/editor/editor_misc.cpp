@@ -118,8 +118,7 @@ void Editor_ExecutePendingAction(Engine* engine, Scene* scene, Renderer* rendere
         Commands_Execute(1, args);
         break;
     }
-    default:
-        break;
+    default: UNREACHABLE();  break;
     }
     g_pending_action = PENDING_ACTION_NONE;
 }
