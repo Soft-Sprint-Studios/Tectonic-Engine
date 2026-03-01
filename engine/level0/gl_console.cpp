@@ -361,7 +361,7 @@ static Console console_instance;
         Bool show_graph = Cvar_GetInt("r_showgraph");
         Bool show_watermark = Cvar_GetInt("watermark");
 
-        const Float DISTANCE = 10.0f;
+        constexpr Float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE);
         ImVec2 window_pos_pivot = ImVec2(0.0f, 0.0f);
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
@@ -424,7 +424,7 @@ static Console console_instance;
         }
 
         if (show_watermark) {
-            const Float PADDING = 10.0f;
+            constexpr Float PADDING = 10.0f;
             ImGuiIO& io = ImGui::GetIO();
             ImVec2 window_pos = ImVec2(io.DisplaySize.x - PADDING, PADDING);
             ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
