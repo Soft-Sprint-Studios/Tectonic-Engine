@@ -350,11 +350,19 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                     }
                     else {
                         if (scene->numObjects < Common::MAX_MODELS) {
+                            SceneObject* old_objects = scene->objects;
+                            Int old_num = scene->numObjects;
+
                             scene->numObjects++;
                             scene->objects = new SceneObject[scene->numObjects];
+
+                            if (old_objects) {
+                                memcpy(scene->objects, old_objects, old_num * sizeof(SceneObject));
+                                delete[] old_objects;
+                            }
+
                             SceneObject* newObj = &scene->objects[scene->numObjects - 1];
                             memset(newObj, 0, sizeof(SceneObject));
-
                             Math::mat4_identity(&newObj->animated_local_transform);
 
                             Char full_model_path[256];
