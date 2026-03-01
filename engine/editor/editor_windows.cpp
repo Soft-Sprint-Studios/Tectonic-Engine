@@ -1571,7 +1571,7 @@ void Editor_RenderMapInfoWindow(Scene* scene) {
         return;
     }
 
-    UI_SetNextWindowSize(250, 180);
+    UI_SetNextWindowSize(180, 120);
     if (UI_Begin("Map Information", &g_EditorState.show_map_info_window)) {
         Int solid_count = scene->numBrushes;
         Int face_count = 0;
