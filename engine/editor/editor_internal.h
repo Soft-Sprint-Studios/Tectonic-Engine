@@ -199,7 +199,6 @@ constexpr Int MAX_RECENT_FILES = 10;
         Vec3 sprinkle_brush_world_pos;
         ViewportType last_active_2d_view;
         Float editor_camera_speed;
-        Bool texture_lock_enabled;
         Char** doc_files;
         Int num_doc_files;
         Int selected_doc_index;

@@ -844,19 +844,6 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
                     Vec3 old_pos = b->pos;
                     b->pos = new_pos;
 
-                    if (g_EditorState.texture_lock_enabled) {
-                        Vec3 frame_move = Math::vec3_sub(new_pos, old_pos);
-                        Float du = 0, dv = 0;
-                        if (g_EditorState.selected_brush_drag_body_view == VIEW_TOP_XZ) { du = frame_move.x; dv = frame_move.z; }
-                        else if (g_EditorState.selected_brush_drag_body_view == VIEW_FRONT_XY) { du = frame_move.x; dv = frame_move.y; }
-                        else { du = frame_move.z; dv = frame_move.y; }
-
-                        for (Int f = 0; f < b->numFaces; ++f) {
-                            if (b->faces[f].uv_scale.x != 0) b->faces[f].uv_offset.x -= du / b->faces[f].uv_scale.x;
-                            if (b->faces[f].uv_scale.y != 0) b->faces[f].uv_offset.y -= dv / b->faces[f].uv_scale.y;
-                        }
-                        Brush_CreateRenderData(b);
-                    }
                     Brush_UpdateMatrix(b);
                     if (b->physicsBody) Physics::SetWorldTransform(b->physicsBody, b->modelMatrix);
                 }

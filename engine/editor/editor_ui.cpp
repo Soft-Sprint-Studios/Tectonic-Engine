@@ -1344,8 +1344,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             if (UI_MenuItem("Sprinkle Tool...", nullptr, false, true)) {
                 g_EditorState.show_sprinkle_tool_window = true;
             }
-            if (UI_Checkbox("Texture Lock", &g_EditorState.texture_lock_enabled)) {
-            }
             if (UI_MenuItem("Bake Lighting...", nullptr, false, true)) {
                 g_EditorState.show_bake_lighting_popup = true;
                 g_EditorState.bake_resolution = 3;
