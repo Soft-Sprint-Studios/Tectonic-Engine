@@ -501,7 +501,7 @@ static Console console_instance;
             return;
         }
 
-        const Float DISTANCE = 10.0f;
+        constexpr Float DISTANCE = 10.0f;
         ImVec2 window_pos = ImVec2(DISTANCE, DISTANCE + 80);
         ImVec2 window_pos_pivot = ImVec2(0.0f, 0.0f);
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
