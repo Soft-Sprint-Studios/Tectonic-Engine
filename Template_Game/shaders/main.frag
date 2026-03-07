@@ -55,7 +55,6 @@ uniform sampler2D rmaMap;
 uniform sampler2D heightMap;
 uniform sampler2D detailDiffuseMap;
 uniform float detailScale;
-uniform bool u_useTesselation;
 uniform sampler2D diffuseMap2;
 uniform sampler2D normalMap2;
 uniform sampler2D rmaMap2;
@@ -133,7 +132,7 @@ void main()
     vec2 finalTexCoords3 = TexCoords3;
     vec2 finalTexCoords4 = TexCoords4;
 
-    if (u_isParallaxEnabled && !u_useTesselation) {
+    if (u_isParallaxEnabled) {
         vec3 viewDir_world = normalize(viewPos - FragPos_world);
         vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
         float dist = length(FragPos_world - viewPos);

@@ -58,7 +58,6 @@ constexpr int MAX_MATERIALS = 16384;
         Float detailScale;
         Float roughness;
         Float metalness;
-        Bool useTesselation;
         Bool alpha;
     } Material;
 

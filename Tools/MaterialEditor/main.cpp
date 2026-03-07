@@ -55,7 +55,6 @@ struct Material {
     Float detailScale = 1.0f;
     Float roughness = -1.0f;
     Float metalness = -1.0f;
-    Bool useTesselation = false;
     Bool alpha = false;
 };
 
@@ -76,7 +75,6 @@ Fl_Float_Input* g_height_scale_input;
 Fl_Float_Input* g_detail_scale_input;
 Fl_Float_Input* g_roughness_input;
 Fl_Float_Input* g_metalness_input;
-Fl_Check_Button* g_tess_check;
 Fl_Check_Button* g_alpha_check;
 
 void update_ui_for_selection();
@@ -161,7 +159,6 @@ void load_materials(const Char* path) {
             else if (key == "detailscale") current_material.detailScale = stof(value_str);
             else if (key == "roughness") current_material.roughness = stof(value_str);
             else if (key == "metalness") current_material.metalness = stof(value_str);
-            else if (key == "usetesselation") current_material.useTesselation = (stof(value_str) != 0.0f);
             else if (key == "alpha") current_material.alpha = (stof(value_str) != 0.0f);
         }
     }
@@ -192,7 +189,6 @@ void input_changed_cb(Fl_Widget* w, void* data) {
     else if (w == g_detail_scale_input) mat.detailScale = stof(g_detail_scale_input->value());
     else if (w == g_roughness_input) mat.roughness = stof(g_roughness_input->value());
     else if (w == g_metalness_input) mat.metalness = stof(g_metalness_input->value());
-    else if (w == g_tess_check) mat.useTesselation = g_tess_check->value();
     else if (w == g_alpha_check) mat.alpha = g_alpha_check->value();
 
     g_is_dirty = true;
@@ -220,7 +216,6 @@ void update_ui_for_selection() {
     g_detail_scale_input->deactivate();
     g_roughness_input->deactivate();
     g_metalness_input->deactivate();
-    g_tess_check->deactivate();
     g_alpha_check->deactivate();
 
     if (enabled) {
@@ -236,7 +231,6 @@ void update_ui_for_selection() {
         snprintf(buffer, sizeof(buffer), "%.3f", mat.detailScale); g_detail_scale_input->value(buffer);
         snprintf(buffer, sizeof(buffer), "%.3f", mat.roughness); g_roughness_input->value(buffer);
         snprintf(buffer, sizeof(buffer), "%.3f", mat.metalness); g_metalness_input->value(buffer);
-        g_tess_check->value(mat.useTesselation);
         g_alpha_check->value(mat.alpha);
 
         g_name_input->activate();
@@ -249,7 +243,6 @@ void update_ui_for_selection() {
         g_detail_scale_input->activate();
         g_roughness_input->activate();
         g_metalness_input->activate();
-        g_tess_check->activate();
         g_alpha_check->activate();
     }
     else {
@@ -263,7 +256,6 @@ void update_ui_for_selection() {
         g_detail_scale_input->value("");
         g_roughness_input->value("");
         g_metalness_input->value("");
-        g_tess_check->value(0);
         g_alpha_check->value(0);
     }
 }
@@ -321,7 +313,6 @@ void save_materials(const Char* path) {
         if (mat.detailScale != 1.0f) file << "\tdetailscale = " << mat.detailScale << "\n";
         if (mat.roughness != -1.0f) file << "\troughness = " << mat.roughness << "\n";
         if (mat.metalness != -1.0f) file << "\tmetalness = " << mat.metalness << "\n";
-        if (mat.useTesselation) file << "\tusetesselation = 1\n";
         if (mat.alpha) file << "\talpha = 1\n";
         file << "}\n\n";
     }
@@ -424,10 +415,6 @@ Int main(Int argc, Char** argv) {
     g_metalness_input = new Fl_Float_Input(x_box, cur_y, input_w + bw + 5, h, "Metalness Override");
     g_metalness_input->callback(input_changed_cb);
     cur_y += step + 10;
-
-    g_tess_check = new Fl_Check_Button(x_box, cur_y, 200, h, "Use Tesselation");
-    g_tess_check->callback(input_changed_cb);
-    cur_y += step;
 
     g_alpha_check = new Fl_Check_Button(x_box, cur_y, 200, h, "Alpha Test (Cutout)");
     g_alpha_check->callback(input_changed_cb);

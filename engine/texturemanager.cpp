@@ -534,7 +534,6 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
             memset(current_material, 0, sizeof(Material));
             current_material->roughness = -1.0f;
             current_material->metalness = -1.0f;
-            current_material->useTesselation = false;
             current_material->alpha = false;
             sscanf(trimmed_line, "\"%[^\"]\"", current_material->name);
         }
@@ -579,9 +578,6 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
                     }
                     else if (strcmp(key, "metalness") == 0) {
                         current_material->metalness = float_val;
-                    }
-                    else if (strcmp(key, "usetesselation") == 0) {
-                        current_material->useTesselation = (float_val != 0.0f);
                     }
                     else if (strcmp(key, "alpha") == 0) {
                         current_material->alpha = (float_val != 0.0f);

@@ -157,11 +157,9 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == renderer->mainShader) {
-                Bool isTesselationEnabled = material->useTesselation;
-                Shader_Set(shader, "u_useTesselation", (Int)isTesselationEnabled);
                 Shader_Set(shader, "u_useAlphaTest", (Int)material->alpha);
 
-                Bool parallaxEnabledForThisMesh = !isTesselationEnabled && Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
+                Bool parallaxEnabledForThisMesh = Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
                 Shader_Set(shader, "u_isParallaxEnabled", (Int)parallaxEnabledForThisMesh);
                 Shader_Set(shader, "heightScale", material->heightScale);
                 Shader_Set(shader, "u_roughness_override", material->roughness);
@@ -284,13 +282,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
                 current_face_in_batch_idx++;
             }
 
-            Bool isTesselationEnabledForBatch = (batch_material && batch_material->useTesselation) ||
-                (batch_material2 && batch_material2->useTesselation) ||
-                (batch_material3 && batch_material3->useTesselation) ||
-                (batch_material4 && batch_material4->useTesselation);
-
-            Shader_Set(shader, "u_useTesselation", (Int)isTesselationEnabledForBatch);
-
             Bool use_alpha_test_for_batch = (batch_material && batch_material->alpha) ||
                 (batch_material2 && batch_material2->alpha) ||
                 (batch_material3 && batch_material3->alpha) ||
@@ -299,7 +290,7 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
             Shader_Set(shader, "u_useAlphaTest", (Int)use_alpha_test_for_batch);
 
             Bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
-            Bool isParallaxEnabledForBatch = !isTesselationEnabledForBatch && parallaxEnabled && (
+            Bool isParallaxEnabledForBatch = parallaxEnabled && (
                 (batch_material && batch_material->heightScale > 0.0f) ||
                 (batch_material2 && batch_material2->heightScale > 0.0f) ||
                 (batch_material3 && batch_material3->heightScale > 0.0f) ||
