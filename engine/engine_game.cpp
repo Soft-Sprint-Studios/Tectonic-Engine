@@ -34,7 +34,9 @@
 #include "map.h"
 #include "map_misc.h"
 #include "physics_wrapper.h"
+#ifdef BUILD_EDITOR
 #include "editor.h"
+#endif
 #include <stdlib.h>
 #include <float.h>
 #include "sound_system.h"
@@ -64,7 +66,6 @@
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "water_manager.h"
-#include "lightmapper.h"
 #include "ipc_system.h"
 #include "game_data.h"
 #include "gl_shadows.h"
@@ -157,9 +158,11 @@ void process_input() {
                 g_quit_requested = true;
             }
         }
+#ifdef BUILD_EDITOR
         else if (g_current_mode == MODE_EDITOR) {
             Editor_ProcessEvent(&event, &g_scene, g_engine);
         }
+#endif
 
         if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
             if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
@@ -305,6 +308,7 @@ void process_input() {
                     }
                 }
             }
+#ifdef BUILD_EDITOR
 #ifndef GAME_RELEASE
             else if (event.key.keysym.sym == SDLK_F5) {
                 if (g_current_mode != MODE_MAINMENU) {
@@ -312,6 +316,7 @@ void process_input() {
                     Commands_Execute(1, args);
                 }
             }
+#endif
 #endif
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
@@ -346,12 +351,22 @@ void process_input() {
             }
         }
 
+#ifdef BUILD_EDITOR
         if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
+#else
+        if (g_current_mode == MODE_GAME) {
+#endif
             if (event.type == SDL_MOUSEMOTION) {
+#ifdef BUILD_EDITOR
                 Bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT));
+#endif
                 Bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
 
+#ifdef BUILD_EDITOR
                 if (can_look_in_game || can_look_in_editor) {
+#else
+                if (can_look_in_game) {
+#endif
                     Float sensitivity = Cvar_GetFloat("sensitivity");
                     g_engine->camera.yaw += event.motion.xrel * 0.005f * sensitivity;
                     g_engine->camera.pitch -= event.motion.yrel * 0.005f * sensitivity;
@@ -815,7 +830,12 @@ void update_state() {
         MainMenu_Update(g_engine->deltaTime);
         return;
     }
-    if (g_current_mode == MODE_EDITOR) { Editor_Update(g_engine, &g_scene); return; }
+#ifdef BUILD_EDITOR
+    if (g_current_mode == MODE_EDITOR) { 
+        Editor_Update(g_engine, &g_scene); 
+        return; 
+    }
+#endif
     if (Cvar_GetInt("r_particles")) {
         Float particle_cull_dist = Cvar_GetFloat("r_particles_cull_dist");
         Float particle_cull_dist_sq = particle_cull_dist * particle_cull_dist;

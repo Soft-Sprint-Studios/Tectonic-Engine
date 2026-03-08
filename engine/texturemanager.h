@@ -63,7 +63,9 @@ constexpr int MAX_MATERIALS = 16384;
 
     extern Material g_MissingMaterial;
     extern Material g_NodrawMaterial;
+#ifdef BUILD_EDITOR
     extern Bool g_is_editor_mode;
+#endif
     extern Bool g_is_thumbnail_mode;
     extern Bool g_is_unlit_mode;
 

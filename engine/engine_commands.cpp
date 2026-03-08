@@ -28,10 +28,11 @@
 #include "binds.h"
 #include "commands.h"
 #include "gl_console.h"
+#ifdef BUILD_EDITOR
 #include "editor.h"
+#endif
 #include "main_menu.h"
 #include "network.h"
-#include "lightmapper.h"
 #include "gl_render_misc.h"
 #include "gl_loading_screen.h"
 #include "io_system.h"
@@ -45,10 +46,13 @@ extern Scene g_scene;
 extern EngineMode g_current_mode;
 extern Int g_last_water_cvar_state;
 extern EngineModeTransition g_pending_mode_transition;
+#ifdef BUILD_EDITOR
 extern Bool g_is_editor_mode;
+#endif
 extern Bool g_screenshot_requested;
 extern Char g_screenshot_path[256];
 
+#ifdef BUILD_EDITOR
 void Cmd_Edit(Int argc, Char** argv) {
     if (g_current_mode == MODE_GAME) {
         g_last_water_cvar_state = Cvar_GetInt("r_water");
@@ -65,6 +69,7 @@ void Cmd_Edit(Int argc, Char** argv) {
         g_pending_mode_transition = TRANSITION_TO_GAME;
     }
 }
+#endif
 
 void Cmd_Quit(Int argc, Char** argv) {
     g_quit_requested = true;
@@ -174,13 +179,19 @@ void Cmd_Maps(Int argc, Char** argv) {
 }
 
 void Cmd_Disconnect(Int argc, Char** argv) {
+#ifdef BUILD_EDITOR
     if (g_current_mode == MODE_GAME || g_current_mode == MODE_EDITOR) {
+#else
+    if (g_current_mode == MODE_GAME) {
+#endif
         Console_Printf("Disconnecting from map...");
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
+#ifdef BUILD_EDITOR
         if (g_is_editor_mode) {
             Editor_Shutdown();
         }
+#endif
         Scene_Clear(&g_scene, g_engine);
         MainMenu_SetInGameMenuMode(false, false);
     }
@@ -323,7 +334,11 @@ void Cmd_Version(Int argc, Char** argv) {
 }
 
 void Cmd_SaveGame(Int argc, Char** argv) {
+#ifdef BUILD_EDITOR
     if (g_current_mode != MODE_GAME && g_current_mode != MODE_EDITOR && g_current_mode != MODE_INGAMEMENU) {
+#else
+    if (g_current_mode != MODE_GAME && g_current_mode != MODE_INGAMEMENU) {
+#endif
         Console_Printf_Error("Can only save when a map is loaded.");
         return;
     }
@@ -364,9 +379,11 @@ void Cmd_LoadGame(Int argc, Char** argv) {
     LoadingScreen_Render();
     SDL_GL_SwapWindow(g_engine->window);
 
+#ifdef BUILD_EDITOR
     if (g_is_editor_mode) {
         Editor_Shutdown();
     }
+#endif
     g_current_mode = MODE_GAME;
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -705,7 +722,9 @@ void init_commands() {
     Commands_Register("cmdlist", Cmd_Help, "Alias for the 'help' command.", CMD_NONE);
     Commands_Register("condump", Cmd_Condump, "Dump the contents of the console into a condump file", CMD_NONE);
     Commands_Register("skyname", Cmd_Skyname, "Changes the skybox cubemap. Usage: skyname <basename>", CMD_CHEAT);
+#ifdef BUILD_EDITOR
     Commands_Register("edit", Cmd_Edit, "Toggles editor mode.", CMD_NONE);
+#endif
     Commands_Register("screenshake", Cmd_ScreenShake, "Applies a screen shake effect. Usage: screenshake <amplitude> <frequency> <duration>", CMD_CHEAT);
     Commands_Register("quit", Cmd_Quit, "Exits the engine.", CMD_NONE);
     Commands_Register("restart", Cmd_Restart, "Restarts the engine.", CMD_NONE);

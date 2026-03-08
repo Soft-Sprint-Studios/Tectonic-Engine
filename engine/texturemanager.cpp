@@ -43,7 +43,9 @@ GLuint defaultRmaMapID;
 Material g_MissingMaterial;
 Material g_NodrawMaterial;
 
+#ifdef BUILD_EDITOR
 extern Bool g_is_editor_mode;
+#endif
 Bool g_is_thumbnail_mode = false;
 Bool g_is_unlit_mode = false;
 
@@ -342,6 +344,17 @@ GLuint loadCubemap(const Char* faces[6]) {
     else {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
+
+    if (GLEW_EXT_texture_filter_anisotropic) {
+        GLfloat max_aniso;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_aniso);
+        GLfloat desired_aniso = Cvar_GetFloat("r_anisotropy");
+        GLfloat final_aniso = (desired_aniso > max_aniso) ? max_aniso : desired_aniso;
+        if (final_aniso > 1.0f) {
+            glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, final_aniso);
+        }
+    }
+
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

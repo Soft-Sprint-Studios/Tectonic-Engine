@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(TectonicEngine LANGUAGES C CXX)
 
+option(BUILD_EDITOR "Build the engine editor" ON)
+
 if(MSVC)
     add_compile_options(/we4013)
 endif()
@@ -88,8 +90,6 @@ set(ENGINE_SOURCES
     engine/water_manager.cpp
     engine/model_loader.cpp
     engine/discord_wrapper.cpp
-    engine/editor/editor.cpp engine/editor/editor_windows.cpp engine/editor/editor_ui.cpp engine/editor/editor_math.cpp engine/editor/editor_selection.cpp engine/editor/editor_actions.cpp engine/editor/editor_geometry.cpp engine/editor/editor_geometry_helpers.cpp engine/editor/editor_render.cpp engine/editor/editor_undo.cpp engine/editor/editor_misc.cpp
-    engine/game_data.cpp
     engine/gl_misc.cpp engine/gl_renderer.cpp engine/io_system.cpp engine/engine.cpp engine/engine_game.cpp engine/main_menu.cpp
     engine/map.cpp engine/map_lighting.cpp engine/map_misc.cpp engine/gl_particle_system.cpp
     engine/gl_video_player.cpp engine/weapons.cpp
@@ -117,7 +117,6 @@ set(ENGINE_SOURCES
     engine/engine_commands.cpp
     engine/gl_skybox.cpp
     engine/animations.cpp
-    engine/lightmapper.cpp  engine/lightmapper_misc.cpp
     thirdparty/mikktspace/mikktspace.c
     thirdparty/xatlas/xatlas.cpp
 )
@@ -127,8 +126,6 @@ set(ENGINE_HEADERS
     engine/water_manager.h
     engine/model_loader.h
     engine/common/compat.h engine/common/datatypes.h engine/common/common.h engine/engine_api.h engine/discord_wrapper.h
-    engine/editor/editor_internal.h engine/editor/editor.h engine/editor/editor_windows.h engine/editor/editor_ui.h engine/editor/editor_math.h engine/editor/editor_selection.h engine/editor/editor_actions.h engine/editor/editor_geometry.h engine/editor/editor_geometry_helpers.h engine/editor/editor_render.h engine/editor/editor_undo.h engine/editor/editor_misc.h
-    engine/game_data.h
     engine/engine.h engine/engine_game.h
     engine/gl_misc.h engine/gl_renderer.h engine/io_system.h engine/main_menu.h engine/map.h engine/map_lighting.h engine/map_misc.h
     engine/gl_particle_system.h
@@ -156,8 +153,50 @@ set(ENGINE_HEADERS
     engine/engine_commands.h
     engine/gl_skybox.h
     engine/animations.h
-    engine/lightmapper.h engine/lightmapper_misc.h engine/lightmapper_internal.h
 )
+
+# Editor
+set(EDITOR_SOURCES
+    engine/editor/editor.cpp
+    engine/editor/editor_windows.cpp
+    engine/editor/editor_ui.cpp
+    engine/editor/editor_math.cpp
+    engine/editor/editor_selection.cpp
+    engine/editor/editor_actions.cpp
+    engine/editor/editor_geometry.cpp
+    engine/editor/editor_geometry_helpers.cpp
+    engine/editor/editor_render.cpp
+    engine/editor/editor_undo.cpp
+    engine/editor/editor_misc.cpp
+    engine/lightmapper.cpp  
+    engine/lightmapper_misc.cpp
+    engine/game_data.cpp
+)
+
+set(EDITOR_HEADERS
+    engine/editor/editor.h
+    engine/editor/editor_internal.h
+    engine/editor/editor_windows.h
+    engine/editor/editor_ui.h
+    engine/editor/editor_math.h
+    engine/editor/editor_selection.h
+    engine/editor/editor_actions.h
+    engine/editor/editor_geometry.h
+    engine/editor/editor_geometry_helpers.h
+    engine/editor/editor_render.h
+    engine/editor/editor_undo.h
+    engine/editor/editor_misc.h
+    engine/lightmapper.h 
+    engine/lightmapper_misc.h 
+    engine/lightmapper_internal.h
+    engine/game_data.h
+)
+
+if(BUILD_EDITOR)
+    message(STATUS "Including editor")
+    list(APPEND ENGINE_SOURCES ${EDITOR_SOURCES})
+    list(APPEND ENGINE_HEADERS ${EDITOR_HEADERS})
+endif()
 
 # math_lib library
 add_library(math_lib SHARED
@@ -358,6 +397,10 @@ target_compile_definitions(engine PRIVATE
     MINISPEC_IMPLEMENTATION
     $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
+
+if(BUILD_EDITOR)
+    target_compile_definitions(engine PRIVATE BUILD_EDITOR)
+endif()
 
 target_include_directories(engine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/engine"

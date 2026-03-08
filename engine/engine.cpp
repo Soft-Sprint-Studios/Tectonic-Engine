@@ -34,7 +34,9 @@
 #include "map.h"
 #include "map_misc.h"
 #include "physics_wrapper.h"
+#ifdef BUILD_EDITOR
 #include "editor.h"
+#endif
 #include <stdlib.h>
 #include <float.h>
 #include "sound_system.h"
@@ -64,7 +66,6 @@
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "water_manager.h"
-#include "lightmapper.h"
 #include "ipc_system.h"
 #include "game_data.h"
 #include "gl_shadows.h"
@@ -105,7 +106,9 @@ Renderer g_renderer;
 Scene g_scene;
 EngineMode g_current_mode = MODE_GAME;
 EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
+#ifdef BUILD_EDITOR
 Bool g_is_editor_mode;
+#endif
 Bool g_quit_requested = false;
 Bool g_restart_requested = false;
 Int g_last_water_cvar_state = -1;
@@ -166,7 +169,9 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Cvar_Load("cvars.txt");
     IO_Init();
     Binds_Init();
+#ifdef BUILD_EDITOR
     GameData_Init("tectonic.tgd");
+#endif
     Sentry_Init();
     SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, Cvar_GetInt("in_rawinput") ? "0" : "1");
     g_last_rawinput_cvar_state = Cvar_GetInt("in_rawinput");
@@ -282,8 +287,10 @@ void cleanup() {
     Commands_Shutdown();
     Cvar_Save("cvars.txt");
     Sound::DSP_Reverb_Thread_Shutdown();
+#ifdef BUILD_EDITOR
     Editor_Shutdown();
     GameData_Shutdown();
+#endif
     Weapons_Shutdown();
     Network_Shutdown();
     UI_Shutdown();
@@ -575,6 +582,7 @@ static void Engine_RunLoop(SDL_Window* window) {
         Uint32 frameStartTicks = SDL_GetTicks();
 
         if (g_pending_mode_transition != TRANSITION_NONE) {
+#ifdef BUILD_EDITOR
             if (g_pending_mode_transition == TRANSITION_TO_EDITOR) {
                 g_current_mode = MODE_EDITOR;
                 SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -585,6 +593,7 @@ static void Engine_RunLoop(SDL_Window* window) {
                 g_current_mode = MODE_GAME;
                 SDL_SetRelativeMouseMode(SDL_TRUE);
             }
+#endif
             g_pending_mode_transition = TRANSITION_NONE;
         }
 
@@ -620,11 +629,13 @@ static void Engine_RunLoop(SDL_Window* window) {
             MainMenu_Render();
             break;
 
+#ifdef BUILD_EDITOR
         case MODE_EDITOR:
             glClear(GL_COLOR_BUFFER_BIT);
             Editor_RenderAllViewports(g_engine, &g_renderer, &g_scene);
             Editor_RenderUI(g_engine, &g_scene, &g_renderer);
             break;
+#endif
 
         case MODE_GAME:
             Engine_RenderGame();

@@ -164,7 +164,7 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
     switch (g_EditorState.current_gizmo_operation) {
     case GIZMO_OP_TRANSLATE:
     case GIZMO_OP_SCALE: {
-        const Float pick_threshold = 0.1f;
+        constexpr Float pick_threshold = 0.1f;
         Float t_ray, t_seg;
         Vec3 x_p1 = { object_pos.x + 1.0f, object_pos.y, object_pos.z };
         Float dist_x = dist_RaySegment(ray_origin, ray_dir, object_pos, x_p1, &t_ray, &t_seg);
@@ -180,8 +180,8 @@ void Editor_UpdateGizmoHover(Scene* scene, Vec3 ray_origin, Vec3 ray_dir) {
         break;
     }
     case GIZMO_OP_ROTATE: {
-        const Float radius = 1.0f;
-        const Float pick_threshold = 0.1f;
+        constexpr Float radius = 1.0f;
+        constexpr Float pick_threshold = 0.1f;
         Vec3 intersect_point;
         Float closest_dist = FLT_MAX;
 
@@ -345,7 +345,7 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     glGenRenderbuffers(1, &g_EditorState.model_preview_rbo); glBindRenderbuffer(GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_EditorState.model_preview_width, g_EditorState.model_preview_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_EditorState.model_preview_rbo);
-    Int thumb_size = 128;
+    constexpr Int thumb_size = 128;
     glGenFramebuffers(1, &g_EditorState.model_thumb_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, g_EditorState.model_thumb_fbo);
     glGenTextures(1, &g_EditorState.model_thumb_texture);

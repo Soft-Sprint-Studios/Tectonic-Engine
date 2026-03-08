@@ -30,15 +30,19 @@
 
     typedef enum {
         MODE_GAME,
+#ifdef BUILD_EDITOR
         MODE_EDITOR,
+#endif
         MODE_MAINMENU,
         MODE_INGAMEMENU
     } EngineMode;
 
     typedef enum {
         TRANSITION_NONE,
+#ifdef BUILD_EDITOR
         TRANSITION_TO_EDITOR,
         TRANSITION_TO_GAME
+#endif
     } EngineModeTransition;
 
     extern Engine* g_engine;
@@ -52,7 +56,9 @@
     extern Bool g_quit_requested;
     extern Bool g_restart_requested;
     extern Char g_screenshot_path[256];
+#ifdef BUILD_EDITOR
     extern Bool g_is_editor_mode;
+#endif
     extern Uint g_flashlight_sound_buffer;
     extern Uint g_footstep_sound_buffer;
     extern Uint g_jump_sound_buffer;
