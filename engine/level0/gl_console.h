@@ -44,13 +44,14 @@
 
     LEVEL0_API void Console_Toggle();
     LEVEL0_API void Console_Draw();
-    LEVEL0_API void Console_Printf(const Char* fmt, ...);
-    LEVEL0_API void Console_Printf_Error(const Char* fmt, ...);
-    LEVEL0_API void Console_Printf_Warning(const Char* fmt, ...);
-    LEVEL0_API Bool Console_IsVisible();
-    LEVEL0_API void Console_ClearLog();
-    LEVEL0_API const ConsoleItem* Console_GetLogItems(Int* count);
-
+    namespace Console {
+        LEVEL0_API void Printf(const Char* fmt, ...);
+        LEVEL0_API void Printf_Error(const Char* fmt, ...);
+        LEVEL0_API void Printf_Warning(const Char* fmt, ...);
+        LEVEL0_API Bool IsVisible();
+        LEVEL0_API void ClearLog();
+        LEVEL0_API const ConsoleItem* GetLogItems(Int* count);
+    }
     LEVEL0_API void UI_RenderGameText(Int num_messages, const Char* texts[4], const Float positions_x[4], const Float positions_y[4], const Vec4 colors[4], const Float alphas[4], const Int states[4], const Float scales[4]);
     LEVEL0_API void UI_RenderGameHUD(Float fps, Float px, Float py, Float pz, Float health, Bool canUse, Float radiation, Float rads_per_second, const Float* fps_history, Int history_size);
     LEVEL0_API void UI_RenderCredits(Bool active, const Char* text, Float timer, Float duration);

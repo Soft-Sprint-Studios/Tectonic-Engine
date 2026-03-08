@@ -177,7 +177,7 @@ namespace Sound {
     static Uint internal_LoadMP3(const Char* path) {
         FILE* file = fopen(path, "rb");
         if (!file) {
-            Console_Printf_Error("Could not open MP3 file %s\n", path);
+            Console::Printf_Error("Could not open MP3 file %s\n", path);
             return 0;
         }
 
@@ -358,7 +358,7 @@ namespace Sound {
     Uint SoundSystem_LoadSound(const Char* path) {
         const Char* ext = strrchr(path, '.');
         if (!ext) {
-            Console_Printf_Error("Could not determine file type for %s\n", path);
+            Console::Printf_Error("Could not determine file type for %s\n", path);
             return 0;
         }
 
@@ -369,7 +369,7 @@ namespace Sound {
             return internal_LoadMP3(path);
         }
 
-        Console_Printf_Error("Unsupported sound format for %s\n", path);
+        Console::Printf_Error("Unsupported sound format for %s\n", path);
         return 0;
     }
 

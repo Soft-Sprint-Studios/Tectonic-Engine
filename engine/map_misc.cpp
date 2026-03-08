@@ -567,7 +567,7 @@ void CreateMapBackup(const Char* originalPath) {
                 _mkdir(backup_dir);
             }
             if (_mkdir(monthly_backup_path) != 0) {
-                Console_Printf_Error("Failed to create map backup directory: %s", monthly_backup_path);
+                Console::Printf_Error("Failed to create map backup directory: %s", monthly_backup_path);
                 return;
             }
         }
@@ -594,13 +594,13 @@ void CreateMapBackup(const Char* originalPath) {
 
     FILE* source = fopen(originalPath, "rb");
     if (!source) {
-        Console_Printf_Error("Failed to open source map for backup: %s", originalPath);
+        Console::Printf_Error("Failed to open source map for backup: %s", originalPath);
         return;
     }
 
     FILE* dest = fopen(backup_path, "wb");
     if (!dest) {
-        Console_Printf_Error("Failed to create backup map file: %s", backup_path);
+        Console::Printf_Error("Failed to create backup map file: %s", backup_path);
         fclose(source);
         return;
     }

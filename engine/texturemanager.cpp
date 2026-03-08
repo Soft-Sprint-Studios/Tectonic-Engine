@@ -126,13 +126,13 @@ GLuint TextureManager_LoadFromMemory(const void* data, Int data_size, Bool isSrg
 
     SDL_RWops* rw = SDL_RWFromConstMem(data, data_size);
     if (!rw) {
-        Console_Printf_Error("Failed to create RWops from memory.\n");
+        Console::Printf_Error("Failed to create RWops from memory.\n");
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load_RW(rw, 1);
     if (!surf) {
-        Console_Printf_Error("Failed to load texture from memory: %s\n", IMG_GetError());
+        Console::Printf_Error("Failed to load texture from memory: %s\n", IMG_GetError());
         return missingTextureID;
     }
 
@@ -179,7 +179,7 @@ GLuint TextureManager_LoadFromMemory(const void* data, Int data_size, Bool isSrg
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("Failed to convert surface from memory data.\n");
+        Console::Printf_Error("Failed to convert surface from memory data.\n");
         return missingTextureID;
     }
 
@@ -215,13 +215,13 @@ GLuint TextureManager_LoadFromMemory(const void* data, Int data_size, Bool isSrg
 GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
     Char* fullPath = prependTexturePath(path);
     if (!fullPath) {
-        Console_Printf_Error("Failed to load texture '%s'\n", path);
+        Console::Printf_Error("Failed to load texture '%s'\n", path);
         return missingTextureID;
     }
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Error("Failed to load texture '%s'\n", fullPath);
+        Console::Printf_Error("Failed to load texture '%s'\n", fullPath);
         delete[] fullPath;
         return missingTextureID;
     }
@@ -269,7 +269,7 @@ GLuint loadTexture(const Char* path, Bool isSrgb, TextureLoadContext context) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("Failed to convert surface for '%s'\n", fullPath);
+        Console::Printf_Error("Failed to convert surface for '%s'\n", fullPath);
         delete[] fullPath;
         return missingTextureID;
     }
@@ -334,7 +334,7 @@ GLuint loadCubemap(const Char* faces[6]) {
             }
         }
         else {
-            Console_Printf_Warning("Cubemap texture failed to load at path: %s\n", faces[i]);
+            Console::Printf_Warning("Cubemap texture failed to load at path: %s\n", faces[i]);
         }
     }
     if (Cvar_GetInt("r_mipmapping") == 1) {
@@ -370,7 +370,7 @@ GLuint TextureManager_LoadLUT(const Char* filename_only) {
 
     SDL_Surface* surf = IMG_Load(fullPath);
     if (!surf) {
-        Console_Printf_Error(" Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
+        Console::Printf_Error(" Failed to load LUT texture '%s'. Using missingTextureID.\n", fullPath);
         delete[] fullPath;
         return missingTextureID;
     }
@@ -379,7 +379,7 @@ GLuint TextureManager_LoadLUT(const Char* filename_only) {
     SDL_FreeSurface(surf);
 
     if (!fSurf) {
-        Console_Printf_Error("Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
+        Console::Printf_Error("Failed to convert LUT surface for '%s'. Using missingTextureID.\n", fullPath);
         delete[] fullPath;
         return missingTextureID;
     }
@@ -453,7 +453,7 @@ void TextureManager_Init() {
     g_NodrawMaterial.normalMap = defaultNormalMapID;
     g_NodrawMaterial.rmaMap = defaultRmaMapID;
 
-    Console_Printf("Texture Manager Initialized.\n");
+    Console::Printf("Texture Manager Initialized.\n");
 }
 
 void TextureManager_Shutdown() {
@@ -469,7 +469,7 @@ void TextureManager_Shutdown() {
     glDeleteTextures(1, &defaultNormalMapID);
     glDeleteTextures(1, &defaultRmaMapID);
 
-    Console_Printf("Texture Manager Shutdown.\n");
+    Console::Printf("Texture Manager Shutdown.\n");
 }
 
 Material* TextureManager_FindMaterial(const Char* name) {
@@ -524,7 +524,7 @@ Int TextureManager_GetMaterialCount() {
 Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf_Error("Could not open material file '%s'\n", filepath);
+        Console::Printf_Error("Could not open material file '%s'\n", filepath);
         return false;
     }
 
@@ -540,7 +540,7 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
 
         if (trimmed_line[0] == '"') {
             if (num_materials >= MAX_MATERIALS) {
-                Console_Printf_Error("Max materials reached. Cannot parse more.\n");
+                Console::Printf_Error("Max materials reached. Cannot parse more.\n");
                 break;
             }
             current_material = &materials[num_materials];
@@ -596,11 +596,11 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
                         current_material->alpha = (float_val != 0.0f);
                     }
                     else {
-                        Console_Printf_Error("Unknown Float key '%s' in material '%s'\n", key, current_material->name);
+                        Console::Printf_Error("Unknown Float key '%s' in material '%s'\n", key, current_material->name);
                     }
                 }
                 else {
-                    Console_Printf_Error("Failed to parse line in material '%s': %s\n", current_material->name, trimmed_line);
+                    Console::Printf_Error("Failed to parse line in material '%s': %s\n", current_material->name, trimmed_line);
                 }
             }
         }

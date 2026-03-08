@@ -46,7 +46,7 @@ public:
     static void Load(const Char* filename) {
         FILE* file = fopen(filename, "r");
         if (!file) {
-            Console_Printf("No %s found. Using default cvar values.", filename);
+            Console::Printf("No %s found. Using default cvar values.", filename);
             return;
         }
 
@@ -67,7 +67,7 @@ public:
     static void Save(const Char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
-            Console_Printf_Error("Could not save cvars to %s", filename);
+            Console::Printf_Error("Could not save cvars to %s", filename);
             return;
         }
 
@@ -90,7 +90,7 @@ public:
         }
 
         if (num_cvars >= MAX_CVARS) {
-            Console_Printf_Error("Max CVars reached!\n");
+            Console::Printf_Error("Max CVars reached!\n");
             return nullptr;
         }
 
@@ -118,16 +118,16 @@ public:
         Cvar* c = Find(name);
         if (c) {
             if ((c->flags & CVAR_CHEAT) && GetInt("g_cheats") == 0) {
-                Console_Printf_Error("Cvar '%s' is cheat protected.", name);
+                Console::Printf_Error("Cvar '%s' is cheat protected.", name);
                 return;
             }
             strncpy(c->stringValue, value, MAX_COMMAND_LENGTH - 1);
             c->stringValue[MAX_COMMAND_LENGTH - 1] = '\0';
             UpdateValues(c);
-            Console_Printf("Cvar '%s' set to '%s'", name, value);
+            Console::Printf("Cvar '%s' set to '%s'", name, value);
         }
         else {
-            Console_Printf_Error("Cvar '%s' not found.", name);
+            Console::Printf_Error("Cvar '%s' not found.", name);
         }
     }
 
@@ -139,7 +139,7 @@ public:
             UpdateValues(c);
         }
         else {
-            Console_Printf("Cvar '%s' not found.\n", name);
+            Console::Printf("Cvar '%s' not found.\n", name);
         }
     }
 

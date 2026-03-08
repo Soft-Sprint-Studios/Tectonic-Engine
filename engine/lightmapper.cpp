@@ -60,12 +60,12 @@ namespace
 
     void embree_error_function(void* userPtr, RTCError error, const Char* str)
     {
-        Console_Printf_Error("[Embree] Error %d: %s", error, str);
+        Console::Printf_Error("[Embree] Error %d: %s", error, str);
     }
 
     void oidn_error_function(void* userPtr, OIDNError error, const Char* message)
     {
-        Console_Printf_Error("[OIDN] Error %d: %s", error, message);
+        Console::Printf_Error("[OIDN] Error %d: %s", error, message);
     }
 
     struct BrushFaceJobData
@@ -201,7 +201,7 @@ namespace
         m_rtc_device = rtcNewDevice(nullptr);
         if (!m_rtc_device)
         {
-            Console_Printf_Error("Failed to create Embree device.");
+            Console::Printf_Error("Failed to create Embree device.");
         }
         rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
         load_emissive_materials();
@@ -209,7 +209,7 @@ namespace
         m_oidn_device = oidnNewDevice(OIDN_DEVICE_TYPE_CPU);
         if (!m_oidn_device)
         {
-            Console_Printf_Error("Failed to create OIDN device.");
+            Console::Printf_Error("Failed to create OIDN device.");
         }
         oidnSetDeviceErrorFunction(m_oidn_device, oidn_error_function, nullptr);
         oidnCommitDevice(m_oidn_device);
@@ -319,10 +319,10 @@ namespace
 
     void Lightmapper::load_emissive_materials()
     {
-        Console_Printf("[Lightmapper] Loading lights.rad...");
+        Console::Printf("[Lightmapper] Loading lights.rad...");
         ifstream file("lights.rad");
         if (!file.is_open()) {
-            Console_Printf("[Lightmapper] lights.rad not found. No emissive surfaces will be used.");
+            Console::Printf("[Lightmapper] lights.rad not found. No emissive surfaces will be used.");
             return;
         }
 
@@ -340,25 +340,25 @@ namespace
             Float r, g, b, intensity;
 
             if (!(iss >> material_name >> r >> g >> b >> intensity)) {
-                Console_Printf_Warning("[Lightmapper] Malformed line %d in lights.rad", line_num);
+                Console::Printf_Warning("[Lightmapper] Malformed line %d in lights.rad", line_num);
                 continue;
             }
 
             Material* mat = TextureManager_FindMaterial(material_name.c_str());
             if (mat == &g_MissingMaterial || mat == &g_NodrawMaterial) {
-                Console_Printf_Warning("[Lightmapper] Material '%s' from lights.rad not found or is nodraw.", material_name.c_str());
+                Console::Printf_Warning("[Lightmapper] Material '%s' from lights.rad not found or is nodraw.", material_name.c_str());
                 continue;
             }
 
             m_emissive_materials[mat] = { {r / 255.0f, g / 255.0f, b / 255.0f}, intensity };
-            Console_Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
+            Console::Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
         }
-        Console_Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
+        Console::Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
     }
 
     void Lightmapper::generate_ambient_probes()
     {
-        Console_Printf("[Lightmapper] Generating ambient probes...");
+        Console::Printf("[Lightmapper] Generating ambient probes...");
 
         vector<Vec3> probe_positions;
         const Float probe_spacing = 1.0f;
@@ -422,11 +422,11 @@ namespace
         }
 
         if (probe_positions.empty()) {
-            Console_Printf("[Lightmapper] No suitable locations for ambient probes found.");
+            Console::Printf("[Lightmapper] No suitable locations for ambient probes found.");
             return;
         }
 
-        Console_Printf("[Lightmapper] Placing %zu validated ambient probes.", probe_positions.size());
+        Console::Printf("[Lightmapper] Placing %zu validated ambient probes.", probe_positions.size());
 
         m_scene->num_ambient_probes = probe_positions.size();
         m_scene->ambient_probes = new AmbientProbe[m_scene->num_ambient_probes];
@@ -458,10 +458,10 @@ namespace
             probe_file.write(header, 4);
             probe_file.write(reinterpret_cast<const Char*>(&m_scene->num_ambient_probes), sizeof(Int));
             probe_file.write(reinterpret_cast<const Char*>(m_scene->ambient_probes), sizeof(AmbientProbe) * m_scene->num_ambient_probes);
-            Console_Printf("[Lightmapper] Saved %d ambient probes.", m_scene->num_ambient_probes);
+            Console::Printf("[Lightmapper] Saved %d ambient probes.", m_scene->num_ambient_probes);
         }
         else {
-            Console_Printf_Error("[Lightmapper] Failed to save ambient probes file.");
+            Console::Printf_Error("[Lightmapper] Failed to save ambient probes file.");
         }
         delete[] m_scene->ambient_probes;
         m_scene->ambient_probes = nullptr;
@@ -712,7 +712,7 @@ namespace
 
             const Char* errorMessage;
             if (oidnGetDeviceError(m_oidn_device, &errorMessage) != OIDN_ERROR_NONE)
-                Console_Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
+                Console::Printf_Error("[OIDN] Filter execution error: %s", errorMessage);
 
             oidnReleaseFilter(filter);
         }
@@ -1036,7 +1036,7 @@ namespace
 
         LoadedModel* clean_model = Model_Load(scene_obj.modelPath);
         if (!clean_model) {
-            Console_Printf_Error("[Lightmapper] Failed to load clean model for baking: %s", scene_obj.modelPath);
+            Console::Printf_Error("[Lightmapper] Failed to load clean model for baking: %s", scene_obj.modelPath);
             return;
         }
 
@@ -1064,7 +1064,7 @@ namespace
 
             xatlas::AddMeshError err = xatlas::AddMesh(atlas, meshDecl, 1);
             if (err != xatlas::AddMeshError::Success) {
-                Console_Printf_Error("[Lightmapper] xatlas error adding mesh %d: %s", m, xatlas::StringForEnum(err));
+                Console::Printf_Error("[Lightmapper] xatlas error adding mesh %d: %s", m, xatlas::StringForEnum(err));
             }
         }
 
@@ -1303,7 +1303,7 @@ namespace
 
         if (total_brush_faces + total_model_vertices == 0)
         {
-            Console_Printf("[Lightmapper] No bakeable geometry found.");
+            Console::Printf("[Lightmapper] No bakeable geometry found.");
             return;
         }
 
@@ -1378,12 +1378,12 @@ namespace
                 }
             }
         }
-        Console_Printf("[Lightmapper] Baking %zu faces, %zu vertices, and %d decals.", total_brush_faces, total_model_vertices, m_scene->numDecals);
+        Console::Printf("[Lightmapper] Baking %zu faces, %zu vertices, and %d decals.", total_brush_faces, total_model_vertices, m_scene->numDecals);
     }
 
     void Lightmapper::precalculate_material_reflectivity()
     {
-        Console_Printf("[Lightmapper] Pre-calculating surface reflectivity...");
+        Console::Printf("[Lightmapper] Pre-calculating surface reflectivity...");
 
         set<const Material*> unique_materials;
         for (Int i = 0; i < m_scene->numBrushes; ++i) {
@@ -1414,7 +1414,7 @@ namespace
             }
         }
 
-        Console_Printf("[Lightmapper] Found %zu unique materials to analyze.", unique_materials.size());
+        Console::Printf("[Lightmapper] Found %zu unique materials to analyze.", unique_materials.size());
 
         for (const Material* mat : unique_materials) {
             if (!mat || mat->diffusePath[0] == '\0') {
@@ -1496,7 +1496,7 @@ namespace
                 m_face_reflectivity[&face] = blended_refl;
             }
         }
-        Console_Printf("[Lightmapper] Reflectivity calculation complete.");
+        Console::Printf("[Lightmapper] Reflectivity calculation complete.");
     }
 
     Vec3 Lightmapper::calculate_direct_sun_light_only(const Vec3& pos, const Vec3& normal) const
@@ -1851,7 +1851,7 @@ namespace
 
     void Lightmapper::generate()
     {
-        Console_Printf("[Lightmapper] Starting lightmap generation...");
+        Console::Printf("[Lightmapper] Starting lightmap generation...");
         auto start_time = chrono::high_resolution_clock::now();
         m_scene->lightmapResolution = m_resolution;
 
@@ -1861,7 +1861,7 @@ namespace
 
         Uint num_threads = thread::hardware_concurrency();
         vector<thread> threads;
-        Console_Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
+        Console::Printf("[Lightmapper] Using %u threads for final gather.", num_threads);
 
         for (Uint i = 0; i < num_threads; ++i)
         {
@@ -1929,7 +1929,7 @@ namespace
             }
             else
             {
-                Console_Printf_Error("[Lightmapper] Could not write to '%s'", vlm_path.string().c_str());
+                Console::Printf_Error("[Lightmapper] Could not write to '%s'", vlm_path.string().c_str());
             }
 
             fs::path vld_path = model_dir / "vertex_directions.vld";
@@ -1944,13 +1944,13 @@ namespace
             }
             else
             {
-                Console_Printf_Error("[Lightmapper] Could not write to '%s'", vld_path.string().c_str());
+                Console::Printf_Error("[Lightmapper] Could not write to '%s'", vld_path.string().c_str());
             }
         }
 
         auto end_time = chrono::high_resolution_clock::now();
         chrono::duration<Float> duration = end_time - start_time;
-        Console_Printf("[Lightmapper] Finished in %.2f seconds.", duration.count());
+        Console::Printf("[Lightmapper] Finished in %.2f seconds.", duration.count());
     }
 }
 
@@ -1963,11 +1963,11 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int boun
     }
     catch (const exception& e)
     {
-        Console_Printf_Error("[Lightmapper] C++ Exception: %s", e.what());
+        Console::Printf_Error("[Lightmapper] C++ Exception: %s", e.what());
     }
     catch (...)
     {
-        Console_Printf_Error("[Lightmapper] Unknown C++ exception occurred.");
+        Console::Printf_Error("[Lightmapper] Unknown C++ exception occurred.");
     }
 }
 #else
@@ -1976,6 +1976,6 @@ void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int boun
 
 void Lightmapper_Generate(Scene* scene, Engine* engine, Int resolution, Int bounces)
 {
-    Console_Printf_Error("[Lightmapper] Not available on x86 builds.");
+    Console::Printf_Error("[Lightmapper] Not available on x86 builds.");
 }
 #endif

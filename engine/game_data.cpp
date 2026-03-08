@@ -56,7 +56,7 @@ static TGD_PropertyType string_to_prop_type(const Char* type_str) {
 void GameData_Init(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf_Error("Could not open TGD file: %s", filepath);
+        Console::Printf_Error("Could not open TGD file: %s", filepath);
         return;
     }
 

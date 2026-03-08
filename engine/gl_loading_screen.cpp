@@ -64,7 +64,7 @@ void LoadingScreen_Init(Int screen_width, Int screen_height) {
 
     g_font = TTF_OpenFont("fonts/Roboto-Regular.ttf", 32);
     if (!g_font) {
-        Console_Printf_Error("Failed to load font for loading screen.");
+        Console::Printf_Error("Failed to load font for loading screen.");
         return;
     }
 
@@ -122,7 +122,7 @@ void LoadingScreen_Show(const Char* map_name) {
             SDL_FreeSurface(fSurf);
         }
     } else {
-        Console_Printf_Warning("No loading screen background found for '%s'. Expected at '%s'", map_name, image_path);
+        Console::Printf_Warning("No loading screen background found for '%s'. Expected at '%s'", map_name, image_path);
     }
 }
 

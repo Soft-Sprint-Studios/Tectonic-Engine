@@ -76,7 +76,7 @@ void Editor_ProcessEvent(SDL_Event* event, Scene* scene, Engine* engine) {
         if (g_EditorState.is_clipping) {
             if (primary && primary->type == ENTITY_BRUSH && g_EditorState.clip_point_count >= 2) {
                 if (scene->numBrushes >= Common::MAX_BRUSHES - 1) {
-                    Console_Printf_Error("Cannot clip brush, MAX_BRUSHES limit reached.");
+                    Console::Printf_Error("Cannot clip brush, MAX_BRUSHES limit reached.");
                     g_EditorState.is_clipping = false;
                     return;
                 }

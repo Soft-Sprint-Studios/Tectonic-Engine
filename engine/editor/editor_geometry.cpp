@@ -37,7 +37,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
 
     BrushFace* old_face = &b->faces[face_index];
     if (old_face->numVertexIndices != 4) {
-        Console_Printf_Error("Can only subdivide 4-sided faces for now.");
+        Console::Printf_Error("Can only subdivide 4-sided faces for now.");
         return;
     }
 
@@ -150,7 +150,7 @@ void Editor_SubdivideBrushFace(Scene* scene, Engine* engine, Int brush_index, In
     }
 
     Undo_EndEntityModification(scene, ENTITY_BRUSH, brush_index, "Subdivide Face");
-    Console_Printf("Subdivided face %d of brush %d.", face_index, brush_index);
+    Console::Printf("Subdivided face %d of brush %d.", face_index, brush_index);
 }
 
 void Editor_CreateBrushFromPreview(Scene* scene, Engine* engine, Brush* preview) {

@@ -387,7 +387,7 @@ void Editor_RenderModelBrowser(Scene* scene, Engine* engine, Renderer* renderer)
                             g_EditorState.show_add_model_popup = false;
                         }
                         else {
-                            Console_Printf_Error("Cannot add model, MAX_MODELS limit reached.");
+                            Console::Printf_Error("Cannot add model, MAX_MODELS limit reached.");
                         }
                     }
                 }
@@ -460,7 +460,7 @@ void Editor_RenderSoundBrowser(Scene* scene) {
                     g_EditorState.show_sound_browser_popup = false;
                 }
                 else {
-                    Console_Printf_Error("Max sound entities reached.");
+                    Console::Printf_Error("Max sound entities reached.");
                 }
             }
             UI_SameLine();
@@ -1372,7 +1372,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
             Scene_LoadAmbientProbes(scene);
 
             scene->static_shadows_generated = true;
-            Console_Printf("Lightmap reload complete.");
+            Console::Printf("Lightmap reload complete.");
 
             g_EditorState.show_bake_lighting_popup = false;
         }
@@ -2016,7 +2016,7 @@ void Editor_RenderParticleBrowser(Scene* scene) {
                         ParticleEmitter_Init(emitter, ps, emitter->pos);
                     }
                     else {
-                        Console_Printf_Error("Failed to load particle system: %s", emitter->parFile);
+                        Console::Printf_Error("Failed to load particle system: %s", emitter->parFile);
                         emitter->system = nullptr;
                     }
                     scene->numParticleEmitters++;

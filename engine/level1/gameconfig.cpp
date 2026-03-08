@@ -47,7 +47,7 @@ public:
 
         FILE* file = fopen("gameconf.txt", "r");
         if (!file) {
-            Console_Printf("gameconf.txt not found.\n");
+            Console::Printf("gameconf.txt not found.\n");
             return;
         }
 
@@ -134,7 +134,7 @@ public:
 #endif
             }
             else {
-                Console_Printf_Warning("Unknown command line argument: %s ignoring\n", argv[i]);
+                Console::Printf_Warning("Unknown command line argument: %s ignoring\n", argv[i]);
             }
         }
     }

@@ -78,7 +78,7 @@ void Brush_LoadVertexLighting(Brush* b, Int index, const Char* mapPath) {
             if (b->bakedVertexColors) fread(b->bakedVertexColors, sizeof(Vec4), vertex_count, file);
         }
         else {
-            Console_Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
+            Console::Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
         }
         fclose(file);
     }
@@ -120,7 +120,7 @@ void Brush_LoadVertexDirectionalLighting(Brush* b, Int index, const Char* mapPat
             if (b->bakedVertexDirections) fread(b->bakedVertexDirections, sizeof(Vec4), vertex_count, file);
         }
         else {
-            Console_Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
+            Console::Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
         }
         fclose(file);
     }
@@ -168,7 +168,7 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, Int index, const Char* map
             }
         }
         else {
-            Console_Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
+            Console::Printf_Warning("VLM file '%s' is invalid or vertex count mismatch.", vlm_path);
         }
         fclose(file);
     }
@@ -216,7 +216,7 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, cons
             }
         }
         else {
-            Console_Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
+            Console::Printf_Warning("VLD file '%s' is invalid or vertex count mismatch.", vld_path);
         }
         fclose(file);
     }
@@ -388,7 +388,7 @@ void Scene_LoadAmbientProbes(Scene* scene) {
             }
         }
         else {
-            Console_Printf_Error("Invalid ambient probe file header: %s", probe_path);
+            Console::Printf_Error("Invalid ambient probe file header: %s", probe_path);
         }
         fclose(probe_file);
     }

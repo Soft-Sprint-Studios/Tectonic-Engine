@@ -105,7 +105,7 @@ void process_input() {
         }
         UI_ProcessEvent(&event);
         SDL_SetCursor(g_engine->cursor);
-        if (event.type == SDL_MOUSEWHEEL && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+        if (event.type == SDL_MOUSEWHEEL && g_current_mode == MODE_GAME && !Console::IsVisible()) {
             if (event.wheel.y > 0) {
                 Weapons_SwitchPrev();
             }
@@ -114,7 +114,7 @@ void process_input() {
             }
         }
 
-        if (event.type == SDL_MOUSEBUTTONDOWN && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+        if (event.type == SDL_MOUSEBUTTONDOWN && g_current_mode == MODE_GAME && !Console::IsVisible()) {
             if (event.button.button == SDL_BUTTON_LEFT) {
                 if (g_engine->heldObject) {
                     Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
@@ -147,7 +147,7 @@ void process_input() {
                     Commands_Execute(2, argv);
                 }
                 else {
-                    Console_Printf_Error("No startmap defined in gameconf.txt! Cannot start game.");
+                    Console::Printf_Error("No startmap defined in gameconf.txt! Cannot start game.");
                 }
             }
             else if (action == MAINMENU_ACTION_CONTINUE_GAME) {
@@ -165,7 +165,7 @@ void process_input() {
 #endif
 
         if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-            if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+            if (event.key.keysym.sym == SDLK_e && g_current_mode == MODE_GAME && !Console::IsVisible()) {
                 if (g_engine->note_active) {
                     g_engine->note_active = false;
                     g_player_input_disabled = false;
@@ -304,7 +304,7 @@ void process_input() {
                 if (Cvar_GetInt("con_enable")) {
                     Console_Toggle();
                     if (g_current_mode == MODE_GAME || g_current_mode == MODE_INGAMEMENU) {
-                        SDL_SetRelativeMouseMode(Console_IsVisible() ? SDL_FALSE : SDL_TRUE);
+                        SDL_SetRelativeMouseMode(Console::IsVisible() ? SDL_FALSE : SDL_TRUE);
                     }
                 }
             }
@@ -318,12 +318,12 @@ void process_input() {
             }
 #endif
 #endif
-            else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console_IsVisible()) {
+            else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console::IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
                 Sound::SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
             else {
-                if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
+                if (g_current_mode == MODE_GAME && !Console::IsVisible()) {
                     if (event.key.keysym.sym == SDLK_1) {
                         Weapons_Switch(WEAPON_NONE);
                         continue;
@@ -360,7 +360,7 @@ void process_input() {
 #ifdef BUILD_EDITOR
                 Bool can_look_in_editor = (g_current_mode == MODE_EDITOR) || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_RIGHT));
 #endif
-                Bool can_look_in_game = (g_current_mode == MODE_GAME && !Console_IsVisible() && !g_player_input_disabled);
+                Bool can_look_in_game = (g_current_mode == MODE_GAME && !Console::IsVisible() && !g_player_input_disabled);
 
 #ifdef BUILD_EDITOR
                 if (can_look_in_game || can_look_in_editor) {
@@ -377,7 +377,7 @@ void process_input() {
         }
     }
 
-    if (g_current_mode == MODE_GAME && !Console_IsVisible()) {
+    if (g_current_mode == MODE_GAME && !Console::IsVisible()) {
         const Uint8* state = SDL_GetKeyboardState(nullptr);
 
         Bool noclip = Cvar_GetInt("noclip");
@@ -526,7 +526,7 @@ void update_state() {
     Int current_rawinput_cvar = Cvar_GetInt("in_rawinput");
     if (current_rawinput_cvar != g_last_rawinput_cvar_state) {
         if (!SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, current_rawinput_cvar ? "0" : "1")) {
-            Console_Printf_Warning("Failed to set raw mouse input hint.");
+            Console::Printf_Warning("Failed to set raw mouse input hint.");
         }
         g_last_rawinput_cvar_state = current_rawinput_cvar;
     }
@@ -679,7 +679,7 @@ void update_state() {
         }
     }
     g_engine->canUse = false;
-    if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console_IsVisible()) {
+    if (g_current_mode == MODE_GAME && !g_player_input_disabled && !Console::IsVisible()) {
         if (g_engine->heldObject == nullptr) {
             Vec3 forward = { cosf(g_engine->camera.pitch) * sinf(g_engine->camera.yaw), sinf(g_engine->camera.pitch), -cosf(g_engine->camera.pitch) * cosf(g_engine->camera.yaw) };
             Math::vec3_normalize(&forward);

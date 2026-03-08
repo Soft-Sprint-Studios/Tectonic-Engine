@@ -82,7 +82,7 @@ static Int download_thread_func_win32(void* data) {
     hints.ai_protocol = IPPROTO_TCP;
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
+        Console::Printf_Error("[Network] getaddrinfo failed for %s", host);
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -102,7 +102,7 @@ static Int download_thread_func_win32(void* data) {
     freeaddrinfo(result);
 
     if (sock == INVALID_SOCKET) {
-        Console_Printf_Error("[Network] Unable to connect to server %s", host);
+        Console::Printf_Error("[Network] Unable to connect to server %s", host);
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -113,7 +113,7 @@ static Int download_thread_func_win32(void* data) {
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
     if (send(sock, request, (Int)strlen(request), 0) == SOCKET_ERROR) {
-        Console_Printf_Error("[Network] send failed.");
+        Console::Printf_Error("[Network] send failed.");
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -122,7 +122,7 @@ static Int download_thread_func_win32(void* data) {
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
-        Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
+        Console::Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -146,7 +146,7 @@ static Int download_thread_func_win32(void* data) {
         }
     }
     fclose(fp);
-    Console_Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
+    Console::Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
 
     return 0;
 }
@@ -162,7 +162,7 @@ static Int ping_thread_func_win32(void* data) {
     hints.ai_protocol = IPPROTO_TCP;
 
     if (getaddrinfo(args->hostname, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->hostname;
         delete args;
@@ -170,7 +170,7 @@ static Int ping_thread_func_win32(void* data) {
 
     sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sock == INVALID_SOCKET) {
-        Console_Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
         freeaddrinfo(result);
         if (sock != INVALID_SOCKET) closesocket(sock);
         delete[] args->hostname;
@@ -182,12 +182,12 @@ static Int ping_thread_func_win32(void* data) {
     QueryPerformanceCounter(&start);
 
     if (connect(sock, result->ai_addr, (Int)result->ai_addrlen) == SOCKET_ERROR) {
-        Console_Printf_Error("[Network] Ping failed for %s: Connection timed out or refused", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Connection timed out or refused", args->hostname);
     }
     else {
         QueryPerformanceCounter(&end);
         Double time_ms = (Double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
-        Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
+        Console::Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
     freeaddrinfo(result);
@@ -208,7 +208,7 @@ static Int download_thread_func_posix(void* data) {
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo(host, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] getaddrinfo failed for %s", host);
+        Console::Printf_Error("[Network] getaddrinfo failed for %s", host);
         if (sock != -1) close(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -228,7 +228,7 @@ static Int download_thread_func_posix(void* data) {
     freeaddrinfo(result);
 
     if (sock == -1) {
-        Console_Printf_Error("[Network] Unable to connect to server %s", host);
+        Console::Printf_Error("[Network] Unable to connect to server %s", host);
         if (sock != -1) close(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -239,7 +239,7 @@ static Int download_thread_func_posix(void* data) {
     sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
 
     if (send(sock, request, strlen(request), 0) < 0) {
-        Console_Printf_Error("[Network] send failed.");
+        Console::Printf_Error("[Network] send failed.");
         if (sock != -1) close(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -248,7 +248,7 @@ static Int download_thread_func_posix(void* data) {
 
     FILE* fp = fopen(args->filepath, "wb");
     if (!fp) {
-        Console_Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
+        Console::Printf_Error("[Network] Failed to open file for writing: %s", args->filepath);
         if (sock != -1) close(sock);
         delete[] args->url;
         delete[] args->filepath;
@@ -272,7 +272,7 @@ static Int download_thread_func_posix(void* data) {
         }
     }
     fclose(fp);
-    Console_Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
+    Console::Printf("[Network] Download finished: %s -> %s", args->url, args->filepath);
 
     return 0;
 }
@@ -287,7 +287,7 @@ static Int ping_thread_func_posix(void* data) {
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo(args->hostname, "80", &hints, &result) != 0) {
-        Console_Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Cannot resolve host", args->hostname);
         if (sock != -1) close(sock);
         delete[] args->hostname;
         delete args;
@@ -295,7 +295,7 @@ static Int ping_thread_func_posix(void* data) {
 
     sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sock < 0) {
-        Console_Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Cannot create socket", args->hostname);
         freeaddrinfo(result);
         if (sock != -1) close(sock);
         delete[] args->hostname;
@@ -306,12 +306,12 @@ static Int ping_thread_func_posix(void* data) {
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     if (connect(sock, result->ai_addr, result->ai_addrlen) == -1) {
-        Console_Printf_Error("[Network] Ping failed for %s: Connection timed out or refused", args->hostname);
+        Console::Printf_Error("[Network] Ping failed for %s: Connection timed out or refused", args->hostname);
     }
     else {
         clock_gettime(CLOCK_MONOTONIC, &end);
         Double time_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0;
-        Console_Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
+        Console::Printf("[Network] Ping reply from %s: time=%.0f ms", args->hostname, time_ms);
     }
 
     freeaddrinfo(result);
@@ -324,17 +324,17 @@ void Network_Init(void) {
 #ifdef PLATFORM_WINDOWS
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        Console_Printf_Error("[Network] WSAStartup failed.\n");
+        Console::Printf_Error("[Network] WSAStartup failed.\n");
     }
 #endif
-    Console_Printf("Network System Initialized.\n");
+    Console::Printf("Network System Initialized.\n");
 }
 
 void Network_Shutdown(void) {
 #ifdef PLATFORM_WINDOWS
     WSACleanup();
 #endif
-    Console_Printf("Network System Shutdown.\n");
+    Console::Printf("Network System Shutdown.\n");
 }
 
 Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
@@ -360,7 +360,7 @@ Bool Network_DownloadFile(const Char* url, const Char* output_filepath) {
 #endif
 
     if (!thread) {
-        Console_Printf_Error("[Network] Could not create download thread.");
+        Console::Printf_Error("[Network] Could not create download thread.");
         delete[] args->url;
         delete[] args->filepath;
         delete args;
@@ -388,7 +388,7 @@ Bool Network_Ping(const Char* hostname) {
 #endif
 
     if (!thread) {
-        Console_Printf_Error("[Network] Could not create ping thread.");
+        Console::Printf_Error("[Network] Could not create ping thread.");
         delete[] args->hostname;
         delete args;
         return false;

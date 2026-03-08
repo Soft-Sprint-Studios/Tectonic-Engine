@@ -43,7 +43,7 @@ static Bool show_console = false;
 static command_callback_t command_handler = nullptr;
 static FILE* g_log_file = nullptr;
 
-struct Console {
+struct Console_t {
     Char                  InputBuf[256];
     vector<ConsoleItem> Items;
     Bool                  ScrollToBottom;
@@ -52,7 +52,7 @@ struct Console {
     Bool                  CandidateListOpen;
     Bool                  ReclaimFocus;
 
-    Console() {
+    Console_t() {
         ClearLog();
         memset(InputBuf, 0, sizeof(InputBuf));
         ScrollToBottom = true;
@@ -60,7 +60,7 @@ struct Console {
         CandidateListOpen = false;
         ReclaimFocus = false;
     }
-    ~Console() { ClearLog(); }
+    ~Console_t() { ClearLog(); }
     void ClearLog() { for (Int i = 0; i < Items.size(); i++) delete[] Items[i].text; Items.clear(); }
 
     void AddLog(ConsoleTextColor color, const Char* fmt, va_list args) {
@@ -84,7 +84,7 @@ struct Console {
     }
 
     static Int TextEditCallback(ImGuiInputTextCallbackData* data) {
-        Console* console = (Console*)data->UserData;
+        Console_t* console = (Console_t*)data->UserData;
 
         if (data->EventFlag == ImGuiInputTextFlags_CallbackCompletion) {
             if (console->CandidateListOpen && !console->Candidates.empty()) {
@@ -232,7 +232,7 @@ struct Console {
         ImGui::End();
     }
     void ExecCommand(const Char* command_line) {
-        Console_Printf("# %s", command_line);
+        Console::Printf("# %s", command_line);
         if (command_handler) {
             Char* cmd_copy = new Char[strlen(command_line) + 1];
             strcpy(cmd_copy, command_line);
@@ -244,10 +244,9 @@ struct Console {
     }
 };
 
-static Console console_instance;
+static Console_t console_instance;
 
     void Console_Toggle() { show_console = !show_console; }
-    Bool Console_IsVisible() { return show_console; }
     void Console_Draw() { console_instance.Draw(); }
     void Console_SetCommandHandler(command_callback_t handler) { command_handler = handler; }
 
@@ -275,45 +274,51 @@ static Console console_instance;
         }
     }
 
-    void Console_Printf(const Char* fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        console_instance.AddLog(CONSOLE_COLOR_WHITE, fmt, args);
-        va_end(args);
-    }
-
-    void Console_Printf_Error(const Char* fmt, ...) {
-        Char final_fmt[2048];
-        snprintf(final_fmt, sizeof(final_fmt), "[ERROR] %s", fmt);
-
-        va_list args;
-        va_start(args, fmt);
-        console_instance.AddLog(CONSOLE_COLOR_RED, final_fmt, args);
-        va_end(args);
-    }
-
-    void Console_Printf_Warning(const Char* fmt, ...) {
-        Char final_fmt[2048];
-        snprintf(final_fmt, sizeof(final_fmt), "[WARNING] %s", fmt);
-
-        va_list args;
-        va_start(args, fmt);
-        console_instance.AddLog(CONSOLE_COLOR_YELLOW, final_fmt, args);
-        va_end(args);
-    }
-
-    void Console_ClearLog() {
-        console_instance.ClearLog();
-    }
-
-    const ConsoleItem* Console_GetLogItems(Int* count) {
-        if (count) {
-            *count = console_instance.Items.size();
+    namespace Console {
+        void Printf(const Char* fmt, ...) {
+            va_list args;
+            va_start(args, fmt);
+            console_instance.AddLog(CONSOLE_COLOR_WHITE, fmt, args);
+            va_end(args);
         }
-        if (console_instance.Items.empty()) {
-            return nullptr;
+
+        void Printf_Error(const Char* fmt, ...) {
+            Char final_fmt[2048];
+            snprintf(final_fmt, sizeof(final_fmt), "[ERROR] %s", fmt);
+
+            va_list args;
+            va_start(args, fmt);
+            console_instance.AddLog(CONSOLE_COLOR_RED, final_fmt, args);
+            va_end(args);
         }
-        return console_instance.Items.data();
+
+        void Printf_Warning(const Char* fmt, ...) {
+            Char final_fmt[2048];
+            snprintf(final_fmt, sizeof(final_fmt), "[WARNING] %s", fmt);
+
+            va_list args;
+            va_start(args, fmt);
+            console_instance.AddLog(CONSOLE_COLOR_YELLOW, final_fmt, args);
+            va_end(args);
+        }
+
+        void ClearLog() {
+            console_instance.ClearLog();
+        }
+
+        const ConsoleItem* GetLogItems(Int* count) {
+            if (count) {
+                *count = console_instance.Items.size();
+            }
+            if (console_instance.Items.empty()) {
+                return nullptr;
+            }
+            return console_instance.Items.data();
+        }
+
+        Bool IsVisible() {
+            return show_console;
+        }
     }
 
     void UI_RenderGameText(Int num_messages, const Char* texts[4], const Float positions_x[4], const Float positions_y[4], const Vec4 colors[4], const Float alphas[4], const Int states[4], const Float scales[4]) {

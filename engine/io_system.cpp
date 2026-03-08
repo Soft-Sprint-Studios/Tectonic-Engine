@@ -47,11 +47,11 @@ void IO_Init() {
     IO_Clear();
     memset(g_pending_events, 0, sizeof(g_pending_events));
     g_num_pending_events = 0;
-    Console_Printf("IO System Initialized.\n");
+    Console::Printf("IO System Initialized.\n");
 }
 
 void IO_Shutdown() {
-    Console_Printf("IO System Shutdown.\n");
+    Console::Printf("IO System Shutdown.\n");
 }
 
 void IO_Clear() {
@@ -61,7 +61,7 @@ void IO_Clear() {
 
 IOConnection* IO_AddConnection(EntityType sourceType, Int sourceIndex, const Char* output) {
     if (g_num_io_connections >= MAX_IO_CONNECTIONS) {
-        Console_Printf_Error("Max IO connections reached!\n");
+        Console::Printf_Error("Max IO connections reached!\n");
         return nullptr;
     }
     IOConnection* conn = &g_io_connections[g_num_io_connections];
@@ -122,7 +122,7 @@ void IO_FireOutput(EntityType sourceType, Int sourceIndex, const Char* outputNam
             }
 
             if (g_num_pending_events >= MAX_PENDING_EVENTS) {
-                Console_Printf_Error("Max pending events reached!\n");
+                Console::Printf_Error("Max pending events reached!\n");
                 return;
             }
 
@@ -210,7 +210,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                 else if (strcmp(inputName, "Multiply") == 0) ent->runtime_float_a *= value;
                 else if (strcmp(inputName, "Divide") == 0) {
                     if (value != 0) ent->runtime_float_a /= value;
-                    else Console_Printf_Error("math_counter '%s' tried to divide by zero.", ent->targetname);
+                    else Console::Printf_Error("math_counter '%s' tried to divide by zero.", ent->targetname);
                 }
 
                 if (max != 0 && ent->runtime_float_a >= max) IO_FireOutput(ENTITY_LOGIC, i, "OnHitMax", 0, nullptr);
@@ -423,7 +423,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         fclose(f);
                     }
                     else {
-                        Console_Printf_Error("Could not open credits file: %s", filename);
+                        Console::Printf_Error("Could not open credits file: %s", filename);
                         engine->credits_active = false;
                     }
                 }
@@ -485,7 +485,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         scene->use_cubemap_skybox = true;
                     }
                     else {
-                        Console_Printf_Warning("skybox_swapper '%s' triggered with no skybox_name set.", ent->targetname);
+                        Console::Printf_Warning("skybox_swapper '%s' triggered with no skybox_name set.", ent->targetname);
                     }
                 }
                 }
@@ -548,7 +548,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         obj->animation_looping = false;
                     }
                     else {
-                        Console_Printf_Warning("Animation '%s' not found for model '%s'", parameter, obj->targetname);
+                        Console::Printf_Warning("Animation '%s' not found for model '%s'", parameter, obj->targetname);
                     }
                 }
                 return;
@@ -715,7 +715,7 @@ void ExecuteInput(const Char* targetName, const Char* inputName, const Char* par
                         scene->lights[i].preset = style;
                     }
                     else {
-                        Console_Printf_Warning("SetLightStyle: Invalid style index '%d'. Must be between 0 and 12.", style);
+                        Console::Printf_Warning("SetLightStyle: Invalid style index '%d'. Must be between 0 and 12.", style);
                     }
                 }
             }

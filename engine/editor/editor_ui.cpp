@@ -945,7 +945,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
     }
     else if (primary && primary->type == ENTITY_PARTICLE_EMITTER) {
         ParticleEmitter* emitter = &scene->particleEmitters[primary->index]; UI_Text("Particle Emitter: %s", emitter->parFile); UI_Separator(); UI_DragFloat3("Position", &emitter->pos.x, 0.1f, 0, 0); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Move Emitter"); }
-        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console_Printf_Error("Failed to reload particle system: %s", emitter->parFile); emitter->system = nullptr; } }
+        UI_InputText("Name", emitter->targetname, sizeof(emitter->targetname)); if (UI_IsItemActivated()) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); } if (UI_IsItemDeactivatedAfterEdit()) { Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Edit Emitter Name"); } if (UI_Checkbox("On by default", &emitter->on_by_default)) { Undo_BeginEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index); emitter->is_on = emitter->on_by_default; Undo_EndEntityModification(scene, ENTITY_PARTICLE_EMITTER, primary->index, "Toggle Emitter On"); } if (UI_Button("Reload .par File")) { ParticleSystem_Free(emitter->system); ParticleSystem* ps = ParticleSystem_Load(emitter->parFile); if (ps) { ParticleEmitter_Init(emitter, ps, emitter->pos); } else { Console::Printf_Error("Failed to reload particle system: %s", emitter->parFile); emitter->system = nullptr; } }
     }
     else if (primary && primary->type == ENTITY_VIDEO_PLAYER) {
         VideoPlayer* vp = &scene->videoPlayers[primary->index];
@@ -1282,7 +1282,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                             Undo_Init();
                         }
                         else {
-                            Console_Printf_Error("Failed to load recent map: %s", path_to_load);
+                            Console::Printf_Error("Failed to load recent map: %s", path_to_load);
                         }
                     }
                 }
@@ -1375,7 +1375,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
                 Editor_ExecutePendingAction(engine, scene, renderer);
             }
             Editor_AddRecentFile(g_EditorState.currentMapPath);
-            Console_Printf("Map saved to %s", g_EditorState.currentMapPath);
+            Console::Printf("Map saved to %s", g_EditorState.currentMapPath);
             g_EditorState.show_save_map_popup = false;
         }
         UI_End();

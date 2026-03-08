@@ -36,14 +36,14 @@ private:
 public:
     static void Init() {
         g_num_commands = 0;
-        Console_Printf("Command System Initialized.");
+        Console::Printf("Command System Initialized.");
     }
 
     static void Shutdown() {}
 
     static void Register(const Char* name, command_func_t func, const Char* description, Int flags) {
         if (g_num_commands >= MAX_COMMANDS) {
-            Console_Printf_Error("Command registration failed, max commands reached.");
+            Console::Printf_Error("Command registration failed, max commands reached.");
             return;
         }
         g_commands[g_num_commands].name = name;
@@ -60,7 +60,7 @@ public:
         for (Int i = 0; i < g_num_commands; ++i) {
             if (_stricmp(cmd_name, g_commands[i].name) == 0) {
                 if ((g_commands[i].flags & CMD_CHEAT) && Cvar_GetInt("g_cheats") == 0) {
-                    Console_Printf_Error("Command '%s' is cheat protected.", cmd_name);
+                    Console::Printf_Error("Command '%s' is cheat protected.", cmd_name);
                     return;
                 }
                 g_commands[i].function(argc, argv);
@@ -74,12 +74,12 @@ public:
                 Cvar_Set(cmd_name, argv[1]);
             }
             else {
-                Console_Printf("%s = %s // %s", c->name, c->stringValue, c->helpText);
+                Console::Printf("%s = %s // %s", c->name, c->stringValue, c->helpText);
             }
             return;
         }
 
-        Console_Printf_Error("Unknown command or cvar: %s", cmd_name);
+        Console::Printf_Error("Unknown command or cvar: %s", cmd_name);
     }
 
     static Int GetCount() {

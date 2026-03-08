@@ -37,12 +37,12 @@ public:
 
         Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
         StartTime = time(nullptr);
-        Console_Printf("Discord RPC Initialized.\n");
+        Console::Printf("Discord RPC Initialized.\n");
     }
 
     ~DiscordManager() {
         Discord_Shutdown();
-        Console_Printf("Discord RPC Shutdown.\n");
+        Console::Printf("Discord RPC Shutdown.\n");
     }
 
     void Update(const Char* state, const Char* details) {
@@ -56,16 +56,16 @@ public:
 
 private:
     static void handleDiscordReady(const DiscordUser* user) {
-        Console_Printf("Discord: connected to user %s#%s - %s\n",
+        Console::Printf("Discord: connected to user %s#%s - %s\n",
             user->username, user->discriminator, user->userId);
     }
 
     static void handleDiscordDisconnected(Int err, const Char* msg) {
-        Console_Printf("Discord: disconnected (%d: %s)\n", err, msg);
+        Console::Printf("Discord: disconnected (%d: %s)\n", err, msg);
     }
 
     static void handleDiscordError(Int err, const Char* msg) {
-        Console_Printf("Discord: error (%d: %s)\n", err, msg);
+        Console::Printf("Discord: error (%d: %s)\n", err, msg);
     }
 
 #ifdef BRANCH_NOCTURNE

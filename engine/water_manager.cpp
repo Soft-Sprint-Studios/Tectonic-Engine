@@ -44,7 +44,7 @@ void WaterManager_Init(void) {
     g_default_water_def.flowMap = 0;
     g_default_water_def.flowSpeed = 0.01f;
 
-    Console_Printf("Water Manager Initialized.\n");
+    Console::Printf("Water Manager Initialized.\n");
 }
 
 void WaterManager_Shutdown(void) {
@@ -56,13 +56,13 @@ void WaterManager_Shutdown(void) {
     if(g_default_water_def.normalMap) glDeleteTextures(1, &g_default_water_def.normalMap);
     if(g_default_water_def.dudvMap) glDeleteTextures(1, &g_default_water_def.dudvMap);
     if (g_default_water_def.flowMap) glDeleteTextures(1, &g_default_water_def.flowMap);
-    Console_Printf("Water Manager Shutdown.\n");
+    Console::Printf("Water Manager Shutdown.\n");
 }
 
 void WaterManager_ParseWaters(const Char* filepath) {
     FILE* file = fopen(filepath, "r");
     if (!file) {
-        Console_Printf_Warning("Could not open water file '%s'. Using default only.\n", filepath);
+        Console::Printf_Warning("Could not open water file '%s'. Using default only.\n", filepath);
         return;
     }
 

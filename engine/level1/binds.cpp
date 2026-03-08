@@ -45,18 +45,18 @@ public:
         memset(binds, 0, sizeof(binds));
         num_binds = 0;
         Load("binds.txt");
-        Console_Printf("Binds System Initialized.\n");
+        Console::Printf("Binds System Initialized.\n");
     }
 
     static void Shutdown() {
         Save("binds.txt");
-        Console_Printf("Binds System Shutdown.\n");
+        Console::Printf("Binds System Shutdown.\n");
     }
 
     static void Load(const Char* filename) {
         FILE* file = fopen(filename, "r");
         if (!file) {
-            Console_Printf("No binds.txt found. Creating new one on exit.");
+            Console::Printf("No binds.txt found. Creating new one on exit.");
             return;
         }
 
@@ -75,7 +75,7 @@ public:
     static void Save(const Char* filename) {
         FILE* file = fopen(filename, "w");
         if (!file) {
-            Console_Printf_Error("Could not save binds to %s", filename);
+            Console::Printf_Error("Could not save binds to %s", filename);
             return;
         }
 
@@ -86,13 +86,13 @@ public:
             }
         }
         fclose(file);
-        Console_Printf("Saved %d binds to %s", num_binds, filename);
+        Console::Printf("Saved %d binds to %s", num_binds, filename);
     }
 
     static void Set(const Char* keyName, const Char* command) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
-            Console_Printf_Error("Unknown key name: %s", keyName);
+            Console::Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 
@@ -100,7 +100,7 @@ public:
             if (binds[i].key == key) {
                 strncpy(binds[i].command, command, MAX_COMMAND_LENGTH - 1);
                 binds[i].command[MAX_COMMAND_LENGTH - 1] = '\0';
-                Console_Printf("Re-bound '%s' to '%s'", keyName, command);
+                Console::Printf("Re-bound '%s' to '%s'", keyName, command);
                 return;
             }
         }
@@ -110,17 +110,17 @@ public:
             strncpy(binds[num_binds].command, command, MAX_COMMAND_LENGTH - 1);
             binds[num_binds].command[MAX_COMMAND_LENGTH - 1] = '\0';
             num_binds++;
-            Console_Printf("Bound '%s' to '%s'", keyName, command);
+            Console::Printf("Bound '%s' to '%s'", keyName, command);
         }
         else {
-            Console_Printf_Error("Maximum number of binds reached.");
+            Console::Printf_Error("Maximum number of binds reached.");
         }
     }
 
     static void Unset(const Char* keyName) {
         SDL_Keycode key = GetKeyFromName(keyName);
         if (key == SDLK_UNKNOWN) {
-            Console_Printf_Error("Unknown key name: %s", keyName);
+            Console::Printf_Error("Unknown key name: %s", keyName);
             return;
         }
 
@@ -130,18 +130,18 @@ public:
                     binds[j] = binds[j + 1];
                 }
                 num_binds--;
-                Console_Printf("Unbound key '%s'", keyName);
+                Console::Printf("Unbound key '%s'", keyName);
                 return;
             }
         }
-        Console_Printf("Key '%s' is not bound.", keyName);
+        Console::Printf("Key '%s' is not bound.", keyName);
     }
 
     static void UnbindAll() {
         Int old_num = num_binds;
         memset(binds, 0, sizeof(binds));
         num_binds = 0;
-        Console_Printf("Unbound all %d keys.", old_num);
+        Console::Printf("Unbound all %d keys.", old_num);
     }
 
     static const Char* GetCommand(SDL_Keycode key) {

@@ -381,10 +381,10 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Renderer_InitBuffers(renderer);
 
     renderer->brdfLUTTexture = TextureManager_LoadLUT("brdf_lut.png");
-    if (renderer->brdfLUTTexture == 0) Console_Printf_Error("Failed to load brdf_lut.png!");
+    if (renderer->brdfLUTTexture == 0) Console::Printf_Error("Failed to load brdf_lut.png!");
 
     renderer->cloudTexture = loadTexture("clouds.png", false, TEXTURE_LOAD_CONTEXT_WORLD);
-    if (renderer->cloudTexture == 0) Console_Printf_Error("Failed to load clouds.png!");
+    if (renderer->cloudTexture == 0) Console::Printf_Error("Failed to load clouds.png!");
 
     Renderer_InitUniforms(renderer);
     Math::mat4_identity(&renderer->prevViewProjection);
@@ -403,13 +403,13 @@ void Renderer_Init(Renderer* renderer, Engine* engine) {
     Monitor_Init(renderer);
     VideoPlayer_InitSystem();
 
-    Console_Printf("------------------------------------------------------\n");
-    Console_Printf("Renderer Context Initialized:\n");
-    Console_Printf("  GPU: %s\n", glGetString(GL_RENDERER));
-    Console_Printf("  GPU Vendor: %s\n", glGetString(GL_VENDOR));
-    Console_Printf("  OpenGL Version: %s\n", glGetString(GL_VERSION));
-    Console_Printf("  OpenGL Shading Language Version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
-    Console_Printf("------------------------------------------------------\n");
+    Console::Printf("------------------------------------------------------\n");
+    Console::Printf("Renderer Context Initialized:\n");
+    Console::Printf("  GPU: %s\n", glGetString(GL_RENDERER));
+    Console::Printf("  GPU Vendor: %s\n", glGetString(GL_VENDOR));
+    Console::Printf("  OpenGL Version: %s\n", glGetString(GL_VERSION));
+    Console::Printf("  OpenGL Shading Language Version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    Console::Printf("------------------------------------------------------\n");
 }
 
 void Renderer_RenderDebugBuffer(Renderer* renderer, Engine* engine, GLuint textureID, Int viewMode) {

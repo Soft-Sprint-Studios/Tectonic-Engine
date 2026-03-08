@@ -90,10 +90,10 @@ void Cmd_SetPos(Int argc, Char** argv) {
             Physics::Teleport(g_engine->camera.physicsBody, new_pos);
         }
         g_engine->camera.position = new_pos;
-        Console_Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
+        Console::Printf("Teleported to %.2f, %.2f, %.2f", x, y, z);
     }
     else {
-        Console_Printf("Usage: setpos <x> <y> <z>");
+        Console::Printf("Usage: setpos <x> <y> <z>");
     }
 }
 
@@ -113,7 +113,7 @@ void Cmd_Bind(Int argc, Char** argv) {
         Binds_Set(argv[1], argv[2]);
     }
     else {
-        Console_Printf("Usage: bind \"key\" \"command\"");
+        Console::Printf("Usage: bind \"key\" \"command\"");
     }
 }
 
@@ -122,7 +122,7 @@ void Cmd_Unbind(Int argc, Char** argv) {
         Binds_Unset(argv[1]);
     }
     else {
-        Console_Printf("Usage: unbind \"key\"");
+        Console::Printf("Usage: unbind \"key\"");
     }
 }
 
@@ -136,7 +136,7 @@ void Cmd_Map(Int argc, Char** argv) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
         Char map_path[256];
         snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
-        Console_Printf("Loading map: %s", map_path);
+        Console::Printf("Loading map: %s", map_path);
 
         LoadingScreen_Show(argv[1]);
         LoadingScreen_Render();
@@ -147,32 +147,32 @@ void Cmd_Map(Int argc, Char** argv) {
             SDL_SetRelativeMouseMode(SDL_TRUE);
         }
         else {
-            Console_Printf_Error("Failed to load map: %s", map_path);
+            Console::Printf_Error("Failed to load map: %s", map_path);
         }
     }
     else {
-        Console_Printf("Usage: map <mapname>");
+        Console::Printf("Usage: map <mapname>");
     }
 
     LoadingScreen_Hide();
 }
 
 void Cmd_Maps(Int argc, Char** argv) {
-    Console_Printf("Available maps in root directory:");
+    Console::Printf("Available maps in root directory:");
 
     Int count = 0;
     const Char* exts[] = { ".map" };
     Char** files = IO_ScanDirectory("./", exts, 1, &count);
 
     if (count == 0) {
-        Console_Printf("...No maps found.");
+        Console::Printf("...No maps found.");
     }
     else {
         for (Int i = 0; i < count; ++i) {
-            Console_Printf("  %s", files[i]);
+            Console::Printf("  %s", files[i]);
         }
 
-        Console_Printf("%d maps found total.", count);
+        Console::Printf("%d maps found total.", count);
 
         IO_FreeFileList(files, count);
     }
@@ -184,7 +184,7 @@ void Cmd_Disconnect(Int argc, Char** argv) {
 #else
     if (g_current_mode == MODE_GAME) {
 #endif
-        Console_Printf("Disconnecting from map...");
+        Console::Printf("Disconnecting from map...");
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
 #ifdef BUILD_EDITOR
@@ -196,7 +196,7 @@ void Cmd_Disconnect(Int argc, Char** argv) {
         MainMenu_SetInGameMenuMode(false, false);
     }
     else {
-        Console_Printf("Not currently in a map.");
+        Console::Printf("Not currently in a map.");
     }
 }
 
@@ -213,27 +213,27 @@ void Cmd_Download(Int argc, Char** argv) {
         _mkdir("downloads");
         Char output_path[256];
         snprintf(output_path, sizeof(output_path), "downloads/%s", filename_start);
-        Console_Printf("Starting download for %s...", url);
+        Console::Printf("Starting download for %s...", url);
         Network_DownloadFile(url, output_path);
     }
     else {
-        Console_Printf("Usage: download http://... or https://...");
+        Console::Printf("Usage: download http://... or https://...");
     }
 }
 
 void Cmd_Ping(Int argc, Char** argv) {
     if (argc == 2) {
-        Console_Printf("Pinging %s...", argv[1]);
+        Console::Printf("Pinging %s...", argv[1]);
         Network_Ping(argv[1]);
     }
     else {
-        Console_Printf("Usage: ping <hostname>");
+        Console::Printf("Usage: ping <hostname>");
     }
 }
 
 void Cmd_Screenshot(Int argc, Char** argv) {
     if (g_screenshot_requested) {
-        Console_Printf("Screenshot already queued.");
+        Console::Printf("Screenshot already queued.");
         return;
     }
     _mkdir("screenshots");
@@ -249,7 +249,7 @@ void Cmd_Screenshot(Int argc, Char** argv) {
 
 void Cmd_Echo(Int argc, Char** argv) {
     if (argc < 2) {
-        Console_Printf("Usage: echo <message>");
+        Console::Printf("Usage: echo <message>");
         return;
     }
 
@@ -260,46 +260,46 @@ void Cmd_Echo(Int argc, Char** argv) {
             strcat(message, " ");
         }
     }
-    Console_Printf("%s", message);
+    Console::Printf("%s", message);
 }
 
 void Cmd_Clear(Int argc, Char** argv) {
-    Console_ClearLog();
+    Console::ClearLog();
 }
 
 void Cmd_Help(Int argc, Char** argv) {
-    Console_Printf("--- Command List ---");
+    Console::Printf("--- Command List ---");
     for (Int i = 0; i < Commands_GetCount(); ++i) {
         const Command* cmd = Commands_GetCommand(i);
         if (cmd) {
-            Console_Printf("%s - %s", cmd->name, cmd->description);
+            Console::Printf("%s - %s", cmd->name, cmd->description);
         }
     }
-    Console_Printf("--- CVAR List ---");
-    Console_Printf("To set a cvar, type: <cvar_name> <value>");
+    Console::Printf("--- CVAR List ---");
+    Console::Printf("To set a cvar, type: <cvar_name> <value>");
     for (Int i = 0; i < Cvar_GetCount(); i++) {
         const Cvar* c = Cvar_GetCvar(i);
         if (c && !(c->flags & CVAR_HIDDEN)) {
-            Console_Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
+            Console::Printf("%s - %s (current: \"%s\")", c->name, c->helpText, c->stringValue);
         }
     }
-    Console_Printf("--------------------");
+    Console::Printf("--------------------");
 }
 
 void Cmd_Exec(Int argc, Char** argv) {
     if (argc != 2) {
-        Console_Printf("Usage: exec <filename>");
+        Console::Printf("Usage: exec <filename>");
         return;
     }
 
     const Char* filename = argv[1];
     FILE* file = fopen(filename, "r");
     if (!file) {
-        Console_Printf_Error("Could not open script file: %s", filename);
+        Console::Printf_Error("Could not open script file: %s", filename);
         return;
     }
 
-    Console_Printf("Executing script: %s", filename);
+    Console::Printf("Executing script: %s", filename);
     Char line[512];
     while (fgets(line, sizeof(line), file)) {
         Char* trimmed_line = Common::trim(line);
@@ -326,11 +326,11 @@ void Cmd_Exec(Int argc, Char** argv) {
     }
 
     fclose(file);
-    Console_Printf("Finished executing script: %s", filename);
+    Console::Printf("Finished executing script: %s", filename);
 }
 
 void Cmd_Version(Int argc, Char** argv) {
-    Console_Printf("Build: %d (%s, %s)", Common::GetBuildNumber(), __DATE__, __TIME__);
+    Console::Printf("Build: %d (%s, %s)", Common::GetBuildNumber(), __DATE__, __TIME__);
 }
 
 void Cmd_SaveGame(Int argc, Char** argv) {
@@ -339,12 +339,12 @@ void Cmd_SaveGame(Int argc, Char** argv) {
 #else
     if (g_current_mode != MODE_GAME && g_current_mode != MODE_INGAMEMENU) {
 #endif
-        Console_Printf_Error("Can only save when a map is loaded.");
+        Console::Printf_Error("Can only save when a map is loaded.");
         return;
     }
 
     if (argc != 2) {
-        Console_Printf("Usage: save <savename>");
+        Console::Printf("Usage: save <savename>");
         return;
     }
 
@@ -352,28 +352,28 @@ void Cmd_SaveGame(Int argc, Char** argv) {
     snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
 
     if (_mkdir("saves") != 0 && errno != EEXIST) {
-        Console_Printf_Error("Could not create saves directory.");
+        Console::Printf_Error("Could not create saves directory.");
         return;
     }
 
     if (Scene_SaveMap(&g_scene, g_engine, savePath)) {
-        Console_Printf("Game saved to %s", savePath);
+        Console::Printf("Game saved to %s", savePath);
     }
     else {
-        Console_Printf_Error("Failed to save game to %s", savePath);
+        Console::Printf_Error("Failed to save game to %s", savePath);
     }
 }
 
 void Cmd_LoadGame(Int argc, Char** argv) {
     if (argc != 2) {
-        Console_Printf("Usage: load <savename>");
+        Console::Printf("Usage: load <savename>");
         return;
     }
 
     Char savePath[256];
     snprintf(savePath, sizeof(savePath), "saves/%s.sav", argv[1]);
 
-    Console_Printf("Loading game from %s...", savePath);
+    Console::Printf("Loading game from %s...", savePath);
 
     LoadingScreen_Show(nullptr);
     LoadingScreen_Render();
@@ -388,10 +388,10 @@ void Cmd_LoadGame(Int argc, Char** argv) {
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
     if (Scene_LoadMap(&g_scene, &g_renderer, savePath, g_engine)) {
-        Console_Printf("Game loaded successfully.");
+        Console::Printf("Game loaded successfully.");
     }
     else {
-        Console_Printf_Error("Failed to load save file: %s", savePath);
+        Console::Printf_Error("Failed to load save file: %s", savePath);
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         MainMenu_SetInGameMenuMode(false, false);
@@ -402,7 +402,7 @@ void Cmd_LoadGame(Int argc, Char** argv) {
 
 void Cmd_ScreenShake(Int argc, Char** argv) {
     if (argc < 4) {
-        Console_Printf("Usage: screenshake <amplitude> <frequency> <duration>");
+        Console::Printf("Usage: screenshake <amplitude> <frequency> <duration>");
         return;
     }
 
@@ -431,38 +431,38 @@ void Cmd_Condump(Int argc, Char** argv) {
 
     file = fopen(filename, "w");
     if (!file) {
-        Console_Printf_Error("Could not open %s for writing.", filename);
+        Console::Printf_Error("Could not open %s for writing.", filename);
         return;
     }
 
     Int count = 0;
-    const ConsoleItem* items = Console_GetLogItems(&count);
+    const ConsoleItem* items = Console::GetLogItems(&count);
 
     for (Int i = 0; i < count; ++i) {
         fprintf(file, "%s\n", items[i].text);
     }
 
     fclose(file);
-    Console_Printf("Console dumped to %s", filename);
+    Console::Printf("Console dumped to %s", filename);
 }
 
 void Cmd_PlayerPosition(Int argc, Char** argv) {
     if (g_current_mode == MODE_GAME) {
-        Console_Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
+        Console::Printf("Current local player position: %f %f %f.\n", g_engine->camera.position.x, g_engine->camera.position.y, g_engine->camera.position.z);
     }
     else {
-        Console_Printf("Not currently in a map.");
+        Console::Printf("Not currently in a map.");
     }
 }
 
 void Cmd_HurtMe(Int argc, Char** argv) {
     if (argc < 2) {
-        Console_Printf("Usage: hurtme <damage>");
+        Console::Printf("Usage: hurtme <damage>");
         return;
     }
 
     if (Cvar_GetInt("god")) {
-        Console_Printf("God Mode is enabled.");
+        Console::Printf("God Mode is enabled.");
         return;
     }
 
@@ -472,7 +472,7 @@ void Cmd_HurtMe(Int argc, Char** argv) {
 
 void Cmd_Kill(Int argc, Char** argv) {
     if (Cvar_GetInt("god")) {
-        Console_Printf("God Mode is enabled.");
+        Console::Printf("God Mode is enabled.");
         return;
     }
 
@@ -481,7 +481,7 @@ void Cmd_Kill(Int argc, Char** argv) {
 
 void Cmd_Skyname(Int argc, Char** argv) {
     if (argc != 2) {
-        Console_Printf("Usage: skyname <sky>");
+        Console::Printf("Usage: skyname <sky>");
         return;
     }
 
@@ -510,17 +510,17 @@ void Cmd_Skyname(Int argc, Char** argv) {
         }
         else {
             all_files_exist = false;
-            Console_Printf_Error("Skybox texture not found: %s", face_paths[i]);
+            Console::Printf_Error("Skybox texture not found: %s", face_paths[i]);
         }
     }
 
     if (all_files_exist) {
         g_scene.skybox_cubemap = loadCubemap(face_pointers);
         g_scene.use_cubemap_skybox = true;
-        Console_Printf("Skybox changed to '%s'", new_skybox_name);
+        Console::Printf("Skybox changed to '%s'", new_skybox_name);
     }
     else {
-        Console_Printf_Error("Failed to load skybox '%s', one or more faces missing.", new_skybox_name);
+        Console::Printf_Error("Failed to load skybox '%s', one or more faces missing.", new_skybox_name);
         g_scene.use_cubemap_skybox = false;
         g_scene.skybox_path[0] = '\0';
     }
@@ -528,7 +528,7 @@ void Cmd_Skyname(Int argc, Char** argv) {
 
 void Cmd_Reset(Int argc, Char** argv) {
     if (argc != 2) {
-        Console_Printf("Usage: reset <cvar>\n");
+        Console::Printf("Usage: reset <cvar>\n");
         return;
     }
 
@@ -539,20 +539,20 @@ void Cmd_Reset(Int argc, Char** argv) {
         Cvar_Set(c->name, c->defaultValue);
     }
     else {
-        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        Console::Printf_Error("Cvar '%s' not found.\n", cvar_name);
     }
 }
 
 void Cmd_Inc_f(Int argc, Char** argv) {
     if (argc < 2 || argc > 3) {
-        Console_Printf("Usage: inc <cvar> [amount]\n");
+        Console::Printf("Usage: inc <cvar> [amount]\n");
         return;
     }
 
     const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
-        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        Console::Printf_Error("Cvar '%s' not found.\n", cvar_name);
         return;
     }
 
@@ -566,14 +566,14 @@ void Cmd_Inc_f(Int argc, Char** argv) {
 
 void Cmd_Dec_f(Int argc, Char** argv) {
     if (argc < 2 || argc > 3) {
-        Console_Printf("Usage: dec <cvar> [amount]\n");
+        Console::Printf("Usage: dec <cvar> [amount]\n");
         return;
     }
 
     const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
-        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        Console::Printf_Error("Cvar '%s' not found.\n", cvar_name);
         return;
     }
 
@@ -587,14 +587,14 @@ void Cmd_Dec_f(Int argc, Char** argv) {
 
 void Cmd_Set(Int argc, Char** argv) {
     if (argc != 2 && argc != 3) {
-        Console_Printf("Usage: set <variable> [value]\n");
+        Console::Printf("Usage: set <variable> [value]\n");
         return;
     }
 
     const Char* cvar_name = argv[1];
     Cvar* c = Cvar_Find(cvar_name);
     if (!c) {
-        Console_Printf_Error("Cvar '%s' not found.\n", cvar_name);
+        Console::Printf_Error("Cvar '%s' not found.\n", cvar_name);
         return;
     }
 
@@ -602,7 +602,7 @@ void Cmd_Set(Int argc, Char** argv) {
         Cvar_Set(cvar_name, argv[2]);
     }
     else {
-        Console_Printf("\"%s\" is \"%s\" (default: \"%s\") // %s", c->name, c->stringValue, c->defaultValue, c->helpText);
+        Console::Printf("\"%s\" is \"%s\" (default: \"%s\") // %s", c->name, c->stringValue, c->defaultValue, c->helpText);
     }
 }
 
@@ -760,9 +760,9 @@ void PrintSystemInfo() {
     const Char* brand = minispec_cpu_brand();
     LongLong ram_bytes = minispec_memory_bytes();
 
-    Console_Printf("CPU Vendor: %s\n", vendor);
-    Console_Printf("CPU Brand:  %s\n", brand);
-    Console_Printf("RAM: %llu MB\n", ram_bytes / (1024 * 1024));
+    Console::Printf("CPU Vendor: %s\n", vendor);
+    Console::Printf("CPU Brand:  %s\n", brand);
+    Console::Printf("RAM: %llu MB\n", ram_bytes / (1024 * 1024));
 }
 
 void RegisterEngineCommandsAndCvars(void) {

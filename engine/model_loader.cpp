@@ -120,14 +120,14 @@ LoadedModel* Model_Load(const Char* path) {
     cgltf_options options{};
     cgltf_data* data = nullptr;
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
-        Console_Printf_Error("Failed to load model: %s", path);
+        Console::Printf_Error("Failed to load model: %s", path);
         if (is_loading_error_asset) return nullptr;
         EnsureErrorModelLoaded();
         return g_ErrorModel;
     }
 
     if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
-        Console_Printf_Error("Failed to load buffers for model: %s", path);
+        Console::Printf_Error("Failed to load buffers for model: %s", path);
         cgltf_free(data);
         if (is_loading_error_asset) return nullptr;
         EnsureErrorModelLoaded();

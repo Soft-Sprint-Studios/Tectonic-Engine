@@ -63,6 +63,7 @@
 #include "gl_volumetrics.h"
 #include "gl_monitor.h"
 #include "gl_loading_screen.h"
+#include "gl_console.h"
 #include "weapons.h"
 #include "sentry_wrapper.h"
 #include "water_manager.h"
@@ -150,11 +151,11 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
             SDL_SetCursor(g_engine->cursor);
         }
         else {
-            Console_Printf_Error("Failed to create cursor: %s", SDL_GetError());
+            Console::Printf_Error("Failed to create cursor: %s", SDL_GetError());
         }
     }
     else {
-        Console_Printf_Warning("Could not load cursor.png. Using system default cursor.");
+        Console::Printf_Warning("Could not load cursor.png. Using system default cursor.");
     }
     SDL_ShowCursor(SDL_ENABLE);
     IPC_Init();
@@ -182,7 +183,7 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
         Commands_Execute(2, autoexec_argv);
     }
     else {
-        Console_Printf_Warning("autoexec.cfg not found, skipping.");
+        Console::Printf_Warning("autoexec.cfg not found, skipping.");
     }
     Network_Init();
     g_flashlight_sound_buffer = Sound::SoundSystem_LoadSound("sounds/flashlight01.wav");
@@ -199,14 +200,14 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     Weapons_Init();
     g_current_mode = MODE_MAINMENU;
     if (!MainMenu_Init(g_engine->width, g_engine->height)) {
-        Console_Printf_Error("Failed to initialize Main Menu.");
+        Console::Printf_Error("Failed to initialize Main Menu.");
         g_engine->running = false;
     }
     LoadingScreen_Init(g_engine->width, g_engine->height);
     PrintSystemInfo();
-    Console_Printf("Tectonic Engine initialized.\n");
-    Console_Printf("Build: %d (%s, %s) on %s\n", Common::GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
-    Console_Printf("Engine branch: %s\n", BRANCH_NAME);
+    Console::Printf("Tectonic Engine initialized.\n");
+    Console::Printf("Build: %d (%s, %s) on %s\n", Common::GetBuildNumber(), __DATE__, __TIME__, ARCH_STRING);
+    Console::Printf("Engine branch: %s\n", BRANCH_NAME);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
@@ -432,7 +433,7 @@ static void Engine_RenderGame() {
     const Uint8* k_state = SDL_GetKeyboardState(nullptr);
     Float target_fov_offset = 0.0f;
     Float base_fov = Cvar_GetFloat("fov_vertical");
-    Bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console_IsVisible();
+    Bool is_zoomed = k_state[SDL_SCANCODE_Z] && !Console::IsVisible();
 
     if (is_zoomed) {
         target_fov_offset = Cvar_GetFloat("g_zoom_fov") - base_fov;

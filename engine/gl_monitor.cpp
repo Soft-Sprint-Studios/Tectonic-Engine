@@ -107,7 +107,7 @@ static void InitCameraFBO(LogicEntity* cam) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, cam->monitor_depth);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Console_Printf_Error("Monitor FBO incomplete for entity %s", cam->targetname);
+        Console::Printf_Error("Monitor FBO incomplete for entity %s", cam->targetname);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

@@ -182,7 +182,7 @@ void Scene_Clear(Scene* scene, Engine* engine) {
 Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine* engine) {
     FILE* file = fopen(mapPath, "r");
     if (!file) {
-        Console_Printf_Error("Could not find map file: %s", mapPath);
+        Console::Printf_Error("Could not find map file: %s", mapPath);
         return false;
     }
 
@@ -193,14 +193,14 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
         sscanf(version_line, "MAP_VERSION %d", &map_file_version) == 1) {
 
         if (map_file_version < Common::MIN_MAP_VERSION || map_file_version > Common::MAP_VERSION) {
-            Console_Printf_Error("Map version unsupported! Map is v%d, supported range is v%d–v%d.",
+            Console::Printf_Error("Map version unsupported! Map is v%d, supported range is v%d–v%d.",
                 map_file_version, Common::MIN_MAP_VERSION, Common::MAP_VERSION);
             fclose(file);
             return false;
         }
     }
     else {
-        Console_Printf_Error("Invalid or missing map version.");
+        Console::Printf_Error("Invalid or missing map version.");
         fclose(file);
         return false;
     }
@@ -926,7 +926,7 @@ Bool Scene_SaveMap(Scene* scene, Engine* engine, const Char* mapPath) {
 
     FILE* file = fopen(mapPath, "w");
     if (!file) {
-        Console_Printf_Error("Failed to open %s for writing.", mapPath);
+        Console::Printf_Error("Failed to open %s for writing.", mapPath);
         return false;
     }
     fprintf(file, "MAP_VERSION %d\n\n", Common::MAP_VERSION);

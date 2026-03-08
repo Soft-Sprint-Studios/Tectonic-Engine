@@ -45,7 +45,7 @@ Char* load_shader_source(const Char* path) {
         fclose(f);
     }
     else {
-        Console_Printf_Error("Could not open shader file %s\n", path);
+        Console::Printf_Error("Could not open shader file %s\n", path);
     }
     return buffer;
 }
@@ -82,7 +82,7 @@ GLuint compileShader(GLenum type, const Char* src, const Char* pathHint) {
             type == GL_TESS_CONTROL_SHADER ? "TESS CONTROL" :
             type == GL_TESS_EVALUATION_SHADER ? "TESS EVALUATION" :
             type == GL_COMPUTE_SHADER ? "COMPUTE" : "UNKNOWN";
-        Console_Printf_Error("SHADER COMPILE ERROR [%s] in %s:\n%s\n", typeStr, pathHint ? pathHint : "Unknown Path", infoLog);
+        Console::Printf_Error("SHADER COMPILE ERROR [%s] in %s:\n%s\n", typeStr, pathHint ? pathHint : "Unknown Path", infoLog);
     }
     return shader;
 }
@@ -113,7 +113,7 @@ GLuint createShaderProgram(const Char* vertPath, const Char* fragPath) {
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-        Console_Printf_Error("SHADER LINK ERROR (VERTEX + FRAGMENT):\n%s\n", infoLog);
+        Console::Printf_Error("SHADER LINK ERROR (VERTEX + FRAGMENT):\n%s\n", infoLog);
     }
 
     glDeleteShader(vert);
@@ -153,7 +153,7 @@ GLuint createShaderProgram(const Char* vertPath, const Char* geomPath, const Cha
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-        Console_Printf_Error("SHADER LINK ERROR (VERTEX + GEOMETRY + FRAGMENT):\n%s\n", infoLog);
+        Console::Printf_Error("SHADER LINK ERROR (VERTEX + GEOMETRY + FRAGMENT):\n%s\n", infoLog);
     }
 
     glDeleteShader(vert);
@@ -199,7 +199,7 @@ GLuint createShaderProgram(const Char* vertPath, const Char* tcsPath, const Char
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-        Console_Printf_Error("SHADER LINK ERROR (VERTEX + TESS + FRAGMENT):\n%s\n", infoLog);
+        Console::Printf_Error("SHADER LINK ERROR (VERTEX + TESS + FRAGMENT):\n%s\n", infoLog);
     }
 
     glDeleteShader(vert);
@@ -230,7 +230,7 @@ GLuint createShaderProgram(const Char* computePath) {
     if (!success) {
         GLchar infoLog[1024];
         glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-        Console_Printf_Error("SHADER LINK ERROR (COMPUTE):\n%s\n", infoLog);
+        Console::Printf_Error("SHADER LINK ERROR (COMPUTE):\n%s\n", infoLog);
     }
 
     glDeleteShader(compute);

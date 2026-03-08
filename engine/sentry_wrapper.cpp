@@ -48,12 +48,12 @@ public:
 #endif
 
         sentry_init(options);
-        Console_Printf("Sentry Crash Reporting Initialized.\n");
+        Console::Printf("Sentry Crash Reporting Initialized.\n");
     }
 
     ~SentryManager() {
         sentry_shutdown();
-        Console_Printf("Sentry Crash Reporting Shutdown.\n");
+        Console::Printf("Sentry Crash Reporting Shutdown.\n");
     }
 };
 

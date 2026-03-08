@@ -536,7 +536,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
     for (Int i = 0; i < b->numVertices; ++i) {
         if (side[i] >= 0) {
             if (new_vert_count >= Common::MAX_BRUSH_VERTS * 2) {
-                Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
+                Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for new_verts.\n");
                 for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                 delete[] dists;
                 delete[] side;
@@ -563,7 +563,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
             if (side[p1_idx] >= 0) {
                 if (face_verts_current_idx_count >= Common::MAX_BRUSH_VERTS) {
-                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
+                    Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
                     delete[] side;
@@ -585,7 +585,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                 intersect_color.w = b->vertices[p1_idx].color.w + (b->vertices[p2_idx].color.w - b->vertices[p1_idx].color.w) * t;
 
                 if (face_verts_current_idx_count >= Common::MAX_BRUSH_VERTS) {
-                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
+                    Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS for temp_face_verts_idx after adding intersection.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
                     delete[] side;
@@ -595,7 +595,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                     delete[] new_face_list_array;
                 }
                 if (new_vert_count >= Common::MAX_BRUSH_VERTS * 2) {
-                    Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
+                    Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_VERTS * 2 for temp_new_verts after adding intersection.\n");
                     for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                     delete[] dists;
                     delete[] side;
@@ -614,7 +614,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
 
         if (face_verts_current_idx_count >= 3) {
             if (current_new_face_count >= Common::MAX_BRUSH_FACES) {
-                Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
+                Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array.\n");
                 for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                 delete[] dists;
                 delete[] side;
@@ -656,7 +656,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                 }
                 if (!is_duplicate) {
                     if (cap_vert_count >= Common::MAX_BRUSH_FACES + 1) {
-                        Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
+                        Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for temp_cap_verts.\n");
                         for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                         delete[] dists;
                         delete[] side;
@@ -683,7 +683,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
         qsort(temp_cap_verts, cap_vert_count, sizeof(BrushVertex), compare_cap_verts);
 
         if (current_new_face_count >= Common::MAX_BRUSH_FACES) {
-            Console_Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
+            Console::Printf_Error("Brush_Clip: Exceeded MAX_BRUSH_FACES for new_face_list_array (adding cap).\n");
             for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
             delete[] dists;
             delete[] side;
@@ -723,7 +723,7 @@ void Brush_Clip(Brush* b, Vec3 plane_normal, Float plane_d) {
                 }
             }
             if (vert_idx == -1) {
-                Console_Printf_Error("Brush_Clip: Capping vertex not found in temp_new_verts.\n");
+                Console::Printf_Error("Brush_Clip: Capping vertex not found in temp_new_verts.\n");
                 delete[] cap_face.vertexIndices;
                 for (Int k = 0; k < current_new_face_count; ++k) delete[] new_face_list_array[k].vertexIndices;
                 delete[] dists;
