@@ -131,5 +131,6 @@ All other folders are third-party dependencies and fall under their respective o
 | `openal-soft-1.24.3/`    | Audio Library                              | LGPL 2.1                            |
 | `stb/`                   | Image, Audio, and Font Utilities           | Public Domain or MIT                |
 | `sentry/`                | Crash Reporting SDK                        | MIT License                         |
+| `discordRPC/`            | Discord RPC SDK                            | MIT License                         |
 | `fltk/`                  | Fast Light Toolkit GUI Library             | LGPL                                |
 | `xatlas/`                | UV Unwrapping                              | MIT License                         |
