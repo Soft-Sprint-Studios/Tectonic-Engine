@@ -109,10 +109,10 @@ EngineMode g_current_mode = MODE_GAME;
 EngineModeTransition g_pending_mode_transition = TRANSITION_NONE;
 #ifdef BUILD_EDITOR
 Bool g_is_editor_mode;
+Int g_last_water_cvar_state = -1;
 #endif
 Bool g_quit_requested = false;
 Bool g_restart_requested = false;
-Int g_last_water_cvar_state = -1;
 
 static Uint32 g_fps_last_update = 0;
 static Int g_fps_frame_count = 0;

@@ -49,7 +49,6 @@
     extern Renderer g_renderer;
     extern Scene g_scene;
     extern EngineMode g_current_mode;
-    extern Int g_last_water_cvar_state;
     extern EngineModeTransition g_pending_mode_transition;
     extern Bool g_player_input_disabled;
     extern Bool g_screenshot_requested;
@@ -58,6 +57,7 @@
     extern Char g_screenshot_path[256];
 #ifdef BUILD_EDITOR
     extern Bool g_is_editor_mode;
+    extern Int g_last_water_cvar_state;
 #endif
     extern Uint g_flashlight_sound_buffer;
     extern Uint g_footstep_sound_buffer;
