@@ -151,7 +151,6 @@ namespace
         enum DirectLightMode { BAKE_ALL_FOR_BOUNCES, BAKE_STATIC_DIRECT_ONLY };
 
         void build_embree_scene();
-        void load_emissive_materials();
         void generate_ambient_probes();
         void prepare_jobs();
         void worker_main();
@@ -187,7 +186,6 @@ namespace
         vector<unique_ptr<Vec4[]>> m_model_direction_buffers;
         vector<unique_ptr<Vec4[]>> m_brush_color_buffers;
         vector<unique_ptr<Vec4[]>> m_brush_direction_buffers;
-        map<const Material*, pair<Vec3, Float>> m_emissive_materials;
         map<const Material*, Vec4> m_material_reflectivity;
         map<const BrushFace*, Vec4> m_face_reflectivity;
         vector<const BrushFace*> m_primID_to_face_map;
@@ -204,7 +202,6 @@ namespace
             Console::Printf_Error("Failed to create Embree device.");
         }
         rtcSetDeviceErrorFunction(m_rtc_device, embree_error_function, nullptr);
-        load_emissive_materials();
         build_embree_scene();
         m_oidn_device = oidnNewDevice(OIDN_DEVICE_TYPE_CPU);
         if (!m_oidn_device)
@@ -315,45 +312,6 @@ namespace
         rtcAttachGeometry(m_rtc_scene, geom);
         rtcReleaseGeometry(geom);
         rtcCommitScene(m_rtc_scene);
-    }
-
-    void Lightmapper::load_emissive_materials()
-    {
-        Console::Printf("[Lightmapper] Loading lights.rad...");
-        ifstream file("lights.rad");
-        if (!file.is_open()) {
-            Console::Printf("[Lightmapper] lights.rad not found. No emissive surfaces will be used.");
-            return;
-        }
-
-        string line;
-        Int line_num = 0;
-        while (getline(file, line)) {
-            line_num++;
-
-            if (line.empty() || line[0] == '/' || line[0] == '#') {
-                continue;
-            }
-
-            istringstream iss(line);
-            string material_name;
-            Float r, g, b, intensity;
-
-            if (!(iss >> material_name >> r >> g >> b >> intensity)) {
-                Console::Printf_Warning("[Lightmapper] Malformed line %d in lights.rad", line_num);
-                continue;
-            }
-
-            Material* mat = TextureManager_FindMaterial(material_name.c_str());
-            if (mat == &g_MissingMaterial || mat == &g_NodrawMaterial) {
-                Console::Printf_Warning("[Lightmapper] Material '%s' from lights.rad not found or is nodraw.", material_name.c_str());
-                continue;
-            }
-
-            m_emissive_materials[mat] = { {r / 255.0f, g / 255.0f, b / 255.0f}, intensity };
-            Console::Printf("[Lightmapper] Loaded emissive material: %s", material_name.c_str());
-        }
-        Console::Printf("[Lightmapper] Loaded %zu emissive materials.", m_emissive_materials.size());
     }
 
     void Lightmapper::generate_ambient_probes()
@@ -1779,24 +1737,6 @@ namespace
 
                 for (Int bounce = 1; bounce <= m_bounces; ++bounce)
                 {
-                    const Material* hit_material = nullptr;
-                    if (current_primID < m_primID_to_face_map.size()) {
-                        const BrushFace* hit_face = m_primID_to_face_map[current_primID];
-                        if (hit_face) {
-                            hit_material = hit_face->material;
-                        }
-                        else if (current_primID < m_primID_to_material_map.size()) {
-                            hit_material = m_primID_to_material_map[current_primID];
-                        }
-                    }
-                    if (hit_material) {
-                        auto it = m_emissive_materials.find(hit_material);
-                        if (it != m_emissive_materials.end()) {
-                            path_radiance = Math::vec3_add(path_radiance, Math::vec3_mul(Math::vec3_muls(it->second.first, it->second.second), throughput));
-                            break;
-                        }
-                    }
-
                     Vec4 reflectivity = get_reflectivity_at_hit(current_primID);
                     Vec3 albedo = { reflectivity.x, reflectivity.y, reflectivity.z };
                     Vec3 dummy_dir;
