@@ -58,6 +58,10 @@ void Cmd_Edit(Int argc, Char** argv) {
         g_last_water_cvar_state = Cvar_GetInt("r_water");
         Cvar_Set("r_water", "0");
         g_engine->flashlight_on = false;
+        g_scene.post.isUnderwater = false;
+        g_engine->red_flash_intensity = 0.0f;
+        g_engine->shake_amplitude = 0.0f;
+        g_engine->shake_duration_timer = 0.0f;
         g_pending_mode_transition = TRANSITION_TO_EDITOR;
     }
     else if (g_current_mode == MODE_EDITOR) {
