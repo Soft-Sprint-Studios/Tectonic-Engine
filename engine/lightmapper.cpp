@@ -92,9 +92,7 @@ namespace
     struct ModelVertexJobData
     {
         Int model_index;
-        Uint vertex_index;
-        Vec4* output_color_buffer;
-        Vec4* output_direction_buffer;
+        fs::path output_dir;
     };
 
     struct ModelLightmapJobData
@@ -962,29 +960,45 @@ namespace
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
-        Uint v_idx = data.vertex_index;
+        Uint count = obj.model->totalVertexCount;
+        vector<Vec4> colors(count);
+        vector<Vec4> directions(count);
 
-        Vec3 local_pos = { obj.model->combinedVertexData[v_idx * 3 + 0], obj.model->combinedVertexData[v_idx * 3 + 1], obj.model->combinedVertexData[v_idx * 3 + 2] };
-        Vec3 local_normal = { obj.model->combinedNormalData[v_idx * 3 + 0], obj.model->combinedNormalData[v_idx * 3 + 1], obj.model->combinedNormalData[v_idx * 3 + 2] };
+        for (Uint v_idx = 0; v_idx < count; ++v_idx) {
+            Vec3 local_pos = { obj.model->combinedVertexData[v_idx * 3 + 0], obj.model->combinedVertexData[v_idx * 3 + 1], obj.model->combinedVertexData[v_idx * 3 + 2] };
+            Vec3 local_normal = { obj.model->combinedNormalData[v_idx * 3 + 0], obj.model->combinedNormalData[v_idx * 3 + 1], obj.model->combinedNormalData[v_idx * 3 + 2] };
 
-        Vec3 world_pos = Math::mat4_mul_vec3(&obj.modelMatrix, local_pos);
-        Vec3 world_normal = Math::mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
-        Math::vec3_normalize(&world_normal);
+            Vec3 world_pos = Math::mat4_mul_vec3(&obj.modelMatrix, local_pos);
+            Vec3 world_normal = Math::mat4_mul_vec3_dir(&obj.modelMatrix, local_normal);
+            Math::vec3_normalize(&world_normal);
 
-        mt19937 rng(generate_seed_from_pos(world_pos));
-        Vec3 direction_accumulator = { 0,0,0 };
-        Vec3 indirect_dir = { 0,0,0 };
-        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator, BAKE_STATIC_DIRECT_ONLY);
-        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
-        Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
+            mt19937 rng(generate_seed_from_pos(world_pos));
+            Vec3 dir_acc = { 0,0,0 }, ind_dir = { 0,0,0 };
+            Vec3 direct = calculate_direct_light(world_pos, world_normal, dir_acc, BAKE_STATIC_DIRECT_ONLY);
+            Vec3 indirect = calculate_indirect_light(world_pos, world_normal, rng, ind_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
+            Vec3 sun = calculate_direct_sun_light_only(world_pos, world_normal);
 
-        Vec3 final_light_color = Math::vec3_add(Math::vec3_add(direct_light, direct_sun_light), indirect_light);
-        direction_accumulator = Math::vec3_add(direction_accumulator, indirect_dir);
-        data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
+            Vec3 final_c = Math::vec3_add(Math::vec3_add(direct, sun), indirect);
+            colors[v_idx] = { final_c.x, final_c.y, final_c.z, 1.0f };
 
-        if (Math::vec3_length_sq(direction_accumulator) > 0.0001f) Math::vec3_normalize(&direction_accumulator);
-        else direction_accumulator = { 0,0,0 };
-        data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
+            dir_acc = Math::vec3_add(dir_acc, ind_dir);
+            if (Math::vec3_length_sq(dir_acc) > 0.0001f) Math::vec3_normalize(&dir_acc);
+            directions[v_idx] = { dir_acc.x, dir_acc.y, dir_acc.z, 1.0f };
+        }
+
+        ofstream vlm_file(data.output_dir / "vertex_colors.vlm", ios::binary);
+        if (vlm_file) {
+            vlm_file.write("VLM1", 4);
+            vlm_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+            vlm_file.write(reinterpret_cast<const Char*>(colors.data()), sizeof(Vec4) * count);
+        }
+
+        ofstream vld_file(data.output_dir / "vertex_directions.vld", ios::binary);
+        if (vld_file) {
+            vld_file.write("VLD1", 4);
+            vld_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
+            vld_file.write(reinterpret_cast<const Char*>(directions.data()), sizeof(Vec4) * count);
+        }
     }
 
     void Lightmapper::process_model_lightmap(const ModelLightmapJobData& data)
@@ -1318,10 +1332,10 @@ namespace
                     m_jobs.emplace_back(ModelLightmapJobData{ i, model_dir });
                 }
                 else {
-                    for (Uint v = 0; v < obj.model->totalVertexCount; ++v)
-                    {
-                        m_jobs.emplace_back(ModelVertexJobData{ i, v, m_model_color_buffers[i].get(), m_model_direction_buffers[i].get() });
-                    }
+                    string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + to_string(i);
+                    fs::path model_dir = m_output_path / sanitize_filename(model_name_str);
+                    fs::create_directories(model_dir);
+                    m_jobs.emplace_back(ModelVertexJobData{ i, model_dir });
                 }
             }
         }
@@ -1802,47 +1816,6 @@ namespace
         }
 
         generate_ambient_probes();
-
-        for (Int i = 0; i < m_scene->numObjects; ++i)
-        {
-            const SceneObject& obj = m_scene->objects[i];
-            if (!obj.model || !m_model_color_buffers[i] || !m_model_direction_buffers[i]) continue;
-
-            string model_name_str = (strlen(obj.targetname) > 0) ? obj.targetname : "Model_" + to_string(i);
-            string sanitized_name = sanitize_filename(model_name_str);
-            fs::path model_dir = m_output_path / sanitized_name;
-            fs::create_directories(model_dir);
-
-            fs::path vlm_path = model_dir / "vertex_colors.vlm";
-            ofstream vlm_file(vlm_path, ios::binary);
-            if (vlm_file)
-            {
-                const Char header[] = "VLM1";
-                Uint count = obj.model->totalVertexCount;
-                vlm_file.write(header, 4);
-                vlm_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
-                vlm_file.write(reinterpret_cast<const Char*>(m_model_color_buffers[i].get()), sizeof(Vec4) * count);
-            }
-            else
-            {
-                Console::Printf_Error("[Lightmapper] Could not write to '%s'", vlm_path.string().c_str());
-            }
-
-            fs::path vld_path = model_dir / "vertex_directions.vld";
-            ofstream vld_file(vld_path, ios::binary);
-            if (vld_file)
-            {
-                const Char header[] = "VLD1";
-                Uint count = obj.model->totalVertexCount;
-                vld_file.write(header, 4);
-                vld_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
-                vld_file.write(reinterpret_cast<const Char*>(m_model_direction_buffers[i].get()), sizeof(Vec4) * count);
-            }
-            else
-            {
-                Console::Printf_Error("[Lightmapper] Could not write to '%s'", vld_path.string().c_str());
-            }
-        }
 
         auto end_time = chrono::high_resolution_clock::now();
         chrono::duration<Float> duration = end_time - start_time;
