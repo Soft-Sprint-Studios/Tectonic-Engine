@@ -29,8 +29,6 @@
 
 
     void Brush_GenerateLightmapAtlas(Brush* b, const Char* map_name_sanitized, Int brush_index, Int resolution);
-    void Brush_LoadVertexLighting(Brush* b, Int index, const Char* mapPath);
-    void Brush_LoadVertexDirectionalLighting(Brush* b, Int index, const Char* mapPath);
     void SceneObject_LoadVertexLighting(SceneObject* obj, Int index, const Char* mapPath);
     void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, const Char* mapPath);
     void SceneObject_LoadLightmaps(SceneObject* obj, Int index, const Char* mapPath);

@@ -1286,26 +1286,15 @@ namespace
         {
             const Brush& b = m_scene->brushes[i];
             if (!IsBrushBakeable(b)) continue;
-            if (b.useVertexLighting) {
-                if (b.numVertices > 0) {
-                    m_brush_color_buffers[i] = make_unique<Vec4[]>(b.numVertices);
-                    m_brush_direction_buffers[i] = make_unique<Vec4[]>(b.numVertices);
-                    for (Uint v = 0; v < b.numVertices; ++v) {
-                        m_jobs.emplace_back(BrushVertexJobData{ i, v, m_brush_color_buffers[i].get(), m_brush_direction_buffers[i].get() });
-                    }
+            string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
+            fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
+            fs::create_directories(brush_dir);
+            for (Int j = 0; j < b.numFaces; ++j)
+            {
+                if (b.faces[j].material == &g_NodrawMaterial) {
+                    continue;
                 }
-            }
-            else {
-                string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
-                fs::path brush_dir = m_output_path / sanitize_filename(brush_name_str);
-                fs::create_directories(brush_dir);
-                for (Int j = 0; j < b.numFaces; ++j)
-                {
-                    if (b.faces[j].material == &g_NodrawMaterial) {
-                        continue;
-                    }
-                    m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
-                }
+                m_jobs.emplace_back(BrushFaceJobData{ i, j, brush_dir });
             }
         }
 
@@ -1810,39 +1799,6 @@ namespace
         for (auto& t : threads)
         {
             t.join();
-        }
-
-        for (Int i = 0; i < m_scene->numBrushes; ++i)
-        {
-            const Brush& b = m_scene->brushes[i];
-            if (!b.useVertexLighting || !m_brush_color_buffers[i] || !m_brush_direction_buffers[i]) continue;
-
-            string brush_name_str = (strlen(b.targetname) > 0) ? b.targetname : "Brush_" + to_string(i);
-            string sanitized_name = sanitize_filename(brush_name_str);
-            fs::path brush_dir = m_output_path / sanitized_name;
-            fs::create_directories(brush_dir);
-
-            fs::path vlm_path = brush_dir / "vertex_colors.vlm";
-            ofstream vlm_file(vlm_path, ios::binary);
-            if (vlm_file)
-            {
-                const Char header[] = "VLM1";
-                Uint count = b.numVertices;
-                vlm_file.write(header, 4);
-                vlm_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
-                vlm_file.write(reinterpret_cast<const Char*>(m_brush_color_buffers[i].get()), sizeof(Vec4) * count);
-            }
-
-            fs::path vld_path = brush_dir / "vertex_directions.vld";
-            ofstream vld_file(vld_path, ios::binary);
-            if (vld_file)
-            {
-                const Char header[] = "VLD1";
-                Uint count = b.numVertices;
-                vld_file.write(header, 4);
-                vld_file.write(reinterpret_cast<const Char*>(&count), sizeof(Uint));
-                vld_file.write(reinterpret_cast<const Char*>(m_brush_direction_buffers[i].get()), sizeof(Vec4) * count);
-            }
         }
 
         generate_ambient_probes();

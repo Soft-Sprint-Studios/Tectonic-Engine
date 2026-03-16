@@ -337,10 +337,7 @@
         Vec3 move_dir;
         PlatState plat_state;
         Float wait_timer;
-        Bool useVertexLighting;
         Bool casts_shadows;
-        Vec4* bakedVertexColors;
-        Vec4* bakedVertexDirections;
     } Brush;
 
     typedef struct {

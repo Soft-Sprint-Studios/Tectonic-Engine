@@ -228,7 +228,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
     }
 
     Shader_Set(shader, "useEnvironmentMap", (Int)envMapEnabled);
-    Shader_Set(shader, "useVertexLighting", (Int)b->useVertexLighting);
     Shader_Set(shader, "model", &b->modelMatrix);
 
     glBindVertexArray(b->vao);

@@ -471,14 +471,6 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             transform_changed = true;
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Scale Brush");
         }
-        if (UI_Checkbox("Use Vertex Lighting", &b->useVertexLighting)) {
-            Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
-            if (b->useVertexLighting) {
-                if (b->lightmapAtlas) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
-                if (b->directionalLightmapAtlas) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-            }
-            Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Vertex Lighting");
-        }
         if (UI_Checkbox("Casts Shadows", &b->casts_shadows)) {
             Undo_BeginEntityModification(scene, ENTITY_BRUSH, primary->index);
             Undo_EndEntityModification(scene, ENTITY_BRUSH, primary->index, "Toggle Brush Shadows");

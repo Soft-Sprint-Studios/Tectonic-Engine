@@ -48,7 +48,7 @@ namespace Common {
     constexpr Int MAX_ENTITY_PROPERTIES = 32;
 
     constexpr Int MIN_MAP_VERSION = 18;
-    constexpr Int MAP_VERSION = 22;
+    constexpr Int MAP_VERSION = 23;
 
     static Int g_build_number = -1;
 

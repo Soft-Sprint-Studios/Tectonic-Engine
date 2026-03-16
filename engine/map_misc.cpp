@@ -93,15 +93,6 @@ void Brush_FreeData(Brush* b) {
         delete[] b->faces;
         b->faces = nullptr;
     }
-    if (b->bakedVertexColors) {
-        delete[] b->bakedVertexColors;
-        b->bakedVertexColors = nullptr;
-    }
-
-    if (b->bakedVertexDirections) {
-        delete[] b->bakedVertexDirections;
-        b->bakedVertexDirections = nullptr;
-    }
     b->numVertices = 0;
     b->numFaces = 0;
 }
@@ -159,9 +150,6 @@ void Brush_DeepCopy(Brush* dest, const Brush* src) {
     dest->isPhysicsEnabled = src->isPhysicsEnabled;
     dest->isGrouped = src->isGrouped;
     dest->casts_shadows = src->casts_shadows;
-    dest->useVertexLighting = src->useVertexLighting;
-    dest->bakedVertexColors = nullptr;
-    dest->bakedVertexDirections = nullptr;
     strncpy(dest->groupName, src->groupName, sizeof(dest->groupName) - 1);
     dest->groupName[sizeof(dest->groupName) - 1] = '\0';
 
@@ -496,26 +484,14 @@ void Brush_CreateRenderData(Brush* b) {
             memcpy(&final_vbo_data[vbo_idx + 3], &norm, sizeof(Vec3));
             memcpy(&final_vbo_data[vbo_idx + 6], uv1, sizeof(Vec2));
 
-            if (b->useVertexLighting && b->bakedVertexColors) {
-                memcpy(&final_vbo_data[vbo_idx + 12], &b->bakedVertexColors[vertex_index], sizeof(Vec4));
-            }
-            else {
-                memset(&final_vbo_data[vbo_idx + 12], 0, sizeof(Vec4));
-                final_vbo_data[vbo_idx + 15] = 0.0f;
-            }
+            memset(&final_vbo_data[vbo_idx + 12], 0, sizeof(Vec4));
 
             memcpy(&final_vbo_data[vbo_idx + 16], uv2, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 18], uv3, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 20], uv4, sizeof(Vec2));
             memcpy(&final_vbo_data[vbo_idx + 22], &vert.lightmap_uv, sizeof(Vec2));
 
-            if (b->useVertexLighting && b->bakedVertexDirections) {
-                memcpy(&final_vbo_data[vbo_idx + 24], &b->bakedVertexDirections[vertex_index], sizeof(Vec4));
-            }
-            else {
-                memset(&final_vbo_data[vbo_idx + 24], 0, sizeof(Vec4));
-                final_vbo_data[vbo_idx + 27] = 0.0f;
-            }
+            memset(&final_vbo_data[vbo_idx + 24], 0, sizeof(Vec4));
 
             memcpy(&final_vbo_data[vbo_idx + 28], &vert.color, sizeof(Vec4));
         }

@@ -1308,17 +1308,9 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
             for (Int i = 0; i < scene->numBrushes; ++i) {
                 Brush* b = &scene->brushes[i];
-                if (b->useVertexLighting) {
-                    if (b->bakedVertexColors) { delete[] b->bakedVertexColors; b->bakedVertexColors = nullptr; }
-                    if (b->bakedVertexDirections) { delete[] b->bakedVertexDirections; b->bakedVertexDirections = nullptr; }
-                    Brush_LoadVertexLighting(b, i, scene->mapPath);
-                    Brush_LoadVertexDirectionalLighting(b, i, scene->mapPath);
-                }
-                else {
-                    if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
-                    if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-                    Brush_GenerateLightmapAtlas(b, map_name_sanitized, i, scene->lightmapResolution);
-                }
+                if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
+                if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
+                Brush_GenerateLightmapAtlas(b, map_name_sanitized, i, scene->lightmapResolution);
                 Brush_CreateRenderData(b);
             }
 

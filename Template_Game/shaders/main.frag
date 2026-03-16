@@ -209,8 +209,8 @@ void main()
         ao = rma1.r;
     }
 
-    alpha *= fadeAlpha;
     if (u_useAlphaTest) {
+        alpha *= fadeAlpha;
         if (alpha < 0.1) 
             discard;
     }
@@ -354,27 +354,7 @@ void main()
         } else {
             bakedDiffuse = bakedRadiance * albedo;
         }
-    } 
-    else if (isBrush == 1) {
-        if (useVertexLighting) {
-            bakedRadiance = v_Color.rgb;
-            if (v_Color2.a > 0.0) {
-                vec3 bakedLightDir = normalize(v_Color2.rgb);
-                float NdotL_baked = max(dot(N, bakedLightDir), 0.0);
-                bakedDiffuse = bakedRadiance * albedo * NdotL_baked;
-                if (NdotL_baked > 0.0) {
-                    vec3 H_baked = normalize(bakedLightDir + V);
-                    float NDF = DistributionGGX(N, H_baked, roughness);
-                    float G = GeometrySmith(N, V, bakedLightDir, roughness);
-                    vec3 F = fresnelSchlick(max(dot(H_baked, V), 0.0), F0);
-                    vec3 specular = (NDF * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL_baked + 0.001);
-                    bakedSpecular = specular * bakedRadiance * NdotL_baked;
-                }
-            } else {
-                bakedDiffuse = bakedRadiance * albedo;
-            }
-        }
-    } 
+    }
     else {
         if (u_numAmbientProbes > 0 && v_Color.a < 0.5) {
             vec3 total_color = vec3(0.0);

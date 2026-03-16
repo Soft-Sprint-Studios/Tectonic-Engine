@@ -392,7 +392,6 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 else if (sscanf(line, " targetname \"%63[^\"]\"", b->targetname) == 1) {}
                 else if (sscanf(line, " mass %f", &b->mass) == 1) {}
                 else if (sscanf(line, " isPhysicsEnabled %d", &dummy_int) == 1) { b->isPhysicsEnabled = (Bool)dummy_int; }
-                else if (sscanf(line, " useVertexLighting %d", &dummy_int) == 1) { b->useVertexLighting = (Bool)dummy_int; }
                 else if (sscanf(line, " casts_shadows %d", &dummy_int) == 1) { b->casts_shadows = (Bool)dummy_int; }
                 else if (sscanf(line, " classname \"%63[^\"]\"", b->classname) == 1) {}
                 else if (strstr(line, "properties")) {
@@ -435,10 +434,6 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
             }
             Brush_UpdateMatrix(b);
             Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
-            if (b->useVertexLighting) {
-                Brush_LoadVertexLighting(b, scene->numBrushes, scene->originalMapPath);
-                Brush_LoadVertexDirectionalLighting(b, scene->numBrushes, scene->originalMapPath);
-            }
             Brush_CreateRenderData(b);
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (strcmp(b->classname, "func_plat") == 0) {
@@ -968,7 +963,6 @@ Bool Scene_SaveMap(Scene* scene, Engine* engine, const Char* mapPath) {
         if (b->isGrouped && b->groupName[0] != '\0') fprintf(file, "  is_grouped 1 \"%s\"\n", b->groupName);
         fprintf(file, "  mass %.4f\n", b->mass);
         fprintf(file, "  isPhysicsEnabled %d\n", (Int)b->isPhysicsEnabled);
-        fprintf(file, "  useVertexLighting %d\n", (Int)b->useVertexLighting);
         fprintf(file, "  casts_shadows %d\n", (Int)b->casts_shadows);
         if (strcmp(b->classname, "env_reflectionprobe") == 0) {
             fprintf(file, "  name \"%s\"\n", b->name);
