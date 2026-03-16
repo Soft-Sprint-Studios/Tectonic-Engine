@@ -38,22 +38,38 @@
 #include "map_misc.h"
 
 Int FindReflectionProbeForPoint(Scene* scene, Vec3 p) {
+    Int best_probe = -1;
+    Float min_dist_sq = FLT_MAX;
+
     for (Int i = 0; i < scene->numBrushes; ++i) {
         Brush* b = &scene->brushes[i];
-        if (strcmp(b->classname, "env_reflectionprobe") != 0) {
-            continue;
-        }
+        if (strcmp(b->classname, "env_reflectionprobe") != 0) continue;
 
-        Vec3 min_aabb_world, max_aabb_world;
-        Brush_GetWorldAABB(b, &min_aabb_world, &max_aabb_world);
+        Vec3 min_v, max_v;
+        Brush_GetWorldAABB(b, &min_v, &max_v);
 
-        if (p.x >= min_aabb_world.x && p.x <= max_aabb_world.x &&
-            p.y >= min_aabb_world.y && p.y <= max_aabb_world.y &&
-            p.z >= min_aabb_world.z && p.z <= max_aabb_world.z)
+        if (p.x >= min_v.x && p.x <= max_v.x &&
+            p.y >= min_v.y && p.y <= max_v.y &&
+            p.z >= min_v.z && p.z <= max_v.z)
         {
             return i;
         }
+
+        Float dx = fmaxf(min_v.x - p.x, fmaxf(0.0f, p.x - max_v.x));
+        Float dy = fmaxf(min_v.y - p.y, fmaxf(0.0f, p.y - max_v.y));
+        Float dz = fmaxf(min_v.z - p.z, fmaxf(0.0f, p.z - max_v.z));
+        Float dist_sq = dx * dx + dy * dy + dz * dz;
+
+        if (dist_sq < min_dist_sq) {
+            min_dist_sq = dist_sq;
+            best_probe = i;
+        }
     }
+
+    if (best_probe != -1) {
+        return best_probe;
+    }
+
     return -1;
 }
 
