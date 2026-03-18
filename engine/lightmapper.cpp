@@ -155,7 +155,6 @@ namespace
         void process_job(const JobPayload& job);
         void process_brush_face(const BrushFaceJobData& data);
         void process_decal(const DecalJobData& data);
-        void process_brush_vertex(const BrushVertexJobData& data);
         void process_model_vertex(const ModelVertexJobData& data);
         void process_model_lightmap(const ModelLightmapJobData& data);
 
@@ -906,57 +905,6 @@ namespace
         stbi_write_png(dir_path.string().c_str(), lightmap_res, lightmap_res, 4, dir_data_u8.data(), lightmap_res * 4);
     }
 
-    void Lightmapper::process_brush_vertex(const BrushVertexJobData& data)
-    {
-        const Brush& b = m_scene->brushes[data.brush_index];
-        Uint v_idx = data.vertex_index;
-
-        Vec3 local_pos = b.vertices[v_idx].pos;
-        Vec3 local_normal = { 0, 1, 0 };
-
-        vector<Vec3> temp_normals(b.numVertices, Vec3{ 0,0,0 });
-
-        for (Int i = 0; i < b.numFaces; ++i) {
-            BrushFace* face = &b.faces[i];
-            if (face->numVertexIndices < 3) continue;
-            for (Int j = 0; j < face->numVertexIndices - 2; ++j) {
-                Int idx0 = face->vertexIndices[0];
-                Int idx1 = face->vertexIndices[j + 1];
-                Int idx2 = face->vertexIndices[j + 2];
-                Vec3 p0 = b.vertices[idx0].pos;
-                Vec3 p1 = b.vertices[idx1].pos;
-                Vec3 p2 = b.vertices[idx2].pos;
-                Vec3 face_normal = Math::vec3_cross(Math::vec3_sub(p1, p0), Math::vec3_sub(p2, p0));
-                temp_normals[idx0] = Math::vec3_add(temp_normals[idx0], face_normal);
-                temp_normals[idx1] = Math::vec3_add(temp_normals[idx1], face_normal);
-                temp_normals[idx2] = Math::vec3_add(temp_normals[idx2], face_normal);
-            }
-        }
-        for (Int i = 0; i < b.numVertices; ++i) {
-            Math::vec3_normalize(&temp_normals[i]);
-        }
-        local_normal = temp_normals[v_idx];
-
-        Vec3 world_pos = Math::mat4_mul_vec3(&b.modelMatrix, local_pos);
-        Vec3 world_normal = Math::mat4_mul_vec3_dir(&b.modelMatrix, local_normal);
-        Math::vec3_normalize(&world_normal);
-
-        mt19937 rng(generate_seed_from_pos(world_pos));
-        Vec3 direction_accumulator = { 0,0,0 };
-        Vec3 indirect_dir = { 0,0,0 };
-        Vec3 direct_light = calculate_direct_light(world_pos, world_normal, direction_accumulator, BAKE_STATIC_DIRECT_ONLY);
-        Vec3 indirect_light = calculate_indirect_light(world_pos, world_normal, rng, indirect_dir, INDIRECT_SAMPLES_PER_POINT_MODELS);
-        Vec3 direct_sun_light = calculate_direct_sun_light_only(world_pos, world_normal);
-
-        Vec3 final_light_color = Math::vec3_add(Math::vec3_add(direct_light, direct_sun_light), indirect_light);
-        direction_accumulator = Math::vec3_add(direction_accumulator, indirect_dir);
-        data.output_color_buffer[v_idx] = { final_light_color.x, final_light_color.y, final_light_color.z, 1.0f };
-
-        if (Math::vec3_length_sq(direction_accumulator) > 0.0001f) Math::vec3_normalize(&direction_accumulator);
-        else direction_accumulator = { 0,0,0 };
-        data.output_direction_buffer[v_idx] = { direction_accumulator.x, direction_accumulator.y, direction_accumulator.z, 1.0f };
-    }
-
     void Lightmapper::process_model_vertex(const ModelVertexJobData& data)
     {
         const SceneObject& obj = m_scene->objects[data.model_index];
@@ -1228,8 +1176,6 @@ namespace
                 process_decal(arg);
             else if constexpr (is_same_v<T, ModelVertexJobData>)
                 process_model_vertex(arg);
-            else if constexpr (is_same_v<T, BrushVertexJobData>)
-                process_brush_vertex(arg);
             else if constexpr (is_same_v<T, ModelLightmapJobData>)
                 process_model_lightmap(arg);
             }, job);
