@@ -187,8 +187,18 @@ namespace Sound {
     }
 
     static void SimpleReverb_Free(SimpleReverb* rev) {
-        for (Int i = 0; i < 8; ++i) delete[] rev->combs[i].buffer;
-        for (Int i = 0; i < 4; ++i) delete[] rev->allpasses[i].buffer;
+        for (Int i = 0; i < 8; ++i) {
+            if (rev->combs[i].buffer) {
+                delete[] rev->combs[i].buffer;
+                rev->combs[i].buffer = nullptr;
+            }
+        }
+        for (Int i = 0; i < 4; ++i) {
+            if (rev->allpasses[i].buffer) {
+                delete[] rev->allpasses[i].buffer;
+                rev->allpasses[i].buffer = nullptr;
+            }
+        }
     }
 
     static void SimpleReverb_Process(SimpleReverb* rev, const Float* input, Float* output, Int num_samples, Bool wet_only) {
@@ -220,7 +230,7 @@ namespace Sound {
             output[i] = fmaxf(-1.0f, fminf(1.0f, mixed_sample));
         }
         delete[] output_float_l;
-        delete[] output_float_l;
+        delete[] output_float_r;
     }
     ReverbSettings DSP_Reverb_GetSettingsForPreset(ReverbPreset preset) {
         ReverbSettings s = { 0 };
