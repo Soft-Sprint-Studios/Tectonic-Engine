@@ -902,10 +902,6 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
 }
 
 Bool Scene_SaveMap(Scene* scene, Engine* engine, const Char* mapPath) {
-    Char backup_path[256];
-    sprintf(backup_path, "%s.bak", mapPath);
-    rename(mapPath, backup_path);
-
     FILE* file = fopen(mapPath, "w");
     if (!file) {
         Console::Printf_Error("Failed to open %s for writing.", mapPath);
