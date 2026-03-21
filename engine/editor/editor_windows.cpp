@@ -1292,25 +1292,11 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
 
             Lightmapper_Generate(scene, engine, resolution, g_EditorState.bake_bounces);
 
-            Char map_name_sanitized[128];
-            const Char* last_slash = strrchr(scene->mapPath, '/');
-            const Char* last_bslash = strrchr(scene->mapPath, '\\');
-            const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
-            const Char* dot = strrchr(map_filename, '.');
-            if (dot) {
-                Usize len = dot - map_filename;
-                strncpy(map_name_sanitized, map_filename, len);
-                map_name_sanitized[len] = '\0';
-            }
-            else {
-                strcpy(map_name_sanitized, map_filename);
-            }
-
             for (Int i = 0; i < scene->numBrushes; ++i) {
                 Brush* b = &scene->brushes[i];
                 if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
                 if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-                Brush_GenerateLightmapAtlas(b, scene->originalMapPath, scene->numBrushes, scene->lightmapResolution);
+                Brush_GenerateLightmapAtlas(b, scene->originalMapPath, i, scene->lightmapResolution);
                 Brush_CreateRenderData(b);
             }
 
@@ -1318,7 +1304,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                 Decal* d = &scene->decals[i];
                 if (d->lightmapAtlas != 0) { glDeleteTextures(1, &d->lightmapAtlas); d->lightmapAtlas = 0; }
                 if (d->directionalLightmapAtlas != 0) { glDeleteTextures(1, &d->directionalLightmapAtlas); d->directionalLightmapAtlas = 0; }
-                Decal_LoadLightmaps(d, scene->originalMapPath, scene->numDecals);
+                Decal_LoadLightmaps(d, scene->originalMapPath, i);
             }
 
             for (Int i = 0; i < scene->numObjects; ++i) {
@@ -1353,11 +1339,11 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                         }
                     }
 
-                    SceneObject_LoadLightmaps(obj, i, scene->mapPath);
+                    SceneObject_LoadLightmaps(obj, i, scene->originalMapPath);
                 }
                 else {
-                    SceneObject_LoadVertexLighting(obj, i, scene->mapPath);
-                    SceneObject_LoadVertexDirectionalLighting(obj, i, scene->mapPath);
+                    SceneObject_LoadVertexLighting(obj, i, scene->originalMapPath);
+                    SceneObject_LoadVertexDirectionalLighting(obj, i, scene->originalMapPath);
                 }
             }
 
