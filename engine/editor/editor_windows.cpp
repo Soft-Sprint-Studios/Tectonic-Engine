@@ -231,7 +231,7 @@ void FreeSoundFileList() {
 void ScanSoundFiles() {
     FreeSoundFileList();
     const Char* exts[] = { ".wav", ".mp3" };
-    g_EditorState.sound_file_list = IO_ScanDirectory("sounds/", exts, 3, &g_EditorState.num_sound_files);
+    g_EditorState.sound_file_list = IO_ScanDirectory("sounds/", exts, 2, &g_EditorState.num_sound_files);
 }
 
 void FreeMapFileList() {
