@@ -620,7 +620,7 @@ namespace
                     normal_lightmap_data[hdr_idx + 2] = 0.0f;
                 }
 
-                if (Math::vec3_length_sq(accumulated_direction) > 0.0001f) Math::vec3_normalize(&accumulated_direction);
+                if (Math::vec3_length_sq(accumulated_direction) > BLACK_THRESHOLD) Math::vec3_normalize(&accumulated_direction);
                 else accumulated_direction = { 0,0,0 };
 
                 direction_float_data[hdr_idx + 0] = accumulated_direction.x;
@@ -642,7 +642,6 @@ namespace
         }
 
         vector<Float> denoised_indirect_data(lightmap_width * lightmap_height * 3);
-        constexpr Float BLACK_THRESHOLD = 0.0001f;
         Float indirect_sum = 0.0f;
         for (Float val : indirect_lightmap_data) {
             indirect_sum += val;
@@ -730,7 +729,7 @@ namespace
         for (Int i = 0; i < lightmap_width * lightmap_height; ++i) {
             Int idx3 = i * 3;
             Vec3 dir = { filtered_direction_data[idx3], filtered_direction_data[idx3 + 1], filtered_direction_data[idx3 + 2] };
-            if (Math::vec3_length_sq(dir) > 0.0001f) {
+            if (Math::vec3_length_sq(dir) > BLACK_THRESHOLD) {
                 Math::vec3_normalize(&dir);
             }
             else {
@@ -856,7 +855,7 @@ namespace
 
         vector<Float> denoised_indirect_data(lightmap_res * lightmap_res * 3);
         Float indirect_sum = 0.0f; for (Float val : indirect_lightmap_data) indirect_sum += val;
-        if (indirect_sum > 0.0001f) {
+        if (indirect_sum > BLACK_THRESHOLD) {
             OIDNFilter filter = oidnNewFilter(m_oidn_device, "RTLightmap");
             oidnSetSharedFilterImage(filter, "color", indirect_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
             oidnSetSharedFilterImage(filter, "albedo", albedo_lightmap_data.data(), OIDN_FORMAT_FLOAT3, lightmap_res, lightmap_res, 0, sizeof(Float) * 3, sizeof(Float) * 3 * lightmap_res);
@@ -889,7 +888,7 @@ namespace
         vector<Uchar> dir_data_u8(lightmap_res * lightmap_res * 4);
         for (Int i = 0; i < lightmap_res * lightmap_res; ++i) {
             Vec3 dir = { filtered_direction_data[i * 3], filtered_direction_data[i * 3 + 1], filtered_direction_data[i * 3 + 2] };
-            if (Math::vec3_length_sq(dir) > 0.0001f) Math::vec3_normalize(&dir); else dir = { 0,0,0 };
+            if (Math::vec3_length_sq(dir) > BLACK_THRESHOLD) Math::vec3_normalize(&dir); else dir = { 0,0,0 };
             dir_data_u8[i * 4 + 0] = static_cast<Uchar>((dir.x * 0.5f + 0.5f) * 255.0f);
             dir_data_u8[i * 4 + 1] = static_cast<Uchar>((dir.y * 0.5f + 0.5f) * 255.0f);
             dir_data_u8[i * 4 + 2] = static_cast<Uchar>((dir.z * 0.5f + 0.5f) * 255.0f);
@@ -930,7 +929,7 @@ namespace
             colors[v_idx] = { final_c.x, final_c.y, final_c.z, 1.0f };
 
             dir_acc = Math::vec3_add(dir_acc, ind_dir);
-            if (Math::vec3_length_sq(dir_acc) > 0.0001f) Math::vec3_normalize(&dir_acc);
+            if (Math::vec3_length_sq(dir_acc) > BLACK_THRESHOLD) Math::vec3_normalize(&dir_acc);
             directions[v_idx] = { dir_acc.x, dir_acc.y, dir_acc.z, 1.0f };
         }
 
@@ -1151,7 +1150,7 @@ namespace
             Int idx = i * 3;
 
             Vec3 d = { filtered_direction_data[idx], filtered_direction_data[idx + 1], filtered_direction_data[idx + 2] };
-            if (Math::vec3_length_sq(d) > 0.0001f) Math::vec3_normalize(&d);
+            if (Math::vec3_length_sq(d) > BLACK_THRESHOLD) Math::vec3_normalize(&d);
             else d = { 0,0,0 };
 
             dir_data[i * 4 + 0] = (Uchar)((d.x * 0.5f + 0.5f) * 255.0f);
@@ -1730,7 +1729,7 @@ namespace
             }
         }
 
-        if (Math::vec3_length_sq(out_indirect_dir) > 0.0001f)
+        if (Math::vec3_length_sq(out_indirect_dir) > BLACK_THRESHOLD)
         {
             Math::vec3_normalize(&out_indirect_dir);
         }

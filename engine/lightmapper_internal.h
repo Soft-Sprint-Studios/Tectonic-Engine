@@ -33,5 +33,6 @@ constexpr Int INDIRECT_SAMPLES_PER_POINT_MODELS = 512; // for vertex lit models
 constexpr Int INDIRECT_SAMPLES_PER_POINT_AMBIENT_PROBES = 64;
 constexpr Int INDIRECT_SAMPLES_PER_POINT_DECALS = 64;
 constexpr Float LUXELS_PER_UNIT = 16.0f;
+constexpr Float BLACK_THRESHOLD = 0.0001f;
 
 #endif // LIGHTMAPPER_INTERNAL_H
