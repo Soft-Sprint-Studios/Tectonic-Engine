@@ -433,7 +433,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                 b->cubemapTexture = loadCubemap(face_pointers);
             }
             Brush_UpdateMatrix(b);
-            Brush_GenerateLightmapAtlas(b, map_name_sanitized, scene->numBrushes, scene->lightmapResolution);
+            Brush_GenerateLightmapAtlas(b, scene->originalMapPath, scene->numBrushes, scene->lightmapResolution);
             Brush_CreateRenderData(b);
             if (Brush_IsSolid(b) && b->numVertices > 0) {
                 if (strcmp(b->classname, "func_plat") == 0) {
@@ -665,20 +665,7 @@ Bool Scene_LoadMap(Scene* scene, Renderer* renderer, const Char* mapPath, Engine
                     fseek(file, current_pos, SEEK_SET);
                 }
                 Decal_UpdateMatrix(d);
-                Char map_name_sanitized[128];
-                const Char* last_slash = strrchr(scene->mapPath, '/');
-                const Char* last_bslash = strrchr(scene->mapPath, '\\');
-                const Char* map_filename = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : scene->mapPath);
-                const Char* dot = strrchr(map_filename, '.');
-                if (dot) {
-                    Usize len = dot - map_filename;
-                    strncpy(map_name_sanitized, scene->originalMapPath, len);
-                    map_name_sanitized[len] = '\0';
-                }
-                else {
-                    strcpy(map_name_sanitized, scene->originalMapPath);
-                }
-                Decal_LoadLightmaps(d, map_name_sanitized, scene->numDecals);
+                Decal_LoadLightmaps(d, scene->originalMapPath, scene->numDecals);
                 scene->numDecals++;
             }
         }

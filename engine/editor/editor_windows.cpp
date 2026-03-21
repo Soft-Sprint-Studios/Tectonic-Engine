@@ -1310,7 +1310,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                 Brush* b = &scene->brushes[i];
                 if (b->lightmapAtlas != 0) { glDeleteTextures(1, &b->lightmapAtlas); b->lightmapAtlas = 0; }
                 if (b->directionalLightmapAtlas != 0) { glDeleteTextures(1, &b->directionalLightmapAtlas); b->directionalLightmapAtlas = 0; }
-                Brush_GenerateLightmapAtlas(b, map_name_sanitized, i, scene->lightmapResolution);
+                Brush_GenerateLightmapAtlas(b, scene->originalMapPath, scene->numBrushes, scene->lightmapResolution);
                 Brush_CreateRenderData(b);
             }
 
@@ -1318,7 +1318,7 @@ void Editor_RenderBakeLightingWindow(Scene* scene, Engine* engine) {
                 Decal* d = &scene->decals[i];
                 if (d->lightmapAtlas != 0) { glDeleteTextures(1, &d->lightmapAtlas); d->lightmapAtlas = 0; }
                 if (d->directionalLightmapAtlas != 0) { glDeleteTextures(1, &d->directionalLightmapAtlas); d->directionalLightmapAtlas = 0; }
-                Decal_LoadLightmaps(d, map_name_sanitized, i);
+                Decal_LoadLightmaps(d, scene->originalMapPath, scene->numDecals);
             }
 
             for (Int i = 0; i < scene->numObjects; ++i) {

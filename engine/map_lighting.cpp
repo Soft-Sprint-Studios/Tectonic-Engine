@@ -209,8 +209,22 @@ void SceneObject_LoadLightmaps(SceneObject* obj, Int index, const Char* mapPath)
     }
 }
 
-void Decal_LoadLightmaps(Decal* decal, const Char* map_name_sanitized, Int decal_index) {
-    if (!decal) return;
+void Decal_LoadLightmaps(Decal* decal, const Char* originalMapPath, Int decal_index) {
+    if (!decal || originalMapPath[0] == '\0') return;
+
+    Char map_name_sanitized[128];
+    const Char* last_slash = strrchr(originalMapPath, '/');
+    const Char* last_bslash = strrchr(originalMapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : originalMapPath);
+    const Char* dot = strrchr(map_filename_start, '.');
+    if (dot) {
+        Usize len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
+        map_name_sanitized[len] = '\0';
+    }
+    else {
+        strcpy(map_name_sanitized, map_filename_start);
+    }
 
     Char decal_name_sanitized[128];
     if (strlen(decal->targetname) > 0) {
@@ -308,8 +322,8 @@ void Scene_LoadAmbientProbes(Scene* scene) {
     }
 }
 
-void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index, Int resolution) {
-    if (mapPath[0] == '\0') return;
+void Brush_GenerateLightmapAtlas(Brush* b, const Char* originalMapPath, Int brush_index, Int resolution) {
+    if (originalMapPath[0] == '\0') return;
     if (b->lightmapAtlasHandle) {
         glMakeTextureHandleNonResidentARB(b->lightmapAtlasHandle);
         b->lightmapAtlasHandle = 0;
@@ -342,9 +356,9 @@ void Brush_GenerateLightmapAtlas(Brush* b, const Char* mapPath, Int brush_index,
     Int max_height = 0;
 
     Char map_name_sanitized[128];
-    const Char* last_slash = strrchr(mapPath, '/');
-    const Char* last_bslash = strrchr(mapPath, '\\');
-    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
+    const Char* last_slash = strrchr(originalMapPath, '/');
+    const Char* last_bslash = strrchr(originalMapPath, '\\');
+    const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : originalMapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
         Usize len = dot - map_filename_start;
