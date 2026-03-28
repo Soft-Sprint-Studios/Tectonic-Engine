@@ -691,7 +691,7 @@ void init_cvars() {
     Cvar_Register("r_sun_shadow_distance", "50.0", "Sun shadow frustum size", CVAR_NONE);
     Cvar_Register("r_texture_quality", "5", "Texture quality (1=very low to 5=very high)", CVAR_NONE);
     Cvar_Register("fov_vertical", "55", "Vertical field of view (degrees)", CVAR_NONE);
-    Cvar_Register("g_speed", "6.0", "Player walking speed", CVAR_NONE);
+    Cvar_Register("g_speed", "4.0", "Player walking speed", CVAR_NONE);
     Cvar_Register("g_noclip_speed", "20.0", "Noclip speed", CVAR_NONE);
     Cvar_Register("g_sprint_speed", "8.0", "Player sprinting speed", CVAR_NONE);
     Cvar_Register("g_accel", "15.0", "Player acceleration", CVAR_NONE);
@@ -704,6 +704,11 @@ void init_cvars() {
     Cvar_Register("g_roll_speed", "8.0", "Speed of view rolling interpolation", CVAR_NONE);
     Cvar_Register("g_crouch_height", "1.37", "Player height when crouching", CVAR_NONE);
     Cvar_Register("g_player_height", "1.83", "Player height", CVAR_NONE);
+#ifdef BRANCH_NOCTURNE
+    Cvar_Register("g_sprint_enable", "0.0", "Enable sprintin", CVAR_NONE);
+#else
+    Cvar_Register("g_sprint_enable", "1.0", "Enable sprintin", CVAR_NONE);
+#endif
     Cvar_Register("g_sprint_fov", "10.0", "Additional FOV added when sprinting", CVAR_NONE);
     Cvar_Register("g_sprint_fov_speed", "5.0", "Speed of FOV interpolation", CVAR_NONE);
     Cvar_Register("g_zoom_fov", "20.0", "FOV when zoomed in (degrees).", CVAR_NONE);

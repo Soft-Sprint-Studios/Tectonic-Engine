@@ -438,7 +438,7 @@ static void Engine_RenderGame() {
     if (is_zoomed) {
         target_fov_offset = Cvar_GetFloat("g_zoom_fov") - base_fov;
     }
-    else if (k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
+    else if (Cvar_GetInt("g_sprint_enable") && k_state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching && speed > 0.1f) {
         target_fov_offset = Cvar_GetFloat("g_sprint_fov");
     }
 

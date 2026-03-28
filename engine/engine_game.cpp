@@ -444,7 +444,7 @@ void process_input() {
 
             Math::vec3_normalize(&move);
             Float max_wish_speed = Cvar_GetFloat("g_speed");
-            if (state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching) {
+            if (Cvar_GetInt("g_sprint_enable") && state[SDL_SCANCODE_LSHIFT] && !g_engine->camera.isCrouching) {
                 max_wish_speed = Cvar_GetFloat("g_sprint_speed");
             }
             if (g_engine->camera.isCrouching) {
