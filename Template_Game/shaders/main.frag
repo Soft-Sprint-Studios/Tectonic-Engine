@@ -84,7 +84,6 @@ uniform Sun sun;
 uniform Flashlight flashlight;
 uniform vec3 viewPos;
 uniform bool is_unlit;
-uniform bool is_debug_vpl;
 uniform samplerCube environmentMap;
 uniform bool useEnvironmentMap;
 uniform sampler2D brdfLUT;
