@@ -61,7 +61,7 @@ void load_and_register_named_shader_string(const Char* name, const Char* path) {
 GLuint compileShader(GLenum type, const Char* src, const Char* pathHint) {
     GLuint shader = glCreateShader(type);
     const Char* header =
-        "#version 450 core\n"
+        "#version 460 core\n"
         "#extension GL_ARB_bindless_texture : require\n"
         "#extension GL_ARB_shading_language_include : require\n"
         "#include \"/common.h\"\n"
