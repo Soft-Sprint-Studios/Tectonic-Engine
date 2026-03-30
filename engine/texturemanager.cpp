@@ -314,7 +314,6 @@ void TextureManager_LoadMaterialTextures(Material* material) {
     if (strlen(material->normalPath) > 0) material->normalMap = loadTexture(material->normalPath, false, context); else material->normalMap = defaultNormalMapID;
     if (strlen(material->rmaPath) > 0) material->rmaMap = loadTexture(material->rmaPath, false, context); else material->rmaMap = defaultRmaMapID;
     if (strlen(material->heightPath) > 0) material->heightMap = loadTexture(material->heightPath, false, context); else material->heightMap = 0;
-    if (strlen(material->detailDiffusePath) > 0) material->detailDiffuseMap = loadTexture(material->detailDiffusePath, true, context); else material->detailDiffuseMap = 0;
 
     material->isLoaded = true;
 }
@@ -462,7 +461,6 @@ void TextureManager_Shutdown() {
         if (materials[i].normalMap != defaultNormalMapID) glDeleteTextures(1, &materials[i].normalMap);
         if (materials[i].rmaMap != defaultRmaMapID) glDeleteTextures(1, &materials[i].rmaMap);
         if (materials[i].heightMap != 0) glDeleteTextures(1, &materials[i].heightMap);
-        if (materials[i].detailDiffuseMap != 0) glDeleteTextures(1, &materials[i].detailDiffuseMap);
     }
 
     glDeleteTextures(1, &missingTextureID);
@@ -547,7 +545,6 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
             memset(current_material, 0, sizeof(Material));
             current_material->roughness = -1.0f;
             current_material->metalness = -1.0f;
-            current_material->alpha = false;
             sscanf(trimmed_line, "\"%[^\"]\"", current_material->name);
         }
         else if (trimmed_line[0] == '{') {
@@ -573,9 +570,6 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
                 else if (strcmp(key, "height") == 0) {
                     strcpy(current_material->heightPath, value);
                 }
-                else if (strcmp(key, "detail") == 0) {
-                    strcpy(current_material->detailDiffusePath, value);
-                }
             }
             else {
                 Float float_val;
@@ -583,17 +577,11 @@ Bool TextureManager_ParseMaterialsFromFile(const Char* filepath) {
                     if (strcmp(key, "heightScale") == 0) {
                         current_material->heightScale = float_val;
                     }
-                    else if (strcmp(key, "detailscale") == 0) {
-                        current_material->detailScale = float_val;
-                    }
                     else if (strcmp(key, "roughness") == 0) {
                         current_material->roughness = float_val;
                     }
                     else if (strcmp(key, "metalness") == 0) {
                         current_material->metalness = float_val;
-                    }
-                    else if (strcmp(key, "alpha") == 0) {
-                        current_material->alpha = (float_val != 0.0f);
                     }
                     else {
                         Console::Printf_Error("Unknown Float key '%s' in material '%s'\n", key, current_material->name);

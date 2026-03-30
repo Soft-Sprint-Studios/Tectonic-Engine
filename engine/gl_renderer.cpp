@@ -317,7 +317,6 @@ static void Renderer_InitUniforms(Renderer* renderer) {
     Shader_Set(renderer->mainShader, "normalMap", 1);
     Shader_Set(renderer->mainShader, "rmaMap", 2);
     Shader_Set(renderer->mainShader, "heightMap", 3);
-    Shader_Set(renderer->mainShader, "detailDiffuseMap", 7);
     Shader_Set(renderer->mainShader, "environmentMap", 10);
     Shader_Set(renderer->mainShader, "brdfLUT", 16);
     Shader_Set(renderer->mainShader, "diffuseMap2", 12);

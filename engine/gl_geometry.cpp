@@ -173,8 +173,6 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
             Mesh* mesh = &obj->model->meshes[i];
             Material* material = mesh->material;
             if (shader == renderer->mainShader) {
-                Shader_Set(shader, "u_useAlphaTest", (Int)material->alpha);
-
                 Bool parallaxEnabledForThisMesh = Cvar_GetInt("r_relief_mapping") && material->heightScale > 0.0f;
                 Shader_Set(shader, "u_isParallaxEnabled", (Int)parallaxEnabledForThisMesh);
                 Shader_Set(shader, "heightScale", material->heightScale);
@@ -185,9 +183,6 @@ void render_object(Renderer* renderer, Scene* scene, GLuint shader, SceneObject*
                 glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, material->normalMap);
                 glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, material->rmaMap);
                 glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, material->heightMap);
-
-                Shader_Set(shader, "detailScale", material->detailScale);
-                glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, material->detailDiffuseMap);
             }
 
             glBindVertexArray(mesh->VAO);
@@ -297,13 +292,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
                 current_face_in_batch_idx++;
             }
 
-            Bool use_alpha_test_for_batch = (batch_material && batch_material->alpha) ||
-                (batch_material2 && batch_material2->alpha) ||
-                (batch_material3 && batch_material3->alpha) ||
-                (batch_material4 && batch_material4->alpha);
-
-            Shader_Set(shader, "u_useAlphaTest", (Int)use_alpha_test_for_batch);
-
             Bool parallaxEnabled = Cvar_GetInt("r_relief_mapping");
             Bool isParallaxEnabledForBatch = parallaxEnabled && (
                 (batch_material && batch_material->heightScale > 0.0f) ||
@@ -321,9 +309,6 @@ void render_brush(Renderer* renderer, Scene* scene, GLuint shader, Brush* b, Boo
             glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->normalMap : defaultNormalMapID);
             glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->rmaMap : defaultRmaMapID);
             glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->heightMap : 0);
-
-            Shader_Set(shader, "detailScale", batch_material ? batch_material->detailScale : 1.0f);
-            glActiveTexture(GL_TEXTURE7); glBindTexture(GL_TEXTURE_2D, batch_material ? batch_material->detailDiffuseMap : 0);
 
 #define BIND_MATERIAL_SLOT(slot, material) \
             if (material) { \

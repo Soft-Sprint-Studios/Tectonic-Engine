@@ -45,20 +45,16 @@ constexpr int MAX_MATERIALS = 16384;
         GLuint normalMap;
         GLuint rmaMap;
         GLuint heightMap;
-        GLuint detailDiffuseMap;
 
         Char diffusePath[128];
         Char normalPath[128];
         Char rmaPath[128];
         Char heightPath[128];
-        Char detailDiffusePath[128];
         Bool isLoaded;
 
         Float heightScale;
-        Float detailScale;
         Float roughness;
         Float metalness;
-        Bool alpha;
     } Material;
 
     extern Material g_MissingMaterial;

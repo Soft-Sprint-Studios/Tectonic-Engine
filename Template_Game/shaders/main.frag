@@ -53,8 +53,6 @@ uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D rmaMap;
 uniform sampler2D heightMap;
-uniform sampler2D detailDiffuseMap;
-uniform float detailScale;
 uniform sampler2D diffuseMap2;
 uniform sampler2D normalMap2;
 uniform sampler2D rmaMap2;
@@ -95,7 +93,6 @@ uniform bool u_isParallaxEnabled;
 uniform float u_relief_max_steps;
 uniform float u_relief_min_steps;
 uniform int u_relief_refine_steps;
-uniform bool u_useAlphaTest;
 
 uniform float u_roughness_override;
 uniform float u_metalness_override;
@@ -157,12 +154,6 @@ void main()
     vec4 texColor4 = texture(diffuseMap4, finalTexCoords4);
     vec3 normalTex4 = texture(normalMap4, finalTexCoords4).rgb;
     vec3 rma4 = texture(rmaMap4, finalTexCoords4).rgb;
-	
-	if (textureSize(detailDiffuseMap, 0).x > 1) {
-        vec2 detailCoords = finalTexCoords1 * detailScale;
-        vec3 detailColor = texture(detailDiffuseMap, detailCoords).rgb;
-        texColor1.rgb *= detailColor * 2.0;
-    }
 
     vec3 albedo;
     float alpha;
@@ -208,11 +199,9 @@ void main()
         ao = rma1.r;
     }
 
-    if (u_useAlphaTest) {
-        alpha *= fadeAlpha;
-        if (alpha < 0.1) 
-            discard;
-    }
+    alpha *= fadeAlpha;
+    if (alpha < 0.1) 
+        discard;
 	
     vec3 N = normalize(TBN * (normalTex * 2.0 - 1.0));
     vec3 V = normalize(viewPos - FragPos_world);
