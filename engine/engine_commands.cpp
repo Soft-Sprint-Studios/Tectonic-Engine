@@ -139,7 +139,7 @@ void Cmd_Map(Int argc, Char** argv) {
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         Char map_path[256];
-        snprintf(map_path, sizeof(map_path), "%s.map", argv[1]);
+        snprintf(map_path, sizeof(map_path), "maps/%s.map", argv[1]);
         Console::Printf("Loading map: %s", map_path);
 
         LoadingScreen_Show(argv[1]);
@@ -162,11 +162,11 @@ void Cmd_Map(Int argc, Char** argv) {
 }
 
 void Cmd_Maps(Int argc, Char** argv) {
-    Console::Printf("Available maps in root directory:");
+    Console::Printf("Available maps:");
 
     Int count = 0;
     const Char* exts[] = { ".map" };
-    Char** files = IO_ScanDirectory("./", exts, 1, &count);
+    Char** files = IO_ScanDirectory("maps/", exts, 1, &count);
 
     if (count == 0) {
         Console::Printf("...No maps found.");

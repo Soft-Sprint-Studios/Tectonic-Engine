@@ -242,10 +242,12 @@ void init_scene() {
     memset(&g_scene, 0, sizeof(Scene));
     const GameConfig* config = GameConfig_Get();
     g_engine->camera.health = 100.0f;
+    Char map_to_load[256] = { 0 };
     if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
-        Scene_LoadMap(&g_scene, &g_renderer, config->startmap, g_engine);
+        snprintf(map_to_load, sizeof(map_to_load), "maps/%s", config->startmap);
+        Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine);
     }
-    strncpy(g_scene.mapPath, config->startmap, sizeof(g_scene.mapPath) - 1);
+    strncpy(g_scene.mapPath, map_to_load, sizeof(g_scene.mapPath) - 1);
     g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
     g_last_player_pos = g_scene.playerStart.pos;
 }

@@ -49,12 +49,12 @@ void SceneObject_LoadVertexLighting(SceneObject* obj, Int index, const Char* map
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        Usize len = dot - mapPath;
-        strncpy(map_name_sanitized, mapPath, len);
+        Usize len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
     else {
-        strcpy(map_name_sanitized, mapPath);
+        strcpy(map_name_sanitized, map_filename_start);
     }
 
     Char model_name_sanitized[128];
@@ -97,12 +97,12 @@ void SceneObject_LoadVertexDirectionalLighting(SceneObject* obj, Int index, cons
     const Char* map_filename_start = (last_slash > last_bslash) ? last_slash + 1 : (last_bslash ? last_bslash + 1 : mapPath);
     const Char* dot = strrchr(map_filename_start, '.');
     if (dot) {
-        Usize len = dot - mapPath;
-        strncpy(map_name_sanitized, mapPath, len);
+        Usize len = dot - map_filename_start;
+        strncpy(map_name_sanitized, map_filename_start, len);
         map_name_sanitized[len] = '\0';
     }
     else {
-        strcpy(map_name_sanitized, mapPath);
+        strcpy(map_name_sanitized, map_filename_start);
     }
 
     Char model_name_sanitized[128];
