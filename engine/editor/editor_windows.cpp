@@ -248,7 +248,7 @@ void FreeMapFileList() {
 void ScanMapFiles() {
     FreeMapFileList();
     const Char* exts[] = { ".map" };
-    g_EditorState.map_file_list = IO_ScanDirectory("./", exts, 1, &g_EditorState.num_map_files);
+    g_EditorState.map_file_list = IO_ScanDirectory("maps/", exts, 1, &g_EditorState.num_map_files);
 }
 
 void FreeParticleFileList() {

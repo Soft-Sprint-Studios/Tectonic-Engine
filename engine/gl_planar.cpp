@@ -33,10 +33,10 @@
 #ifdef BRANCH_NOCTURNE
 // hack alert
 static Bool NoSkyReflectionMap(const Char* map) {
-    return _stricmp(map, "level1.map") == 0 ||
-        _stricmp(map, "level2.map") == 0 ||
-        _stricmp(map, "level3.map") == 0 ||
-        _stricmp(map, "level4.map") == 0;
+    return _stricmp(map, "maps/level1.map") == 0 ||
+        _stricmp(map, "maps/level2.map") == 0 ||
+        _stricmp(map, "maps/level3.map") == 0 ||
+        _stricmp(map, "maps/level4.map") == 0;
 }
 #endif
 

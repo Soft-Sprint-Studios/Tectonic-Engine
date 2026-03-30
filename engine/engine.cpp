@@ -396,7 +396,14 @@ static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
 
 static void Engine_RenderGame() {
     Char details_str[128];
-    sprintf(details_str, "Map: %s", g_scene.mapPath);
+
+    const char* mapName = g_scene.mapPath;
+
+    if (strncmp(mapName, "maps/", 5) == 0) {
+        mapName += 5;
+    }
+
+    sprintf(details_str, "Map: %s", mapName);
     Discord_Update("Playing", details_str);
 
     Vec3 forward = {

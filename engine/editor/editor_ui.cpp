@@ -1360,8 +1360,10 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
         UI_Begin("Save Map As", &g_EditorState.show_save_map_popup);
         UI_InputText("Filename", g_EditorState.save_map_path, sizeof(g_EditorState.save_map_path));
         if (UI_Button("Save")) {
-            Scene_SaveMap(scene, nullptr, g_EditorState.save_map_path);
-            strcpy(g_EditorState.currentMapPath, g_EditorState.save_map_path);
+            Char full_save_path[256];
+            snprintf(full_save_path, sizeof(full_save_path), "maps/%s", g_EditorState.save_map_path);
+            Scene_SaveMap(scene, nullptr, full_save_path);
+            strcpy(g_EditorState.currentMapPath, full_save_path);
             Editor_SetMapDirty(false);
             if (g_pending_action != PENDING_ACTION_NONE) {
                 Editor_ExecutePendingAction(engine, scene, renderer);
@@ -1378,7 +1380,7 @@ void Editor_RenderUI(Engine* engine, Scene* scene, Renderer* renderer) {
             UI_ListBox("Maps", &g_EditorState.selected_map_file_index, (const Char* const*)g_EditorState.map_file_list, g_EditorState.num_map_files, 15);
             if (g_EditorState.selected_map_file_index != -1 && UI_Button("Load Selected Map")) {
                 Char path_buffer[256];
-                sprintf(path_buffer, "%s", g_EditorState.map_file_list[g_EditorState.selected_map_file_index]);
+                sprintf(path_buffer, "maps/%s", g_EditorState.map_file_list[g_EditorState.selected_map_file_index]);
                 Scene_LoadMap(scene, renderer, path_buffer, engine);
                 strcpy(g_EditorState.currentMapPath, path_buffer);
                 Undo_Init();
