@@ -833,12 +833,23 @@ void Editor_RenderReplaceTexturesUI(Scene* scene) {
         UI_Separator();
 
         UI_Text("Replace With:");
-        Material* replace_mat = (g_EditorState.replace_material_index != -1) ? TextureManager_GetMaterial(g_EditorState.replace_material_index) : nullptr;
+        Material* replace_mat = nullptr;
+        if (g_EditorState.replace_material_index == -2) {
+            replace_mat = &g_NodrawMaterial;
+        }
+        else if (g_EditorState.replace_material_index != -1) {
+            replace_mat = TextureManager_GetMaterial(g_EditorState.replace_material_index);
+        }
+
         Char replace_button_label[128];
         sprintf(replace_button_label, "%s##Replace", replace_mat ? replace_mat->name : "None");
         if (UI_Button(replace_button_label)) {
             g_EditorState.texture_browser_target = TEXTURE_TARGET_REPLACE_WITH;
             g_EditorState.show_texture_browser = true;
+        }
+        UI_SameLine();
+        if (UI_Button("Set to Nodraw")) {
+            g_EditorState.replace_material_index = -2;
         }
         if (replace_mat) {
             UI_Image((void*)(intptr_t)replace_mat->diffuseMap, 64, 64);
@@ -847,9 +858,15 @@ void Editor_RenderReplaceTexturesUI(Scene* scene) {
         UI_Separator();
 
         if (UI_Button("Replace All in Scene")) {
-            if (g_EditorState.find_material_index != -1 && g_EditorState.replace_material_index != -1 && g_EditorState.find_material_index != g_EditorState.replace_material_index) {
+            if (g_EditorState.find_material_index != -1 && g_EditorState.replace_material_index != -1) {
                 Material* find_mat_ptr = TextureManager_GetMaterial(g_EditorState.find_material_index);
-                Material* replace_mat_ptr = TextureManager_GetMaterial(g_EditorState.replace_material_index);
+                Material* replace_mat_ptr = (g_EditorState.replace_material_index == -2) ? &g_NodrawMaterial : TextureManager_GetMaterial(g_EditorState.replace_material_index);
+
+                if (find_mat_ptr == replace_mat_ptr) {
+                    Console::Printf_Warning("Find and Replace materials are the same.");
+                    return;
+                }
+
                 Int replaced_count = 0;
 
                 for (Int i = 0; i < scene->numBrushes; ++i) {
