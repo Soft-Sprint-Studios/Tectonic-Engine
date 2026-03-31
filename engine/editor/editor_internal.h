@@ -218,7 +218,6 @@ constexpr Int MAX_RECENT_FILES = 10;
         Int cubemap_resolution_index;
         Float arch_wall_width;
         Int arch_num_sides;
-        Float autosave_timer;
         Float arch_arc_degrees;
         Float arch_start_angle_degrees;
         Float arch_add_height;

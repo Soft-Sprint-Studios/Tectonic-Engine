@@ -2322,13 +2322,4 @@ void Editor_Update(Engine* engine, Scene* scene) {
         }
     }
     for (Int i = 0; i < scene->numParticleEmitters; ++i) { ParticleEmitter_Update(&scene->particleEmitters[i], engine->deltaTime); }
-    g_EditorState.autosave_timer += engine->unscaledDeltaTime;
-    if (g_EditorState.autosave_timer >= 300.0f) {
-        if (strcmp(g_EditorState.currentMapPath, "untitled.map") != 0) {
-            Char autosave_path[256];
-            sprintf(autosave_path, "autosaves/_autosave_%s", g_EditorState.currentMapPath);
-            Scene_SaveMap(scene, nullptr, autosave_path);
-        }
-        g_EditorState.autosave_timer = 0.0f;
-    }
 }

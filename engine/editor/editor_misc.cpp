@@ -445,7 +445,6 @@ void Editor_Init(Engine* engine, Renderer* renderer, Scene* scene) {
     g_EditorState.arch_add_height = 0.0f;
     g_EditorState.show_goto_coord_window = false;
     memset(g_EditorState.goto_coord_input, 0, sizeof(g_EditorState.goto_coord_input));
-    g_EditorState.autosave_timer = 0.0f;
     g_EditorState.gizmo_drag_has_cloned = false;
     g_EditorState.show_map_info_window = false;
     g_EditorState.show_transform_window = false;
