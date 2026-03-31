@@ -318,10 +318,12 @@ void process_input() {
             }
 #endif
 #endif
+#ifndef BRANCH_NOCTURNE
             else if (event.key.keysym.sym == SDLK_f && g_current_mode == MODE_GAME && !Console::IsVisible()) {
                 g_engine->flashlight_on = !g_engine->flashlight_on;
                 Sound::SoundSystem_PlaySound(g_flashlight_sound_buffer, g_engine->camera.position, 1.0f, 1.0f, 50.0f, false);
             }
+#endif
             else {
                 if (g_current_mode == MODE_GAME && !Console::IsVisible()) {
                     if (event.key.keysym.sym == SDLK_1) {

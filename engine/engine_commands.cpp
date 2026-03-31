@@ -619,7 +619,11 @@ void init_cvars() {
     Cvar_Register("god", "0", "Enable god mode (player is invulnerable).", CVAR_CHEAT);
     Cvar_Register("gravity", "9.81", "World gravity value", CVAR_NONE);
     Cvar_Register("engine_running", "1", "Engine state (0=off, 1=on)", CVAR_HIDDEN);
+#ifdef GAME_RELEASE
+    Cvar_Register("watermark", "0", "Show engine watermark (0=off, 1=on)", CVAR_NONE);
+#else
     Cvar_Register("watermark", "1", "Show engine watermark (0=off, 1=on)", CVAR_NONE);
+#endif
     Cvar_Register("r_width", "1920", "Screen width in pixels", CVAR_NONE);
     Cvar_Register("r_height", "1080", "Screen height in pixels", CVAR_NONE);
     Cvar_Register("r_monitor", "0", "Selects which monitor the game window appears on (0 = primary).", CVAR_NONE);
