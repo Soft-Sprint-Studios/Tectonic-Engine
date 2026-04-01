@@ -90,9 +90,7 @@ uniform float heightScale2;
 uniform float heightScale3;
 uniform float heightScale4;
 uniform bool u_isParallaxEnabled;
-uniform float u_relief_max_steps;
-uniform float u_relief_min_steps;
-uniform int u_relief_refine_steps;
+uniform vec3 u_relief_steps;
 
 uniform float u_roughness_override;
 uniform float u_metalness_override;
@@ -133,10 +131,10 @@ void main()
         vec3 viewDir_tangent = normalize(transpose(TBN) * viewDir_world);
         float dist = length(FragPos_world - viewPos);
         float parallaxFadeFactor = smoothstep(PARALLAX_START_FADE_DISTANCE, PARALLAX_END_FADE_DISTANCE, dist);
-        finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
-        finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
-        finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
-        finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor, u_relief_max_steps, u_relief_min_steps, u_relief_refine_steps);
+        finalTexCoords1 = ReliefMapping(heightMap, TexCoords, heightScale, viewDir_tangent, parallaxFadeFactor, u_relief_steps.x, u_relief_steps.y, int(u_relief_steps.z));
+        finalTexCoords2 = ReliefMapping(heightMap2, TexCoords2, heightScale2, viewDir_tangent, parallaxFadeFactor, u_relief_steps.x, u_relief_steps.y, int(u_relief_steps.z));
+        finalTexCoords3 = ReliefMapping(heightMap3, TexCoords3, heightScale3, viewDir_tangent, parallaxFadeFactor, u_relief_steps.x, u_relief_steps.y, int(u_relief_steps.z));
+        finalTexCoords4 = ReliefMapping(heightMap4, TexCoords4, heightScale4, viewDir_tangent, parallaxFadeFactor, u_relief_steps.x, u_relief_steps.y, int(u_relief_steps.z));
     }
 
     vec4 texColor1 = texture(diffuseMap, finalTexCoords1);

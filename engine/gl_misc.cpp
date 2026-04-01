@@ -279,3 +279,7 @@ void Shader_Set(GLuint program, const Char* name, const Mat4* value) {
 void Shader_Set(GLuint program, const Char* name, uint64_t handle) {
     glUniformHandleui64ARB(Shader_GetUniformLocation(program, name), handle);
 }
+
+void Shader_Set(GLuint program, const Char* name, Float x, Float y, Float z) {
+    glUniform3f(Shader_GetUniformLocation(program, name), x, y, z);
+}

@@ -53,6 +53,7 @@
 	void Shader_Set(GLuint program, const Char* name, Vec4 value);
 	void Shader_Set(GLuint program, const Char* name, const Mat4* value);
 	void Shader_Set(GLuint program, const Char* name, uint64_t handle);
+	void Shader_Set(GLuint program, const Char* name, Float x, Float y, Float z);
 
 
 #endif // GL_MISC_H
