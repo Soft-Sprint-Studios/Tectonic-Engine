@@ -57,6 +57,10 @@ void Scene_Clear(Scene* scene, Engine* engine) {
                 delete[] scene->objects[i].bakedVertexDirections;
                 scene->objects[i].bakedVertexDirections = nullptr;
             }
+            if (scene->objects[i].bone_matrices) {
+                delete[] scene->objects[i].bone_matrices;
+                scene->objects[i].bone_matrices = nullptr;
+            }
             if (scene->objects[i].lightmapHandle) {
                 glMakeTextureHandleNonResidentARB(scene->objects[i].lightmapHandle);
                 glDeleteTextures(1, &scene->objects[i].lightmapTexture);
