@@ -659,3 +659,18 @@ else()
     target_link_directories(TectonicMaterialEditor PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fltk-1.4.4/lib/linux")
     target_link_libraries(TectonicMaterialEditor PRIVATE fltk fltk_gl fltk_images X11 Xext Xinerama Xft fontconfig Xrender Xfixes Xcursor dl pthread m)
 endif()
+
+add_executable(tectonic_cleanup_tool
+    tools/CleanupTool/main.cpp
+)
+
+target_compile_options(tectonic_cleanup_tool PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:/FI"${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+    $<$<C_COMPILER_ID:GNU>:-include "${CMAKE_CURRENT_SOURCE_DIR}/engine/common/compat.h">
+)
+
+target_compile_features(tectonic_cleanup_tool PRIVATE cxx_std_17)
+
+if (UNIX AND NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_libraries(tectonic_cleanup_tool PRIVATE stdc++fs)
+endif()
