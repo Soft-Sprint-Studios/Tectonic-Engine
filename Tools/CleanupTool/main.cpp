@@ -412,6 +412,10 @@ int main(int argc, char* argv[]) {
     used_asset_files.insert("fonts/Roboto-Regular.ttf");
     used_asset_files.insert("brdf_lut.png");
     used_asset_files.insert("clouds.png");
+    used_asset_files.insert("dev01.png");
+    used_asset_files.insert("dev01_normal.png");
+    used_asset_files.insert("dev02.png");
+    used_asset_files.insert("dev02_normal.png");
     used_asset_files.insert(models_dir_path + "error.glb");
     used_asset_files.insert(sounds_dir_path + "pistol_fire.mp3");
 
