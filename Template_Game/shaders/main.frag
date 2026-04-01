@@ -433,7 +433,11 @@ void main()
         }
     } 
     else if (r_debug_lightmaps_directional) {
-        finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+        if (r_lightmaps_bicubic) {
+            finalColor = texture_bicubic(directionalLightmap, TexCoordsLightmap, textureSize(lightmap, 0)).rgb;
+        } else {
+            finalColor = texture(directionalLightmap, TexCoordsLightmap).rgb;
+        }
     } 
     else if (r_debug_vertex_light) {
         if ((isBrush == 0 && v_Color.a > 0.5 && !useLightmap) || (isBrush == 1 && useVertexLighting)) {
