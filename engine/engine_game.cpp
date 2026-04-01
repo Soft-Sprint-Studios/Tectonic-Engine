@@ -973,7 +973,7 @@ void update_state() {
             g_distance_walked += sqrtf(dx * dx + dz * dz);
 
             if (g_distance_walked >= FOOTSTEP_DISTANCE) {
-                Sound::SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, 0.5f, 1.0f, 50.0f, false);
+                Sound::SoundSystem_PlaySound(g_footstep_sound_buffer, g_engine->camera.position, Cvar_GetFloat("g_footstep_volume"), 1.0f, 50.0f, false);
                 g_distance_walked = 0.0f;
             }
         }
