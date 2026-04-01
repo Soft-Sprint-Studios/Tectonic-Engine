@@ -640,7 +640,7 @@ void init_cvars() {
     Cvar_Register("r_bloom_downsample", "2", "Downsample factor for bloom (e.g., 2 = 1/4 resolution)", CVAR_NONE);
     Cvar_Register("r_volumetrics", "1", "Enable volumetric lighting (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_volumetrics_downsample", "2", "Downsample factor for volumetrics (e.g., 2 = 1/4 resolution)", CVAR_NONE);
-    Cvar_Register("r_volumetrics_steps", "1024", "Volumetric lighting number of steps", CVAR_NONE);
+    Cvar_Register("r_volumetrics_steps", "4096", "Volumetric lighting number of steps", CVAR_NONE);
     Cvar_Register("r_faceculling", "1", "Enable back-face culling (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_wireframe", "0", "Render in wireframe mode (0=off, 1=on)", CVAR_NONE);
     Cvar_Register("r_fullbright", "0", "Render scene with full brightness, ignoring lighting.", CVAR_NONE);
