@@ -661,7 +661,7 @@ else()
 endif()
 
 add_executable(tectonic_cleanup_tool
-    tools/CleanupTool/main.cpp
+    Tools/CleanupTool/main.cpp
 )
 
 target_compile_options(tectonic_cleanup_tool PRIVATE
