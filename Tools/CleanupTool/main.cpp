@@ -436,6 +436,7 @@ int main(int argc, char* argv[])
     used_assets.insert(med_dir + "menu.mpg");
     used_assets.insert(snd_dir + "flashlight01.wav");
     used_assets.insert(snd_dir + "footstep.wav");
+    used_assets.insert(snd_dir + "jump.wav");
     used_assets.insert(tex_dir + "brdf_lut.png");
     used_assets.insert(tex_dir + "clouds.png");
     used_assets.insert(tex_dir + "dev01.png");
