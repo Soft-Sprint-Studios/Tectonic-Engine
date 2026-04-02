@@ -29,211 +29,338 @@
 #include <filesystem>
 #include <algorithm>
 #include <map>
-#include <cctype>
 #include <sstream>
+#include <iomanip>
 
 namespace fs = std::filesystem;
 
-struct MaterialInfo {
+struct MaterialInfo
+{
     string diffusePath;
     string normalPath;
     string rmaPath;
     string heightPath;
 };
 
-struct WaterInfo {
+struct WaterInfo
+{
     string normalPath;
     string dudvPath;
     string flowmapPath;
 };
 
-bool string_ends_with(const std::string& str, const std::string& suffix) {
-    if (str.length() < suffix.length()) {
-        return false;
-    }
-    return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
-}
-
-string trim(const string& str) {
+string trim(const string& str)
+{
     size_t first = str.find_first_not_of(" \t\n\r");
-    if (string::npos == first) {
-        return str;
-    }
+    if (first == string::npos) return str;
+
     size_t last = str.find_last_not_of(" \t\n\r");
-    return str.substr(first, (last - first + 1));
+    return str.substr(first, last - first + 1);
 }
 
-set<string> get_all_files_in(const fs::path& dir, const vector<string>& extensions) {
-    set<string> files;
-    if (!fs::exists(dir) || !fs::is_directory(dir)) {
-        return files;
-    }
+bool string_ends_with(const string& str, const string& suffix)
+{
+    return str.length() >= suffix.length() &&
+        str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
 
-    for (const auto& entry : fs::recursive_directory_iterator(dir)) {
-        if (entry.is_regular_file()) {
-            string ext = entry.path().extension().string();
-            transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return tolower(c); });
-            for (const auto& valid_ext : extensions) {
-                if (ext == valid_ext) {
-                    string relative_path = fs::relative(entry.path(), fs::current_path()).string();
-                    replace(relative_path.begin(), relative_path.end(), '\\', '/');
-                    files.insert(relative_path);
-                    break;
-                }
+set<string> get_all_files_in(const fs::path& dir, const vector<string>& extensions)
+{
+    set<string> files;
+
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        return files;
+
+    for (const auto& entry : fs::recursive_directory_iterator(dir))
+    {
+        if (!entry.is_regular_file())
+            continue;
+
+        string ext = entry.path().extension().string();
+        transform(ext.begin(), ext.end(), ext.begin(),
+            [](unsigned char c) { return tolower(c); });
+
+        for (const auto& valid_ext : extensions)
+        {
+            if (ext == valid_ext)
+            {
+                string rel = fs::relative(entry.path(), fs::current_path()).string();
+                replace(rel.begin(), rel.end(), '\\', '/');
+                files.insert(rel);
+                break;
             }
         }
     }
+
     return files;
 }
 
-map<string, MaterialInfo> parse_materials_def(const string& path) {
+map<string, MaterialInfo> parse_materials_def(const string& path)
+{
     map<string, MaterialInfo> materials;
     ifstream file(path);
-    if (!file.is_open()) return materials;
 
     string line;
-    MaterialInfo current_material;
     string current_name;
-    bool in_material = false;
+    MaterialInfo current_mat;
+    bool in_block = false;
 
-    while (getline(file, line)) {
+    while (getline(file, line))
+    {
         line = trim(line);
-        if (line.empty() || line.rfind("//", 0) == 0 || line.rfind("#", 0) == 0) continue;
 
-        if (line[0] == '"') {
-            if (!current_name.empty()) materials[current_name] = current_material;
+        if (line.empty() || line[0] == '/' || line[0] == '#')
+            continue;
+
+        if (line[0] == '"')
+        {
             current_name = line.substr(1, line.find('"', 1) - 1);
-            current_material = {};
+            current_mat = {};
         }
-        else if (line == "{") {
-            in_material = true;
+        else if (line == "{")
+        {
+            in_block = true;
         }
-        else if (line == "}") {
-            if (!current_name.empty()) materials[current_name] = current_material;
-            in_material = false;
-            current_name = "";
+        else if (line == "}")
+        {
+            materials[current_name] = current_mat;
+            in_block = false;
         }
-        else if (in_material) {
+        else if (in_block)
+        {
             stringstream ss(line);
-            string key, eq, value;
-            ss >> key >> eq >> value;
-            value = trim(value);
-            if (value.front() == '"' && value.back() == '"') value = value.substr(1, value.length() - 2);
+            string key, eq, val;
 
-            if (key == "diffuse") current_material.diffusePath = value;
-            else if (key == "normal") current_material.normalPath = value;
-            else if (key == "arm") current_material.rmaPath = value;
-            else if (key == "height") current_material.heightPath = value;
+            ss >> key >> eq >> quoted(val);
+
+            if (key == "diffuse") current_mat.diffusePath = val;
+            else if (key == "normal") current_mat.normalPath = val;
+            else if (key == "arm") current_mat.rmaPath = val;
+            else if (key == "height") current_mat.heightPath = val;
         }
     }
-    if (!current_name.empty()) materials[current_name] = current_material;
+
     return materials;
 }
 
-map<string, WaterInfo> parse_waters_def(const string& path) {
+map<string, WaterInfo> parse_waters_def(const string& path)
+{
     map<string, WaterInfo> waters;
     ifstream file(path);
-    if (!file.is_open()) return waters;
 
     string line;
-    WaterInfo current_water;
     string current_name;
-    bool in_water_def = false;
+    WaterInfo current_water;
+    bool in_block = false;
 
-    while (getline(file, line)) {
+    while (getline(file, line))
+    {
         line = trim(line);
-        if (line.empty() || line.rfind("//", 0) == 0 || line.rfind("#", 0) == 0) continue;
 
-        if (line[0] == '"') {
-            if (!current_name.empty()) waters[current_name] = current_water;
+        if (line.empty() || line[0] == '/' || line[0] == '#')
+            continue;
+
+        if (line[0] == '"')
+        {
             current_name = line.substr(1, line.find('"', 1) - 1);
             current_water = {};
         }
-        else if (line == "{") {
-            in_water_def = true;
+        else if (line == "{")
+        {
+            in_block = true;
         }
-        else if (line == "}") {
-            if (!current_name.empty()) waters[current_name] = current_water;
-            in_water_def = false;
-            current_name = "";
+        else if (line == "}")
+        {
+            waters[current_name] = current_water;
+            in_block = false;
         }
-        else if (in_water_def) {
+        else if (in_block)
+        {
             stringstream ss(line);
-            string key, eq, value;
-            ss >> key >> eq >> value;
-            value = trim(value);
-            if (value.front() == '"' && value.back() == '"') value = value.substr(1, value.length() - 2);
+            string key, eq, val;
 
-            if (key == "normal") current_water.normalPath = value;
-            else if (key == "dudv") current_water.dudvPath = value;
-            else if (key == "flowmap") current_water.flowmapPath = value;
+            ss >> key >> eq >> quoted(val);
+
+            if (key == "normal") current_water.normalPath = val;
+            else if (key == "dudv") current_water.dudvPath = val;
+            else if (key == "flowmap") current_water.flowmapPath = val;
         }
     }
-    if (!current_name.empty()) waters[current_name] = current_water;
+
     return waters;
 }
 
-map<string, string> parse_particle_files(const string& dir_path) {
-    map<string, string> particle_materials;
-    if (!fs::exists(dir_path)) return particle_materials;
-
-    for (const auto& entry : fs::directory_iterator(dir_path)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".par") {
-            ifstream file(entry.path());
-            string line;
-            while (getline(file, line)) {
-                stringstream ss(line);
-                string key, value;
-                ss >> key >> value;
-                if (key == "texture") {
-                    string relative_texture_path = "textures/" + value;
-                    particle_materials[entry.path().string()] = relative_texture_path;
-                    break;
-                }
-            }
-        }
-    }
-    return particle_materials;
-}
-
-void rewrite_materials_def(const string& path, const map<string, MaterialInfo>& all_materials, const set<string>& used_materials) {
-    ifstream in(path);
-    if (!in.is_open()) return;
-
-    ofstream out("materials_temp.def");
-    if (!out.is_open()) return;
+void parse_map_file(
+    const fs::path& path,
+    set<string>& used_files,
+    set<string>& used_mats,
+    set<string>& used_waters)
+{
+    ifstream file(path);
+    if (!file.is_open())
+        return;
 
     string line;
-    string current_name;
-    vector<string> block_lines;
-    bool in_block = false;
+    bool in_props = false;
 
-    while (getline(in, line)) {
-        string trimmed = trim(line);
+    while (getline(file, line))
+    {
+        line = trim(line);
+        if (line.empty())
+            continue;
 
-        if (!in_block && !trimmed.empty() && trimmed[0] == '"') {
-            current_name = trimmed.substr(1, trimmed.find('"', 1) - 1);
-            block_lines.clear();
-            block_lines.push_back(line);
-            in_block = true;
+        stringstream ss(line);
+        string key;
+        ss >> key;
+
+        if (key == "properties")
+        {
+            in_props = true;
             continue;
         }
 
-        if (in_block) {
-            block_lines.push_back(line);
+        if (key == "}")
+        {
+            in_props = false;
+            continue;
+        }
 
-            if (trimmed == "}") {
-                if (used_materials.count(current_name)) {
-                    for (const auto& l : block_lines) {
-                        out << l << "\n";
-                    }
-                }
-                in_block = false;
-                current_name.clear();
-                block_lines.clear();
+        if (in_props)
+        {
+            string p_key, p_val;
+            stringstream pss(line);
+
+            if (pss >> quoted(p_key) >> quoted(p_val))
+            {
+                if (p_key == "water_def")
+                    used_waters.insert(p_val);
+                else if (p_key == "normal_map" ||
+                    p_key == "texture" ||
+                    p_key == "material")
+                    used_mats.insert(p_val);
+            }
+            continue;
+        }
+
+        if (key == "f")
+        {
+            vector<string> tokens;
+            string tok;
+
+            while (ss >> tok)
+                tokens.push_back(tok);
+
+            for (size_t i = 1; i < tokens.size() && i <= 4; i++)
+            {
+                string s = tokens[i];
+
+                if (s.empty() ||
+                    s == "null" ||
+                    s == "___MISSING___" ||
+                    s == "nodraw")
+                    continue;
+
+                if (s.front() == '"')
+                    s = s.substr(1, s.length() - 2);
+
+                used_mats.insert(s);
             }
         }
-        else {
+        else if (key == "gltf_model")
+        {
+            string m;
+            ss >> quoted(m);
+            used_files.insert(m);
+        }
+        else if (key == "decal" || key == "env_overlay" || key == "sprite")
+        {
+            string m;
+            ss >> quoted(m);
+            used_mats.insert(m);
+        }
+        else if (key == "skybox")
+        {
+            int i;
+            string n;
+
+            ss >> i >> quoted(n);
+
+            const char* s[] = {
+                "_px.png","_nx.png","_py.png",
+                "_ny.png","_pz.png","_nz.png"
+            };
+
+            for (auto x : s)
+                used_files.insert("skybox/" + n + x);
+        }
+        else if (key == "sound_entity")
+        {
+            string n, p;
+            ss >> quoted(n) >> quoted(p);
+            used_files.insert(p);
+        }
+        else if (key == "particle_emitter")
+        {
+            string p, n;
+            ss >> quoted(p) >> quoted(n);
+            used_files.insert(p);
+        }
+        else if (key == "parallax_room")
+        {
+            string b, n;
+            ss >> quoted(b) >> quoted(n);
+
+            const char* s[] = {
+                "_px.png","_nx.png","_py.png",
+                "_ny.png","_pz.png","_nz.png"
+            };
+
+            for (auto x : s)
+                used_files.insert(b + x);
+        }
+    }
+}
+
+void rewrite_materials_def(
+    const string& path,
+    const map<string, MaterialInfo>& all,
+    const set<string>& used)
+{
+    ifstream in(path);
+    ofstream out("materials_temp.def");
+
+    string line;
+    string current_name;
+    vector<string> block;
+    bool in_block = false;
+
+    while (getline(in, line))
+    {
+        string t = trim(line);
+
+        if (!in_block && !t.empty() && t[0] == '"')
+        {
+            current_name = t.substr(1, t.find('"', 1) - 1);
+            block = { line };
+            in_block = true;
+        }
+        else if (in_block)
+        {
+            block.push_back(line);
+
+            if (t == "}")
+            {
+                if (used.count(current_name))
+                {
+                    for (auto& l : block)
+                        out << l << "\n";
+                }
+
+                in_block = false;
+            }
+        }
+        else
+        {
             out << line << "\n";
         }
     }
@@ -245,236 +372,121 @@ void rewrite_materials_def(const string& path, const map<string, MaterialInfo>& 
     fs::rename("materials_temp.def", path);
 }
 
-void parse_map_file(const fs::path& path, set<string>& used_files, set<string>& used_materials, set<string>& used_water_defs) {
-    ifstream file(path);
-    if (!file.is_open()) return;
+int main(int argc, char* argv[])
+{
+    bool del = (argc > 1 && string(argv[1]) == "--delete");
 
-    bool in_brush_block = false;
-    bool in_brush_props_block = false;
-    string current_brush_classname;
+    ofstream log("cleanup.log");
 
-    string line;
-    while (getline(file, line)) {
-        line = trim(line);
-        stringstream ss(line);
-        string keyword;
-        ss >> keyword;
-
-        if (keyword == "brush_begin") { in_brush_block = true; current_brush_classname = ""; continue; }
-        if (keyword == "brush_end") { in_brush_block = false; in_brush_props_block = false; continue; }
-
-        if (in_brush_block) {
-            if (keyword == "classname") { ss >> current_brush_classname; current_brush_classname = current_brush_classname.substr(1, current_brush_classname.length() - 2); continue; }
-            if (keyword == "properties") { in_brush_props_block = true; continue; }
-            if (in_brush_props_block && keyword == "}") { in_brush_props_block = false; continue; }
-
-            if (in_brush_props_block && current_brush_classname == "func_water") {
-                if (line.find("\"water_def\"") != string::npos) {
-                    string key_part, val_part;
-                    stringstream prop_ss(line);
-                    prop_ss >> key_part >> val_part;
-                    val_part = val_part.substr(1, val_part.length() - 2);
-                    used_water_defs.insert(val_part);
-                }
-            }
-        }
-
-        if (keyword == "gltf_model") {
-            string model_path; ss >> model_path; used_files.insert(model_path);
-        }
-        else if (keyword == "decal" || keyword == "env_overlay" || keyword == "sprite") {
-            string material_name; ss >> material_name; material_name = material_name.substr(1, material_name.length() - 2); used_materials.insert(material_name);
-        }
-        else if (keyword == "f") {
-            size_t first_quote = line.find('"');
-            if (first_quote != string::npos) {
-                size_t current_pos = first_quote;
-                for (int i = 0; i < 4; ++i) {
-                    current_pos = line.find('"', current_pos);
-                    if (current_pos == string::npos) break;
-                    size_t next_quote = line.find('"', current_pos + 1);
-                    if (next_quote == string::npos) break;
-                    string mat_name = line.substr(current_pos + 1, next_quote - (current_pos + 1));
-                    if (mat_name != "null" && mat_name != "___MISSING___") {
-                        used_materials.insert(mat_name);
-                    }
-                    current_pos = next_quote + 1;
-                }
-            }
-        }
-        else if (keyword == "skybox") {
-            int dummy; string skybox_name; ss >> dummy; ss >> skybox_name; skybox_name = skybox_name.substr(1, skybox_name.length() - 2);
-            const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-            for (const auto& suffix : suffixes) { used_files.insert("skybox/" + skybox_name + suffix); }
-        }
-        else if (keyword == "sound_entity") {
-            string name_quoted, sound_path_quoted; ss >> quoted(name_quoted) >> quoted(sound_path_quoted); used_files.insert(sound_path_quoted);
-        }
-        else if (keyword == "particle_emitter") {
-            string par_file_quoted, name_quoted; ss >> quoted(par_file_quoted) >> quoted(name_quoted); used_files.insert(par_file_quoted);
-        }
-        else if (keyword == "video_player") {
-            string video_path_quoted, name_quoted; ss >> quoted(video_path_quoted) >> quoted(name_quoted); used_files.insert(video_path_quoted);
-        }
-        else if (keyword == "parallax_room") {
-            string cubemap_path_base_quoted, name_quoted; ss >> quoted(cubemap_path_base_quoted) >> quoted(name_quoted);
-            const char* suffixes[] = { "_px.png", "_nx.png", "_py.png", "_ny.png", "_pz.png", "_nz.png" };
-            for (const auto& suffix : suffixes) { used_files.insert(cubemap_path_base_quoted + suffix); }
-        }
-        else if (keyword == "color_correction") {
-            int dummy; string lut_path_quoted; ss >> dummy >> quoted(lut_path_quoted);
-            if (!lut_path_quoted.empty() && lut_path_quoted != "null") {
-                used_files.insert("textures/" + lut_path_quoted);
-            }
-        }
-    }
-}
-
-int main(int argc, char* argv[]) {
-    bool perform_delete = false;
-    if (argc > 1 && string(argv[1]) == "--delete") {
-        cout << "!!! DELETE MODE ENABLED. Unused files will be permanently removed. !!!" << endl;
-        perform_delete = true;
+    if (!del)
+    {
+        cout << "Run with --delete to actually remove unused files.\n";
+        log << "Dry run. Use --delete to remove unused files.\n";
     }
 
-    ofstream log_file("cleanup_log.txt");
+    string tex_dir = "textures/";
+    string mod_dir = "models/";
+    string snd_dir = "sounds/";
+    string part_dir = "particles/";
+    string med_dir = "media/";
+    string sky_dir = "skybox/";
 
-    cout << "--- Tectonic Engine Cleanup Tool ---" << endl;
-    log_file << "--- Tectonic Engine Cleanup Tool ---" << endl;
+    auto all_mats = parse_materials_def("materials.def");
+    auto all_waters = parse_waters_def("waters.def");
 
-    string materials_def_path = "materials.def";
-    string waters_def_path = "waters.def";
-    string particle_dir_path = "particles/";
-    string maps_dir_path = "maps/";
-    string textures_dir_path = "textures/";
-    string models_dir_path = "models/";
-    string sounds_dir_path = "sounds/";
-    string media_dir_path = "media/";
-    string skybox_dir_path = "skybox/";
-
-    auto all_materials = parse_materials_def(materials_def_path);
-    auto all_waters = parse_waters_def(waters_def_path);
-    auto all_particle_defs = parse_particle_files(particle_dir_path);
-
-    set<string> used_asset_files;
-    set<string> used_material_names;
+    set<string> used_assets;
+    set<string> used_mat_names;
     set<string> used_water_defs;
 
-    cout << "Scanning map in " << maps_dir_path << "..." << endl;
-    log_file << "Scanning map in " << maps_dir_path << "..." << endl;
-
-    if (fs::exists(maps_dir_path)) {
-        for (const auto& entry : fs::recursive_directory_iterator(maps_dir_path)) {
-            if (entry.is_regular_file() && (entry.path().extension() == ".map" || entry.path().extension() == ".sav")) {
-                cout << "  - " << entry.path().string() << endl;
-                log_file << "  - " << entry.path().string() << endl;
-                parse_map_file(entry.path(), used_asset_files, used_material_names, used_water_defs);
+    if (fs::exists("maps/"))
+    {
+        for (auto& e : fs::recursive_directory_iterator("maps/"))
+        {
+            if (e.path().extension() == ".map" ||
+                e.path().extension() == ".sav")
+            {
+                parse_map_file(
+                    e.path(),
+                    used_assets,
+                    used_mat_names,
+                    used_water_defs);
             }
         }
     }
 
-    cout << "Resolving used assets..." << endl;
-    log_file << "Resolving used assets..." << endl;
+    for (auto& m : used_mat_names)
+    {
+        if (all_mats.count(m))
+        {
+            auto& i = all_mats[m];
 
-    for (const auto& file_path : used_asset_files) {
-        if (string_ends_with(file_path, ".par")) {
-            if (all_particle_defs.count(file_path)) {
-                used_material_names.insert(all_particle_defs[file_path]);
+            if (!i.diffusePath.empty()) used_assets.insert(tex_dir + i.diffusePath);
+            if (!i.normalPath.empty())  used_assets.insert(tex_dir + i.normalPath);
+            if (!i.rmaPath.empty())     used_assets.insert(tex_dir + i.rmaPath);
+            if (!i.heightPath.empty())  used_assets.insert(tex_dir + i.heightPath);
+        }
+    }
+
+    for (auto& w : used_water_defs)
+    {
+        if (all_waters.count(w))
+        {
+            auto& i = all_waters[w];
+
+            if (!i.normalPath.empty()) used_assets.insert(tex_dir + i.normalPath);
+            if (!i.dudvPath.empty())   used_assets.insert(tex_dir + i.dudvPath);
+            if (!i.flowmapPath.empty())used_assets.insert(tex_dir + i.flowmapPath);
+        }
+    }
+
+    used_assets.insert(med_dir + "cursor.png");
+    used_assets.insert(med_dir + "menu.mpg");
+    used_assets.insert(snd_dir + "flashlight01.wav");
+    used_assets.insert(snd_dir + "footstep.wav");
+    used_assets.insert(tex_dir + "brdf_lut.png");
+    used_assets.insert(tex_dir + "clouds.png");
+    used_assets.insert(tex_dir + "dev01.png");
+    used_assets.insert(tex_dir + "dev01_normal.png");
+    used_assets.insert(tex_dir + "dev02.png");
+    used_assets.insert(tex_dir + "dev02_normal.png");
+    used_assets.insert(mod_dir + "error.glb");
+
+    auto disk_tex = get_all_files_in(tex_dir, { ".png",".jpg",".tga" });
+    auto disk_mod = get_all_files_in(mod_dir, { ".gltf",".glb" });
+    auto disk_snd = get_all_files_in(snd_dir, { ".wav",".mp3" });
+    auto disk_sky = get_all_files_in(sky_dir, { ".png" });
+
+    vector<fs::path> unused;
+
+    auto check_unused = [&](set<string>& disk)
+        {
+            for (auto& f : disk)
+            {
+                if (!used_assets.count(f))
+                    unused.push_back(f);
             }
-        }
+        };
+
+    check_unused(disk_tex);
+    check_unused(disk_mod);
+    check_unused(disk_snd);
+    check_unused(disk_sky);
+
+    for (auto& p : unused)
+    {
+        cout << "Unused: " << p.string() << "\n";
+        log << "Unused: " << p.string() << "\n";
+
+        if (del)
+            fs::remove(p);
     }
 
-    for (const auto& mat_name : used_material_names) {
-        if (all_materials.count(mat_name)) {
-            const auto& mat_info = all_materials[mat_name];
-            if (!mat_info.diffusePath.empty()) used_asset_files.insert(textures_dir_path + mat_info.diffusePath);
-            if (!mat_info.normalPath.empty()) used_asset_files.insert(textures_dir_path + mat_info.normalPath);
-            if (!mat_info.rmaPath.empty()) used_asset_files.insert(textures_dir_path + mat_info.rmaPath);
-            if (!mat_info.heightPath.empty()) used_asset_files.insert(textures_dir_path + mat_info.heightPath);
-        }
+    if (del)
+    {
+        rewrite_materials_def("materials.def", all_mats, used_mat_names);
+        log << "Deleted unused assets.\n";
     }
 
-    for (const auto& water_name : used_water_defs) {
-        if (all_waters.count(water_name)) {
-            const auto& water_info = all_waters[water_name];
-            if (!water_info.normalPath.empty()) used_asset_files.insert(textures_dir_path + water_info.normalPath);
-            if (!water_info.dudvPath.empty()) used_asset_files.insert(textures_dir_path + water_info.dudvPath);
-            if (!water_info.flowmapPath.empty()) used_asset_files.insert(textures_dir_path + water_info.flowmapPath);
-        }
-    }
-
-    used_asset_files.insert(media_dir_path + "cursor.png");
-    used_asset_files.insert(sounds_dir_path + "flashlight01.wav");
-    used_asset_files.insert(sounds_dir_path + "footstep.wav");
-    used_asset_files.insert(sounds_dir_path + "jump.wav");
-    used_asset_files.insert(sounds_dir_path + "geiger_tick.wav");
-    used_asset_files.insert(media_dir_path + "menu.mpg");
-    used_asset_files.insert("fonts/Roboto-Regular.ttf");
-    used_asset_files.insert("brdf_lut.png");
-    used_asset_files.insert("clouds.png");
-    used_asset_files.insert("dev01.png");
-    used_asset_files.insert("dev01_normal.png");
-    used_asset_files.insert("dev02.png");
-    used_asset_files.insert("dev02_normal.png");
-    used_asset_files.insert(models_dir_path + "error.glb");
-    used_asset_files.insert(sounds_dir_path + "pistol_fire.mp3");
-
-    cout << "Scanning asset directories..." << endl;
-    log_file << "Scanning asset directories..." << endl;
-
-    auto disk_textures = get_all_files_in(textures_dir_path, { ".png", ".jpg", ".tga" });
-    auto disk_models = get_all_files_in(models_dir_path, { ".gltf", ".glb" });
-    auto disk_sounds = get_all_files_in(sounds_dir_path, { ".wav", ".mp3" });
-    auto disk_particles = get_all_files_in(particle_dir_path, { ".par" });
-    auto disk_videos = get_all_files_in(media_dir_path, { ".mpg" });
-    auto disk_skybox = get_all_files_in(skybox_dir_path, { ".png" });
-
-    cout << "\n--- Analysis Complete ---" << endl;
-    log_file << "--- Analysis Complete ---" << endl;
-
-    vector<fs::path> unused_files;
-
-    for (const auto& file : disk_textures) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-    for (const auto& file : disk_models) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-    for (const auto& file : disk_sounds) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-    for (const auto& file : disk_particles) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-    for (const auto& file : disk_videos) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-    for (const auto& file : disk_skybox) if (used_asset_files.find(file) == used_asset_files.end()) unused_files.push_back(file);
-
-    if (unused_files.empty()) {
-        cout << "No unused assets found. Your project is clean!" << endl;
-        log_file << "No unused assets found." << endl;
-    }
-    else {
-        cout << "Found " << unused_files.size() << " unused asset files:" << endl;
-        log_file << "Found " << unused_files.size() << " unused asset files:" << endl;
-
-        for (const auto& path : unused_files) {
-            cout << "  - " << path.string() << endl;
-            log_file << "  - " << path.string() << endl;
-
-            if (perform_delete) {
-                try {
-                    fs::remove(path);
-                    log_file << "Deleted: " << path.string() << endl;
-                }
-                catch (const fs::filesystem_error& e) {
-                    cerr << "    Error deleting file: " << e.what() << endl;
-                    log_file << "Error deleting: " << path.string() << " | " << e.what() << endl;
-                }
-            }
-        }
-
-        if (perform_delete) {
-            rewrite_materials_def(materials_def_path, all_materials, used_material_names);
-            cout << "\n" << unused_files.size() << " unused files have been processed for deletion." << endl;
-            log_file << unused_files.size() << " unused files deleted." << endl;
-        }
-        else {
-            cout << "\nTo delete these files, run with the --delete flag." << endl;
-            log_file << "Run with --delete to remove unused files." << endl;
-        }
-    }
-
+    log.close();
     return 0;
 }
