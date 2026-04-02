@@ -190,11 +190,7 @@ map<string, WaterInfo> parse_waters_def(const string& path)
     return waters;
 }
 
-void parse_map_file(
-    const fs::path& path,
-    set<string>& used_files,
-    set<string>& used_mats,
-    set<string>& used_waters)
+void parse_map_file(const fs::path& path, set<string>& used_files, set<string>& used_mats, set<string>& used_waters)
 {
     ifstream file(path);
     if (!file.is_open())
@@ -321,10 +317,7 @@ void parse_map_file(
     }
 }
 
-void rewrite_materials_def(
-    const string& path,
-    const map<string, MaterialInfo>& all,
-    const set<string>& used)
+void rewrite_materials_def(const string& path, const map<string, MaterialInfo>& all, const set<string>& used)
 {
     ifstream in(path);
     ofstream out("materials_temp.def");
