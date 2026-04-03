@@ -136,6 +136,18 @@ void Cmd_UnbindAll(Int argc, Char** argv) {
 
 void Cmd_Map(Int argc, Char** argv) {
     if (argc == 2) {
+#ifdef BRANCH_NOCTURNE
+        // HACK TO SHIP: write map name to a file and force engine restart
+        // to clear memory leak.
+        FILE* f = fopen("next_map.tmp", "w");
+        if (f) {
+            fprintf(f, "%s", argv[1]);
+            fclose(f);
+        }
+        g_restart_requested = true;
+        Cvar_EngineSet("engine_running", "0");
+        Console::Printf("Restarting engine to load: %s", argv[1]);
+#else
         g_current_mode = MODE_MAINMENU;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         Char map_path[256];
@@ -153,12 +165,12 @@ void Cmd_Map(Int argc, Char** argv) {
         else {
             Console::Printf_Error("Failed to load map: %s", map_path);
         }
+        LoadingScreen_Hide();
+#endif
     }
     else {
         Console::Printf("Usage: map <mapname>");
     }
-
-    LoadingScreen_Hide();
 }
 
 void Cmd_Maps(Int argc, Char** argv) {
@@ -709,9 +721,9 @@ void init_cvars() {
     Cvar_Register("g_crouch_height", "1.37", "Player height when crouching", CVAR_NONE);
     Cvar_Register("g_player_height", "1.83", "Player height", CVAR_NONE);
 #ifdef BRANCH_NOCTURNE
-    Cvar_Register("g_sprint_enable", "0.0", "Enable sprintin", CVAR_NONE);
+    Cvar_Register("g_sprint_enable", "0.0", "Enable sprinting", CVAR_NONE);
 #else
-    Cvar_Register("g_sprint_enable", "1.0", "Enable sprintin", CVAR_NONE);
+    Cvar_Register("g_sprint_enable", "1.0", "Enable sprinting", CVAR_NONE);
 #endif
     Cvar_Register("g_sprint_fov", "10.0", "Additional FOV added when sprinting", CVAR_NONE);
     Cvar_Register("g_sprint_fov_speed", "5.0", "Speed of FOV interpolation", CVAR_NONE);

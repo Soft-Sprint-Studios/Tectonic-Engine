@@ -195,10 +195,10 @@ void init_engine(SDL_Window* window, SDL_GLContext context) {
     TextureManager_ParseMaterialsFromFile("materials.def");
     Renderer_Init(&g_renderer, g_engine);
     Sound::DSP_Reverb_Thread_Init();
-    init_scene();
     Discord_Init();
     Weapons_Init();
     g_current_mode = MODE_MAINMENU;
+    init_scene();
     if (!MainMenu_Init(g_engine->width, g_engine->height)) {
         Console::Printf_Error("Failed to initialize Main Menu.");
         g_engine->running = false;
@@ -243,10 +243,38 @@ void init_scene() {
     const GameConfig* config = GameConfig_Get();
     g_engine->camera.health = 100.0f;
     Char map_to_load[256] = { 0 };
+    Bool overriden = false;
+#ifdef BRANCH_NOCTURNE
+    FILE* f = fopen("next_map.tmp", "r");
+    if (f) {
+        Char nextMapName[128] = { 0 };
+        if (fgets(nextMapName, sizeof(nextMapName), f)) {
+            nextMapName[strcspn(nextMapName, "\r\n")] = 0;
+            if (strlen(nextMapName) > 0) {
+                snprintf(map_to_load, sizeof(map_to_load), "maps/%s.map", nextMapName);
+                overriden = true;
+            }
+        }
+        fclose(f);
+        _unlink("next_map.tmp");
+    }
+
+    if (overriden) {
+        if (Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine)) {
+            g_current_mode = MODE_GAME;
+            g_pending_mode_transition = TRANSITION_NONE;
+        }
+    }
+    else if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
+        snprintf(map_to_load, sizeof(map_to_load), "maps/%s", config->startmap);
+        Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine);
+    }
+#else
     if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
         snprintf(map_to_load, sizeof(map_to_load), "maps/%s", config->startmap);
         Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine);
     }
+#endif
     strncpy(g_scene.mapPath, map_to_load, sizeof(g_scene.mapPath) - 1);
     g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
     g_last_player_pos = g_scene.playerStart.pos;
@@ -716,6 +744,12 @@ ENGINE_API EngineReturn Engine_Main(Int argc, Char* argv[]) {
 
     if (g_dev_mode_requested) 
         Cvar_Set("developer", "1");
+
+#ifdef BRANCH_NOCTURNE
+    if (g_current_mode == MODE_GAME) {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
+#endif
 
     Engine_RunLoop(window);
 
