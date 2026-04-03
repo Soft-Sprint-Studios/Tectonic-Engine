@@ -103,6 +103,7 @@
 #ifdef PLATFORM_LINUX
     #define _stricmp strcasecmp
     #define _strnicmp strncasecmp
+    #define _unlink unlink
     #define _mkdir(path) mkdir(path, 0755)
 #endif
 
