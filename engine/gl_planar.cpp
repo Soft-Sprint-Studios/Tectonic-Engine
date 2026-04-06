@@ -30,16 +30,6 @@
 #include "water_manager.h"
 #include "io_system.h"
 
-#ifdef BRANCH_NOCTURNE
-// hack alert
-static Bool NoSkyReflectionMap(const Char* map) {
-    return _stricmp(map, "maps/level1.map") == 0 ||
-        _stricmp(map, "maps/level2.map") == 0 ||
-        _stricmp(map, "maps/level3.map") == 0 ||
-        _stricmp(map, "maps/level4.map") == 0;
-}
-#endif
-
 void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, Mat4* view, Mat4* projection, const Mat4* sunLightSpaceMatrix, Camera* camera) {
     static Int frameCounter = 0;
     frameCounter++;
@@ -105,14 +95,7 @@ void Planar_RenderReflections(Renderer* renderer, Scene* scene, Engine* engine, 
     glBindFramebuffer(GL_FRAMEBUFFER, renderer->reflectionFBO);
     glViewport(0, 0, reflection_width, reflection_height);
 
-#ifdef BRANCH_NOCTURNE
-    // hacky fix to prevent glitches in level1,level2,level3,level4.map
-    if (!NoSkyReflectionMap(scene->mapPath)) {
-        Skybox_Render(renderer, scene, engine, &reflection_view, projection);
-    }
-#else
     Skybox_Render(renderer, scene, engine, &reflection_view, projection);
-#endif
 
     glDisable(GL_CLIP_DISTANCE0);
     glUseProgram(renderer->mainShader);

@@ -142,7 +142,6 @@ private:
     Float m_lastFireTime;
 };
 
-#ifndef BRANCH_NOCTURNE
 static WeaponSystem g_weaponSystem;
 
 void Weapons_Init(void) {
@@ -172,12 +171,3 @@ void Weapons_SwitchPrev(void) {
 void Weapons_TryFire(Engine* engine, Scene* scene) {
     g_weaponSystem.TryFire(engine, scene);
 }
-#else
-void Weapons_Init(void) {}
-void Weapons_Shutdown(void) {}
-void Weapons_Update(Float deltaTime) {}
-void Weapons_Switch(WeaponType newWeapon) {}
-void Weapons_SwitchNext(void) {}
-void Weapons_SwitchPrev(void) {}
-void Weapons_TryFire(Engine* engine, Scene* scene) {}
-#endif
