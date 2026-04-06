@@ -36,10 +36,13 @@
 
 //#define GAME_RELEASE 1
 
-#define BRANCH_PUBLIC
+//#define BRANCH_PUBLIC
+#define BRANCH_NOCTURNE
 
 #if defined(BRANCH_PUBLIC)
     #define BRANCH_NAME "PUBLIC"
+#elif defined(BRANCH_NOCTURNE)
+    #define BRANCH_NAME "Nocturne Descent"
 #else
     #define BRANCH_NAME "???"
 #endif

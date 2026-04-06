@@ -136,6 +136,7 @@ void Cmd_UnbindAll(Int argc, Char** argv) {
 
 void Cmd_Map(Int argc, Char** argv) {
     if (argc == 2) {
+#ifdef BRANCH_NOCTURNE
         // HACK TO SHIP: write map name to a file and force engine restart
         // to clear memory leak.
         FILE* f = fopen("next_map.tmp", "w");
@@ -146,6 +147,26 @@ void Cmd_Map(Int argc, Char** argv) {
         g_restart_requested = true;
         Cvar_EngineSet("engine_running", "0");
         Console::Printf("Restarting engine to load: %s", argv[1]);
+#else
+        g_current_mode = MODE_MAINMENU;
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        Char map_path[256];
+        snprintf(map_path, sizeof(map_path), "maps/%s.map", argv[1]);
+        Console::Printf("Loading map: %s", map_path);
+
+        LoadingScreen_Show(argv[1]);
+        LoadingScreen_Render();
+        SDL_GL_SwapWindow(g_engine->window);
+
+        if (Scene_LoadMap(&g_scene, &g_renderer, map_path, g_engine)) {
+            g_current_mode = MODE_GAME;
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
+        else {
+            Console::Printf_Error("Failed to load map: %s", map_path);
+        }
+        LoadingScreen_Hide();
+#endif
     }
     else {
         Console::Printf("Usage: map <mapname>");
