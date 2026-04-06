@@ -244,7 +244,6 @@ void init_scene() {
     g_engine->camera.health = 100.0f;
     Char map_to_load[256] = { 0 };
     Bool overriden = false;
-#ifdef BRANCH_NOCTURNE
     FILE* f = fopen("next_map.tmp", "r");
     if (f) {
         Char nextMapName[128] = { 0 };
@@ -269,12 +268,6 @@ void init_scene() {
         snprintf(map_to_load, sizeof(map_to_load), "maps/%s", config->startmap);
         Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine);
     }
-#else
-    if (strlen(config->startmap) > 0 && strcmp(config->startmap, "none") != 0) {
-        snprintf(map_to_load, sizeof(map_to_load), "maps/%s", config->startmap);
-        Scene_LoadMap(&g_scene, &g_renderer, map_to_load, g_engine);
-    }
-#endif
     strncpy(g_scene.mapPath, map_to_load, sizeof(g_scene.mapPath) - 1);
     g_scene.mapPath[sizeof(g_scene.mapPath) - 1] = '\0';
     g_last_player_pos = g_scene.playerStart.pos;
@@ -400,11 +393,7 @@ static SDL_Window* Engine_CreateWindow() {
         if (_stricmp(g_argv_stored[i], "-h") == 0 && i + 1 < g_argc_stored) g_startup_height = atoi(g_argv_stored[++i]);
     }
 
-#ifdef BRANCH_NOCTURNE
     return SDL_CreateWindow("Nocturne Descent", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
-#else
-    return SDL_CreateWindow("Tectonic Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_startup_width, g_startup_height, window_flags);
-#endif
 }
 
 static SDL_GLContext Engine_CreateContext(SDL_Window* window) {
@@ -745,11 +734,9 @@ ENGINE_API EngineReturn Engine_Main(Int argc, Char* argv[]) {
     if (g_dev_mode_requested) 
         Cvar_Set("developer", "1");
 
-#ifdef BRANCH_NOCTURNE
     if (g_current_mode == MODE_GAME) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }
-#endif
 
     Engine_RunLoop(window);
 
