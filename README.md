@@ -1,3 +1,6 @@
+# Notice
+End of support is arriving 1st May 2026, Please consider looking into Tectonic 2  (https://github.com/Soft-Sprint-Studios/Tectonic-Engine-2)
+
 # Tectonic Engine
 A modern, feature-rich 3D game engine written in C++, inspired by classic FPS engines.
 
